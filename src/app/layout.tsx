@@ -33,6 +33,7 @@ export default function RootLayout({
           crossOrigin="anonymous"
           href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"
         />
+        <script src="https://cdn.portone.io/v2/browser-sdk.js" async />
       </head>
       <body
         className={`${inter.variable} ${cormorant.variable} antialiased`}

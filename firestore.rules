@@ -1,0 +1,10 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Subscriptions: only accessible via admin SDK (Firebase Functions)
+    match /subscriptions/{userId} {
+      allow read, write: if false;
+    }
+  }
+}

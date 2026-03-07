@@ -2,11 +2,13 @@ import { onRequest } from "firebase-functions/v2/https";
 import { setGlobalOptions } from "firebase-functions/v2/options";
 import { initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
+import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import { GoogleGenAI } from "@google/genai";
 
-initializeApp();
+const app = initializeApp();
+const db = getFirestore(app);
 
-setGlobalOptions({ region: "us-central1" }); // Seoul
+setGlobalOptions({ region: "us-central1" });
 
 // Helper: verify Firebase ID token from Authorization header
 async function verifyAuth(authHeader: string | undefined): Promise<string> {
@@ -344,6 +346,171 @@ export const analyzeWorkout = onRequest(
     } catch (error) {
       console.error("analyzeWorkout error:", error);
       res.status(500).json({ error: "Failed to analyze workout" });
+    }
+  }
+);
+
+// ============================================
+// Subscription / Billing Functions
+// ============================================
+
+const PORTONE_API_BASE = "https://api.portone.io";
+const SUBSCRIPTION_AMOUNT = 9900;
+
+function getPortOneSecret(): string {
+  const secret = process.env.PORTONE_API_SECRET;
+  if (!secret) throw new Error("PORTONE_API_SECRET not configured");
+  return secret;
+}
+
+/**
+ * POST /subscribe
+ * Body: { billingKey }
+ * Saves billing key, processes first payment, sets subscription active
+ */
+export const subscribe = onRequest(
+  { cors: true, secrets: ["PORTONE_API_SECRET"] },
+  async (req, res) => {
+    if (req.method !== "POST") { res.status(405).json({ error: "Method not allowed" }); return; }
+
+    let uid: string;
+    try { uid = await verifyAuth(req.headers.authorization); } catch { res.status(401).json({ error: "Unauthorized" }); return; }
+
+    const { billingKey } = req.body;
+    if (!billingKey) { res.status(400).json({ error: "Missing billingKey" }); return; }
+
+    try {
+      const secret = getPortOneSecret();
+      const paymentId = `sub_${uid}_${Date.now()}`;
+
+      // 1. Process first payment with billing key
+      const payRes = await fetch(`${PORTONE_API_BASE}/payments/${paymentId}/billing-key`, {
+        method: "POST",
+        headers: {
+          "Authorization": `PortOne ${secret}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          billingKey,
+          orderName: "오운잘 AI 월간 구독",
+          amount: { total: SUBSCRIPTION_AMOUNT },
+          currency: "KRW",
+        }),
+      });
+
+      if (!payRes.ok) {
+        const err = await payRes.json().catch(() => ({}));
+        console.error("PortOne payment failed:", err);
+        throw new Error("결제 처리에 실패했습니다.");
+      }
+
+      // 2. Save subscription to Firestore
+      const now = new Date();
+      const expiresAt = new Date(now);
+      expiresAt.setMonth(expiresAt.getMonth() + 1);
+
+      await db.collection("subscriptions").doc(uid).set({
+        uid,
+        billingKey,
+        status: "active",
+        plan: "monthly",
+        amount: SUBSCRIPTION_AMOUNT,
+        lastPaymentId: paymentId,
+        lastPaymentAt: now.toISOString(),
+        expiresAt: expiresAt.toISOString(),
+        createdAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+
+      res.status(200).json({
+        status: "active",
+        expiresAt: expiresAt.toISOString(),
+      });
+    } catch (error) {
+      console.error("subscribe error:", error);
+      res.status(500).json({ error: error instanceof Error ? error.message : "구독 처리에 실패했습니다." });
+    }
+  }
+);
+
+/**
+ * POST /getSubscription
+ * Returns current subscription status
+ */
+export const getSubscription = onRequest(
+  { cors: true },
+  async (req, res) => {
+    if (req.method !== "POST") { res.status(405).json({ error: "Method not allowed" }); return; }
+
+    let uid: string;
+    try { uid = await verifyAuth(req.headers.authorization); } catch { res.status(401).json({ error: "Unauthorized" }); return; }
+
+    try {
+      const doc = await db.collection("subscriptions").doc(uid).get();
+
+      if (!doc.exists) {
+        res.status(200).json({ status: "free" });
+        return;
+      }
+
+      const data = doc.data()!;
+
+      // Check if expired
+      if (data.status === "active" && data.expiresAt) {
+        const expires = new Date(data.expiresAt);
+        if (expires < new Date()) {
+          await db.collection("subscriptions").doc(uid).update({
+            status: "expired",
+            updatedAt: FieldValue.serverTimestamp(),
+          });
+          res.status(200).json({ status: "expired", expiresAt: data.expiresAt });
+          return;
+        }
+      }
+
+      res.status(200).json({
+        status: data.status,
+        expiresAt: data.expiresAt || null,
+      });
+    } catch (error) {
+      console.error("getSubscription error:", error);
+      res.status(500).json({ error: "구독 상태 확인에 실패했습니다." });
+    }
+  }
+);
+
+/**
+ * POST /cancelSubscription
+ * Cancels auto-renewal. Subscription remains active until expiresAt.
+ */
+export const cancelSubscription = onRequest(
+  { cors: true },
+  async (req, res) => {
+    if (req.method !== "POST") { res.status(405).json({ error: "Method not allowed" }); return; }
+
+    let uid: string;
+    try { uid = await verifyAuth(req.headers.authorization); } catch { res.status(401).json({ error: "Unauthorized" }); return; }
+
+    try {
+      const doc = await db.collection("subscriptions").doc(uid).get();
+
+      if (!doc.exists || doc.data()?.status !== "active") {
+        res.status(400).json({ error: "활성 구독이 없습니다." });
+        return;
+      }
+
+      await db.collection("subscriptions").doc(uid).update({
+        status: "cancelled",
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+
+      res.status(200).json({
+        status: "cancelled",
+        expiresAt: doc.data()?.expiresAt || null,
+      });
+    } catch (error) {
+      console.error("cancelSubscription error:", error);
+      res.status(500).json({ error: "구독 취소에 실패했습니다." });
     }
   }
 );

@@ -4,6 +4,7 @@ import React, { useState, useRef } from "react";
 import { User, updateProfile } from "firebase/auth";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { storage } from "@/lib/firebase";
+import { SubscriptionScreen } from "./SubscriptionScreen";
 
 interface MyProfileTabProps {
   user: User | null;
@@ -11,6 +12,7 @@ interface MyProfileTabProps {
 }
 
 export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout }) => {
+  const [showSubscription, setShowSubscription] = useState(false);
   const [isEditingName, setIsEditingName] = useState(false);
   const [nameInput, setNameInput] = useState(user?.displayName || "");
   const [isUploading, setIsUploading] = useState(false);
@@ -81,6 +83,10 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout }) =>
       alert("이름 변경에 실패했습니다.");
     }
   };
+
+  if (showSubscription && user) {
+    return <SubscriptionScreen user={user} onClose={() => setShowSubscription(false)} />;
+  }
 
   return (
     <div className="flex flex-col h-full bg-white animate-fade-in overflow-y-auto scrollbar-hide">
@@ -255,11 +261,24 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout }) =>
           </div>
         </div>
 
+        <button
+          onClick={() => setShowSubscription(true)}
+          className="w-full bg-gradient-to-r from-[#1B4332] to-[#2D6A4F] rounded-2xl p-6 flex items-center justify-between transition-all active:scale-[0.98] mt-4 shadow-lg shadow-[#1B4332]/20"
+        >
+          <div className="flex flex-col items-start gap-1">
+            <span className="text-lg font-bold text-white">프리미엄 구독</span>
+            <span className="text-xs text-emerald-300/60">AI 맞춤 운동 무제한</span>
+          </div>
+          <div className="bg-[#FEE500] rounded-full px-3 py-1">
+            <span className="text-xs font-black text-[#3C1E1E]">9,900원/월</span>
+          </div>
+        </button>
+
         <a
           href="https://forms.gle/Kskdv6paGT8G37dH6"
           target="_blank"
           rel="noopener noreferrer"
-          className="w-full bg-[#1B4332] hover:bg-[#2D6A4F] rounded-2xl p-6 flex items-center justify-between transition-all active:scale-[0.98] mt-4"
+          className="w-full bg-[#1B4332] hover:bg-[#2D6A4F] rounded-2xl p-6 flex items-center justify-between transition-all active:scale-[0.98]"
         >
           <div className="flex flex-col items-start gap-1">
             <span className="text-lg font-bold text-white">개선사항 제안</span>
