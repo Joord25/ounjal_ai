@@ -1,9 +1,9 @@
 export const THEME = {
-  bg: "#F9FAFB",
+  bg: "#FAFBF9",
   surface: "#FFFFFF",
-  textMain: "#111827",
+  textMain: "#1B4332",
   textSub: "#6B7280",
-  accent: "#065f46", // Emerald-800 for a sophisticated accent
+  accent: "#2D6A4F",
   done: "#059669",
   empty: "#E5E7EB",
 };

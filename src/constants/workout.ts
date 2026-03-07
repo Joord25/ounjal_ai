@@ -1,6 +1,6 @@
 export type WorkoutLevel = "beginner" | "intermediate" | "advanced";
 export type ExerciseType = "warmup" | "strength" | "cardio" | "core" | "mobility";
-export type WorkoutType = "push" | "pull" | "leg_core" | "mobility" | "run_easy" | "run_speed" | "run_long";
+export type WorkoutType = "push" | "pull" | "leg_core" | "mobility" | "run_easy" | "run_speed" | "run_long" | "full_body_circuit" | "hiit_cardio" | "lower_core" | "upper_cardio" | "full_body_mobility";
 
 export interface ExerciseStep {
   type: ExerciseType;
@@ -39,6 +39,10 @@ export interface WorkoutHistory {
     totalVolume: number;
     totalSets: number;
     totalReps: number;
+    bestE1RM?: number;
+    bwRatio?: number;
+    successRate?: number;
+    loadScore?: number; // normalized session load
   };
   analysis?: WorkoutAnalysis;
 }
@@ -48,10 +52,13 @@ export interface UserCondition {
   bodyPart: "upper_stiff" | "lower_heavy" | "full_fatigue" | "good";
   energyLevel: 1 | 2 | 3 | 4 | 5; // 1(Low) - 5(High)
   availableTime: 30 | 50 | 90; // minutes
+  bodyWeightKg?: number; // User's body weight for BW ratio calculations
+  gender?: "male" | "female";
+  birthYear?: number;
 }
 
 // Workout Goal Interface
-export type WorkoutGoal = "fat_loss" | "muscle_gain" | "strength";
+export type WorkoutGoal = "fat_loss" | "muscle_gain" | "strength" | "general_fitness";
 
 // Helper: Pick random item from array
 const pick = <T>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
@@ -70,6 +77,7 @@ const adjustVolume = (baseSets: number, condition: UserCondition, goal: WorkoutG
   // Goal Adjustment (Volume)
   if (goal === "muscle_gain") sets += 1; // High volume for hypertrophy
   if (goal === "strength") sets = Math.max(3, sets - 1); // Lower volume, higher intensity (handled in reps)
+  if (goal === "general_fitness") sets = Math.max(2, Math.min(sets, 3)); // Moderate volume for circuits
 
   return sets;
 };
@@ -79,6 +87,7 @@ const getRepsForGoal = (goal: WorkoutGoal): string => {
     case "fat_loss": return "15-20 Reps";
     case "muscle_gain": return "8-12 Reps";
     case "strength": return "3-5 Reps";
+    case "general_fitness": return "10-15 Reps";
     default: return "10-12 Reps";
   }
 };
@@ -97,7 +106,18 @@ export const generateAdaptiveWorkout = (
   // Sat: Run (Long)
   // Sun: Mobility (Recovery)
 
-  const schedule: WorkoutType[] = [
+  // General Fitness uses a different weekly split
+  const generalFitnessSchedule: WorkoutType[] = [
+    "full_body_circuit",  // Mon
+    "hiit_cardio",        // Tue
+    "lower_core",         // Wed
+    "upper_cardio",       // Thu
+    "full_body_mobility", // Fri
+    "mobility",           // Sat (Rest/Light)
+    "mobility",           // Sun (Rest/Light)
+  ];
+
+  const defaultSchedule: WorkoutType[] = [
     "push",       // Mon
     "run_speed",  // Tue
     "pull",       // Wed
@@ -107,6 +127,7 @@ export const generateAdaptiveWorkout = (
     "mobility",   // Sun
   ];
 
+  const schedule = goal === "general_fitness" ? generalFitnessSchedule : defaultSchedule;
   const workoutType = schedule[dayIndex];
   const exercises: ExerciseStep[] = [];
   
@@ -219,9 +240,81 @@ export const generateAdaptiveWorkout = (
     case "run_long":
       exercises.push({ type: "cardio", name: "LSD Run (Long Slow Distance)", count: "60+ min Pace Maintenance", sets: 1, reps: 1 });
       break;
+
+    // === General Fitness Circuit Types ===
+    case "full_body_circuit": {
+      const circuitReps = 12;
+      const fbSquat = pick(["Goblet Squat", "Bodyweight Squat", "Sumo Squat"]);
+      const fbPush = pick(["Push-ups", "Dumbbell Floor Press", "Knee Push-ups"]);
+      const fbRow = pick(["Dumbbell Row", "Inverted Row", "Resistance Band Row"]);
+      const fbLunge = pick(["Reverse Lunges", "Walking Lunges", "Curtsy Lunges"]);
+      const fbCore = pick(["Plank", "Dead Bug", "Bird Dog"]);
+      exercises.push(
+        { type: "strength", name: fbSquat, count: `${sets} Sets / ${circuitReps} Reps`, weight: "BW/Light DB", sets, reps: circuitReps },
+        { type: "strength", name: fbPush, count: `${sets} Sets / ${circuitReps} Reps`, weight: "Bodyweight", sets, reps: circuitReps },
+        { type: "strength", name: fbRow, count: `${sets} Sets / ${circuitReps} Reps`, weight: "Light DB", sets, reps: circuitReps },
+        { type: "strength", name: fbLunge, count: `${sets} Sets / ${circuitReps} Reps (Each)`, weight: "Bodyweight", sets, reps: circuitReps },
+        { type: "core", name: `Core: ${fbCore}`, count: `${sets} Sets / 30 sec`, sets, reps: 1 }
+      );
+      break;
+    }
+    case "hiit_cardio": {
+      const hiit1 = pick(["Burpees", "Squat Jumps", "Step-out Burpees (Low Impact)"]);
+      const hiit2 = pick(["Mountain Climbers", "High Knees", "Marching in Place (Low Impact)"]);
+      const hiit3 = pick(["Jump Lunges", "Speed Skaters", "Alternating Reverse Lunges (Low Impact)"]);
+      const hiit4 = pick(["Plank Jacks", "Jumping Jacks", "Step Jacks (Low Impact)"]);
+      exercises.push(
+        { type: "cardio", name: `HIIT Circuit: ${hiit1}`, count: "30 sec work / 15 sec rest × 4 rounds", sets: 4, reps: 1 },
+        { type: "cardio", name: `HIIT Circuit: ${hiit2}`, count: "30 sec work / 15 sec rest × 4 rounds", sets: 4, reps: 1 },
+        { type: "cardio", name: `HIIT Circuit: ${hiit3}`, count: "30 sec work / 15 sec rest × 4 rounds", sets: 4, reps: 1 },
+        { type: "cardio", name: `HIIT Circuit: ${hiit4}`, count: "30 sec work / 15 sec rest × 4 rounds", sets: 4, reps: 1 }
+      );
+      break;
+    }
+    case "lower_core": {
+      const lcReps = 12;
+      const lcSquat = pick(["Goblet Squat", "DB Sumo Squat", "Wall Sit (30 sec)"]);
+      const lcHinge = pick(["Dumbbell RDL", "Glute Bridge", "Single-Leg Hip Thrust"]);
+      const lcLunge = pick(["Bulgarian Split Squat", "Step-ups", "Lateral Lunges"]);
+      const lcCore1 = pick(["Side Plank", "Pallof Press", "Russian Twist"]);
+      const lcCore2 = pick(["Dead Bug", "Hollow Hold", "Ab Wheel Rollout"]);
+      exercises.push(
+        { type: "strength", name: lcSquat, count: `${sets} Sets / ${lcReps} Reps`, weight: "BW/Light DB", sets, reps: lcReps },
+        { type: "strength", name: lcHinge, count: `${sets} Sets / ${lcReps} Reps`, weight: "BW/Light DB", sets, reps: lcReps },
+        { type: "strength", name: lcLunge, count: `${sets} Sets / ${lcReps} Reps (Each)`, weight: "Bodyweight", sets, reps: lcReps },
+        { type: "core", name: `Core: ${lcCore1}`, count: `${sets} Sets / 30 sec`, sets, reps: 1 },
+        { type: "core", name: `Core: ${lcCore2}`, count: `${sets} Sets / 30 sec`, sets, reps: 1 }
+      );
+      break;
+    }
+    case "upper_cardio": {
+      const ucReps = 12;
+      const ucPush = pick(["Push-up Variations", "Dumbbell Press", "Pike Push-ups"]);
+      const ucRow = pick(["Dumbbell Row", "Band Pull-Aparts", "Superman Hold"]);
+      const ucShoulder = pick(["Lateral Raises", "Dumbbell Shoulder Press", "Arnold Press"]);
+      exercises.push(
+        { type: "strength", name: ucPush, count: `${sets} Sets / ${ucReps} Reps`, weight: "BW/Light DB", sets, reps: ucReps },
+        { type: "strength", name: ucRow, count: `${sets} Sets / ${ucReps} Reps`, weight: "Light DB", sets, reps: ucReps },
+        { type: "strength", name: ucShoulder, count: `${sets} Sets / ${ucReps} Reps`, weight: "Light DB", sets, reps: ucReps },
+        { type: "cardio", name: pick(["Jumping Jacks", "Shadow Boxing", "Step Jacks"]), count: "3 × 2 min work / 30 sec rest", sets: 3, reps: 1 }
+      );
+      break;
+    }
+    case "full_body_mobility": {
+      const fmStrength = pick(["Turkish Get-up (Light)", "Kettlebell Windmill", "Bear Crawl"]);
+      const fmCore = pick(["Dead Bug", "Bird Dog", "Pallof Press"]);
+      const fmMob = pick(["Hip 90/90 Stretch", "World's Greatest Stretch", "Deep Squat Hold"]);
+      exercises.push(
+        { type: "strength", name: fmStrength, count: `${sets} Sets / 5 Reps (Each)`, weight: "Light", sets, reps: 5 },
+        { type: "core", name: `Core: ${fmCore}`, count: `${sets} Sets / 30 sec`, sets, reps: 1 },
+        { type: "mobility", name: fmMob, count: "3 × 1 min hold", sets: 3, reps: 1 },
+        { type: "mobility", name: pick(["Foam Rolling (Full Body)", "Light Yoga Flow"]), count: "10 min", sets: 1, reps: 1 }
+      );
+      break;
+    }
   }
 
-  // 3. Core (5 min) - Added to all strength days
+  // 3. Core (5 min) - Added to all traditional strength days (circuit types already include core)
   if (workoutType === "push" || workoutType === "pull" || workoutType === "leg_core") {
     const coreEx = pick(["Deadbug", "Plank", "Hanging Leg Raise", "Russian Twist", "Ab Wheel Rollout", "Kettlebell Around the World", "Kettlebell March"]);
     exercises.push(
@@ -229,8 +322,12 @@ export const generateAdaptiveWorkout = (
     );
   }
 
-  // 4. Additional Cardio (Adaptive)
-  if (!workoutType.startsWith("run") && workoutType !== "mobility") {
+  // 4. Additional Cardio (Adaptive) - Skip for general_fitness circuit types
+  const isCircuitType = ["full_body_circuit", "hiit_cardio", "lower_core", "upper_cardio", "full_body_mobility"].includes(workoutType);
+  if (isCircuitType) {
+    // Circuit types already include integrated cardio/mobility — just add a light cooldown
+    exercises.push({ type: "mobility", name: "Cooldown Stretch", count: "5 min", sets: 1, reps: 1 });
+  } else if (!workoutType.startsWith("run") && workoutType !== "mobility") {
      let runName = "Recovery Run";
      let runCount = "20 min Zone 2";
 

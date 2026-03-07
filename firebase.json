@@ -8,6 +8,15 @@
     ],
     "frameworksBackend": {
       "region": "asia-east1"
-    }
+    },
+    "rewrites": [
+      { "source": "/api/generateWorkout", "function": { "functionId": "generateWorkout", "region": "us-central1" } },
+      { "source": "/api/analyzeWorkout", "function": { "functionId": "analyzeWorkout", "region": "us-central1" } }
+    ]
+  },
+  "functions": {
+    "source": "functions",
+    "codebase": "default",
+    "runtime": "nodejs22"
   }
 }

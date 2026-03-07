@@ -12,7 +12,9 @@ import { ProofTab } from "@/components/ProofTab";
 import { MyProfileTab } from "@/components/MyProfileTab";
 import { generateAdaptiveWorkout, WorkoutSessionData, UserCondition, WorkoutGoal, ExerciseLog, WorkoutHistory } from "@/constants/workout";
 import { generateAIWorkoutPlan } from "@/utils/gemini";
-import { THEME } from "@/constants/theme";
+import { buildWorkoutMetrics } from "@/utils/workoutMetrics";
+import { auth } from "@/lib/firebase";
+import { onAuthStateChanged, signOut, User } from "firebase/auth";
 
 type ViewState = 
   | "login"
@@ -28,7 +30,8 @@ export default function Home() {
   const [isInitialized, setIsInitialized] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isLoading, setIsLoading] = useState(false); // AI Loading State
-  
+  const [user, setUser] = useState<User | null>(null);
+
   // App State
   const [completedRitualIds, setCompletedRitualIds] = useState<string[]>([]);
   const [currentWorkoutSession, setCurrentWorkoutSession] = useState<WorkoutSessionData | null>(null);
@@ -37,49 +40,50 @@ export default function Home() {
   const [workoutLogs, setWorkoutLogs] = useState<Record<number, ExerciseLog[]>>({});
   const [selectedSessionType, setSelectedSessionType] = useState<string | undefined>(undefined);
 
-  // Load from LocalStorage on mount
+  // Firebase Auth listener
   useEffect(() => {
-    // Check login state
-    const loggedIn = localStorage.getItem("alpha_is_logged_in");
-    if (loggedIn) {
-      setIsLoggedIn(true);
-      
-      // Load workout data
-      const rDone = localStorage.getItem("alpha_completed_rituals");
-      if (rDone) {
-        const doneIds = JSON.parse(rDone);
-        setCompletedRitualIds(doneIds);
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      setUser(firebaseUser);
 
-        // If workout is done, try to load today's session/logs from history
-        if (doneIds.includes("workout")) {
+      if (firebaseUser) {
+        setIsLoggedIn(true);
+
+        // Load workout data
+        const rDone = localStorage.getItem("alpha_completed_rituals");
+        if (rDone) {
+          const doneIds = JSON.parse(rDone);
+          setCompletedRitualIds(doneIds);
+
+          if (doneIds.includes("workout")) {
             try {
-                const history = JSON.parse(localStorage.getItem("alpha_workout_history") || "[]");
-                const todayStr = new Date().toDateString();
-                const todayEntry = history.find((h: any) => new Date(h.date).toDateString() === todayStr);
-                if (todayEntry) {
-                    setCurrentWorkoutSession(todayEntry.sessionData);
-                    setWorkoutLogs(todayEntry.logs);
-                }
+              const history = JSON.parse(localStorage.getItem("alpha_workout_history") || "[]");
+              const todayStr = new Date().toDateString();
+              const todayEntry = history.find((h: any) => new Date(h.date).toDateString() === todayStr);
+              if (todayEntry) {
+                setCurrentWorkoutSession(todayEntry.sessionData);
+                setWorkoutLogs(todayEntry.logs);
+              }
             } catch (e) {
-                console.error("Failed to load today's history", e);
+              console.error("Failed to load today's history", e);
             }
+          }
         }
+
+        setView("condition_check");
+      } else {
+        setIsLoggedIn(false);
+        setView("login");
       }
-      
-      // If logged in, go to condition check directly (skip home dashboard as per request)
-      // "Main logo and login screen -> then immediately AI Analysis screen"
-      setView("condition_check");
-    } else {
-      setView("login");
-    }
-    
-    setIsInitialized(true);
+
+      setIsInitialized(true);
+    });
+
+    return () => unsubscribe();
   }, []);
 
   const handleLogin = () => {
-    // Mock login
-    localStorage.setItem("alpha_is_logged_in", "true");
-    setIsLoggedIn(true);
+    // Firebase Auth handles state via onAuthStateChanged
+    // This callback is called after successful signInWithPopup in LoginScreen
     setView("condition_check");
   };
 
@@ -97,11 +101,14 @@ export default function Home() {
 
   const handleTabChange = (id: TabId) => {
     setActiveTab(id);
+    // Reset view when going back to "today" tab
     if (id === "today") {
-      if (!completedRitualIds.includes("workout")) {
-        setView("condition_check");
-      } else {
+      if (view === "login") {
+        // keep login view
+      } else if (completedRitualIds.includes("workout")) {
         setView("home");
+      } else if (view !== "master_plan_preview" && view !== "workout_session") {
+        setView("condition_check");
       }
     }
   };
@@ -152,21 +159,23 @@ export default function Home() {
     await generatePlan(currentCondition, currentGoal, type);
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("alpha_is_logged_in");
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+    } catch (e) {
+      console.error("Logout failed:", e);
+    }
     localStorage.removeItem("alpha_completed_rituals");
     localStorage.removeItem("alpha_workout_history");
     setIsLoggedIn(false);
+    setUser(null);
     setView("login");
     setCompletedRitualIds([]);
     setCurrentWorkoutSession(null);
     setCurrentCondition(null);
     setCurrentGoal(null);
     setWorkoutLogs({});
-    setActiveTab("today"); // Reset active tab to today
-    
-    // Force re-render if needed, but setView("login") should trigger it.
-    // Ensure view state is updated correctly.
+    setActiveTab("today");
   };
 
   const renderContent = () => {
@@ -177,7 +186,7 @@ export default function Home() {
     }
 
     if (activeTab === "my") {
-      return <MyProfileTab onLogout={handleLogout} />;
+      return <MyProfileTab user={user} onLogout={handleLogout} />;
     }
 
     switch (view) {
@@ -212,13 +221,7 @@ export default function Home() {
               completeRitual("workout");
 
               // Calculate stats for history
-              const totalSets = Object.values(logs).reduce((acc, curr) => acc + curr.length, 0);
-              const totalReps = Object.values(logs).flat().reduce((acc, curr) => acc + curr.repsCompleted, 0);
-              const totalVolume = Object.values(logs).flat().reduce((acc, curr) => {
-                if (!curr.weightUsed || curr.weightUsed === "Bodyweight") return acc;
-                const weight = parseInt(curr.weightUsed);
-                return !isNaN(weight) ? acc + (weight * curr.repsCompleted) : acc;
-              }, 0);
+              const wMetrics = buildWorkoutMetrics(completedData.exercises, logs, currentCondition?.bodyWeightKg);
 
               // Save to Workout History
               const historyEntry: WorkoutHistory = {
@@ -226,7 +229,15 @@ export default function Home() {
                 date: new Date().toISOString(),
                 sessionData: completedData,
                 logs: logs,
-                stats: { totalVolume, totalSets, totalReps }
+                stats: {
+                  totalVolume: wMetrics.totalVolume,
+                  totalSets: wMetrics.totalSets,
+                  totalReps: wMetrics.totalReps,
+                  bestE1RM: wMetrics.bestE1RM?.value,
+                  bwRatio: wMetrics.bwRatio ?? undefined,
+                  successRate: wMetrics.successRate,
+                  loadScore: wMetrics.loadScore,
+                }
               };
 
               try {
@@ -247,6 +258,9 @@ export default function Home() {
           <WorkoutReport
             sessionData={currentWorkoutSession!}
             logs={workoutLogs}
+            bodyWeightKg={currentCondition?.bodyWeightKg}
+            gender={currentCondition?.gender}
+            birthYear={currentCondition?.birthYear}
             onClose={() => {
               setActiveTab("proof");
             }}
@@ -275,6 +289,9 @@ export default function Home() {
              <WorkoutReport
                sessionData={currentWorkoutSession || { title: "Daily Workout", description: "Completed", exercises: [] }}
                logs={workoutLogs}
+               bodyWeightKg={currentCondition?.bodyWeightKg || (() => { const w = parseFloat(localStorage.getItem("alpha_body_weight") || ""); return isNaN(w) ? undefined : w; })()}
+               gender={currentCondition?.gender || (localStorage.getItem("alpha_gender") as "male" | "female") || undefined}
+               birthYear={currentCondition?.birthYear || (() => { const y = parseInt(localStorage.getItem("alpha_birth_year") || ""); return isNaN(y) ? undefined : y; })()}
                onClose={() => {
                  setActiveTab("proof");
                }} 
@@ -325,12 +342,12 @@ export default function Home() {
         {/* Loading Overlay */}
         {isLoading && (
           <div className="absolute inset-0 bg-white/90 z-50 flex flex-col items-center justify-center animate-fade-in backdrop-blur-sm">
-             <div className="w-12 h-12 border-4 border-emerald-100 border-t-emerald-600 rounded-full animate-spin mb-4" />
+             <div className="w-12 h-12 border-4 border-emerald-100 border-t-[#5C795E] rounded-full animate-spin mb-4" />
              <p className="text-lg font-bold text-gray-800 animate-pulse">
-               AI Analyzing Condition...
+               오운잘 AI가 알려주신 정보들을 기반으로
              </p>
              <p className="text-sm text-gray-500 mt-2">
-               Generating your personalized master plan
+               맞춤 마스터 플랜을 생성하고 있습니다
              </p>
           </div>
         )}

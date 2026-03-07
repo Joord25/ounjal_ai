@@ -58,12 +58,12 @@ export const WorkoutSession: React.FC<WorkoutSessionProps> = ({
     }
   };
 
-  const handleSetComplete = (reps: number, feedback: FeedbackType) => {
-    // 1. Log the set
+  const handleSetComplete = (reps: number, feedback: FeedbackType, weightKg?: number) => {
+    // 1. Log the set (use actual weight from picker if available)
     const newLog: ExerciseLog = {
       setNumber: currentSet,
       repsCompleted: reps,
-      weightUsed: currentExercise.weight,
+      weightUsed: weightKg ? `${weightKg}` : currentExercise.weight,
       feedback: feedback,
     };
 

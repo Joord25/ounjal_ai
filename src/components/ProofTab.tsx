@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { THEME } from "@/constants/theme";
+
 import { WorkoutHistory as WorkoutHistoryType } from "@/constants/workout";
 import { WorkoutReport } from "./WorkoutReport";
 import { WorkoutHistory } from "./WorkoutHistory";
@@ -16,12 +16,13 @@ export const ProofTab: React.FC<ProofTabProps> = () => {
   const [history, setHistory] = useState<WorkoutHistoryType[]>([]);
   const [view, setView] = useState<ViewState>("dashboard");
   const [selectedHistory, setSelectedHistory] = useState<WorkoutHistoryType | null>(null);
+  const [monthOffset, setMonthOffset] = useState(0); // 0 = current month, -1 = last month, etc.
+  const [weightLog, setWeightLog] = useState<{ date: string; weight: number }[]>([]);
 
   useEffect(() => {
     const saved = localStorage.getItem("alpha_workout_history");
     if (saved) {
       try {
-        // Sort by date descending (newest first)
         const parsed = JSON.parse(saved) as WorkoutHistoryType[];
         parsed.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
         setHistory(parsed);
@@ -29,28 +30,68 @@ export const ProofTab: React.FC<ProofTabProps> = () => {
         console.error("Failed to parse workout history", e);
       }
     }
+    const savedWeight = localStorage.getItem("alpha_weight_log");
+    if (savedWeight) {
+      try {
+        setWeightLog(JSON.parse(savedWeight));
+      } catch { /* ignore */ }
+    } else {
+      // Seed from existing body weight if no log exists yet
+      const currentWeight = localStorage.getItem("alpha_body_weight");
+      if (currentWeight) {
+        const w = parseFloat(currentWeight);
+        if (!isNaN(w) && w > 0) {
+          const seed = [{ date: new Date().toISOString().slice(0, 10), weight: w }];
+          localStorage.setItem("alpha_weight_log", JSON.stringify(seed));
+          setWeightLog(seed);
+        }
+      }
+    }
   }, []);
 
   const today = new Date();
-  const currentMonth = today.toLocaleString('default', { month: 'long' });
-  
-  const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+  const viewDate = new Date(today.getFullYear(), today.getMonth() + monthOffset, 1);
+  const viewYear = viewDate.getFullYear();
+  const viewMonth = viewDate.getMonth();
+  const isCurrentMonth = monthOffset === 0;
+  const currentMonthLabel = viewDate.toLocaleString('ko-KR', { year: 'numeric', month: 'long' });
+
+  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
   const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
 
-  // Stats
-  const totalWorkouts = history.length;
-  const totalVolumeAllTime = history.reduce((acc, curr) => acc + (curr.stats?.totalVolume || 0), 0);
+  // Stats - filtered by selected month
+  const monthHistory = history.filter(h => {
+    const d = new Date(h.date);
+    return d.getFullYear() === viewYear && d.getMonth() === viewMonth;
+  });
+  const monthWorkouts = monthHistory.length;
+  const monthVolume = monthHistory.reduce((acc, curr) => acc + (curr.stats?.totalVolume || 0), 0);
 
   const handleSessionClick = (session: WorkoutHistoryType) => {
     setSelectedHistory(session);
     setView("report");
   };
 
+  const handleDeleteSession = (sessionIds: string[]) => {
+    const idSet = new Set(sessionIds);
+    const updatedHistory = history.filter(h => !idSet.has(h.id));
+    setHistory(updatedHistory);
+    localStorage.setItem("alpha_workout_history", JSON.stringify(updatedHistory));
+  };
+
+  // Load user profile from localStorage for consistent report rendering
+  const savedBodyWeight = typeof window !== "undefined" ? parseFloat(localStorage.getItem("alpha_body_weight") || "") : NaN;
+  const savedGender = typeof window !== "undefined" ? (localStorage.getItem("alpha_gender") as "male" | "female") || undefined : undefined;
+  const savedBirthYear = typeof window !== "undefined" ? parseInt(localStorage.getItem("alpha_birth_year") || "") : NaN;
+
   if (view === "report" && selectedHistory) {
     return (
-      <WorkoutReport 
+      <WorkoutReport
         sessionData={selectedHistory.sessionData}
         logs={selectedHistory.logs}
+        bodyWeightKg={!isNaN(savedBodyWeight) ? savedBodyWeight : undefined}
+        gender={savedGender}
+        birthYear={!isNaN(savedBirthYear) ? savedBirthYear : undefined}
         initialAnalysis={selectedHistory.analysis}
         onClose={() => setView("list")}
         onAnalysisComplete={(analysis) => {
@@ -74,49 +115,80 @@ export const ProofTab: React.FC<ProofTabProps> = () => {
 
   if (view === "list") {
     return (
-      <WorkoutHistory 
+      <WorkoutHistory
         history={history}
         onSelectSession={handleSessionClick}
         onBack={() => setView("dashboard")}
+        onDelete={handleDeleteSession}
       />
     );
   }
 
   return (
-    <div className="flex flex-col h-full bg-white animate-fade-in relative overflow-hidden">
+    <div className="flex flex-col h-full bg-[#FAFBF9] animate-fade-in relative overflow-hidden">
       {/* Fixed Header */}
-      <div className="pt-16 pb-4 px-6 text-center bg-white z-10 shrink-0">
-        <span className="text-[10px] tracking-[0.4em] uppercase font-bold text-emerald-500">Proof</span>
-        <h1 className="text-4xl font-black text-gray-900 mt-2">훈련 기록</h1>
-        <div className="mt-4 inline-flex items-center gap-2 bg-emerald-50 px-4 py-1.5 rounded-full">
-          <span className="text-xs font-black text-emerald-700">{currentMonth}</span>
+      <div className="pt-6 pb-4 px-6 text-center z-10 shrink-0">
+        <span className="text-[11px] tracking-[0.4em] uppercase font-serif font-medium text-[#2D6A4F]">Proof</span>
+        <h1 className="text-4xl font-black text-[#1B4332] mt-2">훈련 기록</h1>
+        <div className="mt-4 inline-flex items-center gap-1 bg-[#2D6A4F]/10 rounded-full">
+          <button
+            onClick={() => setMonthOffset(prev => prev - 1)}
+            className="p-2 pl-3 active:opacity-60 transition-opacity"
+          >
+            <svg className="w-3.5 h-3.5 text-[#2D6A4F]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+          <span className="text-xs font-black text-[#2D6A4F] min-w-[100px] text-center">{currentMonthLabel}</span>
+          <button
+            onClick={() => setMonthOffset(prev => Math.min(prev + 1, 0))}
+            disabled={isCurrentMonth}
+            className="p-2 pr-3 active:opacity-60 transition-opacity disabled:opacity-20"
+          >
+            <svg className="w-3.5 h-3.5 text-[#2D6A4F]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
         </div>
       </div>
 
       {/* Scrollable Content */}
-      <div className="flex-1 px-6 pb-32 overflow-y-auto scrollbar-hide pt-8">
-        <div className="bg-gray-50 rounded-3xl p-6">
+      <div className="flex-1 px-6 pb-6 overflow-y-auto scrollbar-hide pt-2">
+        <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm">
           <div className="grid grid-cols-7 gap-2">
-            {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, i) => (
-              <div key={i} className="text-center text-xs font-bold text-gray-400 mb-2">
+            {['월', '화', '수', '목', '금', '토', '일'].map((day, i) => (
+              <div key={i} className={`text-center text-xs font-bold mb-2 ${
+                i === 6 ? 'text-rose-400' : 'text-gray-400'
+              }`}>
                 {day}
               </div>
             ))}
+            {/* Empty cells for offset (Monday start) */}
+            {Array.from({ length: (() => {
+              const firstDay = new Date(viewYear, viewMonth, 1).getDay();
+              return firstDay === 0 ? 6 : firstDay - 1;
+            })() }, (_, i) => (
+              <div key={`empty-${i}`} />
+            ))}
             {days.map((day) => {
-              const dateObj = new Date(today.getFullYear(), today.getMonth(), day);
+              const dateObj = new Date(viewYear, viewMonth, day);
               const dateStr = dateObj.toDateString();
-              
+              const dayOfWeek = dateObj.getDay();
+
               const isCompleted = history.some(h => new Date(h.date).toDateString() === dateStr);
-              const isToday = day === today.getDate();
-              
+              const isToday = isCurrentMonth && day === today.getDate();
+              const isSunday = dayOfWeek === 0;
+
+
               return (
-                <div 
-                  key={day} 
-                  className={`aspect-square rounded-lg flex items-center justify-center text-xs font-bold relative ${
-                    isCompleted 
-                      ? 'bg-emerald-500 text-white shadow-md shadow-emerald-200' 
-                      : 'bg-white text-gray-300'
-                  } ${isToday ? 'ring-2 ring-emerald-500 ring-offset-2' : ''}`}
+                <div
+                  key={day}
+                  className={`aspect-square rounded-xl flex items-center justify-center text-xs font-bold relative transition-all ${
+                    isCompleted
+                      ? 'bg-[#2D6A4F] text-white shadow-md shadow-[#2D6A4F]/20'
+                      : isSunday ? 'bg-gray-50 text-rose-400'
+                      : 'bg-gray-50 text-gray-300'
+                  } ${isToday ? 'ring-2 ring-emerald-400 ring-offset-2' : ''}`}
                 >
                   {day}
                 </div>
@@ -125,25 +197,137 @@ export const ProofTab: React.FC<ProofTabProps> = () => {
           </div>
         </div>
 
-        <div className="mt-8 flex flex-col gap-4">
-          <button 
+        <div className="mt-6 flex flex-col gap-3">
+          <button
             onClick={() => setView("list")}
-            className="p-6 bg-gray-900 rounded-3xl text-white shadow-lg w-full text-left active:scale-98 transition-transform group"
+            className="p-6 bg-[#1B4332] rounded-3xl text-white shadow-lg shadow-[#1B4332]/20 w-full text-left active:scale-[0.98] transition-all group"
           >
             <div className="flex justify-between items-center mb-1">
-                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Total Workouts</p>
-                <svg className="w-5 h-5 text-gray-500 group-hover:text-white transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <p className="text-[10px] font-bold text-emerald-300/80 uppercase tracking-widest">총 운동 횟수</p>
+                <svg className="w-5 h-5 text-emerald-400/50 group-hover:text-emerald-300 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
             </div>
-            <h3 className="text-3xl font-black">{totalWorkouts} Sessions</h3>
-            <p className="text-xs text-gray-500 mt-2 font-medium">Click to view history details</p>
+            <h3 className="text-3xl font-black text-white">{monthWorkouts} <span className="text-lg text-emerald-300">세션</span></h3>
+            <p className="text-xs text-emerald-400/50 mt-2 font-medium">클릭하여 기록 상세보기</p>
           </button>
-          
-          <div className="p-6 bg-emerald-50 rounded-3xl text-emerald-900 border border-emerald-100">
-            <p className="text-xs font-bold text-emerald-600 uppercase tracking-widest mb-1">Total Volume (All Time)</p>
-            <h3 className="text-3xl font-black">{totalVolumeAllTime.toLocaleString()} <span className="text-lg">kg</span></h3>
+
+          <div className="p-6 bg-white rounded-3xl border border-[#2D6A4F]/10 shadow-sm">
+            <p className="text-[10px] font-bold text-[#2D6A4F] uppercase tracking-widest mb-1">이달 총 볼륨</p>
+            <h3 className="text-3xl font-black text-[#1B4332]">{monthVolume.toLocaleString()} <span className="text-lg text-[#2D6A4F]/50">kg</span></h3>
           </div>
+
+          {/* Weight Trend Graph */}
+          {weightLog.length > 0 && (() => {
+            const sorted = [...weightLog].sort((a, b) => a.date.localeCompare(b.date));
+            const recent = sorted.slice(-30); // last 30 entries
+            if (recent.length === 0) return null;
+
+            const weights = recent.map(e => e.weight);
+            const rawMin = Math.min(...weights);
+            const rawMax = Math.max(...weights);
+            // Add padding so flat lines sit in the middle, not at edges
+            const padding = rawMax - rawMin < 1 ? 2 : (rawMax - rawMin) * 0.2;
+            const minW = rawMin - padding;
+            const maxW = rawMax + padding;
+            const range = maxW - minW;
+            const latestWeight = weights[weights.length - 1];
+            const firstWeight = weights[0];
+            const diff = latestWeight - firstWeight;
+
+            return (
+              <div className="p-6 bg-white rounded-3xl border border-[#2D6A4F]/10 shadow-sm">
+                <div className="flex justify-between items-baseline mb-1">
+                  <p className="text-[10px] font-bold text-[#2D6A4F] uppercase tracking-widest">체중 변화</p>
+                  <span className={`text-[10px] font-black ${diff > 0 ? "text-rose-400" : diff < 0 ? "text-sky-400" : "text-gray-400"}`}>
+                    {diff > 0 ? "+" : ""}{diff.toFixed(1)}kg
+                  </span>
+                </div>
+                <div className="flex items-baseline gap-1 mb-4">
+                  <h3 className="text-3xl font-black text-[#1B4332]">{latestWeight.toFixed(1)}</h3>
+                  <span className="text-lg text-[#2D6A4F]/50">kg</span>
+                </div>
+
+                <div className="flex h-24 gap-2">
+                  {/* Y-axis labels */}
+                  <div className="flex flex-col justify-between shrink-0 w-8">
+                    <span className="text-[8px] text-gray-300 font-bold text-right">{rawMax.toFixed(1)}</span>
+                    <span className="text-[8px] text-gray-300 font-bold text-right">{rawMin.toFixed(1)}</span>
+                  </div>
+
+                  {/* Graph area */}
+                  <div className="relative flex-1 overflow-hidden">
+                    <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+                      {/* Grid lines */}
+                      <line x1="0" y1="5" x2="100" y2="5" stroke="#f3f4f6" strokeWidth="0.5" vectorEffect="non-scaling-stroke" />
+                      <line x1="0" y1="50" x2="100" y2="50" stroke="#f3f4f6" strokeWidth="0.5" vectorEffect="non-scaling-stroke" />
+                      <line x1="0" y1="95" x2="100" y2="95" stroke="#f3f4f6" strokeWidth="0.5" vectorEffect="non-scaling-stroke" />
+
+                      {/* Area fill */}
+                      <path
+                        d={
+                          recent.map((_, i) => {
+                            const x = recent.length === 1 ? 50 : (i / (recent.length - 1)) * 100;
+                            const y = 95 - ((weights[i] - minW) / range) * 90;
+                            return `${i === 0 ? "M" : "L"} ${x} ${y}`;
+                          }).join(" ") + ` L 100 100 L 0 100 Z`
+                        }
+                        fill="url(#weightGradient)"
+                      />
+                      <defs>
+                        <linearGradient id="weightGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#2D6A4F" stopOpacity="0.15" />
+                          <stop offset="100%" stopColor="#2D6A4F" stopOpacity="0" />
+                        </linearGradient>
+                      </defs>
+
+                      {/* Line */}
+                      <path
+                        d={recent.map((_, i) => {
+                          const x = recent.length === 1 ? 50 : (i / (recent.length - 1)) * 100;
+                          const y = 95 - ((weights[i] - minW) / range) * 90;
+                          return `${i === 0 ? "M" : "L"} ${x} ${y}`;
+                        }).join(" ")}
+                        fill="none"
+                        stroke="#2D6A4F"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        vectorEffect="non-scaling-stroke"
+                      />
+                    </svg>
+
+                    {/* Dots for first & last */}
+                    {recent.length > 1 && (
+                      <>
+                        <div
+                          className="absolute w-2 h-2 rounded-full bg-white border-2 border-[#2D6A4F]"
+                          style={{
+                            left: 0,
+                            top: `${95 - ((weights[0] - minW) / range) * 90}%`,
+                            transform: "translate(-50%, -50%)"
+                          }}
+                        />
+                        <div
+                          className="absolute w-3 h-3 rounded-full bg-[#2D6A4F]"
+                          style={{
+                            right: 0,
+                            top: `${95 - ((weights[weights.length - 1] - minW) / range) * 90}%`,
+                            transform: "translate(50%, -50%)"
+                          }}
+                        />
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex justify-between text-[9px] text-gray-300 font-medium mt-2 pl-10">
+                  <span>{recent[0].date.slice(5).replace("-", "/")}</span>
+                  <span>{recent[recent.length - 1].date.slice(5).replace("-", "/")}</span>
+                </div>
+              </div>
+            );
+          })()}
         </div>
       </div>
     </div>
