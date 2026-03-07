@@ -9,13 +9,8 @@ async function getIdToken(): Promise<string> {
   return user.getIdToken();
 }
 
-// Helper: determine API base URL (hosting rewrites in prod, emulator in dev)
-function getApiBase(): string {
-  if (process.env.NEXT_PUBLIC_FUNCTIONS_EMULATOR === "true") {
-    return "http://127.0.0.1:5001/ounjal/asia-northeast3";
-  }
-  return "/api"; // Firebase Hosting rewrites handle this
-}
+// Functions base URL
+const FUNCTIONS_BASE = "https://us-central1-ounjal.cloudfunctions.net";
 
 export const analyzeWorkoutSession = async (
   sessionData: WorkoutSessionData,
@@ -29,7 +24,7 @@ export const analyzeWorkoutSession = async (
     const token = await getIdToken();
     const metrics = buildWorkoutMetrics(sessionData.exercises, logs, bodyWeightKg);
 
-    const response = await fetch(`${getApiBase()}/analyzeWorkout`, {
+    const response = await fetch(`${FUNCTIONS_BASE}/analyzeWorkout`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -67,7 +62,7 @@ export const generateAIWorkoutPlan = async (
   try {
     const token = await getIdToken();
 
-    const response = await fetch(`${getApiBase()}/generateWorkout`, {
+    const response = await fetch(`${FUNCTIONS_BASE}/generateWorkout`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

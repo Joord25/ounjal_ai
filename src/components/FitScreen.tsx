@@ -513,7 +513,7 @@ export const FitScreen: React.FC<FitScreenProps> = ({
       {showGuide && (
         <div className="absolute inset-0 z-40">
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-fade-in" onClick={() => setShowGuide(false)} />
-          <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-[2rem] p-6 pb-10 animate-slide-up shadow-2xl">
+          <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-[2rem] p-6 pb-2 animate-slide-up shadow-2xl">
             <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-6" />
 
             <div className="mb-5">
@@ -580,7 +580,7 @@ export const FitScreen: React.FC<FitScreenProps> = ({
       {showWeightEdit && (
         <div className="absolute inset-0 z-40">
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-fade-in" onClick={() => setShowWeightEdit(false)} />
-          <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-[2rem] p-6 pb-10 animate-slide-up shadow-2xl">
+          <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-[2rem] p-6 pb-2 animate-slide-up shadow-2xl">
             <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-6" />
             <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] text-center mb-4">무게 변경</p>
             <div className="flex items-center justify-center gap-4 mb-6">

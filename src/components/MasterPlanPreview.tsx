@@ -280,7 +280,7 @@ export const MasterPlanPreview: React.FC<MasterPlanPreviewProps> = ({
       {isEditing && (
         <div className="absolute inset-0 z-50">
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-fade-in" onClick={() => setIsEditing(false)} />
-          <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-[2rem] p-6 pb-10 animate-slide-up shadow-2xl">
+          <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-[2rem] p-6 pb-2 animate-slide-up shadow-2xl">
             {/* Handle */}
             <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-6" />
 
@@ -405,7 +405,7 @@ export const MasterPlanPreview: React.FC<MasterPlanPreviewProps> = ({
       {guideExercise && (
         <div className="absolute inset-0 z-50">
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-fade-in" onClick={() => setGuideExercise(null)} />
-          <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-[2rem] p-6 pb-10 animate-slide-up shadow-2xl">
+          <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-[2rem] p-6 pb-2 animate-slide-up shadow-2xl">
             <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-6" />
 
             {/* Exercise Name */}
@@ -425,17 +425,17 @@ export const MasterPlanPreview: React.FC<MasterPlanPreviewProps> = ({
 
             {/* Exercise Info */}
             <div className="grid grid-cols-3 gap-2 mb-6">
-              <div className="bg-gray-50 rounded-xl p-3 text-center border border-gray-100">
-                <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-0.5">Type</p>
-                <p className="text-sm font-black text-gray-900 uppercase">{guideExercise.type}</p>
+              <div className="bg-gray-50 rounded-xl p-3 flex flex-col border border-gray-100">
+                <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest text-center">Type</p>
+                <p className="text-base font-black text-gray-900 uppercase flex-1 flex items-center justify-center">{guideExercise.type}</p>
               </div>
-              <div className="bg-gray-50 rounded-xl p-3 text-center border border-gray-100">
-                <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-0.5">Sets</p>
-                <p className="text-sm font-black text-gray-900">{guideExercise.sets}</p>
+              <div className="bg-gray-50 rounded-xl p-3 flex flex-col border border-gray-100">
+                <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest text-center">Sets</p>
+                <p className="text-base font-black text-gray-900 flex-1 flex items-center justify-center">{guideExercise.sets}</p>
               </div>
-              <div className="bg-gray-50 rounded-xl p-3 text-center border border-gray-100">
-                <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-0.5">Volume</p>
-                <p className="text-sm font-black text-gray-900">{guideExercise.count}</p>
+              <div className="bg-gray-50 rounded-xl p-3 flex flex-col border border-gray-100">
+                <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest text-center">Volume</p>
+                <p className="text-base font-black text-gray-900 flex-1 flex items-center justify-center text-center">{guideExercise.count}</p>
               </div>
             </div>
 
