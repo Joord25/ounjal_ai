@@ -80,6 +80,10 @@ const WARMUP_POOLS: Record<UserCondition["bodyPart"], string[]> = {
     "밴드 페이스 풀 (Band Face Pull)",
     "다이나믹 흉근 스트레칭 (Dynamic Pec Stretch)",
     "능동적 흉추 회전 (Active Thoracic Rotation)",
+    "숄더 카 (Shoulder CARs)",
+    "벽 흉추 회전 (Wall Thoracic Rotations)",
+    "어깨 회전 및 견갑골 움직임 (Shoulder Rotations & Scapular Mobility)",
+    "어깨 돌리기 (Shoulder Circles)",
   ],
   lower_heavy: [
     "폼롤러 둔근 및 햄스트링 이완 (Foam Roller Glutes & Hamstrings Release)",
@@ -88,6 +92,7 @@ const WARMUP_POOLS: Record<UserCondition["bodyPart"], string[]> = {
     "고관절 90/90 스트레치 (Hip 90/90 Stretch)",
     "내전근 동적 스트레칭 (Adductor Dynamic Stretch)",
     "스파이더맨 런지 (Spiderman Lunge)",
+    "힙 카 (Hip CARs)",
   ],
   full_fatigue: [
     "폼롤러 흉추/광배근 마사지 (Foam Roller Thoracic & Lat Release)",
@@ -96,6 +101,8 @@ const WARMUP_POOLS: Record<UserCondition["bodyPart"], string[]> = {
     "캣 카멜 스트레치 (Cat-Camel Stretch)",
     "고관절 굴곡근 스트레칭 (Hip Flexor Stretch)",
     "밴드 워크 (Band Walk)",
+    "숄더 카 (Shoulder CARs)",
+    "힙 카 (Hip CARs)",
   ],
   good: [
     "고관절 굴곡근 스트레치 (Hip Flexor Stretch)",
@@ -104,6 +111,8 @@ const WARMUP_POOLS: Record<UserCondition["bodyPart"], string[]> = {
     "밴드 풀 어파트 (Band Pull-Apart)",
     "팔 흔들기 (Arm Swings)",
     "동적 런지 (Dynamic Lunge)",
+    "숄더 카 (Shoulder CARs)",
+    "힙 카 (Hip CARs)",
   ],
 };
 
@@ -116,6 +125,9 @@ const WARMUP_POOLS_RUN: Record<UserCondition["bodyPart"], string[]> = {
     "다이내믹 가슴 열기 (Dynamic Chest Openers)",
     "암 서클 전/후방 (Arm Circles)",
     "동적 팔 스윙 (Dynamic Arm Swings)",
+    "숄더 카 (Shoulder CARs)",
+    "벽 흉추 회전 (Wall Thoracic Rotations)",
+    "어깨 회전 및 견갑골 움직임 (Shoulder Rotations & Scapular Mobility)",
   ],
   lower_heavy: [
     "폼롤러 햄스트링/둔근 이완 (Foam Roll Hamstrings & Glutes)",
@@ -123,6 +135,8 @@ const WARMUP_POOLS_RUN: Record<UserCondition["bodyPart"], string[]> = {
     "동적 스트레칭: 런지 & 트위스트 (Lunge & Twist)",
     "동적 다리 스윙 (Dynamic Leg Swings)",
     "내전근 동적 스트레칭 (Adductor Dynamic Stretch)",
+    "힙 카 (Hip CARs)",
+    "앵클 카 (Ankle CARs)",
   ],
   full_fatigue: [
     "폼롤러 둔근 및 햄스트링 이완 (Foam Rolling Glutes & Hamstrings)",
@@ -130,6 +144,7 @@ const WARMUP_POOLS_RUN: Record<UserCondition["bodyPart"], string[]> = {
     "걷기 또는 가벼운 조깅 (Walking or Light Jog)",
     "고관절 굴곡근 스트레칭 (Hip Flexor Stretch)",
     "캣 카멜 스트레치 (Cat-Camel Stretch)",
+    "힙 카 (Hip CARs)",
   ],
   good: [
     "흉추 회전 스트레칭 (Thoracic Rotation Stretch)",
@@ -139,6 +154,8 @@ const WARMUP_POOLS_RUN: Record<UserCondition["bodyPart"], string[]> = {
     "워킹 런지 (Walking Lunge)",
     "동적 다리 스윙 (Dynamic Leg Swings)",
     "고관절 굴곡근 스트레칭 (Hip Flexor Stretch)",
+    "숄더 카 (Shoulder CARs)",
+    "힙 카 (Hip CARs)",
   ],
 };
 
@@ -150,18 +167,27 @@ const WARMUP_POOLS_MOBILITY: Record<UserCondition["bodyPart"], string[]> = {
     "팔 흔들기 (Arm Swings)",
     "고양이-낙타 자세 (Cat-Cow Pose)",
     "다이나믹 흉근 스트레칭 (Dynamic Pec Stretch)",
+    "숄더 카 (Shoulder CARs)",
+    "손목 카 (Wrist CARs)",
+    "벽 흉추 회전 (Wall Thoracic Rotations)",
+    "어깨 회전 및 견갑골 움직임 (Shoulder Rotations & Scapular Mobility)",
+    "능동적 팔 흔들기 (Active Arm Swings)",
   ],
   lower_heavy: [
     "폼롤러 둔근 및 햄스트링 이완 (Foam Roller Glutes & Hamstrings Release)",
     "고관절 굴곡근 스트레칭 (Hip Flexor Stretch)",
     "내전근 동적 스트레칭 (Adductor Dynamic Stretch)",
     "고관절 90/90 스트레치 (Hip 90/90 Stretch)",
+    "힙 카 (Hip CARs)",
+    "앵클 카 (Ankle CARs)",
   ],
   full_fatigue: [
     "폼롤러 등 상부 및 둔근 이완 (Foam Roller Upper Back & Glute Release)",
     "고관절 굴곡근 스트레칭 (Hip Flexor Stretch)",
     "캣-카멜 (Cat-Camel)",
     "고관절 회전 (Hip Circles)",
+    "숄더 카 (Shoulder CARs)",
+    "힙 카 (Hip CARs)",
   ],
   good: [
     "폼롤러 흉추 스트레칭 (Foam Roller Thoracic Stretch)",
@@ -169,6 +195,9 @@ const WARMUP_POOLS_MOBILITY: Record<UserCondition["bodyPart"], string[]> = {
     "밴드 풀 어파트 (Band Pull-Apart)",
     "고관절 회전 (Hip Circles)",
     "폼롤러 둔근 이완 (Foam Roller Glutes Release)",
+    "숄더 카 (Shoulder CARs)",
+    "힙 카 (Hip CARs)",
+    "스파인 카 (Spine CARs)",
   ],
 };
 
@@ -321,6 +350,21 @@ const CORE_EXERCISES = {
     "만세 스쿼트 홀드 (Overhead Squat Hold)",
     "능동적 다리 들어올리기 (Active Straight Leg Raise)",
     "케틀벨 고블릿 스쿼트 자세 유지 (Kettlebell Prying Goblet Squat Hold)",
+    "월 스쿼트 (Wall Squat)",
+    "악어 스트레칭 (Alligator Stretch)",
+    "케틀벨 암바 (Kettlebell Armbar)",
+    "능동적 발목 펌핑 (Active Ankle Pumps)",
+    "스파이더맨 스트레치 (Spiderman Stretch with Thoracic Rotation)",
+    "능형근 스트레칭 (Rhomboid Stretch)",
+    "소흉근 스트레칭 (Pectoralis Minor Stretch - Doorway Stretch)",
+    "능동적 어깨 서클 (Active Shoulder Circles)",
+    "트리거 포인트 해제 (Trigger Point Release - Shoulder/Back)",
+    "하프 닐링 흉추 로테이션 (Half-Kneeling Thoracic Rotation)",
+    "딥 스쿼트 & 흉추 로테이션 (Deep Squat with Thoracic Rotation)",
+    "흉추 스트레칭 및 회전 (Thoracic Spine Mobility Flow)",
+    "어깨 가동성 드릴 (Shoulder Mobility Drills)",
+    "목 주변 근육 이완 (Neck Release)",
+    "고관절 이완 (Hip Flexor Stretch & Glute Activation)",
   ],
   // Condition-specific mobility main exercises
   mobility_upper: [
@@ -330,6 +374,19 @@ const CORE_EXERCISES = {
     "밴드 풀 어파트 (Band Pull-Aparts)",
     "다이나믹 흉근 스트레칭 (Dynamic Pec Stretch)",
     "폼롤러 흉추 가동성 (Foam Roller Thoracic Mobility)",
+    "흉추 스트레칭 (Thoracic Spine Extension - Bench/Foam Roller)",
+    "능형근 스트레칭 (Rhomboid Stretch)",
+    "스파이더맨 스트레치 (Spiderman Stretch with Thoracic Rotation)",
+    "능동적 어깨 서클 (Active Shoulder Circles)",
+    "소흉근 스트레칭 (Pectoralis Minor Stretch - Doorway Stretch)",
+    "폼롤러 등 마사지 및 흉추 신전 (Foam Roller Back Massage & Thoracic Extension)",
+    "트리거 포인트 해제 (Trigger Point Release - Shoulder/Back)",
+    "하프 닐링 흉추 로테이션 (Half-Kneeling Thoracic Rotation)",
+    "딥 스쿼트 & 흉추 로테이션 (Deep Squat with Thoracic Rotation)",
+    "어깨 돌리기 (Shoulder Circles)",
+    "흉추 스트레칭 및 회전 (Thoracic Spine Mobility Flow)",
+    "어깨 가동성 드릴 (Shoulder Mobility Drills)",
+    "목 주변 근육 이완 (Neck Release)",
   ],
   mobility_lower: [
     "90/90 고관절 회전 (90/90 Hip Rotation)",
@@ -338,6 +395,7 @@ const CORE_EXERCISES = {
     "피죤 자세 (Pigeon Pose)",
     "만세 스쿼트 홀드 프라잉 (Overhead Squat Hold - Prying)",
     "월 앵클 모빌리티 (Wall Ankle Mobility)",
+    "고관절 이완 (Hip Flexor Stretch & Glute Activation)",
   ],
   mobility_full: [
     "고양이-낙타 자세 (Cat-Cow Pose)",
@@ -346,6 +404,9 @@ const CORE_EXERCISES = {
     "흉추 회전 운동 (Thoracic Rotation)",
     "딥 스쿼트 홀드 (Deep Squat Hold)",
     "세계에서 가장 위대한 스트레치 (World's Greatest Stretch)",
+    "월 스쿼트 (Wall Squat)",
+    "악어 스트레칭 (Alligator Stretch)",
+    "능동적 발목 펌핑 (Active Ankle Pumps)",
   ],
 };
 
@@ -364,6 +425,9 @@ const ADDITIONAL_CARDIO = {
     "추가 추천: 이완 스트레칭 및 심호흡 (Cool-down Stretch & Deep Breathing)",
     "추가 유산소: 쿨다운 스트레칭 및 이완 (Cool-down Stretching)",
     "추가 추천: 전신 스트레칭 및 폼롤링 (Full Body Stretching & Foam Rolling)",
+    "추가 추천: 동적 스트레칭 및 이완 (Dynamic Stretching & Relaxation)",
+    "추가 유산소: 가벼운 걷기 (Cooldown Walk)",
+    "추가 활동: 가벼운 걷기 또는 스트레칭 (Light Walk or Stretching)",
   ],
 };
 

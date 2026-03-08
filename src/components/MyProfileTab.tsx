@@ -5,6 +5,7 @@ import { User, updateProfile } from "firebase/auth";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { storage, auth } from "@/lib/firebase";
 import { SubscriptionScreen } from "./SubscriptionScreen";
+import { updateGender, updateBirthYear } from "@/utils/userProfile";
 
 interface MyProfileTabProps {
   user: User | null;
@@ -59,7 +60,7 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout }) =>
   const handleGenderToggle = () => {
     const next = gender === "male" ? "female" : "male";
     setGender(next);
-    localStorage.setItem("alpha_gender", next);
+    updateGender(next);
   };
 
   const handleBirthYearSave = () => {
@@ -67,7 +68,7 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout }) =>
     const year = parseInt(trimmed);
     if (isNaN(year) || year < 1930 || year > 2015) return;
     setBirthYear(trimmed);
-    localStorage.setItem("alpha_birth_year", trimmed);
+    updateBirthYear(year);
     setIsEditingBirthYear(false);
   };
 
@@ -110,7 +111,7 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout }) =>
   };
 
   if (showSubscription && user) {
-    return <SubscriptionScreen user={user} onClose={() => setShowSubscription(false)} />;
+    return <SubscriptionScreen user={user} onClose={() => setShowSubscription(false)} initialStatus={subStatus === "loading" ? undefined : subStatus} />;
   }
 
   return (

@@ -2,9 +2,19 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Subscriptions: only accessible via admin SDK (Firebase Functions)
-    match /subscriptions/{userId} {
-      allow read, write: if false;
+    match /users/{userId} {
+      // User profile: user can read/write their own profile doc
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+
+      // Subscriptions: only accessible via admin SDK (Firebase Functions)
+      match /subscriptions/{docId} {
+        allow read, write: if false;
+      }
+
+      // Workout history: user can read/write their own data
+      match /workout_history/{historyId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
     }
   }
 }

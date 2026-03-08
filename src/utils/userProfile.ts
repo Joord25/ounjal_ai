@@ -1,0 +1,122 @@
+import { db, auth } from "@/lib/firebase";
+import { doc, setDoc, getDoc, updateDoc, Timestamp } from "firebase/firestore";
+
+export interface UserProfile {
+  gender: "male" | "female" | null;
+  birthYear: number | null;
+  bodyWeight: number | null;
+  weightLog: { date: string; weight: number }[];
+  updatedAt?: Date;
+}
+
+function getUserDocRef() {
+  const uid = auth.currentUser?.uid;
+  if (!uid) return null;
+  return doc(db, "users", uid);
+}
+
+/** Save full profile to Firestore */
+export async function saveUserProfile(profile: Partial<UserProfile>): Promise<void> {
+  const ref = getUserDocRef();
+  if (!ref) return;
+
+  try {
+    await setDoc(ref, {
+      ...profile,
+      updatedAt: Timestamp.now(),
+    }, { merge: true });
+  } catch (e) {
+    console.error("Failed to save user profile to Firestore", e);
+  }
+}
+
+/** Load profile from Firestore and sync to localStorage */
+export async function loadUserProfile(): Promise<UserProfile | null> {
+  const ref = getUserDocRef();
+  if (!ref) return null;
+
+  try {
+    const snap = await getDoc(ref);
+
+    if (!snap.exists()) {
+      // No Firestore profile — migrate from localStorage
+      const local = loadProfileFromLocalStorage();
+      if (local.gender || local.birthYear || local.bodyWeight) {
+        await saveUserProfile(local);
+      }
+      return local;
+    }
+
+    const data = snap.data();
+    const profile: UserProfile = {
+      gender: data.gender || null,
+      birthYear: data.birthYear || null,
+      bodyWeight: data.bodyWeight || null,
+      weightLog: data.weightLog || [],
+    };
+
+    // Sync to localStorage
+    if (profile.gender) localStorage.setItem("alpha_gender", profile.gender);
+    if (profile.birthYear) localStorage.setItem("alpha_birth_year", String(profile.birthYear));
+    if (profile.bodyWeight) localStorage.setItem("alpha_body_weight", String(profile.bodyWeight));
+    if (profile.weightLog.length > 0) {
+      localStorage.setItem("alpha_weight_log", JSON.stringify(profile.weightLog));
+    }
+
+    return profile;
+  } catch (e) {
+    console.error("Failed to load user profile from Firestore", e);
+    return loadProfileFromLocalStorage();
+  }
+}
+
+/** Update weight log entry (today) and sync to Firestore */
+export async function updateWeight(weight: number): Promise<void> {
+  const today = new Date().toISOString().slice(0, 10);
+
+  // Update localStorage
+  localStorage.setItem("alpha_body_weight", String(weight));
+  try {
+    const weightLog: { date: string; weight: number }[] = JSON.parse(
+      localStorage.getItem("alpha_weight_log") || "[]"
+    );
+    const existing = weightLog.findIndex((e) => e.date === today);
+    if (existing >= 0) {
+      weightLog[existing].weight = weight;
+    } else {
+      weightLog.push({ date: today, weight });
+    }
+    localStorage.setItem("alpha_weight_log", JSON.stringify(weightLog));
+
+    // Sync to Firestore
+    await saveUserProfile({ bodyWeight: weight, weightLog });
+  } catch (e) {
+    console.error("Failed to update weight", e);
+  }
+}
+
+/** Update gender and sync to Firestore */
+export async function updateGender(gender: "male" | "female"): Promise<void> {
+  localStorage.setItem("alpha_gender", gender);
+  await saveUserProfile({ gender });
+}
+
+/** Update birth year and sync to Firestore */
+export async function updateBirthYear(birthYear: number): Promise<void> {
+  localStorage.setItem("alpha_birth_year", String(birthYear));
+  await saveUserProfile({ birthYear });
+}
+
+function loadProfileFromLocalStorage(): UserProfile {
+  const gender = (localStorage.getItem("alpha_gender") as "male" | "female") || null;
+  const birthYearStr = localStorage.getItem("alpha_birth_year");
+  const bodyWeightStr = localStorage.getItem("alpha_body_weight");
+  const weightLogStr = localStorage.getItem("alpha_weight_log");
+
+  return {
+    gender,
+    birthYear: birthYearStr ? parseInt(birthYearStr) : null,
+    bodyWeight: bodyWeightStr ? parseFloat(bodyWeightStr) : null,
+    weightLog: weightLogStr ? JSON.parse(weightLogStr) : [],
+  };
+}

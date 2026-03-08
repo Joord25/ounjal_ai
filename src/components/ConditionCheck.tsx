@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { UserCondition, WorkoutGoal } from "@/constants/workout";
+import { updateWeight, updateGender, updateBirthYear } from "@/utils/userProfile";
 
 interface ConditionCheckProps {
   onComplete: (condition: UserCondition, goal: WorkoutGoal) => void;
@@ -43,26 +44,16 @@ export const ConditionCheck: React.FC<ConditionCheckProps> = ({ onComplete }) =>
       setBodyPart(selectedBodyPart);
       setStep("weight_input");
     } else if (step === "weight_input") {
-      if (bodyWeight.trim()) {
-        localStorage.setItem("alpha_body_weight", bodyWeight.trim());
-        // Log weight with date for tracking
-        try {
-          const weightLog = JSON.parse(localStorage.getItem("alpha_weight_log") || "[]");
-          const today = new Date().toISOString().slice(0, 10);
-          const existing = weightLog.findIndex((e: { date: string }) => e.date === today);
-          if (existing >= 0) {
-            weightLog[existing].weight = parseFloat(bodyWeight.trim());
-          } else {
-            weightLog.push({ date: today, weight: parseFloat(bodyWeight.trim()) });
-          }
-          localStorage.setItem("alpha_weight_log", JSON.stringify(weightLog));
-        } catch { /* ignore */ }
+      const weightNum = parseFloat(bodyWeight.trim());
+      if (!isNaN(weightNum) && weightNum > 0) {
+        updateWeight(weightNum);
       }
       if (gender) {
-        localStorage.setItem("alpha_gender", gender);
+        updateGender(gender);
       }
-      if (birthYear.trim()) {
-        localStorage.setItem("alpha_birth_year", birthYear.trim());
+      const byNum = parseInt(birthYear.trim());
+      if (!isNaN(byNum) && byNum > 1900) {
+        updateBirthYear(byNum);
       }
       setStep("goal_select");
     } else if (step === "goal_select" && selectedGoal) {

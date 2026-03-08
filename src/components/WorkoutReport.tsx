@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { WorkoutSessionData, ExerciseLog, WorkoutAnalysis, WorkoutHistory } from "@/constants/workout";
 import { analyzeWorkoutSession } from "@/utils/gemini";
 import { buildWorkoutMetrics } from "@/utils/workoutMetrics";
+import { loadRecentHistory as loadRecentHistoryFromStore } from "@/utils/workoutHistory";
 
 interface WorkoutReportProps {
   sessionData: WorkoutSessionData;
@@ -17,8 +18,8 @@ interface WorkoutReportProps {
   onAnalysisComplete?: (analysis: WorkoutAnalysis) => void;
 }
 
-// Load recent history from localStorage for trend graph + load ratio
-function getRecentHistory(): WorkoutHistory[] {
+// Sync load of recent history from localStorage (initial render), then async update from Firestore
+function getRecentHistorySync(): WorkoutHistory[] {
   if (typeof window === "undefined") return [];
   try {
     const raw = localStorage.getItem("alpha_workout_history");
@@ -52,6 +53,8 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [showLogs, setShowLogs] = useState(false);
   const [helpCard, setHelpCard] = useState<string | null>(null);
+  const [activeDot, setActiveDot] = useState<string | null>(null); // "exIdx-logIdx"
+  const [recentHistory, setRecentHistory] = useState<WorkoutHistory[]>(getRecentHistorySync);
 
   const metrics = buildWorkoutMetrics(sessionData.exercises, logs, bodyWeightKg);
   const { sessionCategory, totalVolume, bestE1RM, bwRatio, successRate, fatigueDrop, loadScore, totalDurationSec } = metrics;
@@ -63,11 +66,15 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
     return `${sec}초`;
   };
 
-  const recentHistory = getRecentHistory();
   const historyStats = get28dAvgVolume(recentHistory);
   const loadRatio = historyStats && historyStats.avgVolume28d > 0
     ? totalVolume / historyStats.avgVolume28d
     : null;
+
+  // Load recent history from Firestore (async update after initial sync render)
+  useEffect(() => {
+    loadRecentHistoryFromStore().then(setRecentHistory).catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (initialAnalysis) {
@@ -465,6 +472,22 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
                 const exerciseLogs = logs[idx];
                 if (!exerciseLogs || exerciseLogs.length === 0) return null;
 
+                // Skip time-based exercises (plank, stretches, etc.) where reps aren't meaningful
+                const isTimeBased = ex.type === "warmup" || ex.type === "cardio"
+                  || /초|sec|min|분|유지|hold/i.test(ex.count)
+                  || exerciseLogs.every(l => l.repsCompleted === 0);
+                if (isTimeBased) {
+                  return (
+                    <div key={idx} className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm animate-slide-up" style={{ animationDelay: `${idx * 0.05}s` }}>
+                      <div className="flex justify-between items-baseline">
+                        <h3 className="font-bold text-gray-800 text-sm text-left">{ex.name}</h3>
+                        <span className="text-[9px] text-gray-400 uppercase font-black tracking-widest bg-gray-50 px-2 py-0.5 rounded">{ex.type}</span>
+                      </div>
+                      <p className="text-xs text-gray-400 mt-2">{ex.count} · {exerciseLogs.length}세트 완료</p>
+                    </div>
+                  );
+                }
+
                 const maxReps = Math.max(...exerciseLogs.map(l => l.repsCompleted), 1);
 
                 return (
@@ -495,16 +518,25 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
                       {exerciseLogs.map((log, i) => {
                         const xPct = exerciseLogs.length === 1 ? 50 : (i / (exerciseLogs.length - 1)) * 100;
                         const yPct = 100 - ((log.repsCompleted / maxReps) * 80);
+                        const dotKey = `${idx}-${i}`;
+                        const isActive = activeDot === dotKey;
                         return (
                           <div
                             key={i}
-                            className="absolute flex flex-col items-center"
+                            className="absolute flex flex-col items-center cursor-pointer"
                             style={{ left: `${xPct}%`, top: `${yPct}%`, transform: "translate(-50%, -50%)" }}
+                            onPointerEnter={() => setActiveDot(dotKey)}
+                            onPointerLeave={() => setActiveDot(null)}
+                            onTouchStart={() => setActiveDot(isActive ? null : dotKey)}
                           >
-                            <span className="absolute -top-6 text-[10px] font-black text-gray-700 bg-white px-1.5 py-0.5 rounded shadow-sm border border-gray-100">
-                              {log.repsCompleted}
-                            </span>
-                            <div className={`w-2.5 h-2.5 bg-white border-[2.5px] rounded-full z-10 ${
+                            {isActive && (
+                              <span className="absolute -top-6 text-[10px] font-black text-gray-700 bg-white px-1.5 py-0.5 rounded shadow-sm border border-gray-100 animate-fade-in z-20">
+                                {log.repsCompleted}
+                              </span>
+                            )}
+                            <div className={`w-2.5 h-2.5 bg-white border-[2.5px] rounded-full z-10 transition-transform ${
+                              isActive ? "scale-150" : ""
+                            } ${
                               log.feedback === "fail" ? "border-red-400" :
                               log.feedback === "target" ? "border-[#2D6A4F]" : "border-emerald-400"
                             }`} />

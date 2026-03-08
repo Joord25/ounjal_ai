@@ -409,7 +409,7 @@ export const subscribe = onRequest(
       const expiresAt = new Date(now);
       expiresAt.setMonth(expiresAt.getMonth() + 1);
 
-      await db.collection("subscriptions").doc(uid).set({
+      await db.collection("users").doc(uid).collection("subscriptions").doc("current").set({
         uid,
         billingKey,
         status: "active",
@@ -446,7 +446,7 @@ export const getSubscription = onRequest(
     try { uid = await verifyAuth(req.headers.authorization); } catch { res.status(401).json({ error: "Unauthorized" }); return; }
 
     try {
-      const doc = await db.collection("subscriptions").doc(uid).get();
+      const doc = await db.collection("users").doc(uid).collection("subscriptions").doc("current").get();
 
       if (!doc.exists) {
         res.status(200).json({ status: "free" });
@@ -459,7 +459,7 @@ export const getSubscription = onRequest(
       if (data.status === "active" && data.expiresAt) {
         const expires = new Date(data.expiresAt);
         if (expires < new Date()) {
-          await db.collection("subscriptions").doc(uid).update({
+          await db.collection("users").doc(uid).collection("subscriptions").doc("current").update({
             status: "expired",
             updatedAt: FieldValue.serverTimestamp(),
           });
@@ -495,14 +495,14 @@ export const cancelSubscription = onRequest(
     try { uid = await verifyAuth(req.headers.authorization); } catch { res.status(401).json({ error: "Unauthorized" }); return; }
 
     try {
-      const doc = await db.collection("subscriptions").doc(uid).get();
+      const doc = await db.collection("users").doc(uid).collection("subscriptions").doc("current").get();
 
       if (!doc.exists || doc.data()?.status !== "active") {
         res.status(400).json({ error: "활성 구독이 없습니다." });
         return;
       }
 
-      await db.collection("subscriptions").doc(uid).update({
+      await db.collection("users").doc(uid).collection("subscriptions").doc("current").update({
         status: "cancelled",
         updatedAt: FieldValue.serverTimestamp(),
       });

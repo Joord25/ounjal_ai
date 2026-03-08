@@ -7,6 +7,7 @@ import { auth } from "@/lib/firebase";
 interface SubscriptionScreenProps {
   user: User;
   onClose: () => void;
+  initialStatus?: "free" | "active" | "cancelled";
 }
 
 const FUNCTIONS_BASE = "https://us-central1-ounjal.cloudfunctions.net";
@@ -44,8 +45,8 @@ const FAQ_ITEMS = [
   },
 ];
 
-export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ user, onClose }) => {
-  const [status, setStatus] = useState<"loading" | "free" | "active" | "cancelled">("loading");
+export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ user, onClose, initialStatus }) => {
+  const [status, setStatus] = useState<"loading" | "free" | "active" | "cancelled">(initialStatus || "loading");
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
   const [lastPaymentAt, setLastPaymentAt] = useState<string | null>(null);
@@ -59,9 +60,11 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ user, on
   const [confirmInput, setConfirmInput] = useState("");
   const [confirmCountdown, setConfirmCountdown] = useState(5);
 
-  // Check subscription status on mount
+  // Check subscription status on mount (skip if already known via initialStatus)
   useEffect(() => {
-    checkSubscription();
+    if (!initialStatus) {
+      checkSubscription();
+    }
   }, []);
 
   const checkSubscription = async () => {
@@ -226,7 +229,7 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ user, on
         <h1 className="text-3xl font-black text-[#1B4332]">Primium 구독</h1>
       </div>
 
-      <div className="flex-1 px-6 pb-8">
+      <div className="flex-1 px-6 pb-4">
         {status === "loading" ? (
           <div className="flex items-center justify-center py-20">
             <div className="w-8 h-8 border-3 border-[#2D6A4F] border-t-transparent rounded-full animate-spin" />
@@ -393,6 +396,18 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ user, on
             </button>
           </div>
         )}
+
+        {/* Business Registration Footer */}
+        <div className="mt-6 pt-6 border-t border-gray-100">
+          <div className="flex flex-col gap-1 text-[10px] text-gray-500 leading-relaxed text-center">
+            <p className="font-medium text-gray-600">주드(Joord) · 대표 임주용</p>
+            <p>사업자등록번호 623-36-01460</p>
+            <p>서울특별시 관악구 은천로35길 40-6, 404호</p>
+            <p>Tel 010-4042-2820</p>
+            <p>ounjal.ai.app@gmail.com</p>
+            <p className="mt-2">Copyright © 2026 Joord. All rights reserved.</p>
+          </div>
+        </div>
       </div>
 
       {/* Cancel Flow Overlay */}

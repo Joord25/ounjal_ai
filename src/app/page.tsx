@@ -13,9 +13,11 @@ import { MyProfileTab } from "@/components/MyProfileTab";
 import { generateAdaptiveWorkout, WorkoutSessionData, UserCondition, WorkoutGoal, ExerciseLog, WorkoutHistory } from "@/constants/workout";
 import { generateAIWorkoutPlan } from "@/utils/gemini";
 import { buildWorkoutMetrics } from "@/utils/workoutMetrics";
+import { saveWorkoutHistory, updateWorkoutAnalysis, loadWorkoutHistory } from "@/utils/workoutHistory";
 import { auth } from "@/lib/firebase";
 import { onAuthStateChanged, signOut, User } from "firebase/auth";
 import { SubscriptionScreen } from "@/components/SubscriptionScreen";
+import { loadUserProfile } from "@/utils/userProfile";
 
 type ViewState = 
   | "login"
@@ -64,6 +66,9 @@ export default function Home() {
             .catch(() => setSubStatus("free"));
         }).catch(() => setSubStatus("free"));
 
+        // Load user profile from Firestore → localStorage
+        loadUserProfile().catch((e) => console.error("Failed to load profile", e));
+
         // Load workout data
         const rDone = localStorage.getItem("alpha_completed_rituals");
         if (rDone) {
@@ -71,17 +76,17 @@ export default function Home() {
           setCompletedRitualIds(doneIds);
 
           if (doneIds.includes("workout")) {
-            try {
-              const history = JSON.parse(localStorage.getItem("alpha_workout_history") || "[]");
+            // Load from Firestore (falls back to localStorage)
+            loadWorkoutHistory().then((history) => {
               const todayStr = new Date().toDateString();
-              const todayEntry = history.find((h: any) => new Date(h.date).toDateString() === todayStr);
+              const todayEntry = history.find((h) => new Date(h.date).toDateString() === todayStr);
               if (todayEntry) {
                 setCurrentWorkoutSession(todayEntry.sessionData);
                 setWorkoutLogs(todayEntry.logs);
               }
-            } catch (e) {
+            }).catch((e) => {
               console.error("Failed to load today's history", e);
-            }
+            });
           }
         }
 
@@ -276,12 +281,7 @@ export default function Home() {
                 }
               };
 
-              try {
-                const existingHistory = JSON.parse(localStorage.getItem("alpha_workout_history") || "[]");
-                localStorage.setItem("alpha_workout_history", JSON.stringify([...existingHistory, historyEntry]));
-              } catch (e) {
-                console.error("Failed to save workout history", e);
-              }
+              saveWorkoutHistory(historyEntry);
 
               setView("workout_report");
             }}
@@ -305,10 +305,8 @@ export default function Home() {
                 try {
                     const history = JSON.parse(localStorage.getItem("alpha_workout_history") || "[]");
                     if (history.length > 0) {
-                        // Assuming the last entry is the current one
                         const lastEntry = history[history.length - 1];
-                        lastEntry.analysis = analysis;
-                        localStorage.setItem("alpha_workout_history", JSON.stringify(history));
+                        updateWorkoutAnalysis(lastEntry.id, analysis);
                     }
                 } catch (e) {
                     console.error("Failed to save analysis to history", e);

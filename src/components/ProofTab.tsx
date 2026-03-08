@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 
 import { WorkoutHistory as WorkoutHistoryType } from "@/constants/workout";
+import { loadWorkoutHistory } from "@/utils/workoutHistory";
 import { WorkoutReport } from "./WorkoutReport";
 import { WorkoutHistory } from "./WorkoutHistory";
 
@@ -18,18 +19,16 @@ export const ProofTab: React.FC<ProofTabProps> = () => {
   const [selectedHistory, setSelectedHistory] = useState<WorkoutHistoryType | null>(null);
   const [monthOffset, setMonthOffset] = useState(0); // 0 = current month, -1 = last month, etc.
   const [weightLog, setWeightLog] = useState<{ date: string; weight: number }[]>([]);
+  const [activeVolumeDot, setActiveVolumeDot] = useState<number | null>(null);
+  const [activeWeightDot, setActiveWeightDot] = useState<number | null>(null);
 
   useEffect(() => {
-    const saved = localStorage.getItem("alpha_workout_history");
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved) as WorkoutHistoryType[];
-        parsed.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-        setHistory(parsed);
-      } catch (e) {
-        console.error("Failed to parse workout history", e);
-      }
-    }
+    loadWorkoutHistory().then((data) => {
+      data.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      setHistory(data);
+    }).catch((e) => {
+      console.error("Failed to load workout history", e);
+    });
     const savedWeight = localStorage.getItem("alpha_weight_log");
     if (savedWeight) {
       try {
@@ -65,7 +64,6 @@ export const ProofTab: React.FC<ProofTabProps> = () => {
     return d.getFullYear() === viewYear && d.getMonth() === viewMonth;
   });
   const monthWorkouts = monthHistory.length;
-  const monthVolume = monthHistory.reduce((acc, curr) => acc + (curr.stats?.totalVolume || 0), 0);
 
   const handleSessionClick = (session: WorkoutHistoryType) => {
     setSelectedHistory(session);
@@ -212,10 +210,174 @@ export const ProofTab: React.FC<ProofTabProps> = () => {
             <p className="text-xs text-emerald-400/50 mt-2 font-medium">클릭하여 기록 상세보기</p>
           </button>
 
-          <div className="p-6 bg-white rounded-3xl border border-[#2D6A4F]/10 shadow-sm">
-            <p className="text-[10px] font-bold text-[#2D6A4F] uppercase tracking-widest mb-1">이달 총 볼륨</p>
-            <h3 className="text-3xl font-black text-[#1B4332]">{monthVolume.toLocaleString()} <span className="text-lg text-[#2D6A4F]/50">kg</span></h3>
-          </div>
+          {/* Volume Trend Graph — grouped by date */}
+          {(() => {
+            const sessionsWithVolume = monthHistory
+              .filter(h => (h.stats?.totalVolume || 0) > 0)
+              .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+            if (sessionsWithVolume.length === 0) {
+              return (
+                <div className="p-6 bg-white rounded-3xl border border-[#2D6A4F]/10 shadow-sm">
+                  <p className="text-[10px] font-bold text-[#2D6A4F] uppercase tracking-widest mb-1">세션별 볼륨</p>
+                  <h3 className="text-xl font-black text-gray-300">기록 없음</h3>
+                </div>
+              );
+            }
+
+            // Group sessions by date string
+            const dateGroups: { dateStr: string; sessions: { volume: number; idx: number }[] }[] = [];
+            let globalIdx = 0;
+            sessionsWithVolume.forEach(h => {
+              const dateStr = new Date(h.date).toLocaleDateString("ko-KR", { month: "numeric", day: "numeric" });
+              const vol = h.stats.totalVolume || 0;
+              const last = dateGroups[dateGroups.length - 1];
+              if (last && last.dateStr === dateStr) {
+                last.sessions.push({ volume: vol, idx: globalIdx++ });
+              } else {
+                dateGroups.push({ dateStr, sessions: [{ volume: vol, idx: globalIdx++ }] });
+              }
+            });
+            // Keep last 7 date groups
+            const recentGroups = dateGroups.slice(-7);
+
+            // All dots flat list with x position based on date group
+            const allDots: { volume: number; xPct: number; globalIdx: number }[] = [];
+            // Line connects through max volume per date group
+            const lineDots: { volume: number; xPct: number }[] = [];
+
+            // If only 1 date group, spread sessions evenly across x-axis
+            const totalSessions = recentGroups.reduce((s, g) => s + g.sessions.length, 0);
+            const isSingleGroup = recentGroups.length === 1;
+            let sessionCounter = 0;
+
+            recentGroups.forEach((group, gi) => {
+              let maxVol = 0;
+              group.sessions.forEach((s) => {
+                const xPct = isSingleGroup
+                  ? (totalSessions === 1 ? 50 : (sessionCounter / (totalSessions - 1)) * 100)
+                  : (gi / (recentGroups.length - 1)) * 100;
+                allDots.push({ volume: s.volume, xPct, globalIdx: s.idx });
+                if (s.volume > maxVol) { maxVol = s.volume; }
+                sessionCounter++;
+              });
+              if (isSingleGroup) {
+                // Each session becomes its own line point
+                group.sessions.forEach((s, si) => {
+                  const xPct = totalSessions === 1 ? 50 : ((sessionCounter - group.sessions.length + si) / (totalSessions - 1)) * 100;
+                  lineDots.push({ volume: s.volume, xPct });
+                });
+              } else {
+                lineDots.push({ volume: maxVol, xPct: gi / (recentGroups.length - 1) * 100 });
+              }
+            });
+
+            const allVolumes = allDots.map(d => d.volume);
+            const rawMin = Math.min(...allVolumes);
+            const rawMax = Math.max(...allVolumes);
+            const padding = rawMax - rawMin < 100 ? 200 : (rawMax - rawMin) * 0.2;
+            const minV = Math.max(0, rawMin - padding);
+            const range = (rawMax + padding) - minV;
+
+            const getY = (v: number) => 95 - ((v - minV) / range) * 90;
+
+            return (
+              <div className="p-6 bg-white rounded-3xl border border-[#2D6A4F]/10 shadow-sm">
+                <div className="flex justify-between items-baseline mb-4">
+                  <h3 className="text-lg font-black text-[#1B4332]">세션별 볼륨</h3>
+                  <span className="text-[10px] font-black text-[#2D6A4F]/60">최근 {recentGroups.length}일</span>
+                </div>
+
+                <div className="flex h-32 gap-2 pt-4 pb-5">
+                  {/* Y-axis labels */}
+                  <div className="flex flex-col justify-between shrink-0 w-10">
+                    <span className="text-[8px] text-gray-300 font-bold text-right">{(rawMax / 1000).toFixed(1)}k</span>
+                    <span className="text-[8px] text-gray-300 font-bold text-right">{(rawMin / 1000).toFixed(1)}k</span>
+                  </div>
+
+                  {/* Graph area */}
+                  <div className="relative flex-1 overflow-visible">
+                    <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+                      <line x1="0" y1="5" x2="100" y2="5" stroke="#f3f4f6" strokeWidth="0.5" vectorEffect="non-scaling-stroke" />
+                      <line x1="0" y1="50" x2="100" y2="50" stroke="#f3f4f6" strokeWidth="0.5" vectorEffect="non-scaling-stroke" />
+                      <line x1="0" y1="95" x2="100" y2="95" stroke="#f3f4f6" strokeWidth="0.5" vectorEffect="non-scaling-stroke" />
+
+                      {/* Area fill — follows max line */}
+                      <path
+                        d={
+                          lineDots.map((d, i) => {
+                            const y = getY(d.volume);
+                            return `${i === 0 ? "M" : "L"} ${d.xPct} ${y}`;
+                          }).join(" ") + ` L ${lineDots[lineDots.length - 1].xPct} 100 L ${lineDots[0].xPct} 100 Z`
+                        }
+                        fill="url(#volumeGradient)"
+                      />
+                      <defs>
+                        <linearGradient id="volumeGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#2D6A4F" stopOpacity="0.15" />
+                          <stop offset="100%" stopColor="#2D6A4F" stopOpacity="0" />
+                        </linearGradient>
+                      </defs>
+
+                      {/* Line through max volume per date */}
+                      <path
+                        d={lineDots.map((d, i) => {
+                          const y = getY(d.volume);
+                          return `${i === 0 ? "M" : "L"} ${d.xPct} ${y}`;
+                        }).join(" ")}
+                        fill="none"
+                        stroke="#2D6A4F"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        vectorEffect="non-scaling-stroke"
+                      />
+                    </svg>
+
+                    {/* Date labels under each group x position */}
+                    {recentGroups.map((group, gi) => {
+                      const xPct = isSingleGroup
+                        ? (totalSessions === 1 ? 50 : (gi / Math.max(recentGroups.length - 1, 1)) * 100)
+                        : (gi / (recentGroups.length - 1)) * 100;
+                      return (
+                        <span
+                          key={`date-${gi}`}
+                          className="absolute text-[9px] text-gray-300 font-medium whitespace-nowrap"
+                          style={{ left: `${xPct}%`, bottom: "-18px", transform: "translateX(-50%)" }}
+                        >
+                          {group.dateStr}
+                        </span>
+                      );
+                    })}
+
+                    {/* All dots with hover tooltip */}
+                    {allDots.map((d, i) => {
+                      const yPct = getY(d.volume);
+                      const isLast = i === allDots.length - 1;
+                      const isActive = activeVolumeDot === i;
+                      return (
+                        <div
+                          key={i}
+                          className="absolute flex flex-col items-center cursor-pointer"
+                          style={{ left: `${d.xPct}%`, top: `${yPct}%`, transform: "translate(-50%, -50%)" }}
+                          onPointerEnter={() => setActiveVolumeDot(i)}
+                          onPointerLeave={() => setActiveVolumeDot(null)}
+                          onTouchStart={() => setActiveVolumeDot(isActive ? null : i)}
+                        >
+                          {isActive && (
+                            <span className="absolute -top-6 text-[10px] font-black text-gray-700 bg-white px-1.5 py-0.5 rounded shadow-sm border border-gray-100 animate-fade-in z-20 whitespace-nowrap">
+                              {d.volume.toLocaleString()}kg
+                            </span>
+                          )}
+                          <div className={`rounded-full transition-transform ${isActive ? "scale-150" : ""} ${isLast ? "w-3 h-3 bg-[#2D6A4F]" : "w-2 h-2 bg-white border-2 border-[#2D6A4F]"}`} />
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Weight Trend Graph */}
           {weightLog.length > 0 && (() => {
@@ -248,7 +410,7 @@ export const ProofTab: React.FC<ProofTabProps> = () => {
                   <span className="text-lg text-[#2D6A4F]/50">kg</span>
                 </div>
 
-                <div className="flex h-24 gap-2">
+                <div className="flex h-32 gap-2 pt-4 pb-5">
                   {/* Y-axis labels */}
                   <div className="flex flex-col justify-between shrink-0 w-8">
                     <span className="text-[8px] text-gray-300 font-bold text-right">{rawMax.toFixed(1)}</span>
@@ -256,7 +418,7 @@ export const ProofTab: React.FC<ProofTabProps> = () => {
                   </div>
 
                   {/* Graph area */}
-                  <div className="relative flex-1 overflow-hidden">
+                  <div className="relative flex-1 overflow-visible">
                     <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
                       {/* Grid lines */}
                       <line x1="0" y1="5" x2="100" y2="5" stroke="#f3f4f6" strokeWidth="0.5" vectorEffect="non-scaling-stroke" />
@@ -297,33 +459,45 @@ export const ProofTab: React.FC<ProofTabProps> = () => {
                       />
                     </svg>
 
-                    {/* Dots for first & last */}
-                    {recent.length > 1 && (
-                      <>
-                        <div
-                          className="absolute w-2 h-2 rounded-full bg-white border-2 border-[#2D6A4F]"
-                          style={{
-                            left: 0,
-                            top: `${95 - ((weights[0] - minW) / range) * 90}%`,
-                            transform: "translate(-50%, -50%)"
-                          }}
-                        />
-                        <div
-                          className="absolute w-3 h-3 rounded-full bg-[#2D6A4F]"
-                          style={{
-                            right: 0,
-                            top: `${95 - ((weights[weights.length - 1] - minW) / range) * 90}%`,
-                            transform: "translate(50%, -50%)"
-                          }}
-                        />
-                      </>
-                    )}
-                  </div>
-                </div>
+                    {/* Date labels — first and last */}
+                    {recent.length > 0 && [0, recent.length - 1].filter((v, i, a) => a.indexOf(v) === i).map(idx => {
+                      const xPct = recent.length === 1 ? 50 : (idx / (recent.length - 1)) * 100;
+                      return (
+                        <span
+                          key={`wdate-${idx}`}
+                          className="absolute text-[9px] text-gray-300 font-medium whitespace-nowrap"
+                          style={{ left: `${xPct}%`, bottom: "-18px", transform: "translateX(-50%)" }}
+                        >
+                          {recent[idx].date.slice(5).replace("-", "/")}
+                        </span>
+                      );
+                    })}
 
-                <div className="flex justify-between text-[9px] text-gray-300 font-medium mt-2 pl-10">
-                  <span>{recent[0].date.slice(5).replace("-", "/")}</span>
-                  <span>{recent[recent.length - 1].date.slice(5).replace("-", "/")}</span>
+                    {/* Dots with hover tooltip */}
+                    {weights.map((w, i) => {
+                      const xPct = weights.length === 1 ? 50 : (i / (weights.length - 1)) * 100;
+                      const yPct = 95 - ((w - minW) / range) * 90;
+                      const isLast = i === weights.length - 1;
+                      const isActive = activeWeightDot === i;
+                      return (
+                        <div
+                          key={i}
+                          className="absolute flex flex-col items-center cursor-pointer"
+                          style={{ left: `${xPct}%`, top: `${yPct}%`, transform: "translate(-50%, -50%)" }}
+                          onPointerEnter={() => setActiveWeightDot(i)}
+                          onPointerLeave={() => setActiveWeightDot(null)}
+                          onTouchStart={() => setActiveWeightDot(isActive ? null : i)}
+                        >
+                          {isActive && (
+                            <span className="absolute -top-6 text-[10px] font-black text-gray-700 bg-white px-1.5 py-0.5 rounded shadow-sm border border-gray-100 animate-fade-in z-20 whitespace-nowrap">
+                              {w.toFixed(1)}kg
+                            </span>
+                          )}
+                          <div className={`rounded-full transition-transform ${isActive ? "scale-150" : ""} ${isLast ? "w-3 h-3 bg-[#2D6A4F]" : "w-2 h-2 bg-white border-2 border-[#2D6A4F]"}`} />
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             );

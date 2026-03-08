@@ -77,6 +77,37 @@ export const FitScreen: React.FC<FitScreenProps> = ({
   const [repsStopwatch, setRepsStopwatch] = useState(0);
   const [repsStopwatchRunning, setRepsStopwatchRunning] = useState(false);
 
+  // Sync reps from parent (adaptive logic) — render-time sync pattern (React-recommended)
+  const [prevTargetReps, setPrevTargetReps] = useState(setInfo.targetReps);
+  if (setInfo.targetReps !== prevTargetReps) {
+    setPrevTargetReps(setInfo.targetReps);
+    setFailedReps(setInfo.targetReps);
+    setAdjustedReps(setInfo.targetReps);
+  }
+
+  // Sync weight from parent (adaptive logic) — render-time sync pattern
+  const [prevTargetWeight, setPrevTargetWeight] = useState(setInfo.targetWeight);
+  if (setInfo.targetWeight !== prevTargetWeight) {
+    setPrevTargetWeight(setInfo.targetWeight);
+    if (hasWeight && setInfo.targetWeight) {
+      const parsed = parseFloat(setInfo.targetWeight);
+      if (!isNaN(parsed) && parsed > 0) {
+        setSelectedWeight(parsed);
+        const key = `alpha_weight_${exercise.name.replace(/[^a-zA-Z가-힣]/g, "_")}`;
+        localStorage.setItem(key, String(parsed));
+      }
+    }
+  }
+
+  // Reset easyExtraReps when set changes
+  const [prevSet, setPrevSet] = useState(setInfo.current);
+  if (setInfo.current !== prevSet) {
+    setPrevSet(setInfo.current);
+    setEasyExtraReps(2);
+    setView("active");
+    setIsDoneAnimating(false);
+  }
+
   const halfAlarmFired = useRef(false);
 
   // Alarm sound using Web Audio API
@@ -125,6 +156,7 @@ export const FitScreen: React.FC<FitScreenProps> = ({
     localStorage.setItem(key, String(selectedWeight));
     setWeightConfirmed(true);
     setShowWeightEdit(false);
+    setRepsStopwatchRunning(true);
   };
 
   // Timer State for Cardio/Warmup
@@ -226,31 +258,22 @@ export const FitScreen: React.FC<FitScreenProps> = ({
       : "text-4xl md:text-5xl";
 
   // Reset view when exercise changes or set changes
+  const prevIsResting = useRef(isResting);
   useEffect(() => {
     if (isResting) {
       setView("active");
       setIsDoneAnimating(false);
       setRepsStopwatchRunning(false);
       setRepsStopwatch(0);
+    } else if (prevIsResting.current && !isResting && hasWeight && weightConfirmed) {
+      // Rest just ended — auto-start stopwatch for next set
+      setRepsStopwatch(0);
+      setRepsStopwatchRunning(true);
     }
+    prevIsResting.current = isResting;
   }, [isResting]);
 
-  useEffect(() => {
-    setFailedReps(setInfo.targetReps);
-    setAdjustedReps(setInfo.targetReps);
-  }, [setInfo.targetReps]);
-
-  // Sync weight when parent adjusts it (adaptive logic)
-  useEffect(() => {
-    if (hasWeight && setInfo.targetWeight) {
-      const parsed = parseFloat(setInfo.targetWeight);
-      if (!isNaN(parsed) && parsed > 0 && parsed !== selectedWeight) {
-        setSelectedWeight(parsed);
-        const key = `alpha_weight_${exercise.name.replace(/[^a-zA-Z가-힣]/g, "_")}`;
-        localStorage.setItem(key, String(parsed));
-      }
-    }
-  }, [setInfo.targetWeight]);
+  // (Reps and weight sync moved to render-time pattern above for reliability)
 
   // Stopwatch for reps mode
   useEffect(() => {
@@ -335,20 +358,20 @@ export const FitScreen: React.FC<FitScreenProps> = ({
 
           <div className="flex flex-col items-center gap-2">
             <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">사용 무게</p>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center justify-center gap-4 w-full">
               <button
                 onClick={() => setSelectedWeight(Math.max(0, selectedWeight - 2.5))}
-                className="w-12 h-12 rounded-2xl bg-gray-100 flex items-center justify-center text-gray-500 font-bold text-xl active:scale-95 transition-all hover:bg-gray-200"
+                className="w-12 h-12 rounded-2xl bg-gray-100 flex items-center justify-center text-gray-500 font-bold text-xl active:scale-95 transition-all hover:bg-gray-200 shrink-0"
               >
                 -
               </button>
-              <div className="flex items-baseline">
+              <div className="w-40 flex items-baseline justify-center">
                 <span className="text-6xl font-black text-[#1B4332] tabular-nums">{selectedWeight}</span>
                 <span className="text-xl font-bold text-gray-400 ml-1">kg</span>
               </div>
               <button
                 onClick={() => setSelectedWeight(selectedWeight + 2.5)}
-                className="w-12 h-12 rounded-2xl bg-gray-100 flex items-center justify-center text-gray-500 font-bold text-xl active:scale-95 transition-all hover:bg-gray-200"
+                className="w-12 h-12 rounded-2xl bg-gray-100 flex items-center justify-center text-gray-500 font-bold text-xl active:scale-95 transition-all hover:bg-gray-200 shrink-0"
               >
                 +
               </button>
@@ -428,7 +451,7 @@ export const FitScreen: React.FC<FitScreenProps> = ({
         {isTimerMode && (
             <button
               onClick={() => onSetComplete(0, "easy")}
-              className="absolute right-6 z-50 text-xs font-black text-gray-400 tracking-widest hover:text-gray-600 transition-colors bg-gray-100 px-3 py-1.5 rounded-full"
+              className="absolute right-6 z-10 text-xs font-black text-gray-400 tracking-widest hover:text-gray-600 transition-colors bg-gray-100 px-3 py-1.5 rounded-full"
             >
               SKIP
             </button>
@@ -722,14 +745,17 @@ export const FitScreen: React.FC<FitScreenProps> = ({
             <div className="flex items-center justify-center gap-4 mb-6">
               <button
                 onClick={() => setSelectedWeight(Math.max(0, selectedWeight - 2.5))}
-                className="w-12 h-12 rounded-2xl bg-gray-100 flex items-center justify-center text-gray-500 font-bold text-xl active:scale-95"
+                className="w-12 h-12 rounded-2xl bg-gray-100 flex items-center justify-center text-gray-500 font-bold text-xl active:scale-95 shrink-0"
               >
                 -
               </button>
-              <span className="text-5xl font-black text-[#1B4332] tabular-nums">{selectedWeight}<span className="text-lg text-gray-400 ml-1">kg</span></span>
+              <div className="w-40 flex items-baseline justify-center">
+                <span className="text-5xl font-black text-[#1B4332] tabular-nums">{selectedWeight}</span>
+                <span className="text-lg text-gray-400 ml-1">kg</span>
+              </div>
               <button
                 onClick={() => setSelectedWeight(selectedWeight + 2.5)}
-                className="w-12 h-12 rounded-2xl bg-gray-100 flex items-center justify-center text-gray-500 font-bold text-xl active:scale-95"
+                className="w-12 h-12 rounded-2xl bg-gray-100 flex items-center justify-center text-gray-500 font-bold text-xl active:scale-95 shrink-0"
               >
                 +
               </button>

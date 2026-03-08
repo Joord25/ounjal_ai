@@ -82,7 +82,9 @@ export const WorkoutSession: React.FC<WorkoutSessionProps> = ({
     //   - Hunter (2014): Women recover faster between sets → shorter rest OK
     //   - NSCA Essentials of Strength Training 4th ed.: age-graded progression tables
     if (currentSet < currentExercise.sets) {
-      const updatedExercises = [...exercises];
+      const updatedExercises = exercises.map((ex, i) =>
+        i === currentExerciseIndex ? { ...ex } : ex
+      );
       const exercise = updatedExercises[currentExerciseIndex];
       const currentWeight = weightKg || 0;
       const currentReps = exercise.reps || 12;
@@ -104,8 +106,10 @@ export const WorkoutSession: React.FC<WorkoutSessionProps> = ({
       if (feedback === "too_easy") {
         const extraReps = reps - currentReps;
         if (currentWeight > 0) {
-          // Base %: 4-6 extra → 5%, 7-9 → 7.5%, 10+ → 10%, scaled by age
-          const basePct = extraReps >= 10 ? 0.10 : extraReps >= 7 ? 0.075 : 0.05;
+          // Extra reps ratio to target: determines how far off the weight is
+          const extraRatio = extraReps / Math.max(1, currentReps);
+          // Tiered %: ratio < 1x → 10%, 1-2x → 20%, 2-3x → 30%, 3x+ → 40%, scaled by age
+          const basePct = extraRatio >= 3 ? 0.40 : extraRatio >= 2 ? 0.30 : extraRatio >= 1 ? 0.20 : 0.10;
           const pct = basePct * ageMod;
           const increment = roundToStep(currentWeight * pct);
           exercise.weight = `${currentWeight + increment}kg`;
@@ -128,6 +132,15 @@ export const WorkoutSession: React.FC<WorkoutSessionProps> = ({
         }
       }
       // "target" (RIR ~1): maintain (no change)
+
+      // Persist adapted weight to localStorage so FitScreen picks it up
+      if (exercise.weight) {
+        const parsed = parseFloat(exercise.weight);
+        if (!isNaN(parsed) && parsed > 0) {
+          const storageKey = `alpha_weight_${exercise.name.replace(/[^a-zA-Z가-힣]/g, "_")}`;
+          localStorage.setItem(storageKey, String(parsed));
+        }
+      }
 
       setExercises(updatedExercises);
 
