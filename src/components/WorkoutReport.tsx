@@ -325,10 +325,11 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
               {graphData.length > 1 && (() => {
                 const maxLoad = Math.max(...graphData.map(g => g.loadScore), 1);
                 const avgLoad = graphData.reduce((s, d) => s + d.loadScore, 0) / graphData.length;
-                const bandTopScore = Math.min(1.3 * avgLoad, maxLoad);
+                const bandTopScore = 1.3 * avgLoad;
                 const bandBottomScore = 0.8 * avgLoad;
-                const topPct = 100 - (bandTopScore / maxLoad) * 80;
-                const bottomPct = 100 - (bandBottomScore / maxLoad) * 80;
+                const maxScale = Math.max(maxLoad, bandTopScore) * 1.1;
+                const topPct = 100 - (bandTopScore / maxScale) * 80;
+                const bottomPct = 100 - (bandBottomScore / maxScale) * 80;
                 return (
                   <div
                     className="absolute left-0 right-0 bg-emerald-50 border-y border-emerald-100 rounded"
@@ -348,7 +349,9 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
                     d={graphData.map((d, i) => {
                       const x = (i / (graphData.length - 1)) * 100;
                       const maxLoad = Math.max(...graphData.map(g => g.loadScore), 1);
-                      const y = 100 - ((d.loadScore / maxLoad) * 80);
+                      const avgLoad = graphData.reduce((s, g) => s + g.loadScore, 0) / graphData.length;
+                      const maxScale = Math.max(maxLoad, 1.3 * avgLoad) * 1.1;
+                      const y = 100 - ((d.loadScore / maxScale) * 80);
                       return `${i === 0 ? "M" : "L"} ${x} ${y}`;
                     }).join(" ")}
                     fill="none"
@@ -363,7 +366,9 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
               {graphData.map((d, i) => {
                 const xPct = graphData.length === 1 ? 50 : (i / (graphData.length - 1)) * 100;
                 const maxLoad = Math.max(...graphData.map(g => g.loadScore), 1);
-                const yPct = 100 - ((d.loadScore / maxLoad) * 80);
+                const avgLoad = graphData.reduce((s, g) => s + g.loadScore, 0) / graphData.length;
+                const maxScale = Math.max(maxLoad, 1.3 * avgLoad) * 1.1;
+                const yPct = 100 - ((d.loadScore / maxScale) * 80);
                 const isToday = i === graphData.length - 1;
                 return (
                   <div

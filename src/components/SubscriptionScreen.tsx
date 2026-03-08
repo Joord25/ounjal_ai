@@ -17,11 +17,47 @@ async function getIdToken(): Promise<string> {
   return user.getIdToken();
 }
 
+const FAQ_ITEMS = [
+  {
+    q: "무료 플랜과 프리미엄의 차이는?",
+    a: "무료 플랜은 AI 운동 플랜 생성이 3회로 제한됩니다. 프리미엄 구독 시 AI 맞춤 운동 플랜 무제한 생성, 세션별 AI 분석 리포트, 운동 히스토리 무제한 저장 등 모든 기능을 이용하실 수 있습니다.",
+  },
+  {
+    q: "결제는 어떻게 처리되나요?",
+    a: "카카오페이를 통해 안전하게 결제됩니다. 결제 정보는 암호화되어 보호되며, 매월 자동으로 갱신됩니다.",
+  },
+  {
+    q: "카카오페이 외 다른 결제수단은 없나요?",
+    a: "현재는 카카오페이를 통한 결제만 가능합니다. 더 다양한 결제 옵션을 제공하기 위해 토스페이, 네이버 페이 등 추가 결제수단을 준비 중입니다.",
+  },
+  {
+    q: "구독 취소는 어떻게 하나요?",
+    a: "프로필 탭에서 구독 관리로 이동하시면 구독 취소 버튼이 있습니다. 취소 후에도 결제 주기가 끝날 때까지 프리미엄 기능을 계속 이용하실 수 있습니다.",
+  },
+  {
+    q: "결제 후 환불도 가능한가요?",
+    a: "결제 후 7일 이내, 프리미엄 기능을 사용하지 않은 경우에 한해 환불이 가능합니다. 고객센터로 문의해 주세요.",
+  },
+  {
+    q: "앱스토어, 플레이스토어 앱은 없나요?",
+    a: "현재는 웹 브라우저에서 이용하실 수 있으며, 모바일 앱은 준비 중입니다. 웹에서도 모든 기능을 동일하게 이용하실 수 있습니다.",
+  },
+];
+
 export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ user, onClose }) => {
   const [status, setStatus] = useState<"loading" | "free" | "active" | "cancelled">("loading");
+  const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
+  const [lastPaymentAt, setLastPaymentAt] = useState<string | null>(null);
+  const [amount, setAmount] = useState<number | null>(null);
+  const [createdAt, setCreatedAt] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [cancelStep, setCancelStep] = useState<0 | 1 | 2>(0); // 0=hidden, 1=reason, 2=confirm
+  const [cancelReason, setCancelReason] = useState<string | null>(null);
+  const [cancelReasonText, setCancelReasonText] = useState("");
+  const [confirmInput, setConfirmInput] = useState("");
+  const [confirmCountdown, setConfirmCountdown] = useState(5);
 
   // Check subscription status on mount
   useEffect(() => {
@@ -42,6 +78,9 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ user, on
         const data = await res.json();
         setStatus(data.status || "free");
         setExpiresAt(data.expiresAt || null);
+        setLastPaymentAt(data.lastPaymentAt || null);
+        setAmount(data.amount || null);
+        setCreatedAt(data.createdAt || null);
       } else {
         setStatus("free");
       }
@@ -116,9 +155,34 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ user, on
     }
   };
 
-  const handleCancel = async () => {
-    if (!confirm("구독을 취소하시겠습니까?\n현재 결제 기간이 끝날 때까지 이용 가능합니다.")) return;
+  const CANCEL_REASONS = [
+    "가격이 부담돼요",
+    "기능이 기대에 못 미쳐요",
+    "다른 앱을 사용하고 있어요",
+    "운동을 쉬게 되었어요",
+    "기타",
+  ];
 
+  const openCancelFlow = () => {
+    setCancelStep(1);
+    setCancelReason(null);
+    setCancelReasonText("");
+    setConfirmInput("");
+    setConfirmCountdown(5);
+  };
+
+  const goToConfirmStep = () => {
+    setCancelStep(2);
+    setConfirmCountdown(5);
+    const timer = setInterval(() => {
+      setConfirmCountdown((prev) => {
+        if (prev <= 1) { clearInterval(timer); return 0; }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  const handleCancel = async () => {
     setIsProcessing(true);
     try {
       const token = await getIdToken();
@@ -128,6 +192,7 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ user, on
           "Content-Type": "application/json",
           "Authorization": `Bearer ${token}`,
         },
+        body: JSON.stringify({ reason: cancelReason === "기타" && cancelReasonText.trim() ? `기타: ${cancelReasonText.trim()}` : cancelReason }),
       });
 
       if (!res.ok) {
@@ -135,6 +200,7 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ user, on
         throw new Error(err.error || "구독 취소에 실패했습니다.");
       }
 
+      setCancelStep(0);
       setStatus("cancelled");
       await checkSubscription();
     } catch (err) {
@@ -147,12 +213,20 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ user, on
   return (
     <div className="flex flex-col h-full bg-white animate-fade-in overflow-y-auto scrollbar-hide">
       {/* Header */}
-      <div className="pt-8 pb-4 px-6 text-center shrink-0">
-        <span className="text-[11px] tracking-[0.3em] uppercase font-serif font-medium text-[#2D6A4F]">Subscription</span>
-        <h1 className="text-3xl font-black text-[#1B4332] mt-2">프리미엄 구독</h1>
+      <div className="pt-5 pb-3 px-6 flex items-center justify-between shrink-0">
+        <button onClick={onClose} className="p-2 -ml-2">
+          <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+        <span className="text-[11px] tracking-[0.3em] uppercase font-serif font-medium text-[#2D6A4F]">구독/결제</span>
+        <div className="w-9" />
+      </div>
+      <div className="pb-4 px-6 text-center">
+        <h1 className="text-3xl font-black text-[#1B4332]">Primium 구독</h1>
       </div>
 
-      <div className="flex-1 px-6 pb-6">
+      <div className="flex-1 px-6 pb-8">
         {status === "loading" ? (
           <div className="flex items-center justify-center py-20">
             <div className="w-8 h-8 border-3 border-[#2D6A4F] border-t-transparent rounded-full animate-spin" />
@@ -186,13 +260,36 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ user, on
               </div>
             </div>
 
-            <button
-              onClick={handleCancel}
-              disabled={isProcessing}
-              className="w-full py-3 rounded-2xl text-sm font-bold text-red-400 bg-red-50 active:scale-[0.98] transition-all disabled:opacity-50"
-            >
-              {isProcessing ? "처리 중..." : "구독 취소"}
-            </button>
+            <div className="bg-gray-50 rounded-2xl p-5">
+              <h3 className="text-sm font-bold text-gray-900 mb-3">구독 내역</h3>
+              <div className="flex flex-col gap-2.5">
+                {createdAt && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-500">구독 시작일</span>
+                    <span className="text-sm font-medium text-gray-900">{new Date(createdAt).toLocaleDateString("ko-KR")}</span>
+                  </div>
+                )}
+                {lastPaymentAt && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-500">최근 결제일</span>
+                    <span className="text-sm font-medium text-gray-900">{new Date(lastPaymentAt).toLocaleDateString("ko-KR")}</span>
+                  </div>
+                )}
+                {amount && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-500">결제 금액</span>
+                    <span className="text-sm font-medium text-gray-900">{amount.toLocaleString()}원</span>
+                  </div>
+                )}
+                {expiresAt && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-500">다음 결제일</span>
+                    <span className="text-sm font-medium text-[#2D6A4F]">{new Date(expiresAt).toLocaleDateString("ko-KR")}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
           </div>
         ) : (
           /* Free / Cancelled - Show subscription offer */
@@ -257,17 +354,174 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ user, on
             </p>
           </div>
         )}
+
+        {/* FAQ */}
+        {status !== "loading" && (
+          <div className="mt-8">
+            <h2 className="text-lg font-black text-gray-900 text-center mb-4">자주 묻는 질문</h2>
+            <div className="flex flex-col gap-2.5">
+              {FAQ_ITEMS.map((item, i) => (
+                <div key={i} className="bg-gray-50 rounded-2xl overflow-hidden">
+                  <button
+                    onClick={() => setOpenFaqIndex(openFaqIndex === i ? null : i)}
+                    className="w-full flex items-center justify-between p-4 active:opacity-60"
+                  >
+                    <span className="text-sm font-bold text-gray-900 text-left">{item.q}</span>
+                    <span className="text-[#2D6A4F] text-lg font-bold shrink-0 ml-3">
+                      {openFaqIndex === i ? "−" : "+"}
+                    </span>
+                  </button>
+                  {openFaqIndex === i && (
+                    <div className="px-4 pb-4">
+                      <p className="text-sm text-gray-600 leading-relaxed">{item.a}</p>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Cancel button - bottom of page, only for active */}
+        {status === "active" && (
+          <div className="mt-6">
+            <button
+              onClick={openCancelFlow}
+              className="w-full py-3 text-xs text-gray-400 underline underline-offset-2"
+            >
+              구독 취소
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* Close button */}
-      <div className="px-6 pb-6 shrink-0">
-        <button
-          onClick={onClose}
-          className="w-full py-3 rounded-2xl text-sm font-bold text-gray-400 active:scale-[0.98] transition-all"
-        >
-          닫기
-        </button>
-      </div>
+      {/* Cancel Flow Overlay */}
+      {cancelStep > 0 && (
+        <div className="absolute inset-0 z-50 bg-white flex flex-col animate-fade-in overflow-y-auto scrollbar-hide">
+          {/* Header */}
+          <div className="pt-5 pb-3 px-6 flex items-center justify-between shrink-0">
+            <button onClick={() => setCancelStep(0)} className="p-2 -ml-2">
+              <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <span className="text-[11px] tracking-[0.3em] uppercase font-serif font-medium text-red-400">구독 취소</span>
+            <div className="w-9" />
+          </div>
+
+          {cancelStep === 1 ? (
+            <div className="flex-1 px-6 pb-8">
+              {/* What you'll lose */}
+              <div className="bg-amber-50 rounded-2xl p-5 border border-amber-200 mb-6">
+                <h3 className="text-sm font-bold text-amber-800 mb-3">취소하면 잃게 되는 혜택</h3>
+                <div className="flex flex-col gap-2">
+                  {["AI 맞춤 운동 플랜 무제한 생성", "세션별 AI 분석 리포트", "운동 히스토리 무제한 저장", "체중 변화 그래프 추적"].map((feature) => (
+                    <div key={feature} className="flex items-center gap-2">
+                      <svg className="w-4 h-4 text-red-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                      <span className="text-sm text-amber-700">{feature}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Reason selection */}
+              <h3 className="text-base font-black text-gray-900 mb-1">취소 사유를 선택해 주세요</h3>
+              <p className="text-xs text-gray-400 mb-4">서비스 개선에 활용됩니다</p>
+              <div className="flex flex-col gap-2.5">
+                {CANCEL_REASONS.map((reason) => (
+                  <button
+                    key={reason}
+                    onClick={() => setCancelReason(reason)}
+                    className={`w-full text-left px-4 py-3 rounded-2xl border text-sm font-medium transition-all ${
+                      cancelReason === reason
+                        ? "border-red-300 bg-red-50 text-red-600"
+                        : "border-gray-200 bg-gray-50 text-gray-700 active:opacity-60"
+                    }`}
+                  >
+                    {reason}
+                  </button>
+                ))}
+                {cancelReason === "기타" && (
+                  <textarea
+                    value={cancelReasonText}
+                    onChange={(e) => setCancelReasonText(e.target.value)}
+                    placeholder="취소 사유를 알려주세요..."
+                    rows={3}
+                    className="w-full px-4 py-3 rounded-2xl border border-red-200 bg-red-50/50 text-sm font-medium text-gray-900 outline-none focus:border-red-300 transition-colors resize-none"
+                  />
+                )}
+              </div>
+
+              <div className="mt-8 flex flex-col gap-3">
+                <button
+                  onClick={goToConfirmStep}
+                  disabled={!cancelReason}
+                  className="w-full py-3 rounded-2xl text-sm font-bold text-red-400 bg-red-50 active:scale-[0.98] transition-all disabled:opacity-30"
+                >
+                  취소 계속 진행
+                </button>
+                <button
+                  onClick={() => setCancelStep(0)}
+                  className="w-full py-3 rounded-2xl text-sm font-bold text-white bg-[#2D6A4F] active:scale-[0.98] transition-all"
+                >
+                  구독 유지하기
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex-1 px-6 pb-8">
+              {/* Warning */}
+              <div className="bg-amber-50 rounded-2xl p-5 border border-amber-200 mb-6">
+                <h3 className="text-base font-black text-amber-800 mb-2">환불 전 꼭 확인하세요</h3>
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex items-start gap-2">
+                    <span className="text-amber-600 mt-0.5">•</span>
+                    <span className="text-sm text-amber-700">환불은 결제일로부터 7일 이내에만 가능합니다.</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="text-amber-600 mt-0.5">•</span>
+                    <span className="text-sm text-amber-700">결제 후 프리미엄 기능을 사용한 경우 환불이 불가합니다.</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="text-amber-600 mt-0.5">•</span>
+                    <span className="text-sm text-amber-700">취소 후에도 현재 결제 기간까지는 이용 가능합니다.</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Type to confirm */}
+              <h3 className="text-base font-black text-gray-900 mb-1">정말 취소하시겠습니까?</h3>
+              <p className="text-xs text-gray-400 mb-4">확인을 위해 아래에 <span className="font-bold text-red-400">"취소"</span>를 입력해 주세요</p>
+              <input
+                type="text"
+                value={confirmInput}
+                onChange={(e) => setConfirmInput(e.target.value)}
+                placeholder="취소"
+                className="w-full px-4 py-3 rounded-2xl border border-gray-200 bg-gray-50 text-sm font-medium text-gray-900 outline-none focus:border-red-300 transition-colors"
+              />
+
+              <div className="mt-8 flex flex-col gap-3">
+                <button
+                  onClick={handleCancel}
+                  disabled={confirmInput !== "취소" || confirmCountdown > 0 || isProcessing}
+                  className="w-full py-3 rounded-2xl text-sm font-bold text-red-400 bg-red-50 active:scale-[0.98] transition-all disabled:opacity-30"
+                >
+                  {isProcessing ? "처리 중..." : confirmCountdown > 0 ? `${confirmCountdown}초 후 취소 가능` : "구독 취소 확정"}
+                </button>
+                <button
+                  onClick={() => setCancelStep(0)}
+                  className="w-full py-3 rounded-2xl text-sm font-bold text-white bg-[#2D6A4F] active:scale-[0.98] transition-all"
+                >
+                  구독 유지하기
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
     </div>
   );
 };

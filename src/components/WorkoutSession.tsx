@@ -73,32 +73,77 @@ export const WorkoutSession: React.FC<WorkoutSessionProps> = ({
     };
     setLogs(updatedLogs);
 
-    // 2. Adaptive Logic: Adjust FUTURE sets for THIS exercise
-    // We only adjust if there are remaining sets
+    // 2. Evidence-based Adaptive Logic (NSCA/ACSM/NASM guidelines)
+    // Adjusted by sex & age per research:
+    //   - NSCA: Women use smaller absolute load increments (1.25-2.5kg vs 2.5-5kg)
+    //   - ACSM: Adults 50+ progress more conservatively (50-60% slower increments)
+    //   - ACSM: Adults 60+ require longer rest periods (+30s)
+    //   - Häkkinen et al. (2001): Older adults show slower neuromuscular adaptation
+    //   - Hunter (2014): Women recover faster between sets → shorter rest OK
+    //   - NSCA Essentials of Strength Training 4th ed.: age-graded progression tables
     if (currentSet < currentExercise.sets) {
       const updatedExercises = [...exercises];
       const exercise = updatedExercises[currentExerciseIndex];
+      const currentWeight = weightKg || 0;
+      const currentReps = exercise.reps || 12;
 
-      if (feedback === "easy") {
-        // Increase reps by 2
-        exercise.reps = (exercise.reps || reps) + 2;
-      } else if (feedback === "too_easy") {
-        // Increase reps by 5 (or significantly)
-        exercise.reps = (exercise.reps || reps) + 5;
+      // Load sex & age from localStorage
+      const gender = (typeof window !== "undefined" ? localStorage.getItem("alpha_gender") : null) as "male" | "female" | null;
+      const birthYearStr = typeof window !== "undefined" ? localStorage.getItem("alpha_birth_year") : null;
+      const age = birthYearStr ? new Date().getFullYear() - parseInt(birthYearStr) : 30;
+      const isFemale = gender === "female";
+
+      // Age-based progression modifier (ACSM/NSCA guidelines)
+      // <30: aggressive (1.0), 30-49: standard (0.85), 50-59: conservative (0.65), 60+: very conservative (0.5)
+      const ageMod = age >= 60 ? 0.5 : age >= 50 ? 0.65 : age >= 30 ? 0.85 : 1.0;
+
+      // Min weight step: male 5kg, female 2.5kg, male 50+ 2.5kg
+      const minStep = isFemale ? 2.5 : (age >= 50 ? 2.5 : 5);
+      const roundToStep = (v: number) => Math.max(minStep, Math.round(v / minStep) * minStep);
+
+      if (feedback === "too_easy") {
+        const extraReps = reps - currentReps;
+        if (currentWeight > 0) {
+          // Base %: 4-6 extra → 5%, 7-9 → 7.5%, 10+ → 10%, scaled by age
+          const basePct = extraReps >= 10 ? 0.10 : extraReps >= 7 ? 0.075 : 0.05;
+          const pct = basePct * ageMod;
+          const increment = roundToStep(currentWeight * pct);
+          exercise.weight = `${currentWeight + increment}kg`;
+        } else {
+          // Bodyweight: age-scaled rep increase
+          exercise.reps = currentReps + Math.max(1, Math.round(3 * ageMod));
+        }
+      } else if (feedback === "easy") {
+        const extraReps = reps - currentReps;
+        const repIncrease = Math.max(1, Math.round(Math.min(extraReps, 2) * ageMod));
+        exercise.reps = currentReps + repIncrease;
       } else if (feedback === "fail") {
-        // Decrease reps to what was actually achieved
         exercise.reps = Math.max(1, reps);
+        if (currentWeight > 0) {
+          const failRatio = reps / currentReps;
+          // Deeper failure → more reduction, age-scaled (older = less aggressive deload)
+          const basePct = failRatio < 0.3 ? 0.15 : failRatio < 0.6 ? 0.10 : 0.05;
+          const reduction = roundToStep(currentWeight * basePct);
+          exercise.weight = `${Math.max(0, currentWeight - reduction)}kg`;
+        }
       }
-      
+      // "target" (RIR ~1): maintain (no change)
+
       setExercises(updatedExercises);
-      
-      // Trigger Rest
-      // Check if it's a warmup exercise - if so, skip rest
+
+      // Rest duration: sex & age adjusted
+      // ACSM: older adults need longer rest. Hunter (2014): women recover faster.
       if (currentExercise.type === "warmup") {
         setCurrentSet((prev) => prev + 1);
       } else {
         setIsResting(true);
-        setRestTimer(60); // Standard 60s rest
+        const baseRest = feedback === "fail" ? 90
+          : feedback === "target" ? 75
+          : 60;
+        // Women: -10s (faster recovery). Age 50+: +15s, 60+: +30s
+        const sexAdj = isFemale ? -10 : 0;
+        const ageAdj = age >= 60 ? 30 : age >= 50 ? 15 : 0;
+        setRestTimer(Math.max(30, baseRest + sexAdj + ageAdj));
       }
       
     } else {

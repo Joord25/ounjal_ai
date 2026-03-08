@@ -471,6 +471,9 @@ export const getSubscription = onRequest(
       res.status(200).json({
         status: data.status,
         expiresAt: data.expiresAt || null,
+        lastPaymentAt: data.lastPaymentAt || null,
+        amount: data.amount || null,
+        createdAt: data.createdAt?.toDate?.().toISOString() || data.createdAt || null,
       });
     } catch (error) {
       console.error("getSubscription error:", error);
@@ -503,6 +506,16 @@ export const cancelSubscription = onRequest(
         status: "cancelled",
         updatedAt: FieldValue.serverTimestamp(),
       });
+
+      // Save cancel feedback
+      const { reason } = req.body || {};
+      if (reason) {
+        await db.collection("cancel_feedbacks").add({
+          uid,
+          reason,
+          cancelledAt: FieldValue.serverTimestamp(),
+        });
+      }
 
       res.status(200).json({
         status: "cancelled",

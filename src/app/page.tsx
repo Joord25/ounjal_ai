@@ -15,6 +15,7 @@ import { generateAIWorkoutPlan } from "@/utils/gemini";
 import { buildWorkoutMetrics } from "@/utils/workoutMetrics";
 import { auth } from "@/lib/firebase";
 import { onAuthStateChanged, signOut, User } from "firebase/auth";
+import { SubscriptionScreen } from "@/components/SubscriptionScreen";
 
 type ViewState = 
   | "login"
@@ -39,6 +40,10 @@ export default function Home() {
   const [currentGoal, setCurrentGoal] = useState<WorkoutGoal | null>(null);
   const [workoutLogs, setWorkoutLogs] = useState<Record<number, ExerciseLog[]>>({});
   const [selectedSessionType, setSelectedSessionType] = useState<string | undefined>(undefined);
+  const [showPaywall, setShowPaywall] = useState(false);
+  const [subStatus, setSubStatus] = useState<"loading" | "free" | "active" | "cancelled">("loading");
+
+  const FREE_PLAN_LIMIT = 3;
 
   // Firebase Auth listener
   useEffect(() => {
@@ -47,6 +52,17 @@ export default function Home() {
 
       if (firebaseUser) {
         setIsLoggedIn(true);
+
+        // Check subscription status
+        firebaseUser.getIdToken().then(token => {
+          fetch("https://us-central1-ounjal.cloudfunctions.net/getSubscription", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+          })
+            .then(res => res.ok ? res.json() : { status: "free" })
+            .then(data => setSubStatus(data.status || "free"))
+            .catch(() => setSubStatus("free"));
+        }).catch(() => setSubStatus("free"));
 
         // Load workout data
         const rDone = localStorage.getItem("alpha_completed_rituals");
@@ -72,6 +88,7 @@ export default function Home() {
         setView("condition_check");
       } else {
         setIsLoggedIn(false);
+        setSubStatus("free");
         setView("login");
       }
 
@@ -144,19 +161,38 @@ export default function Home() {
     }
   };
 
+  const getPlanCount = () => parseInt(localStorage.getItem("alpha_plan_count") || "0", 10);
+  const incrementPlanCount = () => {
+    const count = getPlanCount() + 1;
+    localStorage.setItem("alpha_plan_count", count.toString());
+  };
+
   const handleConditionComplete = async (condition: UserCondition, goal: WorkoutGoal) => {
+    // Check free usage limit
+    if (subStatus === "free" && getPlanCount() >= FREE_PLAN_LIMIT) {
+      setShowPaywall(true);
+      return;
+    }
+
     setCurrentCondition(condition);
     setCurrentGoal(goal);
-    
+
     // Start AI Generation (Initial load follows schedule)
     await generatePlan(condition, goal);
+    incrementPlanCount();
     setView("master_plan_preview");
   };
 
   const handleRegenerate = async (type: string) => {
+    // Check free usage limit on regenerate too
+    if (subStatus === "free" && getPlanCount() >= FREE_PLAN_LIMIT) {
+      setShowPaywall(true);
+      return;
+    }
     if (!currentCondition || !currentGoal) return;
     setSelectedSessionType(type);
     await generatePlan(currentCondition, currentGoal, type);
+    incrementPlanCount();
   };
 
   const handleLogout = async () => {
@@ -339,6 +375,28 @@ export default function Home() {
           {renderContent()}
         </div>
         
+        {/* Paywall Overlay */}
+        {showPaywall && user && (
+          <div className="absolute inset-0 z-50 bg-white">
+            <SubscriptionScreen
+              user={user}
+              onClose={() => {
+                setShowPaywall(false);
+                // Re-check subscription status
+                user.getIdToken().then(token => {
+                  fetch("https://us-central1-ounjal.cloudfunctions.net/getSubscription", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+                  })
+                    .then(res => res.ok ? res.json() : { status: "free" })
+                    .then(data => setSubStatus(data.status || "free"))
+                    .catch(() => setSubStatus("free"));
+                }).catch(() => setSubStatus("free"));
+              }}
+            />
+          </div>
+        )}
+
         {/* Loading Overlay */}
         {isLoading && (
           <div className="absolute inset-0 bg-white/90 z-50 flex flex-col items-center justify-center animate-fade-in backdrop-blur-sm">

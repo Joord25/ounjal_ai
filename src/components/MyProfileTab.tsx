@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { User, updateProfile } from "firebase/auth";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { storage } from "@/lib/firebase";
+import { storage, auth } from "@/lib/firebase";
 import { SubscriptionScreen } from "./SubscriptionScreen";
 
 interface MyProfileTabProps {
@@ -30,6 +30,31 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout }) =>
   });
   const [isEditingBirthYear, setIsEditingBirthYear] = useState(false);
   const [birthYearInput, setBirthYearInput] = useState(birthYear);
+  const [subStatus, setSubStatus] = useState<"loading" | "free" | "active" | "cancelled">("loading");
+  const [showBodyInfo, setShowBodyInfo] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    const checkSub = async () => {
+      try {
+        const token = await auth.currentUser?.getIdToken();
+        if (!token) { setSubStatus("free"); return; }
+        const res = await fetch("https://us-central1-ounjal.cloudfunctions.net/getSubscription", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setSubStatus(data.status || "free");
+        } else {
+          setSubStatus("free");
+        }
+      } catch {
+        setSubStatus("free");
+      }
+    };
+    checkSub();
+  }, [user, showSubscription]);
 
   const handleGenderToggle = () => {
     const next = gender === "male" ? "female" : "male";
@@ -133,10 +158,40 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout }) =>
           </div>
         </button>
 
-        <div className="flex flex-col gap-1">
-          <h1 className="text-2xl font-black text-[#1B4332]">
-            {displayName || "프로필"}
-          </h1>
+        <div className="flex flex-col gap-1 items-center">
+          {isEditingName ? (
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={nameInput}
+                onChange={(e) => setNameInput(e.target.value)}
+                autoFocus
+                className="text-2xl font-black text-[#1B4332] bg-white border border-gray-200 rounded-lg px-3 py-1 w-[180px] outline-none focus:border-[#2D6A4F] transition-colors text-center"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleNameSave();
+                  if (e.key === "Escape") { setIsEditingName(false); setNameInput(displayName); }
+                }}
+              />
+              <button
+                onClick={handleNameSave}
+                className="text-xs font-bold text-[#2D6A4F] active:opacity-60 shrink-0"
+              >
+                저장
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => { setNameInput(displayName); setIsEditingName(true); }}
+              className="flex items-center gap-1.5 active:opacity-60"
+            >
+              <h1 className="text-2xl font-black text-[#1B4332]">
+                {displayName || "프로필"}
+              </h1>
+              <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+              </svg>
+            </button>
+          )}
           <p className="text-xs text-gray-400 font-medium">
             {user?.email || ""}
           </p>
@@ -150,61 +205,40 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout }) =>
         </p>
 
         <div className="bg-gray-50 rounded-2xl p-5 flex flex-col gap-3">
-          {/* Name - editable */}
-          <div className="flex justify-between items-center min-h-[32px]">
-            <span className="text-sm font-bold text-gray-500">이름</span>
-            {isEditingName ? (
-              <div className="flex items-center gap-2">
-                <input
-                  type="text"
-                  value={nameInput}
-                  onChange={(e) => setNameInput(e.target.value)}
-                  autoFocus
-                  className="text-sm font-medium text-gray-900 bg-white border border-gray-200 rounded-lg px-3 py-1.5 w-[140px] outline-none focus:border-[#2D6A4F] transition-colors"
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") handleNameSave();
-                    if (e.key === "Escape") { setIsEditingName(false); setNameInput(displayName); }
-                  }}
-                />
-                <button
-                  onClick={handleNameSave}
-                  className="text-xs font-bold text-[#2D6A4F] active:opacity-60 shrink-0"
-                >
-                  저장
-                </button>
-              </div>
+          {/* Subscription status */}
+          <div className="flex justify-between items-center">
+            <span className="text-sm font-bold text-gray-500">구독</span>
+            {subStatus === "loading" ? (
+              <div className="w-4 h-4 border-2 border-gray-300 border-t-transparent rounded-full animate-spin" />
             ) : (
               <button
-                onClick={() => { setNameInput(displayName); setIsEditingName(true); }}
+                onClick={() => setShowSubscription(true)}
                 className="flex items-center gap-2 active:opacity-60"
               >
-                <span className="text-sm font-medium text-gray-900">{displayName || "-"}</span>
+                <span className={`text-sm font-medium ${subStatus === "active" ? "text-[#2D6A4F]" : "text-gray-900"}`}>
+                  {subStatus === "active" ? "프리미엄" : subStatus === "cancelled" ? "취소됨" : "무료"}
+                </span>
                 <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                 </svg>
               </button>
             )}
           </div>
-          <div className="h-px bg-gray-100" />
-
-          {/* Email */}
-          <div className="flex justify-between items-center">
-            <span className="text-sm font-bold text-gray-500">이메일</span>
-            <span className="text-sm font-medium text-gray-900 truncate ml-4 max-w-[180px]">{user?.email || "-"}</span>
-          </div>
-          <div className="h-px bg-gray-100" />
-
-          {/* Login method */}
-          <div className="flex justify-between items-center">
-            <span className="text-sm font-bold text-gray-500">로그인</span>
-            <span className="text-sm font-medium text-gray-900">Google</span>
-          </div>
         </div>
 
-        <p className="text-[11px] font-serif font-medium text-gray-400 uppercase tracking-widest px-2 mt-2">
-          Body Info
-        </p>
+        <button
+          onClick={() => setShowBodyInfo(!showBodyInfo)}
+          className="flex items-center justify-between w-full px-2 mt-2 active:opacity-60"
+        >
+          <p className="text-[11px] font-serif font-medium text-gray-400 uppercase tracking-widest">
+            Body Info
+          </p>
+          <svg className={`w-4 h-4 text-gray-400 transition-transform ${showBodyInfo ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
 
+        {showBodyInfo && (
         <div className="bg-gray-50 rounded-2xl p-5 flex flex-col gap-3">
           {/* Gender */}
           <div className="flex justify-between items-center min-h-[32px]">
@@ -260,6 +294,7 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout }) =>
             )}
           </div>
         </div>
+        )}
 
         <button
           onClick={() => setShowSubscription(true)}
@@ -275,14 +310,14 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout }) =>
         </button>
 
         <a
-          href="https://forms.gle/Kskdv6paGT8G37dH6"
+          href="https://forms.gle/N9inup92JWtZAphS7"
           target="_blank"
           rel="noopener noreferrer"
           className="w-full bg-[#1B4332] hover:bg-[#2D6A4F] rounded-2xl p-6 flex items-center justify-between transition-all active:scale-[0.98]"
         >
           <div className="flex flex-col items-start gap-1">
-            <span className="text-lg font-bold text-white">개선사항 제안</span>
-            <span className="text-xs text-emerald-300/60">피드백을 보내주세요</span>
+            <span className="text-lg font-bold text-white">버그 / 개선사항 제안</span>
+            <span className="text-xs text-emerald-300/60">여기로 남겨주세요</span>
           </div>
           <svg className="w-6 h-6 text-emerald-400/50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
@@ -294,8 +329,8 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout }) =>
           className="w-full bg-gray-50 hover:bg-gray-100 text-gray-600 rounded-2xl p-6 flex items-center justify-between transition-all active:scale-[0.98]"
         >
           <div className="flex flex-col items-start gap-1">
-            <span className="text-lg font-bold text-red-500">로그아웃</span>
-            <span className="text-xs text-gray-400">계정에서 로그아웃합니다</span>
+            <span className="text-lg font-bold text-red-500">Log Out</span>
+            <span className="text-xs text-gray-400">계정 로그아웃</span>
           </div>
           <svg className="w-6 h-6 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />

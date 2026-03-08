@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { THEME } from "@/constants/theme";
 import { ExerciseStep } from "@/constants/workout";
 
@@ -39,9 +39,18 @@ export const FitScreen: React.FC<FitScreenProps> = ({
   const isStrengthType = exercise.type === "strength" || exercise.type === "core";
   const hasWeight = isStrengthType && exercise.weight && exercise.weight !== "Bodyweight";
 
+  // Default weight by sex/age: male 20kg, female/senior(60+) 15kg
+  const getDefaultWeight = (): number => {
+    if (typeof window === "undefined") return 20;
+    const gender = localStorage.getItem("alpha_gender");
+    const birthYear = localStorage.getItem("alpha_birth_year");
+    const age = birthYear ? new Date().getFullYear() - parseInt(birthYear) : 30;
+    return (gender === "female" || age >= 60) ? 15 : 20;
+  };
+
   // Load last used weight from localStorage
   const getStoredWeight = (): number => {
-    if (typeof window === "undefined") return 40;
+    if (typeof window === "undefined") return getDefaultWeight();
     const key = `alpha_weight_${exercise.name.replace(/[^a-zA-Z가-힣]/g, "_")}`;
     const stored = localStorage.getItem(key);
     if (stored) return parseFloat(stored);
@@ -50,7 +59,7 @@ export const FitScreen: React.FC<FitScreenProps> = ({
       const parsed = parseFloat(exercise.weight);
       if (!isNaN(parsed) && parsed > 0) return parsed;
     }
-    return 40;
+    return getDefaultWeight();
   };
 
   const [selectedWeight, setSelectedWeight] = useState<number>(getStoredWeight);
@@ -62,10 +71,48 @@ export const FitScreen: React.FC<FitScreenProps> = ({
   const [easyExtraReps, setEasyExtraReps] = useState(2);
   const [isDoneAnimating, setIsDoneAnimating] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
+  const [timerCompleted, setTimerCompleted] = useState(false);
+  const [showRepsEdit, setShowRepsEdit] = useState(false);
+  const [adjustedReps, setAdjustedReps] = useState(setInfo.targetReps);
+  const [repsStopwatch, setRepsStopwatch] = useState(0);
+  const [repsStopwatchRunning, setRepsStopwatchRunning] = useState(false);
+
+  const halfAlarmFired = useRef(false);
+
+  // Alarm sound using Web Audio API
+  const playAlarmSound = (pattern: "half" | "end" = "end") => {
+    try {
+      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const beep = (freq: number, start: number, dur: number, vol = 0.3) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.frequency.value = freq;
+        osc.type = "sine";
+        gain.gain.setValueAtTime(vol, start);
+        gain.gain.exponentialRampToValueAtTime(0.01, start + dur);
+        osc.start(start);
+        osc.stop(start + dur);
+      };
+      const t = ctx.currentTime;
+      if (pattern === "half") {
+        beep(660, t, 0.12, 0.2);
+        beep(660, t + 0.18, 0.12, 0.2);
+      } else {
+        for (let r = 0; r < 3; r++) {
+          const offset = r * 0.8;
+          beep(880, t + offset, 0.15);
+          beep(880, t + offset + 0.2, 0.15);
+          beep(1320, t + offset + 0.4, 0.3);
+        }
+      }
+    } catch (e) {}
+  };
 
   // Weight presets based on current weight range
   const weightPresets = (() => {
-    const base = selectedWeight || 40;
+    const base = selectedWeight || getDefaultWeight();
     if (base <= 15) return [5, 10, 15, 20, 25];
     if (base <= 30) return [10, 15, 20, 25, 30];
     if (base <= 50) return [20, 30, 40, 50, 60];
@@ -101,12 +148,22 @@ export const FitScreen: React.FC<FitScreenProps> = ({
             }
 
             // Normal Timer Mode: Count DOWN
-            if (prev <= 0) {
+            const next = prev - 1;
+            // 절반 알림
+            const total = parseTargetTime(exercise.count);
+            const half = Math.floor(total / 2);
+            if (half > 0 && next === half && !halfAlarmFired.current) {
+                halfAlarmFired.current = true;
+                playAlarmSound("half");
+            }
+            if (next <= 0) {
                 clearInterval(interval);
                 setIsPlaying(false);
+                setTimerCompleted(true);
+                playAlarmSound("end");
                 return 0;
             }
-            return prev - 1;
+            return next;
         });
       }, 1000);
     }
@@ -140,6 +197,8 @@ export const FitScreen: React.FC<FitScreenProps> = ({
   // Reset timer on new exercise
   useEffect(() => {
     setIsPlaying(false);
+    setTimerCompleted(false);
+    halfAlarmFired.current = false;
     if (isTimerMode) {
         if (isDistanceMode) {
             setElapsedTime(0);
@@ -171,21 +230,49 @@ export const FitScreen: React.FC<FitScreenProps> = ({
     if (isResting) {
       setView("active");
       setIsDoneAnimating(false);
+      setRepsStopwatchRunning(false);
+      setRepsStopwatch(0);
     }
   }, [isResting]);
 
   useEffect(() => {
     setFailedReps(setInfo.targetReps);
+    setAdjustedReps(setInfo.targetReps);
   }, [setInfo.targetReps]);
+
+  // Sync weight when parent adjusts it (adaptive logic)
+  useEffect(() => {
+    if (hasWeight && setInfo.targetWeight) {
+      const parsed = parseFloat(setInfo.targetWeight);
+      if (!isNaN(parsed) && parsed > 0 && parsed !== selectedWeight) {
+        setSelectedWeight(parsed);
+        const key = `alpha_weight_${exercise.name.replace(/[^a-zA-Z가-힣]/g, "_")}`;
+        localStorage.setItem(key, String(parsed));
+      }
+    }
+  }, [setInfo.targetWeight]);
+
+  // Stopwatch for reps mode
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (repsStopwatchRunning && !isTimerMode) {
+      interval = setInterval(() => {
+        setRepsStopwatch((prev) => prev + 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [repsStopwatchRunning, isTimerMode]);
 
   const handleDoneClick = () => {
     if (exercise.type !== "strength" && exercise.type !== "core") {
       setIsDoneAnimating(true);
+      setRepsStopwatchRunning(false);
       setTimeout(() => {
-        onSetComplete(setInfo.targetReps, "target");
+        onSetComplete(adjustedReps, "target");
       }, 500);
       return;
     }
+    setRepsStopwatchRunning(false);
     setView("feedback");
   };
 
@@ -389,42 +476,66 @@ export const FitScreen: React.FC<FitScreenProps> = ({
         <div className="flex flex-col items-center gap-2">
           {isTimerMode ? (
              <div className="flex flex-col items-center">
-                <p className="text-7xl font-black tracking-tighter tabular-nums" style={{ color: THEME.textMain }}>
-                  {formatTime(elapsedTime)}
-                </p>
-                <p className="text-xl font-bold text-[#2D6A4F] mt-2">
-                    {isDistanceMode ? `${exercise.count}` : (
-                        exercise.count.includes('회') || exercise.count.toLowerCase().includes('reps')
-                        ? `Goal: ${exercise.count}`
-                        : `Target Time: ${exercise.count}`
-                    )}
-                </p>
+                {timerCompleted && !isDistanceMode ? (
+                  <div className="flex flex-col items-center animate-fade-in mt-16">
+                    <p className="text-5xl font-black text-[#2D6A4F]">완료</p>
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-7xl font-black tracking-tighter tabular-nums" style={{ color: THEME.textMain }}>
+                      {formatTime(elapsedTime)}
+                    </p>
+                    <p className="text-xl font-bold text-[#2D6A4F] mt-2">
+                        {isDistanceMode ? `${exercise.count}` : (
+                            exercise.count.includes('회') || exercise.count.toLowerCase().includes('reps')
+                            ? `Goal: ${exercise.count}`
+                            : `Target Time: ${exercise.count}`
+                        )}
+                    </p>
+                  </>
+                )}
              </div>
           ) : (
             <>
-              <p
-                className="text-6xl font-black tracking-tighter"
-                style={{ color: THEME.textMain }}
+              {/* Reps */}
+              <button
+                onClick={() => setShowRepsEdit(true)}
+                className="flex items-baseline gap-1.5 active:opacity-60 transition-all"
               >
-                {setInfo.targetReps}
-                <span className="text-2xl font-bold text-gray-400 ml-2">REPS</span>
-              </p>
+                <span className="text-6xl font-black" style={{ color: THEME.textMain }}>{adjustedReps}</span>
+                <span className="text-xl font-bold text-gray-400">REPS</span>
+              </button>
 
-              {hasWeight ? (
+              {/* Weight */}
+              {hasWeight && (
                 <button
                   onClick={() => setShowWeightEdit(true)}
-                  className="flex items-center gap-2 mt-2 px-4 py-1.5 rounded-xl bg-emerald-50 border border-emerald-100 active:scale-95 transition-all"
+                  className="flex items-baseline gap-1 active:opacity-60 transition-all mt-1"
                 >
-                  <span className="text-2xl font-black text-[#2D6A4F]">{selectedWeight}<span className="text-sm font-bold text-[#2D6A4F]/60 ml-0.5">kg</span></span>
-                  <svg className="w-3.5 h-3.5 text-[#2D6A4F]/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                  </svg>
+                  <span className="text-4xl font-black text-[#2D6A4F]">{selectedWeight}</span>
+                  <span className="text-lg font-bold text-gray-400">kg</span>
                 </button>
-              ) : exercise.weight && (
-                <p className="text-2xl font-bold text-[#2D6A4F] mt-2">
-                  {setInfo.targetWeight}
-                </p>
               )}
+              {!hasWeight && exercise.weight && (
+                <span className="text-3xl font-bold text-[#2D6A4F] mt-1">
+                  {setInfo.targetWeight}
+                </span>
+              )}
+
+              {/* Stopwatch */}
+              <div className="flex flex-col items-center mt-8 h-24">
+                <span className="text-7xl font-black tabular-nums tracking-tighter" style={{ color: THEME.textMain }}>
+                  {formatTime(repsStopwatch)}
+                </span>
+                <button
+                  onClick={() => setRepsStopwatch(0)}
+                  className={`mt-2 text-[10px] font-bold text-gray-300 uppercase tracking-widest hover:text-gray-500 transition-colors ${
+                    repsStopwatch > 0 && !repsStopwatchRunning ? "visible" : "invisible"
+                  }`}
+                >
+                  RESET
+                </button>
+              </div>
             </>
           )}
         </div>
@@ -433,8 +544,36 @@ export const FitScreen: React.FC<FitScreenProps> = ({
       {/* Main CTA */}
       <div className="pb-12 flex flex-col items-center gap-4 shrink-0 mt-auto">
         {isTimerMode ? (
-            <div className="flex items-center gap-6 h-40">
-                {!isPlaying && elapsedTime === 0 ? (
+            <div className="flex flex-col items-center gap-4 h-40 justify-center">
+                {timerCompleted ? (
+                  /* Timer completed — show prominent DONE button with pulse */
+                  <button
+                    onClick={handleDoneClick}
+                    className="w-32 h-32 rounded-full flex flex-col items-center justify-center bg-[#1B4332] text-white shadow-2xl active:scale-95 transition-all animate-pulse"
+                  >
+                    <svg className="w-8 h-8 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span className="font-bold text-base tracking-wider">DONE</span>
+                  </button>
+                ) : !isPlaying && elapsedTime > 0 ? (
+                  /* Paused mid-timer — show resume + done */
+                  <div className="flex items-center gap-6">
+                      <button
+                        onClick={() => setIsPlaying(true)}
+                        className="w-20 h-20 rounded-full flex items-center justify-center bg-[#2D6A4F] text-white shadow-lg active:scale-95 transition-all hover:bg-[#1B4332]"
+                      >
+                        <svg className="w-8 h-8 ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                      </button>
+                      <button
+                        onClick={handleDoneClick}
+                        className="w-20 h-20 rounded-full flex items-center justify-center bg-[#1B4332] text-white shadow-lg active:scale-95 transition-all hover:bg-[#2D6A4F]"
+                      >
+                        <span className="font-bold text-sm tracking-wider">DONE</span>
+                      </button>
+                  </div>
+                ) : !isPlaying && elapsedTime === 0 && !timerCompleted ? (
+                  /* Initial state — show play button */
                   <button
                     onClick={() => setIsPlaying(true)}
                     className="w-24 h-24 rounded-full flex items-center justify-center bg-[#2D6A4F] text-white shadow-xl active:scale-95 transition-all hover:bg-[#1B4332]"
@@ -442,61 +581,58 @@ export const FitScreen: React.FC<FitScreenProps> = ({
                       <svg className="w-10 h-10 ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
                   </button>
                 ) : (
-                  <>
+                  /* Playing — show pause + done */
+                  <div className="flex items-center gap-6">
                       <button
-                        onClick={() => setIsPlaying(!isPlaying)}
-                        className={`w-20 h-20 rounded-full flex items-center justify-center text-white shadow-lg active:scale-95 transition-all ${isPlaying ? 'bg-amber-500 hover:bg-amber-400' : 'bg-[#2D6A4F] hover:bg-[#1B4332]'}`}
+                        onClick={() => setIsPlaying(false)}
+                        className="w-20 h-20 rounded-full flex items-center justify-center bg-amber-500 text-white shadow-lg active:scale-95 transition-all hover:bg-amber-400"
                       >
-                        {isPlaying ? (
-                          <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
-                        ) : (
-                          <svg className="w-8 h-8 ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-                        )}
+                        <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
                       </button>
-
                       <button
                         onClick={handleDoneClick}
                         className="w-20 h-20 rounded-full flex items-center justify-center bg-[#1B4332] text-white shadow-lg active:scale-95 transition-all hover:bg-[#2D6A4F]"
                       >
                         <span className="font-bold text-sm tracking-wider">DONE</span>
                       </button>
-                  </>
+                  </div>
                 )}
             </div>
         ) : (
-            <button
-              onClick={handleDoneClick}
-              disabled={isDoneAnimating || view === "feedback"}
-              className={`w-40 h-40 rounded-full flex items-center justify-center transition-all duration-300 active:scale-95 shadow-xl bg-[#2D6A4F] hover:bg-[#1B4332] ${
-                isDoneAnimating ? "scale-105" : ""
-              }`}
-            >
-              {isDoneAnimating ? (
-                <svg
-                  className="w-16 h-16 text-white"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={3}
-                    d="M5 13l4 4L19 7"
-                  />
-                </svg>
-              ) : (
-                <span className="text-white text-xl font-bold tracking-widest uppercase">
-                  Done
-                </span>
-              )}
-            </button>
-        )}
+            <div className="flex items-center gap-8">
+              {/* Play/Pause stopwatch button */}
+              <button
+                onClick={() => setRepsStopwatchRunning(!repsStopwatchRunning)}
+                className={`w-28 h-28 rounded-full flex items-center justify-center shadow-xl active:scale-95 transition-all ${
+                  repsStopwatchRunning ? "bg-amber-500 hover:bg-amber-400" : "bg-[#2D6A4F] hover:bg-[#1B4332]"
+                }`}
+              >
+                {repsStopwatchRunning ? (
+                  <svg className="w-10 h-10 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+                ) : (
+                  <svg className="w-10 h-10 ml-1 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                )}
+              </button>
 
-        {!isTimerMode && (
-            <p className="text-[10px] uppercase tracking-widest opacity-30 font-bold">
-              Click when finished
-            </p>
+              {/* DONE button */}
+              <button
+                onClick={handleDoneClick}
+                disabled={isDoneAnimating || view === "feedback"}
+                className={`w-28 h-28 rounded-full flex items-center justify-center transition-all duration-300 active:scale-95 shadow-xl bg-[#2D6A4F] hover:bg-[#1B4332] ${
+                  isDoneAnimating ? "scale-105" : ""
+                }`}
+              >
+                {isDoneAnimating ? (
+                  <svg className="w-12 h-12 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                  </svg>
+                ) : (
+                  <span className="text-white text-lg font-bold tracking-widest uppercase">
+                    Done
+                  </span>
+                )}
+              </button>
+            </div>
         )}
       </div>
 
@@ -621,6 +757,54 @@ export const FitScreen: React.FC<FitScreenProps> = ({
         </div>
       )}
 
+      {/* Reps Edit Bottom Sheet */}
+      {showRepsEdit && (
+        <div className="absolute inset-0 z-40">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-fade-in" onClick={() => setShowRepsEdit(false)} />
+          <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-[2rem] p-6 pb-2 animate-slide-up shadow-2xl">
+            <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-6" />
+            <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] text-center mb-4">반복 수 변경</p>
+            <div className="flex items-center justify-center gap-4 mb-6">
+              <button
+                onClick={() => setAdjustedReps(Math.max(1, adjustedReps - 1))}
+                className="w-12 h-12 rounded-2xl bg-gray-100 flex items-center justify-center text-gray-500 font-bold text-xl active:scale-95"
+              >
+                -
+              </button>
+              <span className="text-5xl font-black text-[#1B4332] tabular-nums">{adjustedReps}<span className="text-lg text-gray-400 ml-1">회</span></span>
+              <button
+                onClick={() => setAdjustedReps(adjustedReps + 1)}
+                className="w-12 h-12 rounded-2xl bg-gray-100 flex items-center justify-center text-gray-500 font-bold text-xl active:scale-95"
+              >
+                +
+              </button>
+            </div>
+            <div className="flex gap-2 flex-wrap justify-center mb-6">
+              {[5, 8, 10, 12, 15, 20].map((r) => (
+                <button
+                  key={r}
+                  onClick={() => setAdjustedReps(r)}
+                  className={`px-4 py-2 rounded-xl text-sm font-bold transition-all active:scale-95 ${
+                    adjustedReps === r ? "bg-[#1B4332] text-white" : "bg-gray-100 text-gray-500"
+                  }`}
+                >
+                  {r}회
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => {
+                setFailedReps(adjustedReps);
+                setShowRepsEdit(false);
+              }}
+              className="w-full py-3.5 rounded-2xl bg-[#1B4332] text-white font-bold text-base active:scale-[0.98] transition-all"
+            >
+              확인
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Feedback Popup Modal (Bottom Sheet Style) */}
       {view === "feedback" && (
         <div className="absolute inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm animate-fade-in">
@@ -671,7 +855,7 @@ export const FitScreen: React.FC<FitScreenProps> = ({
                     </div>
 
                     <button
-                        onClick={() => submitFeedback(easyExtraReps > 3 ? "too_easy" : "easy", setInfo.targetReps)}
+                        onClick={() => submitFeedback(easyExtraReps > 3 ? "too_easy" : "easy", adjustedReps + easyExtraReps)}
                         className="bg-emerald-400 text-white w-10 h-10 rounded-xl flex items-center justify-center font-bold shadow-sm hover:bg-emerald-300 transition-all"
                     >
                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -684,7 +868,7 @@ export const FitScreen: React.FC<FitScreenProps> = ({
 
               {/* Option: TARGET */}
               <button
-                onClick={() => submitFeedback("target", setInfo.targetReps)}
+                onClick={() => submitFeedback("target", adjustedReps)}
                 className="w-full p-5 rounded-2xl bg-emerald-50 border-2 border-emerald-100 active:scale-[0.98] transition-all hover:bg-emerald-100"
               >
                 <div className="flex items-center justify-between">
