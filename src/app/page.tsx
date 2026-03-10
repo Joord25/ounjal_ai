@@ -62,7 +62,7 @@ export default function Home() {
         if (!subChecked.current) {
           subChecked.current = true;
           firebaseUser.getIdToken().then(token => {
-            fetchWithRetry("/api/getSubscription", {
+            fetchWithRetry("https://us-central1-ohunjal.cloudfunctions.net/getSubscription", {
               method: "POST",
               headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
             })
@@ -443,7 +443,7 @@ export default function Home() {
                 setShowPaywall(false);
                 // Re-check subscription status
                 user.getIdToken().then(token => {
-                  fetchWithRetry("/api/getSubscription", {
+                  fetchWithRetry("https://us-central1-ohunjal.cloudfunctions.net/getSubscription", {
                     method: "POST",
                     headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
                   })

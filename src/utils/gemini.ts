@@ -11,7 +11,7 @@ async function getIdToken(): Promise<string> {
 }
 
 // Functions base URL
-const FUNCTIONS_BASE = "/api";
+const FUNCTIONS_BASE = "https://us-central1-ohunjal.cloudfunctions.net";
 
 export const analyzeWorkoutSession = async (
   sessionData: WorkoutSessionData,

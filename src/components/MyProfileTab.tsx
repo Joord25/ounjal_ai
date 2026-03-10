@@ -41,7 +41,7 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout }) =>
       try {
         const token = await auth.currentUser?.getIdToken();
         if (!token) { setSubStatus("free"); return; }
-        const res = await fetchWithRetry("/api/getSubscription", {
+        const res = await fetchWithRetry("https://us-central1-ohunjal.cloudfunctions.net/getSubscription", {
           method: "POST",
           headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
         });

@@ -11,7 +11,7 @@ interface SubscriptionScreenProps {
   initialStatus?: "free" | "active" | "cancelled";
 }
 
-const FUNCTIONS_BASE = "/api";
+const FUNCTIONS_BASE = "https://us-central1-ohunjal.cloudfunctions.net";
 
 async function getIdToken(): Promise<string> {
   const user = auth.currentUser;
