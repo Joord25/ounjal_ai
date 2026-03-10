@@ -37,7 +37,10 @@ export const FitScreen: React.FC<FitScreenProps> = ({
   isLastExercise,
 }) => {
   const isStrengthType = exercise.type === "strength" || exercise.type === "core";
-  const hasWeight = isStrengthType && exercise.weight && exercise.weight !== "Bodyweight";
+  const isBodyweight = !exercise.weight || exercise.weight === "Bodyweight"
+    || /맨몸|체중|bodyweight/i.test(exercise.weight)
+    || /푸쉬업|푸시업|push[\s-]?up|pull[\s-]?up|풀업|턱걸이|딥스|dip|plank|플랭크|버피|burpee|크런치|crunch|레그레이즈|leg raise|마운틴\s?클라이머|mountain\s?climber|점프|jump/i.test(exercise.name);
+  const hasWeight = isStrengthType && !isBodyweight;
 
   // Default weight by sex/age: male 20kg, female/senior(60+) 15kg
   const getDefaultWeight = (): number => {
@@ -144,14 +147,16 @@ export const FitScreen: React.FC<FitScreenProps> = ({
     } catch (e) {}
   };
 
-  // Weight presets based on current weight range
+  // Weight presets: selected weight centered, 3 below + 3 above
   const weightPresets = (() => {
-    const base = selectedWeight || getDefaultWeight();
-    if (base <= 15) return [5, 10, 15, 20, 25];
-    if (base <= 30) return [10, 15, 20, 25, 30];
-    if (base <= 50) return [20, 30, 40, 50, 60];
-    if (base <= 80) return [40, 50, 60, 70, 80];
-    return [60, 80, 100, 120, 140];
+    const center = selectedWeight || getDefaultWeight();
+    const step = center <= 10 ? 2 : center <= 60 ? 5 : 10;
+    const presets: number[] = [];
+    for (let i = -3; i <= 3; i++) {
+      const v = center + i * step;
+      if (v > 0) presets.push(parseFloat(v.toFixed(1)));
+    }
+    return presets;
   })();
 
   const confirmWeight = () => {
@@ -395,21 +400,29 @@ export const FitScreen: React.FC<FitScreenProps> = ({
             </div>
           </div>
 
-          {/* Presets */}
-          <div className="flex gap-2 flex-wrap justify-center">
-            {weightPresets.map((w) => (
-              <button
-                key={w}
-                onClick={() => setSelectedWeight(w)}
-                className={`px-4 py-2 rounded-xl text-sm font-bold transition-all active:scale-95 ${
-                  selectedWeight === w
-                    ? "bg-[#1B4332] text-white shadow-lg"
-                    : "bg-gray-100 text-gray-500 hover:bg-gray-200"
-                }`}
-              >
-                {w}kg
-              </button>
-            ))}
+          {/* Presets — horizontal carousel, selected centered */}
+          <div className="flex items-center justify-center gap-2 overflow-x-auto scrollbar-hide py-1 -mx-6 px-6">
+            {weightPresets.map((w) => {
+              const isSelected = selectedWeight === w;
+              const centerIdx = weightPresets.indexOf(selectedWeight);
+              const dist = centerIdx >= 0 ? Math.abs(weightPresets.indexOf(w) - centerIdx) : 0;
+              const opacity = isSelected ? 1 : dist === 1 ? 0.7 : dist === 2 ? 0.45 : 0.3;
+              const scale = isSelected ? "scale-110" : dist === 1 ? "scale-100" : "scale-90";
+              return (
+                <button
+                  key={w}
+                  onClick={() => setSelectedWeight(w)}
+                  className={`px-4 py-2 rounded-xl text-sm font-bold transition-all duration-200 active:scale-95 shrink-0 ${scale} ${
+                    isSelected
+                      ? "bg-[#1B4332] text-white shadow-lg"
+                      : "bg-gray-100 text-gray-500"
+                  }`}
+                  style={{ opacity }}
+                >
+                  {w}kg
+                </button>
+              );
+            })}
           </div>
 
           <p className="text-[10px] text-gray-300 font-medium">이전 기록에서 자동 불러옴 · 2.5kg 단위 조절</p>
@@ -493,21 +506,20 @@ export const FitScreen: React.FC<FitScreenProps> = ({
                 >
                   {mainTitle}
                 </h1>
-                <div className="flex items-center gap-2 mt-1">
-                  {subTitle && (
-                    <span className="text-base sm:text-lg md:text-xl text-gray-400 font-medium font-english tracking-tight">
-                      {subTitle}
-                    </span>
-                  )}
-                  <button
-                    onClick={() => setShowGuide(true)}
-                    className="w-6 h-6 rounded-full bg-emerald-50 text-[#2D6A4F] hover:bg-emerald-100 flex items-center justify-center shrink-0 transition-colors"
-                  >
-                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827m0 3h.01" />
-                    </svg>
-                  </button>
-                </div>
+                {subTitle && (
+                  <p className="text-base sm:text-lg text-gray-400 font-medium font-english tracking-tight mt-0.5">
+                    {subTitle}
+                  </p>
+                )}
+                <button
+                  onClick={() => setShowGuide(true)}
+                  className="mt-2.5 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-emerald-50 border border-emerald-100 text-[#2D6A4F] active:scale-95 transition-all animate-[guideHint_2s_ease-in-out_1]"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 100 20 10 10 0 000-20z" />
+                  </svg>
+                  <span className="text-[11px] font-bold tracking-wide">자세 가이드</span>
+                </button>
               </>
             );
           })()}
@@ -777,18 +789,26 @@ export const FitScreen: React.FC<FitScreenProps> = ({
                 +
               </button>
             </div>
-            <div className="flex gap-2 flex-wrap justify-center mb-6">
-              {weightPresets.map((w) => (
-                <button
-                  key={w}
-                  onClick={() => setSelectedWeight(w)}
-                  className={`px-4 py-2 rounded-xl text-sm font-bold transition-all active:scale-95 ${
-                    selectedWeight === w ? "bg-[#1B4332] text-white" : "bg-gray-100 text-gray-500"
-                  }`}
-                >
-                  {w}kg
-                </button>
-              ))}
+            <div className="flex items-center justify-center gap-2 overflow-x-auto scrollbar-hide py-1 -mx-6 px-6 mb-6">
+              {weightPresets.map((w) => {
+                const isSelected = selectedWeight === w;
+                const centerIdx = weightPresets.indexOf(selectedWeight);
+                const dist = centerIdx >= 0 ? Math.abs(weightPresets.indexOf(w) - centerIdx) : 0;
+                const opacity = isSelected ? 1 : dist === 1 ? 0.7 : dist === 2 ? 0.45 : 0.3;
+                const scale = isSelected ? "scale-110" : dist === 1 ? "scale-100" : "scale-90";
+                return (
+                  <button
+                    key={w}
+                    onClick={() => setSelectedWeight(w)}
+                    className={`px-4 py-2 rounded-xl text-sm font-bold transition-all duration-200 active:scale-95 shrink-0 ${scale} ${
+                      isSelected ? "bg-[#1B4332] text-white" : "bg-gray-100 text-gray-500"
+                    }`}
+                    style={{ opacity }}
+                  >
+                    {w}kg
+                  </button>
+                );
+              })}
             </div>
             <button
               onClick={confirmWeight}

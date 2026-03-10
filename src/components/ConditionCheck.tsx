@@ -6,11 +6,12 @@ import { updateWeight, updateGender, updateBirthYear } from "@/utils/userProfile
 
 interface ConditionCheckProps {
   onComplete: (condition: UserCondition, goal: WorkoutGoal) => void;
+  onBack?: () => void;
 }
 
 type Step = "body_check" | "weight_input" | "goal_select";
 
-export const ConditionCheck: React.FC<ConditionCheckProps> = ({ onComplete }) => {
+export const ConditionCheck: React.FC<ConditionCheckProps> = ({ onComplete, onBack }) => {
   const [step, setStep] = useState<Step>("body_check");
 
   // State
@@ -38,6 +39,16 @@ export const ConditionCheck: React.FC<ConditionCheckProps> = ({ onComplete }) =>
 
   // 성별/출생연도가 이미 저장되어 있으면 체중만 입력
   const hasProfile = gender !== null && birthYear.trim().length >= 4;
+
+  const handleBack = () => {
+    if (step === "goal_select") {
+      setStep("weight_input");
+    } else if (step === "weight_input") {
+      setStep("body_check");
+    } else if (onBack) {
+      onBack();
+    }
+  };
 
   const handleNext = (selectedBodyPart?: UserCondition["bodyPart"], selectedGoal?: WorkoutGoal) => {
     if (step === "body_check" && selectedBodyPart) {
@@ -83,9 +94,21 @@ export const ConditionCheck: React.FC<ConditionCheckProps> = ({ onComplete }) =>
 
       <div key={step} className="flex-1 flex flex-col gap-6 overflow-y-auto pb-24 scrollbar-hide">
         <div key={`header-${step}`} className="pt-4 pb-2 animate-fade-in shrink-0">
-          <span className="text-[#2D6A4F] font-bold tracking-[0.2em] uppercase text-xs">
-            AI 분석 • 단계 {step === "body_check" ? "1" : step === "weight_input" ? "2" : "3"}
-          </span>
+          <div className="flex items-center gap-2">
+            {step !== "body_check" && (
+              <button
+                onClick={handleBack}
+                className="text-gray-400 hover:text-gray-600 active:scale-90 transition-all -ml-1 p-1"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+            )}
+            <span className="text-[#2D6A4F] font-bold tracking-[0.2em] uppercase text-xs">
+              AI 분석 • 단계 {step === "body_check" ? "1" : step === "weight_input" ? "2" : "3"}
+            </span>
+          </div>
           <h1 className="text-3xl font-black mt-2 leading-tight text-[#5C795E]">
             {step === "body_check" ? "오늘 몸 상태는\n어떠신가요?" : step === "weight_input" ? (hasProfile ? "오늘 체중을\n입력해주세요" : "기본 정보를\n입력해주세요") : "오늘의 운동\n목표는 무엇인가요?"}
           </h1>

@@ -21,6 +21,7 @@ export interface WorkoutMetrics {
   strengthSets: number;
   timerSets: number;
   bestE1RM: { exerciseName: string; value: number } | null;
+  allE1RMs: { exerciseName: string; value: number }[];
   bwRatio: number | null;
   successRate: number;
   fatigueDrop: number | null;
@@ -43,8 +44,9 @@ function calcFatigueDrop(exercises: ExerciseStep[], logs: Record<number, Exercis
     const firstHalf = exLogs.slice(0, mid || 1); // at least 1 in first half
     const secondHalf = exLogs.slice(mid || 1);
 
-    const avgFirst = firstHalf.reduce((s, l) => s + l.repsCompleted, 0) / firstHalf.length;
-    const avgSecond = secondHalf.reduce((s, l) => s + l.repsCompleted, 0) / secondHalf.length;
+    const safeReps = (l: ExerciseLog) => typeof l.repsCompleted === "number" ? l.repsCompleted : (parseInt(String(l.repsCompleted)) || 0);
+    const avgFirst = firstHalf.reduce((s, l) => s + safeReps(l), 0) / firstHalf.length;
+    const avgSecond = secondHalf.reduce((s, l) => s + safeReps(l), 0) / secondHalf.length;
 
     if (avgFirst > 0) {
       perExerciseDrops.push(((avgSecond - avgFirst) / avgFirst) * 100);
@@ -86,6 +88,22 @@ const COMPOUND_LIFT_KEYWORDS = [
 function isCompoundLift(exerciseName: string): boolean {
   const lower = exerciseName.toLowerCase();
   return COMPOUND_LIFT_KEYWORDS.some(kw => lower.includes(kw.toLowerCase()));
+}
+
+const BIG4_KEYWORDS = [
+  "스쿼트", "squat",
+  "데드리프트", "deadlift",
+  "벤치 프레스", "벤치프레스", "bench press",
+  "오버헤드 프레스", "오버헤드프레스",
+  "overhead press", "military press",
+];
+
+const BIG4_EXCLUDE = ["덤벨", "dumbbell"];
+
+function isBig4Lift(exerciseName: string): boolean {
+  const lower = exerciseName.toLowerCase();
+  if (BIG4_EXCLUDE.some(ex => lower.includes(ex))) return false;
+  return BIG4_KEYWORDS.some(kw => lower.includes(kw.toLowerCase()));
 }
 
 function isTimerExercise(ex: ExerciseStep): boolean {
@@ -452,6 +470,7 @@ export function buildWorkoutMetrics(
   let targetOrBetter = 0;
   let totalLogEntries = 0;
   let bestE1RM: { exerciseName: string; value: number } | null = null;
+  const e1rmMap = new Map<string, { exerciseName: string; value: number }>();
 
   const sessionCategory = detectSessionCategory(exercises);
 
@@ -467,13 +486,16 @@ export function buildWorkoutMetrics(
         targetOrBetter++;
       }
 
+      // Guard: repsCompleted may arrive as string from AI-generated data
+      const safeReps = typeof log.repsCompleted === "number" ? log.repsCompleted : (parseInt(String(log.repsCompleted)) || 0);
+
       if (isTimer) {
         timerSets++;
         // For timer exercises, repsCompleted = target count (seconds or reps for the timer)
-        totalDurationSec += parseCountToSeconds(exercise.count) * (log.setNumber === 1 ? 1 : 0) || log.repsCompleted;
+        totalDurationSec += parseCountToSeconds(exercise.count) * (log.setNumber === 1 ? 1 : 0) || safeReps;
       } else {
         strengthSets++;
-        totalReps += log.repsCompleted;
+        totalReps += safeReps;
 
         // Parse weight for volume and e1RM
         const weightStr = log.weightUsed || exercise.weight;
@@ -486,6 +508,12 @@ export function buildWorkoutMetrics(
               const e1rm = estimate1RM(weight, log.repsCompleted);
               if (!bestE1RM || e1rm > bestE1RM.value) {
                 bestE1RM = { exerciseName: exercise.name, value: e1rm };
+              }
+              if (isBig4Lift(exercise.name)) {
+                const existing = e1rmMap.get(exercise.name);
+                if (!existing || e1rm > existing.value) {
+                  e1rmMap.set(exercise.name, { exerciseName: exercise.name, value: e1rm });
+                }
               }
             }
           }
@@ -536,9 +564,68 @@ export function buildWorkoutMetrics(
     strengthSets,
     timerSets,
     bestE1RM: finalE1RM,
+    allE1RMs: Array.from(e1rmMap.values()).sort((a, b) => b.value - a.value),
     bwRatio,
     successRate,
     fatigueDrop,
     loadScore,
   };
+}
+
+/**
+ * Extract best 1RM for each big-4 lift from workout history.
+ * Applies a decay of ~5% per week after 4 weeks of no data for that lift.
+ */
+export function getBig4FromHistory(
+  history: WorkoutHistory[],
+): { exerciseName: string; value: number; weeksAgo: number; decayed: boolean }[] {
+  const big4Map = new Map<string, { exerciseName: string; value: number; date: string }>();
+
+  // Scan all history, newest first
+  const sorted = [...history].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+  for (const h of sorted) {
+    const exercises = h.sessionData?.exercises || [];
+    const logs = h.logs || {};
+
+    exercises.forEach((exercise, idx) => {
+      if (!isBig4Lift(exercise.name)) return;
+
+      const exerciseLogs = logs[idx] || [];
+      let bestForExercise = 0;
+
+      for (const log of exerciseLogs) {
+        const weightStr = log.weightUsed || exercise.weight;
+        if (!weightStr || weightStr === "Bodyweight") continue;
+        const weight = parseFloat(weightStr);
+        if (isNaN(weight) || weight <= 0) continue;
+        const safeReps = typeof log.repsCompleted === "number" ? log.repsCompleted : (parseInt(String(log.repsCompleted)) || 0);
+        const e1rm = estimate1RM(weight, safeReps);
+        if (e1rm > bestForExercise) bestForExercise = e1rm;
+      }
+
+      if (bestForExercise > 0) {
+        const existing = big4Map.get(exercise.name);
+        if (!existing || bestForExercise > existing.value) {
+          big4Map.set(exercise.name, { exerciseName: exercise.name, value: bestForExercise, date: h.date });
+        }
+      }
+    });
+  }
+
+  const now = Date.now();
+  const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+
+  return Array.from(big4Map.values()).map(entry => {
+    const weeksAgo = Math.floor((now - new Date(entry.date).getTime()) / WEEK_MS);
+    let value = entry.value;
+    let decayed = false;
+    // Decay 5% per week after 4 weeks
+    if (weeksAgo > 4) {
+      const decayWeeks = weeksAgo - 4;
+      value = value * Math.pow(0.95, decayWeeks);
+      decayed = true;
+    }
+    return { exerciseName: entry.exerciseName, value, weeksAgo, decayed };
+  }).sort((a, b) => b.value - a.value);
 }

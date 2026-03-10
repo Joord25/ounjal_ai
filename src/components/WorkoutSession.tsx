@@ -59,10 +59,12 @@ export const WorkoutSession: React.FC<WorkoutSessionProps> = ({
   };
 
   const handleSetComplete = (reps: number, feedback: FeedbackType, weightKg?: number) => {
+    // Guard: ensure reps is always a number (AI data may leak strings)
+    const safeReps = typeof reps === "number" ? reps : (parseInt(String(reps)) || 0);
     // 1. Log the set (use actual weight from picker if available)
     const newLog: ExerciseLog = {
       setNumber: currentSet,
-      repsCompleted: reps,
+      repsCompleted: safeReps,
       weightUsed: weightKg ? `${weightKg}` : currentExercise.weight,
       feedback: feedback,
     };
@@ -203,7 +205,7 @@ export const WorkoutSession: React.FC<WorkoutSessionProps> = ({
         setInfo={{
             current: currentSet,
             total: currentExercise.sets || 1,
-            targetReps: currentExercise.reps || 12, // Fallback
+            targetReps: (typeof currentExercise.reps === "number" ? currentExercise.reps : parseInt(String(currentExercise.reps)) || 12), // Guard: AI may return string
             targetWeight: currentExercise.weight || "Bodyweight"
         }}
         exerciseIndex={currentExerciseIndex + 1}

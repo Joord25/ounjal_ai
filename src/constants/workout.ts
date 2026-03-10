@@ -592,10 +592,18 @@ const adjustVolume = (baseSets: number, condition: UserCondition, goal: WorkoutG
   return sets;
 };
 
+/** Map MasterPlanPreview session type → algorithm WorkoutType */
+const SESSION_TYPE_TO_WORKOUT: Record<string, WorkoutType[]> = {
+  Strength: ["push", "pull", "leg_core"],
+  Running: ["run_speed", "run_easy", "run_long", "hiit_cardio"],
+  Mobility: ["mobility", "full_body_mobility"],
+};
+
 export const generateAdaptiveWorkout = (
   dayIndex: number, // 0(Mon) - 6(Sun)
   condition: UserCondition,
-  goal: WorkoutGoal
+  goal: WorkoutGoal,
+  selectedSessionType?: string
 ): WorkoutSessionData => {
   const generalFitnessSchedule: WorkoutType[] = [
     "full_body_circuit", "hiit_cardio", "lower_core",
@@ -605,8 +613,16 @@ export const generateAdaptiveWorkout = (
     "push", "run_speed", "pull", "run_easy", "leg_core", "run_long", "mobility",
   ];
 
-  const schedule = goal === "general_fitness" ? generalFitnessSchedule : defaultSchedule;
-  const workoutType = schedule[dayIndex];
+  let workoutType: WorkoutType;
+  if (selectedSessionType && selectedSessionType !== "Recommended" && SESSION_TYPE_TO_WORKOUT[selectedSessionType]) {
+    // Goal-first: pick from the session type pool (rotate by dayIndex for variety)
+    const pool = SESSION_TYPE_TO_WORKOUT[selectedSessionType];
+    workoutType = pool[dayIndex % pool.length];
+  } else {
+    // Day-based schedule (AI 추천 / Recommended)
+    const schedule = goal === "general_fitness" ? generalFitnessSchedule : defaultSchedule;
+    workoutType = schedule[dayIndex];
+  }
   const exercises: ExerciseStep[] = [];
   const sets = adjustVolume(3, condition, goal);
   const repsKo = getRepsForGoalKo(goal);
@@ -852,9 +868,10 @@ export const generateAdaptiveWorkout = (
   const days = ["월요일", "화요일", "수요일", "목요일", "금요일", "토요일", "일요일"];
   const dayName = days[dayIndex];
   const titleBase = SESSION_TITLES[workoutType]?.[goal] || SESSION_TITLES["mobility"][goal];
+  const isGoalFirst = selectedSessionType && selectedSessionType !== "Recommended";
 
   return {
-    title: `${dayName}: ${titleBase}`,
+    title: isGoalFirst ? titleBase : `${dayName}: ${titleBase}`,
     description: getSessionDescription(workoutType, goal, sets, condition),
     exercises,
   };

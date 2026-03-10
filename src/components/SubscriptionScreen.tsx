@@ -60,11 +60,9 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ user, on
   const [confirmInput, setConfirmInput] = useState("");
   const [confirmCountdown, setConfirmCountdown] = useState(5);
 
-  // Check subscription status on mount (skip if already known via initialStatus)
+  // Always fetch full subscription details (initialStatus only sets initial UI state)
   useEffect(() => {
-    if (!initialStatus) {
-      checkSubscription();
-    }
+    checkSubscription();
   }, []);
 
   const checkSubscription = async () => {

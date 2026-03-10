@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { PhoneFrame } from "@/components/PhoneFrame";
 import { BottomTabs, TabId } from "@/components/BottomTabs";
 import { LoginScreen } from "@/components/LoginScreen";
@@ -44,6 +44,7 @@ export default function Home() {
   const [selectedSessionType, setSelectedSessionType] = useState<string | undefined>(undefined);
   const [showPaywall, setShowPaywall] = useState(false);
   const [subStatus, setSubStatus] = useState<"loading" | "free" | "active" | "cancelled">("loading");
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
 
   const FREE_PLAN_LIMIT = 3;
 
@@ -103,6 +104,51 @@ export default function Home() {
     return () => unsubscribe();
   }, []);
 
+  // Back button interception — prevent accidental app exit on mobile
+  const viewRef = useRef(view);
+  viewRef.current = view;
+  const isLoggedInRef = useRef(isLoggedIn);
+  isLoggedInRef.current = isLoggedIn;
+
+  useEffect(() => {
+    if (!isLoggedIn || view === "login") return;
+
+    // Push a dummy state so there's something to "go back" to
+    window.history.pushState({ alphaGuard: true }, "");
+
+    const handlePopState = () => {
+      // If user is in an active flow, show confirmation instead of leaving
+      if (isLoggedInRef.current && viewRef.current !== "login") {
+        setShowExitConfirm(true);
+        // Re-push so back button can be caught again
+        window.history.pushState({ alphaGuard: true }, "");
+      }
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [isLoggedIn, view === "login"]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Also warn on tab/browser close during workout session
+  useEffect(() => {
+    if (view !== "workout_session") return;
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [view]);
+
+  const handleExitConfirm = useCallback(() => {
+    setShowExitConfirm(false);
+    // Actually go back — exit the app / navigate away
+    window.history.back();
+  }, []);
+
+  const handleExitCancel = useCallback(() => {
+    setShowExitConfirm(false);
+  }, []);
+
   const handleLogin = () => {
     // Firebase Auth handles state via onAuthStateChanged
     // This callback is called after successful signInWithPopup in LoginScreen
@@ -151,7 +197,7 @@ export default function Home() {
             // 2. Fallback to Algorithm if AI fails or returns null
             console.warn("AI generation failed, falling back to algorithm.");
             const scheduleIndex = dayIndex === 0 ? 6 : dayIndex - 1;
-            const session = generateAdaptiveWorkout(scheduleIndex, condition, goal);
+            const session = generateAdaptiveWorkout(scheduleIndex, condition, goal, sessionType);
             setCurrentWorkoutSession(session);
         }
     } catch (e) {
@@ -159,7 +205,7 @@ export default function Home() {
         // Fallback
         const dayIndex = new Date().getDay();
         const scheduleIndex = dayIndex === 0 ? 6 : dayIndex - 1;
-        const session = generateAdaptiveWorkout(scheduleIndex, condition, goal);
+        const session = generateAdaptiveWorkout(scheduleIndex, condition, goal, sessionType);
         setCurrentWorkoutSession(session);
     } finally {
         setIsLoading(false);
@@ -182,8 +228,16 @@ export default function Home() {
     setCurrentCondition(condition);
     setCurrentGoal(goal);
 
-    // Start AI Generation (Initial load follows schedule)
-    await generatePlan(condition, goal);
+    // Map goal → initial session type (goal-first UX)
+    const goalToSessionType: Record<WorkoutGoal, string> = {
+      strength: "Strength",
+      muscle_gain: "Strength",
+      fat_loss: "Running",
+      general_fitness: "Recommended",
+    };
+    const initialType = goalToSessionType[goal];
+    setSelectedSessionType(initialType);
+    await generatePlan(condition, goal, initialType);
     incrementPlanCount();
     setView("master_plan_preview");
   };
@@ -238,6 +292,7 @@ export default function Home() {
         return (
           <ConditionCheck
             onComplete={handleConditionComplete}
+            onBack={() => setShowExitConfirm(true)}
           />
         );
 
@@ -358,6 +413,7 @@ export default function Home() {
            return (
              <ConditionCheck
                onComplete={handleConditionComplete}
+               onBack={() => setShowExitConfirm(true)}
              />
            );
         }
@@ -411,6 +467,34 @@ export default function Home() {
         {isLoggedIn && view !== "login" && (
           <div className="absolute bottom-0 left-0 right-0 z-40">
             <BottomTabs active={activeTab} onChange={handleTabChange} />
+          </div>
+        )}
+
+        {/* Exit Confirmation Dialog */}
+        {showExitConfirm && (
+          <div className="absolute inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fade-in">
+            <div className="bg-white rounded-2xl p-6 mx-8 shadow-xl max-w-[300px] w-full">
+              <p className="text-center text-gray-800 font-bold text-base mb-1">
+                앱을 나가시겠습니까?
+              </p>
+              <p className="text-center text-gray-500 text-sm mb-5">
+                {view === "workout_session" ? "진행 중인 운동이 저장되지 않습니다." : "뒤로 가기를 누르셨습니다."}
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={handleExitCancel}
+                  className="flex-1 py-2.5 rounded-xl bg-gray-100 text-gray-700 font-semibold text-sm active:scale-95 transition-transform"
+                >
+                  취소
+                </button>
+                <button
+                  onClick={handleExitConfirm}
+                  className="flex-1 py-2.5 rounded-xl bg-red-500 text-white font-semibold text-sm active:scale-95 transition-transform"
+                >
+                  나가기
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>

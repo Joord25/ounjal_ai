@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { WorkoutSessionData, ExerciseLog, WorkoutAnalysis, WorkoutHistory } from "@/constants/workout";
 import { analyzeWorkoutSession } from "@/utils/gemini";
-import { buildWorkoutMetrics, estimateTrainingLevel, getOptimalLoadBand } from "@/utils/workoutMetrics";
+import { buildWorkoutMetrics, estimateTrainingLevel, getOptimalLoadBand, getBig4FromHistory } from "@/utils/workoutMetrics";
 import { loadRecentHistory as loadRecentHistoryFromStore } from "@/utils/workoutHistory";
 
 interface WorkoutReportProps {
@@ -56,12 +56,28 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
   const [showLogs, setShowLogs] = useState(false);
   const [helpCard, setHelpCard] = useState<string | null>(null);
   const [activeDot, setActiveDot] = useState<string | null>(null);
+  const [e1rmIndex, setE1rmIndex] = useState(0);
   const [activeTimelineDot, setActiveTimelineDot] = useState<number | null>(null);
   const [recentHistory, setRecentHistory] = useState<WorkoutHistory[]>(getRecentHistorySync);
 
   const metrics = buildWorkoutMetrics(sessionData.exercises, logs, bodyWeightKg);
-  const { sessionCategory, totalVolume, bestE1RM, bwRatio, successRate, fatigueDrop, loadScore, totalDurationSec } = metrics;
+  const { sessionCategory, totalVolume, bestE1RM, allE1RMs, successRate, fatigueDrop, loadScore, totalDurationSec } = metrics;
   const isStrengthSession = sessionCategory === "strength" || sessionCategory === "mixed";
+
+  // Merge today's big-4 e1RMs with history (today takes priority)
+  const big4Combined = (() => {
+    const historyBig4 = getBig4FromHistory(recentHistory);
+    const merged = new Map<string, { exerciseName: string; value: number; fromToday: boolean; decayed: boolean; weeksAgo: number }>();
+    // History first (lower priority)
+    for (const h of historyBig4) {
+      merged.set(h.exerciseName, { ...h, fromToday: false });
+    }
+    // Today overwrites
+    for (const t of allE1RMs) {
+      merged.set(t.exerciseName, { exerciseName: t.exerciseName, value: t.value, fromToday: true, decayed: false, weeksAgo: 0 });
+    }
+    return Array.from(merged.values()).sort((a, b) => b.value - a.value);
+  })();
 
   const formatDuration = (sec: number) => {
     if (sec >= 3600) return `${Math.floor(sec / 3600)}시간 ${Math.floor((sec % 3600) / 60)}분`;
@@ -70,9 +86,6 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
   };
 
   const historyStats = get28dAvgVolume(recentHistory);
-  const loadRatio = historyStats && historyStats.avgVolume28d > 0
-    ? totalVolume / historyStats.avgVolume28d
-    : null;
 
   // Training level estimation from history (근거: NSCA, Rippetoe 2006)
   const trainingLevel = estimateTrainingLevel(recentHistory, bodyWeightKg, gender);
@@ -121,15 +134,20 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
   }
 
   // Evidence-based load band (레벨+연령 보정)
-  const avgGraphLoad = graphData.length > 0
-    ? graphData.reduce((s, d) => s + d.loadScore, 0) / graphData.length
-    : 0;
-  const loadBand = getOptimalLoadBand(avgGraphLoad, graphData.length, trainingLevel, birthYear);
+  // Exclude today's session from avgGraphLoad to avoid self-referencing bias
+  const historyGraphData = graphData.slice(0, -1); // all except today
+  const avgGraphLoad = historyGraphData.length > 0
+    ? historyGraphData.reduce((s, d) => s + d.loadScore, 0) / historyGraphData.length
+    : (graphData.length > 0 ? graphData[0].loadScore : 0);
+  const loadBand = getOptimalLoadBand(avgGraphLoad, historyGraphData.length, trainingLevel, birthYear);
 
-  // 부하 비율 판정 기준 (레벨별 밴드폭을 비율로 환산)
+  // 부하 판정: loadScore vs loadBand 직접 비교 (비율 왜곡 방지)
   const bandLowRatio = avgGraphLoad > 0 ? loadBand.low / avgGraphLoad : 0.5;
   const bandHighRatio = avgGraphLoad > 0 ? loadBand.high / avgGraphLoad : 1.8;
   const bandOverloadRatio = avgGraphLoad > 0 ? loadBand.overload / avgGraphLoad : 2.3;
+
+  // loadRatio: today's loadScore vs historical average loadScore
+  const loadRatio = avgGraphLoad > 0 ? loadScore / avgGraphLoad : null;
 
   // 레벨 표시명
   const levelLabel = trainingLevel === "advanced" ? "상급" : trainingLevel === "intermediate" ? "중급" : "초급";
@@ -189,30 +207,67 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
               {/* Top Lift */}
               <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm relative animate-count-up" style={{ animationDelay: "0.4s" }}>
                 <div className="flex items-center justify-between mb-2">
-                  <p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.15em]">오늘의 Lift</p>
-                  <button onClick={() => setHelpCard("topLift")} className="w-4 h-4 rounded-full bg-gray-100 flex items-center justify-center">
-                    <span className="text-[8px] font-black text-gray-400">?</span>
+                  <p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.15em]">예상 최고 중량(1RM)</p>
+                  <button onClick={() => setHelpCard("topLift")} className="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center">
+                    <span className="text-[10px] font-black text-gray-400">?</span>
                   </button>
                 </div>
-                <p className="text-2xl font-black text-[#1B4332] leading-none">
-                  {bwRatio !== null ? `${bwRatio.toFixed(2)}x` : "-"}
-                </p>
-                <p className="text-[9px] text-gray-400 mt-1.5 font-medium leading-tight">
-                  {bestE1RM
-                    ? <>
-                        <span className="block truncate">{bestE1RM.exerciseName.replace(/\s*\(.*\)$/, '')}</span>
-                        <span>추정 최대 중량 {Math.round(bestE1RM.value)}kg</span>
-                      </>
-                    : "-"}
-                </p>
+                {(() => {
+                  const currentItem = big4Combined[e1rmIndex] || (big4Combined.length > 0 ? big4Combined[0] : null);
+                  const current = currentItem || bestE1RM;
+                  const currentBwRatio = current && bodyWeightKg ? current.value / bodyWeightKg : null;
+
+                  return (
+                    <>
+                      <div className="flex items-baseline gap-2">
+                        {currentBwRatio !== null && (
+                          <span className="text-[10px] font-bold text-gray-400">체중의</span>
+                        )}
+                        <p className="text-2xl font-black text-[#1B4332] leading-none">
+                          {currentBwRatio !== null
+                            ? `${currentBwRatio.toFixed(1)}배`
+                            : current ? `${Math.round(current.value)}kg` : "-"}
+                        </p>
+                        {currentBwRatio !== null && (
+                          <span className={`text-[10px] font-black px-1.5 py-0.5 rounded ${
+                            currentBwRatio >= 1.2
+                              ? "bg-amber-50 text-amber-600"
+                              : currentBwRatio >= 0.8
+                                ? "bg-emerald-50 text-[#2D6A4F]"
+                                : "bg-gray-100 text-gray-500"
+                          }`}>
+                            {currentBwRatio >= 1.2 ? "상급" : currentBwRatio >= 0.8 ? "중급" : "초급"}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center justify-between mt-1.5">
+                        <p className="text-[9px] text-gray-400 font-medium leading-tight truncate flex-1">
+                          {current
+                            ? `${current.exerciseName.replace(/\s*\(.*\)$/, '')} ${Math.round(current.value)}kg`
+                            : "-"}
+                        </p>
+                        {big4Combined.length > 1 && (
+                          <div className="flex items-center ml-1 shrink-0">
+                            <button
+                              onClick={() => setE1rmIndex((e1rmIndex + 1) % big4Combined.length)}
+                              className="w-4 h-4 rounded-full bg-gray-100 flex items-center justify-center"
+                            >
+                              <span className="text-[8px] text-gray-400">▶</span>
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
 
               {/* Load Status */}
               <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm relative animate-count-up" style={{ animationDelay: "0.5s" }}>
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.15em]">부하 상태</p>
-                  <button onClick={() => setHelpCard("loadStatus")} className="w-4 h-4 rounded-full bg-gray-100 flex items-center justify-center">
-                    <span className="text-[8px] font-black text-gray-400">?</span>
+                  <button onClick={() => setHelpCard("loadStatus")} className="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center">
+                    <span className="text-[10px] font-black text-gray-400">?</span>
                   </button>
                 </div>
                 <div className="flex items-baseline gap-1.5">
@@ -221,7 +276,9 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
                       : loadRatio !== null && loadRatio < bandLowRatio ? "text-blue-500"
                       : "text-[#1B4332]"
                   }`}>
-                    {loadRatio !== null ? loadRatio.toFixed(2) : "-"}
+                    {loadRatio !== null
+                      ? `${loadRatio >= 1 ? "+" : ""}${Math.round((loadRatio - 1) * 100)}%`
+                      : "-"}
                   </p>
                   <span className={`text-[10px] font-black px-1.5 py-0.5 rounded ${
                     loadRatio !== null && loadRatio >= bandLowRatio && loadRatio <= bandHighRatio
@@ -248,13 +305,24 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
               <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm relative animate-count-up" style={{ animationDelay: "0.6s" }}>
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.15em]">타깃 적중률</p>
-                  <button onClick={() => setHelpCard("targetRate")} className="w-4 h-4 rounded-full bg-gray-100 flex items-center justify-center">
-                    <span className="text-[8px] font-black text-gray-400">?</span>
+                  <button onClick={() => setHelpCard("targetRate")} className="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center">
+                    <span className="text-[10px] font-black text-gray-400">?</span>
                   </button>
                 </div>
-                <p className="text-2xl font-black text-[#1B4332] leading-none">
-                  {successRate}%
-                </p>
+                <div className="flex items-baseline gap-1.5">
+                  <p className="text-2xl font-black text-[#1B4332] leading-none">
+                    {successRate}%
+                  </p>
+                  <span className={`text-[10px] font-black px-1.5 py-0.5 rounded ${
+                    successRate >= 85
+                      ? "bg-emerald-50 text-[#2D6A4F]"
+                      : successRate >= 70
+                        ? "bg-amber-50 text-amber-600"
+                        : "bg-red-50 text-red-500"
+                  }`}>
+                    {successRate >= 85 ? "잘함" : successRate >= 70 ? "보통" : "무리"}
+                  </span>
+                </div>
                 <p className="text-[9px] text-gray-400 mt-1.5 font-medium">
                   {metrics.totalSets}세트 중 {Math.round(metrics.totalSets * successRate / 100)}세트 성공
                 </p>
@@ -264,8 +332,8 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
               <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm relative animate-count-up" style={{ animationDelay: "0.7s" }}>
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.15em]">피로 신호</p>
-                  <button onClick={() => setHelpCard("fatigueDrop")} className="w-4 h-4 rounded-full bg-gray-100 flex items-center justify-center">
-                    <span className="text-[8px] font-black text-gray-400">?</span>
+                  <button onClick={() => setHelpCard("fatigueDrop")} className="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center">
+                    <span className="text-[10px] font-black text-gray-400">?</span>
                   </button>
                 </div>
                 <div className="flex items-baseline gap-1.5">
@@ -353,8 +421,8 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
           <div className="bg-white rounded-2xl border border-gray-100 p-5 mb-5 shadow-sm">
             <div className="flex items-center justify-between mb-1">
               <p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.15em]">4주 부하 타임라인</p>
-              <button onClick={() => setHelpCard("loadTimeline")} className="w-4 h-4 rounded-full bg-gray-100 flex items-center justify-center">
-                <span className="text-[8px] font-black text-gray-400">?</span>
+              <button onClick={() => setHelpCard("loadTimeline")} className="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center">
+                <span className="text-[10px] font-black text-gray-400">?</span>
               </button>
             </div>
             <div className="relative h-32 sm:h-28 mt-5 sm:mt-4 mb-2">
@@ -694,20 +762,21 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
             <div className="flex-1 overflow-y-auto scrollbar-hide">
             {helpCard === "topLift" && (
               <>
-                <h3 className="text-lg font-black text-[#1B4332] mb-3">오늘의 Lift</h3>
+                <h3 className="text-lg font-black text-[#1B4332] mb-3">예상 최고 중량(1RM)</h3>
                 <div className="space-y-3 text-[13px] text-gray-600 leading-relaxed">
-                  <p>오늘 운동에서 <span className="font-bold text-[#1B4332]">가장 무거운 무게를 들어올린 기록</span>을 내 체중과 비교한 숫자예요.</p>
-                  <p>예를 들어 <span className="font-bold">1.18x</span>라면, 내 몸무게의 1.18배를 들 수 있는 힘이 있다는 뜻이에요.</p>
+                  <p>오늘 운동 기록으로 <span className="font-bold text-[#1B4332]">내가 1회 최대로 들 수 있는 무게(1RM)</span>를 추정하고, 체중 대비 몇 배인지 보여줘요.</p>
+                  <p>예를 들어 <span className="font-bold">1.1배</span>면 체중의 1.1배를 들 수 있다는 뜻이에요.</p>
+                  <p>▶ 버튼으로 <span className="font-bold">4대 운동</span>(스쿼트 · 데드리프트 · 벤치프레스 · 오버헤드프레스)의 기록을 넘겨볼 수 있어요.</p>
                   <div className="bg-gray-50 rounded-xl p-3 space-y-1.5">
-                    <p className="text-[11px] font-bold text-gray-500">체중배수 기준 (남성)</p>
+                    <p className="text-[11px] font-bold text-gray-500">체중 대비 기준 (남성 · 벤치프레스 기준)</p>
                     <div className="flex gap-2">
-                      <span className="text-[10px] font-bold px-2 py-0.5 bg-gray-200 text-gray-600 rounded">~0.8x 초급</span>
-                      <span className="text-[10px] font-bold px-2 py-0.5 bg-emerald-100 text-[#2D6A4F] rounded">0.8~1.2x 중급</span>
-                      <span className="text-[10px] font-bold px-2 py-0.5 bg-amber-100 text-amber-700 rounded">1.2x+ 상급</span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 bg-gray-200 text-gray-600 rounded">~0.8배 초급</span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 bg-emerald-100 text-[#2D6A4F] rounded">0.8~1.2배 중급</span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 bg-amber-100 text-amber-700 rounded">1.2배+ 상급</span>
                     </div>
                   </div>
-                  <p><span className="font-bold">e1RM</span>은 &quot;추정 1회 최대 중량&quot;이에요. 한 번에 최대로 들 수 있는 무게를 오늘 기록으로 추정한 값이에요. (Epley 공식)</p>
-                  <p className="text-[10px] text-gray-400 mt-2 pt-2 border-t border-gray-100">근거: NSCA Essentials of S&C (4th ed.), Rippetoe &amp; Kilgore (2006), Epley (1985)</p>
+                  <p><span className="font-bold">1RM</span>은 오늘 세트 기록(무게 × 횟수)에서 Epley 공식으로 추정한 값이에요. 실제 1회 최대 시도 없이도 내 근력 수준을 알 수 있어요.</p>
+                  <p className="text-[10px] text-gray-400 mt-2 pt-2 border-t border-gray-100">근거: NSCA Essentials of S&C (4th ed.), Epley (1985)</p>
                 </div>
               </>
             )}
@@ -716,7 +785,7 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
                 <h3 className="text-lg font-black text-[#1B4332] mb-3">부하 상태</h3>
                 <div className="space-y-3 text-[13px] text-gray-600 leading-relaxed">
                   <p>오늘 운동량이 <span className="font-bold text-[#1B4332]">내 레벨에 맞는 적정 볼륨인지</span> 보여줘요.</p>
-                  <p>오늘 부하 비율은 <span className="font-bold text-[#1B4332]">{loadRatio !== null ? loadRatio.toFixed(2) : "-"}</span>이에요. 1.0이면 최근 4주 평균과 같은 양이고, 현재 레벨(<span className="font-bold">{levelLabel}</span>)에 맞는 기준으로 판정해요.</p>
+                  <p>오늘 부하는 최근 4주 평균 대비 <span className="font-bold text-[#1B4332]">{loadRatio !== null ? `${loadRatio >= 1 ? "+" : ""}${Math.round((loadRatio - 1) * 100)}%` : "-"}</span>예요. 0%면 평균과 같은 양이고, 현재 레벨(<span className="font-bold">{levelLabel}</span>)에 맞는 기준으로 판정해요.</p>
                   <div className="bg-gray-50 rounded-xl p-3 space-y-2">
                     <p className="text-[11px] font-bold text-gray-500">볼륨 구간 안내 ({levelLabel})</p>
                     <div className="space-y-1.5">
@@ -760,7 +829,7 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
                   <div className="bg-gray-50 rounded-xl p-3 space-y-1.5">
                     <p className="text-[11px] font-bold text-gray-500">적중률 기준</p>
                     <div className="flex gap-2 flex-wrap">
-                      <span className="text-[10px] font-bold px-2 py-0.5 bg-emerald-100 text-[#2D6A4F] rounded">85%+ 잘 함</span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 bg-emerald-100 text-[#2D6A4F] rounded">85%+ 잘함</span>
                       <span className="text-[10px] font-bold px-2 py-0.5 bg-amber-100 text-amber-700 rounded">70~85% 보통</span>
                       <span className="text-[10px] font-bold px-2 py-0.5 bg-red-100 text-red-600 rounded">~70% 무리</span>
                     </div>

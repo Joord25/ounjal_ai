@@ -306,8 +306,8 @@ export const ProofTab: React.FC<ProofTabProps> = () => {
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <h3 className="text-lg font-black text-[#1B4332]">훈련 레벨</h3>
-                    <button onClick={() => setHelpCard("trainingLevel")} className="w-4 h-4 rounded-full bg-gray-100 flex items-center justify-center">
-                      <span className="text-[8px] font-black text-gray-400">?</span>
+                    <button onClick={() => setHelpCard("trainingLevel")} className="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center">
+                      <span className="text-[10px] font-black text-gray-400">?</span>
                     </button>
                   </div>
                   <span className={`text-[11px] font-black px-2.5 py-1 rounded-lg ${lvlBadgeCls}`}>{lvlLabel}</span>
