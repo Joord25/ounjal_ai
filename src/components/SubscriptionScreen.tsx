@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
+import { fetchWithRetry } from "@/utils/fetchRetry";
 
 interface SubscriptionScreenProps {
   user: User;
@@ -10,7 +11,7 @@ interface SubscriptionScreenProps {
   initialStatus?: "free" | "active" | "cancelled";
 }
 
-const FUNCTIONS_BASE = "https://us-central1-ohunjal.cloudfunctions.net";
+const FUNCTIONS_BASE = "/api";
 
 async function getIdToken(): Promise<string> {
   const user = auth.currentUser;
@@ -68,7 +69,7 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ user, on
   const checkSubscription = async () => {
     try {
       const token = await getIdToken();
-      const res = await fetch(`${FUNCTIONS_BASE}/getSubscription`, {
+      const res = await fetchWithRetry(`${FUNCTIONS_BASE}/getSubscription`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -130,7 +131,7 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ user, on
 
       // 2. Send billing key to server to save and process first payment
       const token = await getIdToken();
-      const serverRes = await fetch(`${FUNCTIONS_BASE}/subscribe`, {
+      const serverRes = await fetchWithRetry(`${FUNCTIONS_BASE}/subscribe`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -187,7 +188,7 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ user, on
     setIsProcessing(true);
     try {
       const token = await getIdToken();
-      const res = await fetch(`${FUNCTIONS_BASE}/cancelSubscription`, {
+      const res = await fetchWithRetry(`${FUNCTIONS_BASE}/cancelSubscription`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

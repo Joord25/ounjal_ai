@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { User, updateProfile } from "firebase/auth";
+import { fetchWithRetry } from "@/utils/fetchRetry";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { storage, auth } from "@/lib/firebase";
 import { SubscriptionScreen } from "./SubscriptionScreen";
@@ -40,7 +41,7 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout }) =>
       try {
         const token = await auth.currentUser?.getIdToken();
         if (!token) { setSubStatus("free"); return; }
-        const res = await fetch("https://us-central1-ohunjal.cloudfunctions.net/getSubscription", {
+        const res = await fetchWithRetry("/api/getSubscription", {
           method: "POST",
           headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
         });

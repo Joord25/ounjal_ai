@@ -22,7 +22,10 @@
     ],
     "rewrites": [
       { "source": "/api/generateWorkout", "function": { "functionId": "generateWorkout", "region": "us-central1" } },
-      { "source": "/api/analyzeWorkout", "function": { "functionId": "analyzeWorkout", "region": "us-central1" } }
+      { "source": "/api/analyzeWorkout", "function": { "functionId": "analyzeWorkout", "region": "us-central1" } },
+      { "source": "/api/getSubscription", "function": { "functionId": "getSubscription", "region": "us-central1" } },
+      { "source": "/api/subscribe", "function": { "functionId": "subscribe", "region": "us-central1" } },
+      { "source": "/api/cancelSubscription", "function": { "functionId": "cancelSubscription", "region": "us-central1" } }
     ]
   },
   "functions": {

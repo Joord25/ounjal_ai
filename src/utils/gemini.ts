@@ -1,6 +1,7 @@
 import { UserCondition, WorkoutGoal, WorkoutSessionData, ExerciseLog, WorkoutAnalysis } from "@/constants/workout";
 import { buildWorkoutMetrics } from "@/utils/workoutMetrics";
 import { auth } from "@/lib/firebase";
+import { fetchWithRetry } from "@/utils/fetchRetry";
 
 // Helper: get current user's ID token for authenticated requests
 async function getIdToken(): Promise<string> {
@@ -10,7 +11,7 @@ async function getIdToken(): Promise<string> {
 }
 
 // Functions base URL
-const FUNCTIONS_BASE = "https://us-central1-ohunjal.cloudfunctions.net";
+const FUNCTIONS_BASE = "/api";
 
 export const analyzeWorkoutSession = async (
   sessionData: WorkoutSessionData,
@@ -24,7 +25,7 @@ export const analyzeWorkoutSession = async (
     const token = await getIdToken();
     const metrics = buildWorkoutMetrics(sessionData.exercises, logs, bodyWeightKg);
 
-    const response = await fetch(`${FUNCTIONS_BASE}/analyzeWorkout`, {
+    const response = await fetchWithRetry(`${FUNCTIONS_BASE}/analyzeWorkout`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -62,7 +63,7 @@ export const generateAIWorkoutPlan = async (
   try {
     const token = await getIdToken();
 
-    const response = await fetch(`${FUNCTIONS_BASE}/generateWorkout`, {
+    const response = await fetchWithRetry(`${FUNCTIONS_BASE}/generateWorkout`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

@@ -18,6 +18,7 @@ import { auth } from "@/lib/firebase";
 import { onAuthStateChanged, signOut, User } from "firebase/auth";
 import { SubscriptionScreen } from "@/components/SubscriptionScreen";
 import { loadUserProfile } from "@/utils/userProfile";
+import { fetchWithRetry } from "@/utils/fetchRetry";
 
 type ViewState = 
   | "login"
@@ -49,6 +50,7 @@ export default function Home() {
   const FREE_PLAN_LIMIT = 3;
 
   // Firebase Auth listener
+  const subChecked = useRef(false);
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       setUser(firebaseUser);
@@ -56,16 +58,19 @@ export default function Home() {
       if (firebaseUser) {
         setIsLoggedIn(true);
 
-        // Check subscription status
-        firebaseUser.getIdToken().then(token => {
-          fetch("https://us-central1-ohunjal.cloudfunctions.net/getSubscription", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-          })
-            .then(res => res.ok ? res.json() : { status: "free" })
-            .then(data => setSubStatus(data.status || "free"))
-            .catch(() => setSubStatus("free"));
-        }).catch(() => setSubStatus("free"));
+        // Check subscription status (only once)
+        if (!subChecked.current) {
+          subChecked.current = true;
+          firebaseUser.getIdToken().then(token => {
+            fetchWithRetry("/api/getSubscription", {
+              method: "POST",
+              headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+            })
+              .then(res => res.ok ? res.json() : { status: "free" })
+              .then(data => setSubStatus(data.status || "free"))
+              .catch(() => setSubStatus("free"));
+          }).catch(() => setSubStatus("free"));
+        }
 
         // Load user profile from Firestore → localStorage
         loadUserProfile().catch((e) => console.error("Failed to load profile", e));
@@ -232,7 +237,7 @@ export default function Home() {
     const goalToSessionType: Record<WorkoutGoal, string> = {
       strength: "Strength",
       muscle_gain: "Strength",
-      fat_loss: "Running",
+      fat_loss: "Strength",
       general_fitness: "Recommended",
     };
     const initialType = goalToSessionType[goal];
@@ -438,7 +443,7 @@ export default function Home() {
                 setShowPaywall(false);
                 // Re-check subscription status
                 user.getIdToken().then(token => {
-                  fetch("https://us-central1-ohunjal.cloudfunctions.net/getSubscription", {
+                  fetchWithRetry("/api/getSubscription", {
                     method: "POST",
                     headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
                   })
