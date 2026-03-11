@@ -178,6 +178,18 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
   const [showTerms, setShowTerms] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
 
+  const preventCopy = {
+    onContextMenu: (e: React.MouseEvent) => e.preventDefault(),
+    onCopy: (e: React.ClipboardEvent) => e.preventDefault(),
+    onCut: (e: React.ClipboardEvent) => e.preventDefault(),
+    onDragStart: (e: React.DragEvent) => e.preventDefault(),
+    onKeyDown: (e: React.KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && (e.key === "c" || e.key === "a" || e.key === "x" || e.key === "p")) {
+        e.preventDefault();
+      }
+    },
+  };
+
   const handleGoogleLogin = async () => {
     setIsLoading(true);
     setError(null);
@@ -261,7 +273,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
       {/* Terms Modal */}
       {showTerms && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowTerms(false)}>
-          <div className="bg-white rounded-2xl mx-4 max-w-[360px] w-full max-h-[80vh] flex flex-col shadow-xl" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-white rounded-2xl mx-4 max-w-[360px] w-full max-h-[80vh] flex flex-col shadow-xl" onClick={(e) => e.stopPropagation()} {...preventCopy}>
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
               <h2 className="text-base font-bold text-[#1B4332]">이용약관</h2>
               <button type="button" onClick={() => setShowTerms(false)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors">
@@ -283,7 +295,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
       {/* Privacy Modal */}
       {showPrivacy && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowPrivacy(false)}>
-          <div className="bg-white rounded-2xl mx-4 max-w-[360px] w-full max-h-[80vh] flex flex-col shadow-xl" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-white rounded-2xl mx-4 max-w-[360px] w-full max-h-[80vh] flex flex-col shadow-xl" onClick={(e) => e.stopPropagation()} {...preventCopy}>
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
               <h2 className="text-base font-bold text-[#1B4332]">개인정보 처리방침</h2>
               <button type="button" onClick={() => setShowPrivacy(false)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors">
