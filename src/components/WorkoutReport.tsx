@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { WorkoutSessionData, ExerciseLog, WorkoutAnalysis, WorkoutHistory } from "@/constants/workout";
 import { analyzeWorkoutSession } from "@/utils/gemini";
 import { buildWorkoutMetrics, estimateTrainingLevel, getOptimalLoadBand, getBig4FromHistory } from "@/utils/workoutMetrics";
+import { ShareCard } from "./ShareCard";
 import { loadRecentHistory as loadRecentHistoryFromStore } from "@/utils/workoutHistory";
 
 interface WorkoutReportProps {
@@ -54,6 +55,7 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
   const [analysis, setAnalysis] = useState<WorkoutAnalysis | null>(initialAnalysis);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [showLogs, setShowLogs] = useState(false);
+  const [showShare, setShowShare] = useState(false);
   const [helpCard, setHelpCard] = useState<string | null>(null);
   const [activeDot, setActiveDot] = useState<string | null>(null);
   const [e1rmIndex, setE1rmIndex] = useState(0);
@@ -906,7 +908,7 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
       )}
 
       {/* Footer Button */}
-      <div className="absolute bottom-0 left-0 right-0 px-5 pb-1.5 bg-gradient-to-t from-[#FAFAFA] via-[#FAFAFA] to-transparent pt-10 z-20">
+      <div className={`absolute bottom-0 left-0 right-0 px-5 pb-1.5 bg-gradient-to-t from-[#FAFAFA] via-[#FAFAFA] to-transparent pt-10 z-20 ${showShare ? "hidden" : ""}`}>
         <div className="flex gap-2">
           {onRestart && (
             <button
@@ -917,13 +919,35 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
             </button>
           )}
           <button
+            onClick={() => setShowShare(true)}
+            className="py-3 px-4 rounded-2xl bg-white border border-gray-200 text-[#1B4332] font-bold text-sm active:scale-95 transition-all flex items-center gap-1.5"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+            </svg>
+            공유
+          </button>
+          <button
             onClick={onClose}
-            className={`${onRestart ? "flex-1" : "w-full"} py-3 rounded-2xl bg-[#1B4332] text-white font-bold text-base shadow-xl shadow-[#1B4332]/20 active:scale-95 transition-all`}
+            className="flex-1 py-3 rounded-2xl bg-[#1B4332] text-white font-bold text-base shadow-xl shadow-[#1B4332]/20 active:scale-95 transition-all"
           >
             완료
           </button>
         </div>
       </div>
+
+      {/* Share Card Modal */}
+      {showShare && (
+        <ShareCard
+          sessionData={sessionData}
+          logs={logs}
+          metrics={metrics}
+          analysis={analysis}
+          bodyWeightKg={bodyWeightKg}
+          sessionDate={sessionDate}
+          onClose={() => setShowShare(false)}
+        />
+      )}
     </div>
   );
 };

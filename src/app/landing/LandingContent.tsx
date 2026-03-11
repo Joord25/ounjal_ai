@@ -329,7 +329,7 @@ export default function LandingContent() {
             <div className="text-center mb-16">
               <p className="text-sm font-bold text-[#059669] mb-2">PRICING</p>
               <h2 className="text-3xl sm:text-4xl font-black text-[#1B4332]">
-                심플한 요금제
+                커피한잔 가격으로 PT처럼!
               </h2>
             </div>
           </RevealSection>
@@ -366,13 +366,21 @@ export default function LandingContent() {
             <RevealSection>
               <div className="p-8 rounded-2xl border-2 border-[#059669] bg-[#f0fdf4] relative">
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-[#059669] text-white text-xs font-bold rounded-full">
-                  추천
+                  초기 특가
                 </div>
                 <h3 className="text-lg font-bold text-[#1B4332] mb-1">프리미엄</h3>
                 <p className="text-sm text-gray-400 mb-6">모든 기능을 무제한으로</p>
-                <p className="text-4xl font-black text-[#1B4332] mb-8">
-                  ₩9,900<span className="text-base font-medium text-gray-400">/월</span>
-                </p>
+                <div className="mb-8">
+                  <div className="flex items-baseline justify-center gap-2">
+                    <span className="text-lg text-gray-400 line-through">₩9,900</span>
+                    <span className="text-4xl font-black text-[#1B4332]">₩6,900</span>
+                    <span className="text-base font-medium text-gray-400">/월</span>
+                  </div>
+                  <div className="flex items-center justify-center gap-2 mt-1">
+                    <span className="px-2 py-0.5 bg-red-500 text-white text-xs font-bold rounded-full">30% 할인</span>
+                    <span className="text-xs text-[#059669] font-semibold">초기 특가</span>
+                  </div>
+                </div>
                 <ul className="space-y-3 text-sm text-gray-600 mb-8">
                   <li className="flex items-start gap-2">
                     <svg width="18" height="18" viewBox="0 0 18 18" fill="none" className="mt-0.5 shrink-0"><path d="M4 9L7.5 12.5L14 6" stroke="#059669" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
