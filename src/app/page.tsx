@@ -111,6 +111,7 @@ export default function Home() {
   isLoggedInRef.current = isLoggedIn;
 
   const guardPushedRef = useRef(false);
+  const exitingRef = useRef(false);
 
   useEffect(() => {
     if (!isLoggedIn || view === "login") {
@@ -125,6 +126,8 @@ export default function Home() {
     }
 
     const handlePopState = () => {
+      // If the user confirmed exit, don't re-push — let the browser navigate away
+      if (exitingRef.current) return;
       if (isLoggedInRef.current && viewRef.current !== "login") {
         setShowExitConfirm(true);
         // Re-push so back button can be caught again
@@ -149,6 +152,7 @@ export default function Home() {
   const handleExitConfirm = useCallback(() => {
     setShowExitConfirm(false);
     guardPushedRef.current = false;
+    exitingRef.current = true;
     // Go back twice: once to consume the re-pushed guard, once to actually exit
     window.history.go(-2);
   }, []);
