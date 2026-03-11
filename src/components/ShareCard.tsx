@@ -22,11 +22,16 @@ function isBig3(name: string): boolean {
   return BIG3_KEYWORDS.some(k => lower.includes(k.toLowerCase()));
 }
 
-function getLevelLabel(bwRatio: number): { label: string; color: string } {
-  if (bwRatio >= 2.0) return { label: "최상급", color: "#f59e0b" };
-  if (bwRatio >= 1.5) return { label: "상급", color: "#f59e0b" };
-  if (bwRatio >= 1.0) return { label: "중급", color: "#34d399" };
-  return { label: "초급", color: "rgba(255,255,255,0.5)" };
+// 재미있는 실물 비교 (무게 kg 기준)
+function getWeightComparison(kg: number): { image: string | null; emoji: string; name: string; drama: string } {
+  if (kg >= 200) return { image: "/lion.png", emoji: "", name: "수컷 사자", drama: "수컷 사자 1마리를 거뜬히 들어올린다" };
+  if (kg >= 150) return { image: null, emoji: "🏍️", name: "대형 오토바이", drama: "대형 오토바이 1대를 거뜬히 들어올린다" };
+  if (kg >= 120) return { image: null, emoji: "🧊", name: "대형 냉장고", drama: "대형 냉장고 1대를 거뜬히 들어올린다" };
+  if (kg >= 100) return { image: "/panda.png", emoji: "", name: "성인 판다", drama: "성인 판다 1마리를 거뜬히 들어올린다" };
+  if (kg >= 80) return { image: null, emoji: "🚴", name: "성인남성", drama: "성인남성 1명을 거뜬히 들어올린다" };
+  if (kg >= 60) return { image: "/bigdog.png", emoji: "", name: "대형견", drama: "대형견 1마리 정도는 Easy" };
+  if (kg >= 40) return { image: null, emoji: "🧳", name: "대형 캐리어", drama: "대형 캐리어 2개를 거뜬히 들어올린다" };
+  return { image: null, emoji: "🎒", name: "쌀포대", drama: "쌀포대 1개를 거뜬히 들어올린다" };
 }
 
 export const ShareCard: React.FC<ShareCardProps> = ({
@@ -242,66 +247,44 @@ export const ShareCard: React.FC<ShareCardProps> = ({
           )}
 
           {/* ===== Card 2: Big 3 Lift 1RM ===== */}
-          {currentCard === 1 && showCard2 && big3E1RM && bodyWeightKg && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 16, alignItems: "center", textAlign: "center", width: "100%" }}>
-              {/* Exercise name */}
-              <div>
-                <p style={{ color: labelColor, fontSize: 10, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase" as const, marginBottom: 4 }}>
-                  ESTIMATED 1RM
-                </p>
-                <p style={{ color: "white", fontSize: 18, fontWeight: 900, lineHeight: 1.3, textShadow: shadow }}>
+          {currentCard === 1 && showCard2 && big3E1RM && bodyWeightKg && (() => {
+            const comparison = getWeightComparison(big3E1RM.value);
+            return (
+            <div style={{ display: "flex", flexDirection: "column", gap: 12, alignItems: "center", textAlign: "center", width: "100%" }}>
+              {/* Illustration */}
+              <div style={{ marginBottom: 4 }}>
+                {comparison.image ? (
+                  <img src={comparison.image} alt="" style={{ height: 100, objectFit: "contain" }} />
+                ) : (
+                  <p style={{ fontSize: 64, lineHeight: 1 }}>{comparison.emoji}</p>
+                )}
+              </div>
+
+              {/* Drama text */}
+              <p style={{
+                color: "white",
+                fontSize: 18,
+                fontWeight: 900,
+                lineHeight: 1.5,
+                textShadow: shadow,
+              }}>
+                {comparison.drama}
+              </p>
+
+              {/* Exercise + Weight */}
+              <div style={{
+                display: "flex",
+                alignItems: "baseline",
+                gap: 8,
+                justifyContent: "center",
+              }}>
+                <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 13, fontWeight: 700, textShadow: shadowLight }}>
                   {big3E1RM.exerciseName.replace(/\s*\(.*\)$/, "")}
-                </p>
-              </div>
-
-              {/* Big number: 1RM kg */}
-              <div>
-                <p style={{
-                  color: "white",
-                  fontSize: 56,
-                  fontWeight: 900,
-                  lineHeight: 1,
-                  textShadow: shadow,
-                }}>
+                </span>
+                <span style={{ color: "white", fontSize: 28, fontWeight: 900, textShadow: shadow }}>
                   {Math.round(big3E1RM.value)}
-                  <span style={{ fontSize: 22, color: "rgba(255,255,255,0.5)", marginLeft: 4 }}>kg</span>
-                </p>
-              </div>
-
-              {/* BW Ratio */}
-              <div>
-                <p style={{ color: labelColor, fontSize: 10, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase" as const, marginBottom: 6 }}>
-                  체중 대비
-                </p>
-                <div style={{ display: "flex", alignItems: "baseline", gap: 10, justifyContent: "center" }}>
-                  <p style={{
-                    color: "white",
-                    fontSize: 36,
-                    fontWeight: 900,
-                    lineHeight: 1,
-                    textShadow: shadow,
-                  }}>
-                    ×{(big3E1RM.value / bodyWeightKg).toFixed(1)}
-                  </p>
-                  {/* Level badge */}
-                  {(() => {
-                    const bwRatio = big3E1RM.value / bodyWeightKg;
-                    const level = getLevelLabel(bwRatio);
-                    return (
-                      <span style={{
-                        fontSize: 13,
-                        fontWeight: 800,
-                        color: level.color,
-                        textShadow: shadow,
-                        padding: "2px 8px",
-                        borderRadius: 20,
-                        background: mode === "filled" ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.3)",
-                      }}>
-                        {level.label}
-                      </span>
-                    );
-                  })()}
-                </div>
+                  <span style={{ fontSize: 14, color: "rgba(255,255,255,0.5)", marginLeft: 2 }}>kg</span>
+                </span>
               </div>
 
               {/* Other big 3 lifts if available */}
@@ -309,14 +292,14 @@ export const ShareCard: React.FC<ShareCardProps> = ({
                 const otherBig3 = allE1RMs.filter(e => e !== big3E1RM && isBig3(e.exerciseName));
                 if (otherBig3.length === 0) return null;
                 return (
-                  <div style={{ marginTop: 4 }}>
+                  <div style={{ width: "100%", marginTop: 4 }}>
                     {otherBig3.map((e, i) => (
                       <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
                         <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 12, fontWeight: 600, textShadow: shadowLight }}>
                           {e.exerciseName.replace(/\s*\(.*\)$/, "")}
                         </span>
                         <span style={{ color: "rgba(255,255,255,0.6)", fontSize: 12, fontWeight: 800, textShadow: shadowLight }}>
-                          {Math.round(e.value)}kg · ×{(e.value / bodyWeightKg).toFixed(1)}
+                          {Math.round(e.value)}kg
                         </span>
                       </div>
                     ))}
@@ -326,7 +309,8 @@ export const ShareCard: React.FC<ShareCardProps> = ({
 
               <BrandFooter />
             </div>
-          )}
+            );
+          })()}
         </div>
       </div>
 
