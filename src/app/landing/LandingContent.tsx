@@ -422,21 +422,30 @@ export default function LandingContent() {
 
       {/* Footer */}
       <footer className="py-12 bg-[#143728] text-gray-400">
-        <div className="max-w-5xl mx-auto px-6">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 mb-8">
-            <div className="flex items-center gap-2">
-              <img src="/favicon.png" alt="오운잘 AI" className="w-6 h-6 rounded-md" />
-              <span className="font-bold text-white text-sm">오운잘 AI</span>
-            </div>
-            <div className="flex gap-6 text-xs">
-              <a href="/" className="hover:text-white transition-colors">서비스 바로가기</a>
-              <a href="#features" className="hover:text-white transition-colors">기능 소개</a>
-            </div>
+        <div className="max-w-5xl mx-auto px-6 text-center">
+          {/* 로고 */}
+          <div className="flex items-center justify-center gap-2 mb-8">
+            <img src="/favicon.png" alt="오운잘 AI" className="w-8 h-8 rounded-md" />
+            <span className="font-bold text-white text-lg">오운잘 AI</span>
           </div>
-          <div className="border-t border-white/10 pt-8 text-xs leading-relaxed space-y-1">
-            <p>상호: 오운잘 AI · 대표: 임주용 · 사업자등록번호: 623-36-01460</p>
-            <p>이메일: ounjal.ai.app@gmail.com</p>
-            <p className="mt-4 text-gray-500">&copy; 2026 오운잘 AI. All rights reserved.</p>
+
+          {/* 사업자 정보 */}
+          <div className="text-sm leading-loose space-y-1 text-gray-400 mb-8">
+            <p>대표 | 임주용</p>
+            <p>이메일 | ounjal.ai.app@gmail.com</p>
+            <p>사업자등록번호 | 623-36-01460</p>
+          </div>
+
+          {/* 링크 */}
+          <div className="flex items-center justify-center gap-8 text-sm mb-8">
+            <a href="/" className="hover:text-white transition-colors">서비스 바로가기</a>
+            <a href="/privacy" className="hover:text-white transition-colors">개인정보처리방침</a>
+            <a href="/terms" className="hover:text-white transition-colors">이용약관</a>
+          </div>
+
+          {/* 카피라이트 */}
+          <div className="border-t border-white/10 pt-8">
+            <p className="text-xs text-gray-500">&copy; 2026 오운잘 AI. All rights reserved.</p>
           </div>
         </div>
       </footer>
