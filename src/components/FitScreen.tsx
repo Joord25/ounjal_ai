@@ -151,12 +151,12 @@ export const FitScreen: React.FC<FitScreenProps> = ({
     } catch (e) {}
   };
 
-  // Weight presets: selected weight centered, 3 below + 3 above
+  // Weight presets: selected weight centered, 10 below + 10 above (0.5kg step)
   const weightPresets = (() => {
     const center = selectedWeight || getDefaultWeight();
-    const step = center <= 10 ? 2 : center <= 60 ? 5 : 10;
+    const step = 0.5;
     const presets: number[] = [];
-    for (let i = -3; i <= 3; i++) {
+    for (let i = -10; i <= 10; i++) {
       const v = center + i * step;
       if (v > 0) presets.push(parseFloat(v.toFixed(1)));
     }
