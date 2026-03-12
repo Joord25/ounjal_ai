@@ -27,7 +27,7 @@ export const BottomTabs: React.FC<BottomTabsProps> = ({ active, onChange }) => {
       className="absolute bottom-0 left-0 right-0 flex justify-center px-4 sm:px-6"
       style={{
         zIndex: 40,
-        paddingBottom: "calc(var(--safe-area-bottom, 0px) + 8px)",
+        paddingBottom: "calc(var(--safe-area-bottom, 0px) + 24px)",
       }}
     >
       <div

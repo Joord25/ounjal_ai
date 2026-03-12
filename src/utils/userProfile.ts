@@ -95,6 +95,21 @@ export async function updateWeight(weight: number): Promise<void> {
   }
 }
 
+/** Replace the entire weight log and sync to Firestore */
+export async function updateWeightLog(weightLog: { date: string; weight: number }[]): Promise<void> {
+  const sorted = [...weightLog].sort((a, b) => a.date.localeCompare(b.date));
+  localStorage.setItem("alpha_weight_log", JSON.stringify(sorted));
+
+  // Update current body weight to latest entry
+  if (sorted.length > 0) {
+    const latest = sorted[sorted.length - 1];
+    localStorage.setItem("alpha_body_weight", String(latest.weight));
+    await saveUserProfile({ bodyWeight: latest.weight, weightLog: sorted });
+  } else {
+    await saveUserProfile({ weightLog: sorted });
+  }
+}
+
 /** Update gender and sync to Firestore */
 export async function updateGender(gender: "male" | "female"): Promise<void> {
   localStorage.setItem("alpha_gender", gender);

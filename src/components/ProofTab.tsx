@@ -4,6 +4,7 @@ import React, { useEffect, useState, useRef, useCallback } from "react";
 
 import { WorkoutHistory as WorkoutHistoryType } from "@/constants/workout";
 import { loadWorkoutHistory, deleteWorkoutHistory } from "@/utils/workoutHistory";
+import { updateWeightLog } from "@/utils/userProfile";
 import { estimateTrainingLevelDetailed } from "@/utils/workoutMetrics";
 import { WorkoutReport } from "./WorkoutReport";
 import { WorkoutHistory } from "./WorkoutHistory";
@@ -12,7 +13,7 @@ interface ProofTabProps {
   lockedRuleIds: string[]; // Not used in this version, but kept for compatibility
 }
 
-type ViewState = "dashboard" | "list" | "report";
+type ViewState = "dashboard" | "list" | "report" | "weight_detail";
 
 export const ProofTab: React.FC<ProofTabProps> = () => {
   const [history, setHistory] = useState<WorkoutHistoryType[]>([]);
@@ -25,6 +26,12 @@ export const ProofTab: React.FC<ProofTabProps> = () => {
   const [activeWeightDot, setActiveWeightDot] = useState<number | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [pullDistance, setPullDistance] = useState(0);
+  const [editingWeightIdx, setEditingWeightIdx] = useState<number | null>(null);
+  const [editingWeightValue, setEditingWeightValue] = useState("");
+  const [showAddWeight, setShowAddWeight] = useState(false);
+  const [newWeightDate, setNewWeightDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [newWeightValue, setNewWeightValue] = useState("");
+  const [showWeightDeleteConfirm, setShowWeightDeleteConfirm] = useState<number | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const touchStartY = useRef(0);
   const isPulling = useRef(false);
@@ -151,6 +158,206 @@ export const ProofTab: React.FC<ProofTabProps> = () => {
         onBack={() => setView("dashboard")}
         onDelete={handleDeleteSession}
       />
+    );
+  }
+
+  if (view === "weight_detail") {
+    const sortedLog = [...weightLog].sort((a, b) => b.date.localeCompare(a.date)); // newest first
+
+    const handleSaveEdit = (idx: number) => {
+      const parsed = parseFloat(editingWeightValue);
+      if (isNaN(parsed) || parsed <= 0) return;
+      const updated = sortedLog.map((entry, i) => i === idx ? { ...entry, weight: parsed } : entry);
+      setWeightLog(updated);
+      updateWeightLog(updated);
+      setEditingWeightIdx(null);
+      setEditingWeightValue("");
+    };
+
+    const handleDeleteWeight = (idx: number) => {
+      const updated = sortedLog.filter((_, i) => i !== idx);
+      setWeightLog(updated);
+      updateWeightLog(updated);
+      setShowWeightDeleteConfirm(null);
+    };
+
+    const handleAddWeight = () => {
+      const parsed = parseFloat(newWeightValue);
+      if (isNaN(parsed) || parsed <= 0 || !newWeightDate) return;
+      // Check if date already exists
+      const existing = weightLog.findIndex(e => e.date === newWeightDate);
+      let updated: { date: string; weight: number }[];
+      if (existing >= 0) {
+        updated = weightLog.map((e, i) => i === existing ? { ...e, weight: parsed } : e);
+      } else {
+        updated = [...weightLog, { date: newWeightDate, weight: parsed }];
+      }
+      setWeightLog(updated);
+      updateWeightLog(updated);
+      setShowAddWeight(false);
+      setNewWeightValue("");
+      setNewWeightDate(new Date().toISOString().slice(0, 10));
+    };
+
+    return (
+      <div className="flex flex-col h-full bg-[#FAFBF9] animate-fade-in relative overflow-hidden">
+        {/* Header */}
+        <div className="pt-[max(3rem,env(safe-area-inset-top))] pb-3 px-4 sm:px-6 flex items-center justify-between bg-[#FAFBF9] z-10 shrink-0">
+          <button onClick={() => { setView("dashboard"); setEditingWeightIdx(null); setShowAddWeight(false); }} className="p-2 -ml-2">
+            <svg className="w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+          <h1 className="text-lg sm:text-xl font-serif font-medium text-[#1B4332] uppercase tracking-wide">체중 기록</h1>
+          <button
+            onClick={() => { setShowAddWeight(true); setNewWeightDate(new Date().toISOString().slice(0, 10)); setNewWeightValue(""); }}
+            className="p-2 -mr-2 text-[#2D6A4F] active:opacity-60"
+          >
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" d="M12 5v14M5 12h14" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Weight List */}
+        <div className="flex-1 px-4 sm:px-6 pb-32 overflow-y-auto scrollbar-hide">
+          {sortedLog.length === 0 ? (
+            <div className="text-center py-10 text-gray-400">
+              <p>체중 기록이 없습니다.</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {sortedLog.map((entry, idx) => {
+                const isEditing = editingWeightIdx === idx;
+                const dateObj = new Date(entry.date + "T00:00:00");
+                const dateLabel = dateObj.toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric", weekday: "short" });
+                const prevEntry = sortedLog[idx + 1]; // older entry (sorted newest first)
+                const diff = prevEntry ? entry.weight - prevEntry.weight : null;
+
+                return (
+                  <div key={entry.date} className="bg-white rounded-2xl border border-gray-100 p-4 relative">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs font-bold text-gray-400 mb-1">{dateLabel}</p>
+                        {isEditing ? (
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="number"
+                              step="0.1"
+                              value={editingWeightValue}
+                              onChange={e => setEditingWeightValue(e.target.value)}
+                              className="w-24 text-xl font-black text-[#1B4332] bg-gray-50 border border-gray-200 rounded-xl px-3 py-1.5 focus:outline-none focus:border-[#2D6A4F]"
+                              autoFocus
+                              onKeyDown={e => { if (e.key === "Enter") handleSaveEdit(idx); }}
+                            />
+                            <span className="text-sm text-gray-400">kg</span>
+                            <button onClick={() => handleSaveEdit(idx)} className="text-sm font-bold text-[#2D6A4F] active:opacity-60 ml-1">저장</button>
+                            <button onClick={() => { setEditingWeightIdx(null); setEditingWeightValue(""); }} className="text-sm font-bold text-gray-400 active:opacity-60">취소</button>
+                          </div>
+                        ) : (
+                          <div className="flex items-baseline gap-1.5">
+                            <span className="text-xl font-black text-[#1B4332]">{entry.weight.toFixed(1)}</span>
+                            <span className="text-sm text-[#2D6A4F]/50">kg</span>
+                            {diff !== null && diff !== 0 && (
+                              <span className={`text-[10px] font-black ml-2 ${diff > 0 ? "text-rose-400" : "text-sky-400"}`}>
+                                {diff > 0 ? "+" : ""}{diff.toFixed(1)}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                      {!isEditing && (
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => { setEditingWeightIdx(idx); setEditingWeightValue(String(entry.weight)); }}
+                            className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 active:bg-gray-100 transition-colors"
+                          >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                            </svg>
+                          </button>
+                          <button
+                            onClick={() => setShowWeightDeleteConfirm(idx)}
+                            className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 active:bg-gray-100 transition-colors"
+                          >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Delete Confirmation Inline */}
+                    {showWeightDeleteConfirm === idx && (
+                      <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between">
+                        <p className="text-xs text-gray-500">이 기록을 삭제하시겠습니까?</p>
+                        <div className="flex gap-2">
+                          <button onClick={() => setShowWeightDeleteConfirm(null)} className="text-xs font-bold text-gray-400 px-3 py-1.5 rounded-lg bg-gray-100 active:scale-95 transition-all">취소</button>
+                          <button onClick={() => handleDeleteWeight(idx)} className="text-xs font-bold text-white px-3 py-1.5 rounded-lg bg-red-500 active:scale-95 transition-all">삭제</button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Add Weight Bottom Sheet */}
+        {showAddWeight && (
+          <div className="absolute inset-0 z-50">
+            <div className="absolute inset-0 bg-black/40 animate-fade-in" onClick={() => setShowAddWeight(false)} />
+            <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-[2rem] p-6 animate-slide-up shadow-2xl" style={{ paddingBottom: "calc(var(--safe-area-bottom, 0px) + 24px)" }}>
+              <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-6" />
+              <h3 className="text-lg font-black text-[#1B4332] mb-5">체중 기록 추가</h3>
+
+              <div className="space-y-4 mb-6">
+                <div>
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block">날짜</label>
+                  <input
+                    type="date"
+                    value={newWeightDate}
+                    onChange={e => setNewWeightDate(e.target.value)}
+                    max={new Date().toISOString().slice(0, 10)}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm font-bold text-[#1B4332] focus:outline-none focus:border-[#2D6A4F]"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block">체중 (kg)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    placeholder="75.0"
+                    value={newWeightValue}
+                    onChange={e => setNewWeightValue(e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm font-bold text-[#1B4332] focus:outline-none focus:border-[#2D6A4F]"
+                    autoFocus
+                    onKeyDown={e => { if (e.key === "Enter") handleAddWeight(); }}
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowAddWeight(false)}
+                  className="flex-1 py-3 rounded-xl bg-gray-100 text-gray-600 font-bold text-sm active:scale-95 transition-all"
+                >
+                  취소
+                </button>
+                <button
+                  onClick={handleAddWeight}
+                  disabled={!newWeightValue || parseFloat(newWeightValue) <= 0}
+                  className="flex-1 py-3 rounded-xl bg-[#1B4332] text-white font-bold text-sm active:scale-95 transition-all disabled:opacity-40"
+                >
+                  저장
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     );
   }
 
@@ -535,12 +742,22 @@ export const ProofTab: React.FC<ProofTabProps> = () => {
             const diff = latestWeight - firstWeight;
 
             return (
-              <div className="p-4 sm:p-6 bg-white rounded-3xl border border-[#2D6A4F]/10 shadow-sm overflow-visible">
+              <div
+                className="p-4 sm:p-6 bg-white rounded-3xl border border-[#2D6A4F]/10 shadow-sm overflow-visible cursor-pointer active:scale-[0.98] transition-all"
+                onClick={() => setView("weight_detail")}
+              >
                 <div className="flex justify-between items-baseline mb-1">
-                  <p className="text-[10px] font-bold text-[#2D6A4F] uppercase tracking-widest">체중 변화</p>
-                  <span className={`text-[10px] font-black ${diff > 0 ? "text-rose-400" : diff < 0 ? "text-sky-400" : "text-gray-400"}`}>
-                    {diff > 0 ? "+" : ""}{diff.toFixed(1)}kg
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <p className="text-[10px] font-bold text-[#2D6A4F] uppercase tracking-widest">체중 변화</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-[10px] font-black ${diff > 0 ? "text-rose-400" : diff < 0 ? "text-sky-400" : "text-gray-400"}`}>
+                      {diff > 0 ? "+" : ""}{diff.toFixed(1)}kg
+                    </span>
+                    <svg className="w-4 h-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                    </svg>
+                  </div>
                 </div>
                 <div className="flex items-baseline gap-1 mb-3 sm:mb-4">
                   <h3 className="text-2xl sm:text-3xl font-black text-[#1B4332]">{latestWeight.toFixed(1)}</h3>
