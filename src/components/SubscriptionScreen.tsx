@@ -18,7 +18,7 @@ async function getIdToken(): Promise<string> {
   return user.getIdToken();
 }
 
-const FAQ_ITEMS = [
+const FAQ_ITEMS: { q: string; a: string | null; key?: string }[] = [
   {
     q: "무료 플랜과 프리미엄의 차이는?",
     a: "무료 플랜은 AI 운동 플랜 생성이 3회로 제한됩니다. 프리미엄 구독 시 AI 맞춤 운동 플랜 무제한 생성, 세션별 AI 분석 리포트, 운동 히스토리 무제한 저장 등 모든 기능을 이용하실 수 있습니다.",
@@ -37,11 +37,12 @@ const FAQ_ITEMS = [
   },
   {
     q: "결제 후 환불도 가능한가요?",
-    a: "결제 후 7일 이내, 프리미엄 기능을 사용하지 않은 경우에 한해 환불이 가능합니다. 고객센터로 문의해 주세요.",
+    a: null,
+    key: "refund",
   },
   {
-    q: "앱스토어, 플레이스토어 앱은 없나요?",
-    a: "현재는 웹 브라우저에서 이용하실 수 있으며, 모바일 앱은 준비 중입니다. 웹에서도 모든 기능을 동일하게 이용하실 수 있습니다.",
+    q: "앱 다운로드는 어떻게 하나요?",
+    a: "크롬 브라우저에서 홈 화면에 추가하여 앱처럼 사용할 수 있습니다.\n\n[Android]\n1. 크롬에서 오운잘 AI 접속\n2. 우측 상단 ⋮ 메뉴 탭\n3. '홈 화면에 추가' 선택\n4. '추가' 확인\n\n[iPhone/iPad]\n1. Safari에서 오운잘 AI 접속\n2. 하단 공유 버튼(□↑) 탭\n3. '홈 화면에 추가' 선택\n4. '추가' 확인\n\n홈 화면에 추가하면 앱처럼 전체 화면으로 실행됩니다.\n\n※ 앱스토어/플레이스토어 모바일 앱은 추후 출시 예정입니다.",
   },
 ];
 
@@ -508,7 +509,7 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ user, on
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <h2 className="text-xl font-black text-white mb-1">구독 활성화</h2>
+              <h2 className="text-xl font-black text-white mb-1">월 정기 구독 활성화</h2>
               <p className="text-sm text-emerald-300/70">
                 {expiresAt ? `다음 결제일: ${new Date(expiresAt).toLocaleDateString("ko-KR")}` : "프리미엄 이용 중"}
               </p>
@@ -641,7 +642,15 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ user, on
                   </button>
                   {openFaqIndex === i && (
                     <div className="px-4 pb-4">
-                      <p className="text-sm text-gray-600 leading-relaxed">{item.a}</p>
+                      {item.key === "refund" ? (
+                        <p className="text-sm text-gray-600 leading-relaxed">
+                          결제 후 7일 이내, 프리미엄 기능을 사용하지 않은 경우에 한해 환불이 가능합니다. 자세한 내용은 하단의{" "}
+                          <button type="button" onClick={() => setShowRefund(true)} className="text-[#2D6A4F] font-bold underline underline-offset-2">환불정책</button>
+                          에 따라 진행됩니다. 환불 관련 문의는 고객센터로 연락해 주세요.
+                        </p>
+                      ) : (
+                        <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">{item.a}</p>
+                      )}
                     </div>
                   )}
                 </div>
