@@ -685,7 +685,7 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ user, on
 
       {/* Terms Modal */}
       {showTerms && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowTerms(false)}>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50" onClick={() => setShowTerms(false)}>
           <div className="bg-white rounded-2xl mx-4 max-w-[360px] w-full max-h-[80vh] flex flex-col shadow-xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
               <h2 className="text-base font-bold text-[#1B4332]">이용약관</h2>
@@ -705,7 +705,7 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ user, on
 
       {/* Privacy Modal */}
       {showPrivacy && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowPrivacy(false)}>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50" onClick={() => setShowPrivacy(false)}>
           <div className="bg-white rounded-2xl mx-4 max-w-[360px] w-full max-h-[80vh] flex flex-col shadow-xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
               <h2 className="text-base font-bold text-[#1B4332]">개인정보 처리방침</h2>
@@ -725,7 +725,7 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ user, on
 
       {/* Refund Policy Modal */}
       {showRefund && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowRefund(false)}>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50" onClick={() => setShowRefund(false)}>
           <div className="bg-white rounded-2xl mx-4 max-w-[360px] w-full max-h-[80vh] flex flex-col shadow-xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
               <h2 className="text-base font-bold text-[#1B4332]">환불정책</h2>
