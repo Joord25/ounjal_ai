@@ -3,7 +3,8 @@
 import React, { useState, useRef, useEffect } from "react";
 import { User, updateProfile } from "firebase/auth";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { storage, auth } from "@/lib/firebase";
+import { storage, auth, db } from "@/lib/firebase";
+import { doc, getDoc } from "firebase/firestore";
 import { SubscriptionScreen } from "./SubscriptionScreen";
 import { updateGender, updateBirthYear } from "@/utils/userProfile";
 
@@ -14,6 +15,12 @@ interface MyProfileTabProps {
 
 export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout }) => {
   const [showSubscription, setShowSubscription] = useState(false);
+  const [showSubDetail, setShowSubDetail] = useState(false);
+  const [subDetail, setSubDetail] = useState<{
+    status: string; plan: string; amount: number;
+    createdAt: string; expiresAt: string; lastPaymentAt: string;
+  } | null>(null);
+  const [subDetailLoading, setSubDetailLoading] = useState(false);
   const [isEditingName, setIsEditingName] = useState(false);
   const [nameInput, setNameInput] = useState(user?.displayName || "");
   const [isUploading, setIsUploading] = useState(false);
@@ -109,6 +116,128 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout }) =>
       alert("이름 변경에 실패했습니다.");
     }
   };
+
+  const loadSubDetail = async () => {
+    if (!user) return;
+    setSubDetailLoading(true);
+    try {
+      const snap = await getDoc(doc(db, "subscriptions", user.uid));
+      if (snap.exists()) {
+        const d = snap.data();
+        const toDateStr = (v: unknown): string => {
+          if (!v) return "-";
+          if (typeof v === "string") return v;
+          if (v && typeof v === "object" && "toDate" in v) return (v as { toDate: () => Date }).toDate().toISOString();
+          return "-";
+        };
+        setSubDetail({
+          status: d.status || "free",
+          plan: d.plan || "-",
+          amount: d.amount || 0,
+          createdAt: toDateStr(d.createdAt),
+          expiresAt: toDateStr(d.expiresAt),
+          lastPaymentAt: toDateStr(d.lastPaymentAt),
+        });
+      }
+    } catch (e) {
+      console.error("Failed to load subscription detail", e);
+    } finally {
+      setSubDetailLoading(false);
+    }
+  };
+
+  if (showSubDetail) {
+    const formatDate = (iso: string) => {
+      if (!iso || iso === "-") return "-";
+      try {
+        return new Date(iso).toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" });
+      } catch { return iso; }
+    };
+
+    return (
+      <div className="flex flex-col h-full bg-[#FAFBF9] animate-fade-in relative overflow-hidden">
+        {/* Header */}
+        <div className="pt-[max(3rem,env(safe-area-inset-top))] pb-3 sm:pb-4 px-4 sm:px-6 flex items-center justify-between bg-[#FAFBF9] z-10 shrink-0">
+          <button onClick={() => setShowSubDetail(false)} className="p-2 -ml-2">
+            <svg className="w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+          <h1 className="text-lg sm:text-xl font-serif font-medium text-[#1B4332] uppercase tracking-wide">구독 내역</h1>
+          <div className="w-10" />
+        </div>
+
+        <div className="flex-1 px-4 sm:px-6 overflow-y-auto scrollbar-hide" style={{ paddingBottom: "calc(128px + var(--safe-area-bottom, 0px))" }}>
+          {subDetailLoading ? (
+            <div className="flex items-center justify-center py-20">
+              <div className="w-6 h-6 border-2 border-[#2D6A4F] border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : subDetail ? (
+            <div className="space-y-4">
+              {/* Status Card */}
+              <div className="bg-gray-50 p-5 rounded-2xl border border-gray-100">
+                <div className="flex items-center justify-between mb-4">
+                  <p className="text-xs font-bold text-gray-400">구독 상태</p>
+                  <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                    subDetail.status === "active" ? "bg-[#2D6A4F]/10 text-[#2D6A4F]" :
+                    subDetail.status === "cancelled" ? "bg-red-50 text-red-500" :
+                    "bg-gray-100 text-gray-500"
+                  }`}>
+                    {subDetail.status === "active" ? "구독중" : subDetail.status === "cancelled" ? "취소됨" : "무료"}
+                  </span>
+                </div>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-2xl font-black text-[#1B4332]">{subDetail.amount.toLocaleString()}</span>
+                  <span className="text-sm text-gray-400">원/{subDetail.plan === "monthly" ? "월" : subDetail.plan === "yearly" ? "년" : subDetail.plan}</span>
+                </div>
+              </div>
+
+              {/* Detail Items */}
+              {[
+                { label: "구독 시작일", value: formatDate(subDetail.createdAt) },
+                { label: "다음 결제일", value: formatDate(subDetail.expiresAt) },
+                { label: "최근 결제일", value: formatDate(subDetail.lastPaymentAt) },
+                { label: "결제 플랜", value: subDetail.plan === "monthly" ? "월간 구독" : subDetail.plan === "yearly" ? "연간 구독" : subDetail.plan },
+              ].map((item) => (
+                <div key={item.label} className="bg-gray-50 p-5 rounded-2xl border border-gray-100 flex items-center justify-between">
+                  <p className="text-xs font-bold text-gray-400">{item.label}</p>
+                  <span className="text-sm font-bold text-[#1B4332]">{item.value}</span>
+                </div>
+              ))}
+
+              {/* Manage Button */}
+              {subDetail.status === "active" && (
+                <button
+                  onClick={() => { setShowSubDetail(false); setShowSubscription(true); }}
+                  className="w-full py-4 rounded-2xl bg-gray-100 text-gray-600 font-bold text-sm active:scale-95 transition-all mt-2"
+                >
+                  구독 관리
+                </button>
+              )}
+              {subDetail.status !== "active" && (
+                <button
+                  onClick={() => { setShowSubDetail(false); setShowSubscription(true); }}
+                  className="w-full py-4 rounded-2xl bg-[#1B4332] text-white font-bold text-sm active:scale-95 transition-all mt-2"
+                >
+                  프리미엄 구독하기
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="text-center py-20">
+              <p className="text-gray-400 text-sm">구독 내역이 없습니다.</p>
+              <button
+                onClick={() => { setShowSubDetail(false); setShowSubscription(true); }}
+                className="mt-4 px-6 py-3 rounded-2xl bg-[#1B4332] text-white font-bold text-sm active:scale-95 transition-all"
+              >
+                프리미엄 구독하기
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   if (showSubscription && user) {
     return <SubscriptionScreen user={user} onClose={() => setShowSubscription(false)} initialStatus={subStatus === "loading" ? undefined : subStatus} />;
@@ -213,7 +342,14 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout }) =>
               <div className="w-4 h-4 border-2 border-gray-300 border-t-transparent rounded-full animate-spin" />
             ) : (
               <button
-                onClick={() => setShowSubscription(true)}
+                onClick={() => {
+                  if (subStatus === "active" || subStatus === "cancelled") {
+                    loadSubDetail();
+                    setShowSubDetail(true);
+                  } else {
+                    setShowSubscription(true);
+                  }
+                }}
                 className="flex items-center gap-2 active:opacity-60"
               >
                 <span className={`text-sm font-medium ${subStatus === "active" ? "text-[#2D6A4F]" : "text-gray-900"}`}>
