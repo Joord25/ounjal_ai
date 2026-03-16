@@ -171,7 +171,7 @@ export const WorkoutHistory: React.FC<WorkoutHistoryProps> = ({
         </div>
       )}
 
-      <div className="flex-1 px-4 sm:px-6 pb-32 overflow-y-auto scrollbar-hide">
+      <div className="flex-1 px-4 sm:px-6 overflow-y-auto scrollbar-hide" style={{ paddingBottom: "calc(128px + var(--safe-area-bottom, 0px))" }}>
         <div className="space-y-4">
           {filteredHistory.map((session) => (
             <div key={session.id} className="relative flex items-stretch gap-3">

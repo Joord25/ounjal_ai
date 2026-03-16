@@ -152,9 +152,9 @@ export const ShareCard: React.FC<ShareCardProps> = ({
   );
 
   return (
-    <div className="fixed inset-0 z-[100] bg-black/90 flex flex-col items-center justify-center animate-fade-in">
+    <div className="fixed inset-0 z-[100] bg-black/90 flex flex-col items-center justify-center animate-fade-in" style={{ padding: "env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px) 0" }}>
       {/* Close */}
-      <button onClick={onClose} className="absolute top-4 right-4 z-10 w-10 h-10 flex items-center justify-center">
+      <button onClick={onClose} className="absolute top-4 right-4 z-10 w-10 h-10 flex items-center justify-center" style={{ top: "max(1rem, env(safe-area-inset-top, 0px))" }}>
         <svg className="w-6 h-6 text-white/70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
         </svg>
@@ -164,14 +164,15 @@ export const ShareCard: React.FC<ShareCardProps> = ({
 
       {/* Card preview */}
       <div
-        className="relative w-[300px] h-[480px] rounded-2xl overflow-hidden"
+        className="relative w-[300px] h-[480px] rounded-2xl overflow-hidden max-w-[90vw] max-h-[60vh]"
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
         style={mode === "transparent" ? {
+          aspectRatio: "300/480",
           backgroundImage: "linear-gradient(45deg, #333 25%, transparent 25%), linear-gradient(-45deg, #333 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #333 75%), linear-gradient(-45deg, transparent 75%, #333 75%)",
           backgroundSize: "16px 16px",
           backgroundPosition: "0 0, 0 8px, 8px -8px, -8px 0px",
-        } : {}}
+        } : { aspectRatio: "300/480" }}
       >
         <div
           ref={cardRef}

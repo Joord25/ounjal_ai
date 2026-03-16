@@ -169,7 +169,7 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
         <div className="w-9" />
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 sm:px-5 pb-24 sm:pb-[86px] scrollbar-hide">
+      <div className="flex-1 overflow-y-auto px-4 sm:px-5 scrollbar-hide" style={{ paddingBottom: "calc(96px + var(--safe-area-bottom, 0px))" }}>
         {/* Header */}
         <div className="flex flex-col items-center mb-6 mt-2">
           <h1 className="text-3xl font-serif font-light text-[#1B4332] tracking-[0.08em] animate-report-pop uppercase">Session Complete</h1>
@@ -777,7 +777,7 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
       {helpCard && (
         <div className="absolute inset-0 z-40">
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-fade-in" onClick={() => setHelpCard(null)} />
-          <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-[2rem] p-6 pb-10 animate-slide-up shadow-2xl z-50 max-h-[85vh] flex flex-col">
+          <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-[2rem] p-6 animate-slide-up shadow-2xl z-50 max-h-[85vh] flex flex-col" style={{ paddingBottom: "calc(var(--safe-area-bottom, 0px) + 16px)" }}>
             <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-5 shrink-0" />
             <div className="flex-1 overflow-y-auto scrollbar-hide">
             {helpCard === "topLift" && (

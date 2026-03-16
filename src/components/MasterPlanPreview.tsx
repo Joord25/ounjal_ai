@@ -195,7 +195,7 @@ export const MasterPlanPreview: React.FC<MasterPlanPreviewProps> = ({
       </div>
 
       {/* Scrollable Content */}
-      <div className="flex-1 overflow-y-auto px-6 pb-[90px] scrollbar-hide">
+      <div className="flex-1 overflow-y-auto px-6 scrollbar-hide" style={{ paddingBottom: "calc(90px + var(--safe-area-bottom, 0px))" }}>
         {/* Hero Section */}
         <div className="pt-2 pb-5">
           {/* Session Type Badge */}
@@ -344,7 +344,7 @@ export const MasterPlanPreview: React.FC<MasterPlanPreviewProps> = ({
       {isEditing && (
         <div className="absolute inset-0 z-50">
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-fade-in" onClick={() => setIsEditing(false)} />
-          <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-[2rem] p-6 pb-2 animate-slide-up shadow-2xl">
+          <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-[2rem] p-6 animate-slide-up shadow-2xl" style={{ paddingBottom: "calc(var(--safe-area-bottom, 0px) + 16px)" }}>
             {/* Handle */}
             <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-6" />
 
@@ -469,7 +469,7 @@ export const MasterPlanPreview: React.FC<MasterPlanPreviewProps> = ({
       {guideExercise && (
         <div className="absolute inset-0 z-50">
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-fade-in" onClick={() => setGuideExercise(null)} />
-          <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-[2rem] p-6 pb-2 animate-slide-up shadow-2xl">
+          <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-[2rem] p-6 animate-slide-up shadow-2xl" style={{ paddingBottom: "calc(var(--safe-area-bottom, 0px) + 16px)" }}>
             <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-6" />
 
             {/* Exercise Name */}

@@ -467,7 +467,7 @@ export const FitScreen: React.FC<FitScreenProps> = ({
 
         </div>
 
-        <div className="flex flex-col items-center gap-3 shrink-0 px-6" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 5rem)" }}>
+        <div className="flex flex-col items-center gap-3 shrink-0 px-6" style={{ paddingBottom: "calc(var(--safe-area-bottom, 0px) + 5rem)" }}>
           {alternatives.length > 0 && !showSwapMenu && (
             <button
               onClick={() => setShowSwapMenu(true)}
@@ -555,7 +555,7 @@ export const FitScreen: React.FC<FitScreenProps> = ({
         {showGuide && (
           <div className="absolute inset-0 z-40">
             <div className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-fade-in" onClick={() => setShowGuide(false)} />
-            <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-[2rem] p-6 pb-2 animate-slide-up shadow-2xl">
+            <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-[2rem] p-6 animate-slide-up shadow-2xl" style={{ paddingBottom: "calc(var(--safe-area-bottom, 0px) + 16px)" }}>
               <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-6" />
               <div className="mb-5">
                 <h3 className="text-xl font-black text-[#1B4332] tracking-tight">{mainTitle}</h3>
@@ -769,7 +769,7 @@ export const FitScreen: React.FC<FitScreenProps> = ({
       </div>
 
       {/* Main CTA */}
-      <div className="flex flex-col items-center gap-4 shrink-0 mt-auto" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 1.5rem)" }}>
+      <div className="flex flex-col items-center gap-4 shrink-0 mt-auto" style={{ paddingBottom: "calc(var(--safe-area-bottom, 0px) + 1.5rem)" }}>
         {isTimerMode ? (
             <div className="flex flex-col items-center gap-4 h-32 sm:h-40 justify-center">
                 {timerCompleted ? (
@@ -876,7 +876,7 @@ export const FitScreen: React.FC<FitScreenProps> = ({
       {showGuide && (
         <div className="absolute inset-0 z-40">
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-fade-in" onClick={() => setShowGuide(false)} />
-          <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-[2rem] p-6 pb-2 animate-slide-up shadow-2xl">
+          <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-[2rem] p-6 animate-slide-up shadow-2xl" style={{ paddingBottom: "calc(var(--safe-area-bottom, 0px) + 16px)" }}>
             <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-6" />
 
             <div className="mb-5">
@@ -944,7 +944,7 @@ export const FitScreen: React.FC<FitScreenProps> = ({
       {showSwapMenu && (
         <div className="absolute inset-0 z-40">
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-fade-in" onClick={() => { setShowSwapMenu(false); setSwapSearch(""); }} />
-          <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-[2rem] p-6 pb-2 animate-slide-up shadow-2xl">
+          <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-[2rem] p-6 animate-slide-up shadow-2xl" style={{ paddingBottom: "calc(var(--safe-area-bottom, 0px) + 16px)" }}>
             <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-4" />
             <div className="flex items-center justify-between mb-3">
               <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em]">대체 운동 선택</p>
@@ -1007,7 +1007,7 @@ export const FitScreen: React.FC<FitScreenProps> = ({
       {showWeightEdit && (
         <div className="absolute inset-0 z-40">
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-fade-in" onClick={() => setShowWeightEdit(false)} />
-          <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-[2rem] p-6 pb-2 animate-slide-up shadow-2xl">
+          <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-[2rem] p-6 animate-slide-up shadow-2xl" style={{ paddingBottom: "calc(var(--safe-area-bottom, 0px) + 16px)" }}>
             <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-6" />
             <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] text-center mb-4">무게 변경</p>
             <div className="flex items-center justify-center gap-4 mb-6">
@@ -1069,7 +1069,7 @@ export const FitScreen: React.FC<FitScreenProps> = ({
       {showRepsEdit && (
         <div className="absolute inset-0 z-40">
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-fade-in" onClick={() => setShowRepsEdit(false)} />
-          <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-[2rem] p-6 pb-2 animate-slide-up shadow-2xl">
+          <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-[2rem] p-6 animate-slide-up shadow-2xl" style={{ paddingBottom: "calc(var(--safe-area-bottom, 0px) + 16px)" }}>
             <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-6" />
             <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] text-center mb-4">반복 수 변경</p>
             <div className="flex items-center justify-center gap-4 mb-6">
@@ -1118,7 +1118,7 @@ export const FitScreen: React.FC<FitScreenProps> = ({
         <div className="absolute inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm animate-fade-in">
           {!feedbackGiven && <div className="absolute inset-0" onClick={() => { setView("active"); setLocalRestSec(0); }} />}
 
-          <div className="w-full rounded-t-[2.5rem] shadow-[0_-10px_40px_rgba(0,0,0,0.2)] animate-slide-up flex flex-col relative z-10 max-w-md mx-auto bg-white p-6 pb-8">
+          <div className="w-full rounded-t-[2.5rem] shadow-[0_-10px_40px_rgba(0,0,0,0.2)] animate-slide-up flex flex-col relative z-10 bg-white px-4 sm:px-6 pt-6" style={{ paddingBottom: "calc(var(--safe-area-bottom, 0px) + 24px)" }}>
              <div className="w-12 h-1 bg-gray-200 rounded-full mx-auto mb-4" />
 
             {/* Rest Timer (always visible) */}

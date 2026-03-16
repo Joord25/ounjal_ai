@@ -695,7 +695,7 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ user, on
       {/* Terms Modal */}
       {showTerms && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50" onClick={() => setShowTerms(false)}>
-          <div className="bg-white rounded-2xl mx-4 max-w-[360px] w-full max-h-[80vh] flex flex-col shadow-xl" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-white rounded-2xl mx-4 w-full max-h-[85vh] flex flex-col shadow-xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
               <h2 className="text-base font-bold text-[#1B4332]">이용약관</h2>
               <button type="button" onClick={() => setShowTerms(false)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors">
@@ -715,7 +715,7 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ user, on
       {/* Privacy Modal */}
       {showPrivacy && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50" onClick={() => setShowPrivacy(false)}>
-          <div className="bg-white rounded-2xl mx-4 max-w-[360px] w-full max-h-[80vh] flex flex-col shadow-xl" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-white rounded-2xl mx-4 w-full max-h-[85vh] flex flex-col shadow-xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
               <h2 className="text-base font-bold text-[#1B4332]">개인정보 처리방침</h2>
               <button type="button" onClick={() => setShowPrivacy(false)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors">
@@ -735,7 +735,7 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ user, on
       {/* Refund Policy Modal */}
       {showRefund && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50" onClick={() => setShowRefund(false)}>
-          <div className="bg-white rounded-2xl mx-4 max-w-[360px] w-full max-h-[80vh] flex flex-col shadow-xl" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-white rounded-2xl mx-4 w-full max-h-[85vh] flex flex-col shadow-xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
               <h2 className="text-base font-bold text-[#1B4332]">환불정책</h2>
               <button type="button" onClick={() => setShowRefund(false)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors">
@@ -754,7 +754,7 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ user, on
 
       {/* Cancel Flow Overlay */}
       {cancelStep > 0 && (
-        <div className="absolute inset-0 z-50 bg-white flex flex-col animate-fade-in overflow-y-auto scrollbar-hide">
+        <div className="absolute inset-0 z-50 bg-white flex flex-col animate-fade-in overflow-y-auto scrollbar-hide" style={{ paddingBottom: "var(--safe-area-bottom, 0px)" }}>
           {/* Header */}
           <div className="pt-5 pb-3 px-6 flex items-center justify-between shrink-0">
             <button onClick={() => setCancelStep(0)} className="p-2 -ml-2">
