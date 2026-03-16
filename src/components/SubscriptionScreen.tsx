@@ -312,9 +312,7 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ user, on
   const [status, setStatus] = useState<"loading" | "free" | "active" | "cancelled">(initialStatus || "loading");
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
-  const [lastPaymentAt, setLastPaymentAt] = useState<string | null>(null);
   const [amount, setAmount] = useState<number | null>(null);
-  const [createdAt, setCreatedAt] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showSubDetail, setShowSubDetail] = useState(false);
@@ -347,9 +345,7 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ user, on
         const data = await res.json();
         setStatus(data.status || "free");
         setExpiresAt(data.expiresAt || null);
-        setLastPaymentAt(data.lastPaymentAt || null);
         setAmount(data.amount || null);
-        setCreatedAt(data.createdAt || null);
         setPayments(data.payments || []);
       } else {
         setStatus("free");
@@ -486,7 +482,6 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ user, on
       try { return new Date(iso).toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" }); }
       catch { return iso; }
     };
-    const plan = amount === 6900 || amount === 9900 ? "monthly" : amount === 82800 ? "yearly" : "monthly";
 
     return (
       <div className="flex flex-col h-full bg-[#FAFBF9] animate-fade-in relative overflow-hidden">
@@ -496,78 +491,25 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ user, on
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
           </button>
-          <h1 className="text-lg sm:text-xl font-serif font-medium text-[#1B4332] uppercase tracking-wide">구독 내역</h1>
+          <h1 className="text-lg sm:text-xl font-serif font-medium text-[#1B4332] uppercase tracking-wide">결제 내역</h1>
           <div className="w-10" />
         </div>
 
         <div className="flex-1 px-4 sm:px-6 overflow-y-auto scrollbar-hide" style={{ paddingBottom: "calc(128px + var(--safe-area-bottom, 0px))" }}>
-          <div className="space-y-4">
-            {/* Status Card */}
-            <div className="bg-gray-50 p-5 rounded-2xl border border-gray-100">
-              <div className="flex items-center justify-between mb-4">
-                <p className="text-xs font-bold text-gray-400">구독 상태</p>
-                <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                  status === "active" ? "bg-[#2D6A4F]/10 text-[#2D6A4F]" :
-                  status === "cancelled" ? "bg-red-50 text-red-500" :
-                  "bg-gray-100 text-gray-500"
-                }`}>
-                  {status === "active" ? "구독중" : status === "cancelled" ? "취소됨" : "무료"}
-                </span>
-              </div>
-              <div className="flex items-baseline gap-1.5">
-                <span className="text-2xl font-black text-[#1B4332]">{(amount || 0).toLocaleString()}</span>
-                <span className="text-sm text-gray-400">원/{plan === "monthly" ? "월" : "년"}</span>
-              </div>
-            </div>
-
-            {[
-              { label: "구독 시작일", value: formatDate(createdAt) },
-              { label: "다음 결제일", value: formatDate(expiresAt) },
-              { label: "최근 결제일", value: formatDate(lastPaymentAt) },
-              { label: "결제 플랜", value: plan === "monthly" ? "월간 구독" : "연간 구독" },
-            ].map((item) => (
-              <div key={item.label} className="bg-gray-50 p-5 rounded-2xl border border-gray-100 flex items-center justify-between">
-                <p className="text-xs font-bold text-gray-400">{item.label}</p>
-                <span className="text-sm font-bold text-[#1B4332]">{item.value}</span>
-              </div>
-            ))}
-
-            {/* Payment History */}
-            {payments.length > 0 && (
-              <div className="mt-2">
-                <p className="text-xs font-bold text-gray-400 mb-3 px-1">결제 내역</p>
-                <div className="flex flex-col gap-2">
-                  {payments.map((p) => (
-                    <div key={p.paymentId} className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-bold text-[#1B4332]">{p.amount.toLocaleString()}원</span>
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                          p.status === "paid" ? "bg-[#2D6A4F]/10 text-[#2D6A4F]" : "bg-gray-100 text-gray-500"
-                        }`}>
-                          {p.status === "paid" ? "결제완료" : p.status}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-gray-400">결제일</span>
-                        <span className="text-xs text-gray-600">{formatDate(p.paidAt)}</span>
-                      </div>
-                      <div className="flex items-center justify-between mt-1">
-                        <span className="text-xs text-gray-400">이용기간</span>
-                        <span className="text-xs text-gray-600">{formatDate(p.periodStart)} ~ {formatDate(p.periodEnd)}</span>
-                      </div>
-                    </div>
-                  ))}
+          {payments.length > 0 ? (
+            <div className="flex flex-col gap-2">
+              {payments.map((p) => (
+                <div key={p.paymentId} className="bg-gray-50 p-4 rounded-2xl border border-gray-100 flex items-center justify-between">
+                  <span className="text-sm text-gray-600">{formatDate(p.paidAt)}</span>
+                  <span className="text-sm font-bold text-[#1B4332]">{p.amount.toLocaleString()}원</span>
                 </div>
-              </div>
-            )}
-
-            <button
-              onClick={() => setShowSubDetail(false)}
-              className="w-full py-4 rounded-2xl bg-gray-100 text-gray-600 font-bold text-sm active:scale-95 transition-all mt-2"
-            >
-              돌아가기
-            </button>
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-20">
+              <p className="text-gray-400 text-sm">결제 내역이 없습니다.</p>
+            </div>
+          )}
         </div>
       </div>
     );
