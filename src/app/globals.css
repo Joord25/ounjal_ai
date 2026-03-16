@@ -28,6 +28,7 @@ body {
   text-rendering: optimizeLegibility;
   font-optical-sizing: auto;
   overflow: hidden; /* Prevent scrolling outside the frame */
+  overscroll-behavior-y: contain; /* Prevent pull-to-refresh in PWA */
 }
 
 /* Windows font rendering fix */

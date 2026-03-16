@@ -14,45 +14,29 @@ function useBodyScroll() {
 
 const FEATURES = [
   {
-    icon: (
-      <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-        <path d="M16 4L20 12L28 13.5L22 19.5L23.5 28L16 24L8.5 28L10 19.5L4 13.5L12 12L16 4Z" stroke="#2D6A4F" strokeWidth="2" strokeLinejoin="round"/>
-      </svg>
-    ),
-    title: "AI 맞춤 운동 플랜",
-    desc: "컨디션, 목표, 체력에 맞춰 AI가 오늘의 운동을 자동으로 설계합니다.",
+    pain: "헬스장 가서 뭐하지?",
+    title: "딸깔! 운동 전문가 AI가 오늘의 운동을 정해줍니다",
+    desc: "컨디션과 원하는 목표만 선택하면\nAI가 그날에 딱 맞는 운동 루틴을 자동으로 짜드립니다.\n더 이상 고민할 필요 없어요.",
+    video: "/feature-1.mp4",
   },
   {
-    icon: (
-      <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-        <rect x="4" y="6" width="24" height="20" rx="3" stroke="#2D6A4F" strokeWidth="2"/>
-        <path d="M4 12H28M10 6V3M22 6V3" stroke="#2D6A4F" strokeWidth="2" strokeLinecap="round"/>
-        <circle cx="16" cy="19" r="2" fill="#2D6A4F"/>
-      </svg>
-    ),
-    title: "실시간 적응형 세션",
-    desc: "세트마다 피드백을 반영해 다음 세트의 횟수와 무게를 자동 조절합니다.",
+    pain: "이거 내가 제대로 하고 있는 건가?",
+    title: "운동과학이 검증한 AI 코칭",
+    desc: "ACSM(미국스포츠의학회) 가이드라인과 \n최근 5년간 200건 이상의 SCI급 논문을 기반으로\n운동을 분석합니다. 감이 아닌 근거로 피드백하니까,\n내가 하는 운동에 확신을 가질 수 있어요.",
+    video: "/is-it-right.mp4",
   },
   {
-    icon: (
-      <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-        <path d="M4 24L10 16L16 20L22 10L28 14" stroke="#2D6A4F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-        <circle cx="10" cy="16" r="2" fill="#2D6A4F"/>
-        <circle cx="16" cy="20" r="2" fill="#2D6A4F"/>
-        <circle cx="22" cy="10" r="2" fill="#2D6A4F"/>
-      </svg>
-    ),
-    title: "AI 운동 분석 리포트",
-    desc: "운동이 끝나면 AI가 세션 데이터를 분석해 한국어로 코칭해드립니다.",
+    pain: "귀찮아, 쉽고 빠르게 하고 싶어",
+    title: "터치 3번, 15초면 바로 운동 시작",
+    desc: "복잡한 설정 없이\n컨디션 → 목표 → 시작\n운동 끝나면 AI가 분석 리포트까지\n자동으로 만들어줍니다.",
+    video: "/easy-to-use.mp4",
   },
   {
-    icon: (
-      <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-        <path d="M8 28V18M16 28V8M24 28V14" stroke="#2D6A4F" strokeWidth="3" strokeLinecap="round"/>
-      </svg>
-    ),
-    title: "운동 기록 & 체중 추적",
-    desc: "모든 운동 히스토리와 체중 변화를 그래프로 한눈에 확인하세요.",
+    pain: "PT는 너무 비싸...",
+    title: "월 9,900원으로 매일 PT처럼",
+    desc: "한국체육대학 석사 출신 전문가가 설계한 AI가\n매일 맞춤 운동을 처방합니다.\nPT의 약 70배 더 저렴한 가격에 전문성은 더 Up!",
+    video: "",
+    priceCard: true,
   },
 ];
 
@@ -112,7 +96,7 @@ function FAQItem({ q, a }: { q: string; a: string }) {
         onClick={() => setOpen(!open)}
         className="w-full flex items-center justify-between py-7 sm:py-8 text-left"
       >
-        <span className="text-lg sm:text-xl font-bold text-[#1B4332] pr-6">{q}</span>
+        <span className="text-base sm:text-xl font-bold text-[#1B4332] pr-4 sm:pr-6">{q}</span>
         <svg
           width="24"
           height="24"
@@ -141,7 +125,7 @@ export default function LandingContent() {
           <div className="max-w-5xl mx-auto flex items-center justify-between px-6 py-4">
             <div className="flex items-center gap-2">
               <img src="/favicon.png" alt="오운잘 AI" className="w-8 h-8 rounded-lg" />
-              <span className="font-bold text-white text-lg">오운잘 AI</span>
+              <span className="font-bold text-[#10B981] text-lg">오운잘 AI</span>
             </div>
             <a
               href="/"
@@ -178,21 +162,17 @@ export default function LandingContent() {
         {/* Gradient fade to bottom - smoother transition */}
         <div className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-[#FAFBF9] via-[#FAFBF9]/60 to-transparent" />
 
-        <div className="relative max-w-5xl mx-auto px-6 pt-24 pb-32 text-center">
+        <div className="relative max-w-5xl mx-auto px-6 pt-16 sm:pt-24 pb-24 sm:pb-32 text-center">
           <RevealSection>
-            <div className="inline-block px-4 py-1.5 bg-white/10 backdrop-blur-sm text-[#6ee7b7] text-xs font-bold rounded-full mb-6 border border-white/10">
-              AI 퍼스널 트레이너
-            </div>
-            <p className="text-base sm:text-lg text-[#a7f3d0]/80 font-medium mb-4 tracking-wide">
-              컨디션 맞춤 운동, 더 빠르고 정확하게
+            <p className="text-lg sm:text-xl text-[#a7f3d0] font-medium mb-4 tracking-wide">
+              운동 뭐할지 매번 고민이었다면,
             </p>
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white leading-tight tracking-tight">
-              <span className="text-[#34d399] text-5xl sm:text-6xl lg:text-7xl">오</span>늘의 <span className="text-[#34d399] text-5xl sm:text-6xl lg:text-7xl">운</span>동 <span className="text-[#34d399] text-5xl sm:text-6xl lg:text-7xl">잘</span>하자!<br />
-              <span className="text-gray-300 text-2xl sm:text-3xl lg:text-4xl font-bold mt-2 inline-block">이젠 <span className="text-[#34d399]">AI</span>가 도와드립니다</span>
+            <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black text-white leading-tight tracking-tight">
+              딸깍! <span className="text-[#34d399]">3번</span> 으로<br />끝내보세요.
             </h1>
-            <p className="mt-6 text-base sm:text-lg text-gray-400 max-w-md mx-auto leading-relaxed">
-              운동하겠단 마음만 가지고 나오세요<br />
-              AI가 당신에게 딱 맞는 운동 루틴을 만들어드립니다
+            <p className="mt-8 text-base sm:text-lg text-gray-400 max-w-lg mx-auto leading-relaxed">
+              그날의 <span className="text-white font-semibold">컨디션 선택</span> → <span className="text-white font-semibold">운동 목표</span> → <span className="text-white font-semibold">운동 시작</span><br />
+              3번이면 끝!
             </p>
             <div className="mt-10">
               <a
@@ -202,37 +182,38 @@ export default function LandingContent() {
                 무료로 시작하기
               </a>
             </div>
+            <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4 mt-8 text-xs sm:text-sm text-white/50">
+              <div className="flex items-center gap-1.5">
+                <span>Backed by</span>
+                <img src="/google-cloud-logo.png" alt="Google Cloud" className="h-6 sm:h-8 inline-block" />
+              </div>
+              <span className="text-white/20">|</span>
+              <div className="flex items-center gap-2">
+                <span>Powered by</span>
+                <img src="/gemini_logo.png" alt="Gemini" className="h-8 sm:h-9 inline-block" />
+              </div>
+            </div>
           </RevealSection>
 
           {/* Phone Mockup with glow */}
-          <RevealSection className="mt-20">
-            <div className="relative mx-auto w-[280px] sm:w-[320px]">
+          <RevealSection className="mt-14 sm:mt-20">
+            <div className="relative mx-auto w-[240px] sm:w-[320px]">
               {/* Glow behind phone */}
               <div
                 className="absolute -inset-8 rounded-[56px] z-0"
                 style={{ animation: "hero-glow 4s ease-in-out infinite" }}
               />
-              <div className="relative z-10 rounded-[40px] border-[6px] border-white/20 bg-white shadow-2xl overflow-hidden">
-                <div className="px-4 pt-6 pb-4">
-                  <div className="text-left mb-4">
-                    <p className="text-[10px] text-gray-400 font-medium">AI 분석 · 단계 1</p>
-                    <h3 className="text-lg font-black text-[#1B4332] mt-1 leading-tight">오늘 몸 상태는<br />어떠신가요?</h3>
-                  </div>
-                  <div className="space-y-2.5">
-                    {["상체가 굳어있음", "하체가 무거움", "전반적 피로감", "컨디션 좋음"].map((label, i) => (
-                      <div
-                        key={label}
-                        className={`px-4 py-3 rounded-xl border text-left transition-all ${
-                          i === 3
-                            ? "border-[#059669] bg-[#f0fdf4]"
-                            : "border-gray-200 bg-white"
-                        }`}
-                      >
-                        <p className={`text-sm font-bold ${i === 3 ? "text-[#059669]" : "text-[#1B4332]"}`}>{label}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+              <div className="relative z-10 rounded-[40px] border-[6px] border-white/20 bg-black shadow-2xl overflow-hidden">
+                <video
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  className="w-full"
+                >
+                  <source src="/main-video.mp4" type="video/mp4" />
+                </video>
+                <div className="absolute bottom-0 left-0 right-0 h-1/3 bg-gradient-to-t from-white to-transparent pointer-events-none" />
               </div>
             </div>
           </RevealSection>
@@ -258,7 +239,7 @@ export default function LandingContent() {
               ].map((item) => (
                 <div
                   key={`${setIdx}-${item.name}`}
-                  className="flex items-center justify-center w-[300px] sm:w-[380px] h-20 sm:h-24 flex-shrink-0 mx-12 sm:mx-16"
+                  className="flex items-center justify-center w-[180px] sm:w-[380px] h-14 sm:h-24 flex-shrink-0 mx-3 sm:mx-8"
                 >
                   <img src={item.logo} alt={item.name} className="max-h-full max-w-full object-contain" />
                 </div>
@@ -269,25 +250,61 @@ export default function LandingContent() {
       </section>
 
       {/* Features */}
-      <section id="features" className="py-24 bg-white">
+      <section id="features" className="py-16 sm:py-24 bg-white">
         <div className="max-w-5xl mx-auto px-6">
           <RevealSection>
-            <div className="text-center mb-16">
-              <p className="text-sm font-bold text-[#059669] mb-2">FEATURES</p>
-              <h2 className="text-3xl sm:text-4xl font-black text-[#1B4332]">
-                AI가 알아서 해드립니다
+            <div className="text-center mb-10 sm:mb-16">
+              <h2 className="text-2xl sm:text-4xl font-black text-[#1B4332]">
+                이런 고민, 있지 않으셨나요?
               </h2>
             </div>
           </RevealSection>
-          <div className="grid sm:grid-cols-2 gap-6">
+          <div className="space-y-14 sm:space-y-20">
             {FEATURES.map((f, i) => (
               <RevealSection key={i}>
-                <div className="p-6 rounded-2xl bg-[#FAFBF9] border border-gray-100 hover:border-[#d1fae5] hover:shadow-lg transition-all duration-300">
-                  <div className="w-14 h-14 bg-[#d1fae5] rounded-2xl flex items-center justify-center mb-4">
-                    {f.icon}
+                <div className={`flex flex-col ${i % 2 === 0 ? "sm:flex-row" : "sm:flex-row-reverse"} items-center gap-8 sm:gap-16`}>
+                  {/* Video or Price Card */}
+                  <div className={`${f.priceCard ? "w-full max-w-[320px] sm:w-[360px]" : "w-full max-w-[280px] sm:w-[320px]"} shrink-0`}>
+                    {f.priceCard ? (
+                      <div className="flex items-stretch gap-3 sm:gap-4">
+                        {/* PT */}
+                        <div className="flex-1 rounded-2xl bg-white border border-gray-200 p-3 sm:p-5 text-center shadow-lg flex flex-col items-center justify-center">
+                          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-red-50 rounded-full flex items-center justify-center mb-3 sm:mb-4">
+                            <svg width="24" height="24" viewBox="0 0 20 20" fill="none"><path d="M5 5L15 15M15 5L5 15" stroke="#EF4444" strokeWidth="2.5" strokeLinecap="round"/></svg>
+                          </div>
+                          <p className="text-xs text-gray-500 font-bold mb-1">PT 업계 월 평균</p>
+                          <p className="text-2xl sm:text-3xl font-black text-gray-800">₩660,000</p>
+                        </div>
+                        {/* 오운잘 */}
+                        <div className="flex-1 rounded-2xl bg-[#f0fdf4] p-3 sm:p-5 text-center shadow-lg border-2 border-[#059669] flex flex-col items-center justify-center">
+                          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-[#d1fae5] rounded-full flex items-center justify-center mb-3 sm:mb-4">
+                            <svg width="24" height="24" viewBox="0 0 20 20" fill="none"><path d="M4 10L8.5 14.5L16 6" stroke="#059669" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                          </div>
+                          <p className="text-xs text-[#059669] font-bold mb-1">오운잘 AI (월)</p>
+                          <p className="text-2xl sm:text-3xl font-black text-[#1B4332]">₩9,900</p>
+                          <div className="mt-3 px-2 py-1 bg-[#059669] rounded-full inline-block">
+                            <span className="text-xs font-bold text-white">약 70배 저렴</span>
+                          </div>
+                        </div>
+                      </div>
+                    ) : f.video ? (
+                      <div className="rounded-[32px] border-[5px] border-gray-200 bg-black shadow-xl overflow-hidden">
+                        <video autoPlay loop muted playsInline className="w-full">
+                          <source src={f.video} type="video/mp4" />
+                        </video>
+                      </div>
+                    ) : (
+                      <div className="rounded-[32px] border-[5px] border-gray-200 bg-[#f0fdf4] shadow-xl overflow-hidden aspect-[9/16] flex items-center justify-center">
+                        <p className="text-sm text-gray-400">영상 준비중</p>
+                      </div>
+                    )}
                   </div>
-                  <h3 className="text-lg font-bold text-[#1B4332] mb-2">{f.title}</h3>
-                  <p className="text-sm text-gray-500 leading-relaxed">{f.desc}</p>
+                  {/* Text */}
+                  <div className="flex-1 text-center sm:text-left">
+                    <p className="text-2xl sm:text-4xl font-black text-red-400 mb-4 sm:mb-5">&ldquo;{f.pain}&rdquo;</p>
+                    <h3 className="text-xl sm:text-3xl font-black text-[#1B4332] mb-2 sm:mb-3">{f.title}</h3>
+                    <p className="text-sm sm:text-base text-gray-500 leading-relaxed max-w-md mx-auto sm:mx-0 whitespace-pre-line">{f.desc}</p>
+                  </div>
                 </div>
               </RevealSection>
             ))}
@@ -296,7 +313,7 @@ export default function LandingContent() {
       </section>
 
       {/* How it works */}
-      <section className="py-24 bg-[#FAFBF9]">
+      <section className="py-16 sm:py-24 bg-[#FAFBF9]">
         <div className="max-w-5xl mx-auto px-6">
           <RevealSection>
             <div className="text-center mb-16">
@@ -323,22 +340,22 @@ export default function LandingContent() {
       </section>
 
       {/* Pricing */}
-      <section className="py-24 bg-white">
+      <section className="py-16 sm:py-24 bg-white">
         <div className="max-w-5xl mx-auto px-6">
           <RevealSection>
-            <div className="text-center mb-16">
+            <div className="text-center mb-12 sm:mb-16">
               <p className="text-sm font-bold text-[#059669] mb-2">PRICING</p>
-              <h2 className="text-3xl sm:text-4xl font-black text-[#1B4332]">
+              <h2 className="text-2xl sm:text-4xl font-black text-[#1B4332]">
                 커피한잔 가격으로 PT처럼!
               </h2>
             </div>
           </RevealSection>
           <div className="grid sm:grid-cols-2 gap-6 max-w-2xl mx-auto">
             <RevealSection>
-              <div className="p-8 rounded-2xl border border-gray-200 bg-white">
+              <div className="p-6 sm:p-8 rounded-2xl border border-gray-200 bg-white">
                 <h3 className="text-lg font-bold text-[#1B4332] mb-1">무료</h3>
                 <p className="text-sm text-gray-400 mb-6">부담 없이 시작하세요</p>
-                <p className="text-4xl font-black text-[#1B4332] mb-8">
+                <p className="text-3xl sm:text-4xl font-black text-[#1B4332] mb-8">
                   ₩0<span className="text-base font-medium text-gray-400">/월</span>
                 </p>
                 <ul className="space-y-3 text-sm text-gray-600 mb-8">
@@ -364,7 +381,7 @@ export default function LandingContent() {
               </div>
             </RevealSection>
             <RevealSection>
-              <div className="p-8 rounded-2xl border-2 border-[#059669] bg-[#f0fdf4] relative">
+              <div className="p-6 sm:p-8 rounded-2xl border-2 border-[#059669] bg-[#f0fdf4] relative">
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-[#059669] text-white text-xs font-bold rounded-full">
                   초기 특가
                 </div>
@@ -373,7 +390,7 @@ export default function LandingContent() {
                 <div className="mb-8">
                   <div className="flex items-baseline justify-center gap-2">
                     <span className="text-lg text-gray-400 line-through">₩9,900</span>
-                    <span className="text-4xl font-black text-[#1B4332]">₩6,900</span>
+                    <span className="text-3xl sm:text-4xl font-black text-[#1B4332]">₩6,900</span>
                     <span className="text-base font-medium text-gray-400">/월</span>
                   </div>
                   <div className="flex items-center justify-center gap-2 mt-1">
@@ -415,12 +432,69 @@ export default function LandingContent() {
         </div>
       </section>
 
-      {/* FAQ */}
-      <section className="pt-24 sm:pt-32 pb-6 bg-white">
+      {/* Comparison Table */}
+      <section className="py-16 sm:py-24 bg-[#FAFBF9]">
         <div className="max-w-3xl mx-auto px-6">
           <RevealSection>
-            <div className="text-center mb-16">
-              <h2 className="text-3xl sm:text-5xl font-black text-[#1B4332]">
+            <div className="text-center mb-8 sm:mb-12">
+              <p className="text-sm font-bold text-[#059669] mb-2">WHY 오운잘?</p>
+              <h2 className="text-2xl sm:text-4xl font-black text-[#1B4332]">
+                딸깍 한 번이면 끝
+              </h2>
+              <p className="text-sm sm:text-base text-gray-500 mt-3">복잡한 설정 없이, 빠르고 쉽게</p>
+            </div>
+          </RevealSection>
+          <RevealSection>
+            <div className="overflow-x-auto -mx-6 px-6 sm:mx-0 sm:px-0">
+              <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white min-w-[480px] sm:min-w-0">
+                <table className="w-full text-xs sm:text-sm">
+                  <thead>
+                    <tr className="bg-[#1B4332] text-white">
+                      <th className="py-3 sm:py-4 px-2 sm:px-4 text-center font-bold w-1/5">항목</th>
+                      <th className="py-3 sm:py-4 px-2 sm:px-4 text-center font-bold w-2/5">기존 피트니스 앱</th>
+                      <th className="py-3 sm:py-4 px-2 sm:px-4 text-center font-bold w-2/5 text-[#34d399]">오운잘 AI</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    <tr>
+                      <td className="py-3 sm:py-4 px-2 sm:px-4 font-bold text-[#1B4332] text-center">월 비용</td>
+                      <td className="py-3 sm:py-4 px-2 sm:px-4 text-center text-gray-500">₩15,000~30,000</td>
+                      <td className="py-3 sm:py-4 px-2 sm:px-4 text-center font-bold text-[#059669]">₩6,900</td>
+                    </tr>
+                    <tr className="bg-gray-50/50">
+                      <td className="py-3 sm:py-4 px-2 sm:px-4 font-bold text-[#1B4332] text-center">플랜 생성</td>
+                      <td className="py-3 sm:py-4 px-2 sm:px-4 text-center text-gray-500">직접 운동 골라서 조합</td>
+                      <td className="py-3 sm:py-4 px-2 sm:px-4 text-center font-bold text-[#059669]">10초 컨디션 체크 → 자동 생성</td>
+                    </tr>
+                    <tr>
+                      <td className="py-3 sm:py-4 px-2 sm:px-4 font-bold text-[#1B4332] text-center">난이도 조절</td>
+                      <td className="py-3 sm:py-4 px-2 sm:px-4 text-center text-gray-500">정해진 프로그램 그대로 수행</td>
+                      <td className="py-3 sm:py-4 px-2 sm:px-4 text-center font-bold text-[#059669]">매 세트 &ldquo;쉬움/적당/힘듦&rdquo; → 자동 조절</td>
+                    </tr>
+                    <tr className="bg-gray-50/50">
+                      <td className="py-3 sm:py-4 px-2 sm:px-4 font-bold text-[#1B4332] text-center">운동 분석</td>
+                      <td className="py-3 sm:py-4 px-2 sm:px-4 text-center text-gray-500">기록만 저장</td>
+                      <td className="py-3 sm:py-4 px-2 sm:px-4 text-center font-bold text-[#059669]">AI가 분석하고 다음 운동까지 코칭</td>
+                    </tr>
+                    <tr>
+                      <td className="py-3 sm:py-4 px-2 sm:px-4 font-bold text-[#1B4332] text-center">사용 난이도</td>
+                      <td className="py-3 sm:py-4 px-2 sm:px-4 text-center text-gray-500">설정 복잡, 입력내용 많음</td>
+                      <td className="py-3 sm:py-4 px-2 sm:px-4 text-center font-bold text-[#059669]">쉬운 버튼 조작, 터치 한번에 끝</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </RevealSection>
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section className="pt-16 sm:pt-32 pb-6 bg-white">
+        <div className="max-w-3xl mx-auto px-6">
+          <RevealSection>
+            <div className="text-center mb-10 sm:mb-16">
+              <h2 className="text-2xl sm:text-5xl font-black text-[#1B4332]">
                 자주 묻는 질문
               </h2>
             </div>
@@ -436,7 +510,7 @@ export default function LandingContent() {
       </section>
 
       {/* PWA Install Guide */}
-      <section className="py-24 bg-[#FAFBF9]">
+      <section className="py-16 sm:py-24 bg-[#FAFBF9]">
         <div className="max-w-3xl mx-auto px-6">
           <RevealSection>
             <div className="text-center mb-12">
@@ -485,7 +559,7 @@ export default function LandingContent() {
       </section>
 
       {/* CTA */}
-      <section className="py-24 bg-white">
+      <section className="py-16 sm:py-24 bg-white">
         <div className="max-w-3xl mx-auto px-6 text-center">
           <RevealSection>
             <h2 className="text-3xl sm:text-4xl font-black text-[#1B4332] mb-4">
@@ -510,7 +584,7 @@ export default function LandingContent() {
           {/* 로고 */}
           <div className="flex items-center justify-center gap-2 mb-8">
             <img src="/favicon.png" alt="오운잘 AI" className="w-8 h-8 rounded-md" />
-            <span className="font-bold text-white text-lg">오운잘 AI</span>
+            <span className="font-bold text-[#10B981] text-lg">오운잘 AI</span>
           </div>
 
           {/* 사업자 정보 */}
@@ -522,7 +596,7 @@ export default function LandingContent() {
           </div>
 
           {/* 링크 */}
-          <div className="flex items-center justify-center gap-8 text-sm mb-8">
+          <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-8 text-sm mb-8">
             <a href="/" className="hover:text-white transition-colors">서비스 바로가기</a>
             <a href="/privacy" className="hover:text-white transition-colors">개인정보처리방침</a>
             <a href="/terms" className="hover:text-white transition-colors">이용약관</a>

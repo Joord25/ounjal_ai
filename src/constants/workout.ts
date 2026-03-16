@@ -217,7 +217,6 @@ const PUSH_EXERCISES = {
   mainCompound: [
     "바벨 벤치 프레스 (Barbell Bench Press)",
     "덤벨 벤치 프레스 (Dumbbell Bench Press)",
-    "벤치 프레스 (Bench Press)",
     "디클라인 벤치 프레스 (Decline Bench Press)",
     "헤머 벤치 프레스 (Hammer Bench Press)",
     "웨이티드 푸쉬업 (Weighted Push-ups)",
