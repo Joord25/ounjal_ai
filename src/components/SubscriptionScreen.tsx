@@ -317,6 +317,7 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ user, on
   const [createdAt, setCreatedAt] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showSubDetail, setShowSubDetail] = useState(false);
   const [cancelStep, setCancelStep] = useState<0 | 1 | 2>(0); // 0=hidden, 1=reason, 2=confirm
   const [cancelReason, setCancelReason] = useState<string | null>(null);
   const [cancelReasonText, setCancelReasonText] = useState("");
@@ -477,6 +478,70 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ user, on
     }
   };
 
+  if (showSubDetail) {
+    const formatDate = (iso: string | null) => {
+      if (!iso) return "-";
+      try { return new Date(iso).toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" }); }
+      catch { return iso; }
+    };
+    const plan = amount === 6900 || amount === 9900 ? "monthly" : amount === 82800 ? "yearly" : "monthly";
+
+    return (
+      <div className="flex flex-col h-full bg-[#FAFBF9] animate-fade-in relative overflow-hidden">
+        <div className="pt-[max(3rem,env(safe-area-inset-top))] pb-3 sm:pb-4 px-4 sm:px-6 flex items-center justify-between bg-[#FAFBF9] z-10 shrink-0">
+          <button onClick={() => setShowSubDetail(false)} className="p-2 -ml-2">
+            <svg className="w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+          <h1 className="text-lg sm:text-xl font-serif font-medium text-[#1B4332] uppercase tracking-wide">구독 내역</h1>
+          <div className="w-10" />
+        </div>
+
+        <div className="flex-1 px-4 sm:px-6 overflow-y-auto scrollbar-hide" style={{ paddingBottom: "calc(128px + var(--safe-area-bottom, 0px))" }}>
+          <div className="space-y-4">
+            {/* Status Card */}
+            <div className="bg-gray-50 p-5 rounded-2xl border border-gray-100">
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-xs font-bold text-gray-400">구독 상태</p>
+                <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                  status === "active" ? "bg-[#2D6A4F]/10 text-[#2D6A4F]" :
+                  status === "cancelled" ? "bg-red-50 text-red-500" :
+                  "bg-gray-100 text-gray-500"
+                }`}>
+                  {status === "active" ? "구독중" : status === "cancelled" ? "취소됨" : "무료"}
+                </span>
+              </div>
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-2xl font-black text-[#1B4332]">{(amount || 0).toLocaleString()}</span>
+                <span className="text-sm text-gray-400">원/{plan === "monthly" ? "월" : "년"}</span>
+              </div>
+            </div>
+
+            {[
+              { label: "구독 시작일", value: formatDate(createdAt) },
+              { label: "다음 결제일", value: formatDate(expiresAt) },
+              { label: "최근 결제일", value: formatDate(lastPaymentAt) },
+              { label: "결제 플랜", value: plan === "monthly" ? "월간 구독" : "연간 구독" },
+            ].map((item) => (
+              <div key={item.label} className="bg-gray-50 p-5 rounded-2xl border border-gray-100 flex items-center justify-between">
+                <p className="text-xs font-bold text-gray-400">{item.label}</p>
+                <span className="text-sm font-bold text-[#1B4332]">{item.value}</span>
+              </div>
+            ))}
+
+            <button
+              onClick={() => setShowSubDetail(false)}
+              className="w-full py-4 rounded-2xl bg-gray-100 text-gray-600 font-bold text-sm active:scale-95 transition-all mt-2"
+            >
+              돌아가기
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-full bg-white animate-fade-in">
       {/* Header - fixed */}
@@ -529,19 +594,21 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ user, on
               </div>
             </div>
 
-            <div className="bg-gray-50 rounded-2xl p-5">
-              <h3 className="text-sm font-bold text-gray-900 mb-3">구독 내역</h3>
+            <button
+              onClick={() => setShowSubDetail(true)}
+              className="bg-gray-50 rounded-2xl p-5 w-full text-left active:bg-gray-100 transition-colors"
+            >
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-bold text-gray-900">구독 내역</h3>
+                <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
+              </div>
               <div className="flex flex-col gap-2.5">
-                {createdAt && (
+                {expiresAt && (
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-500">구독 시작일</span>
-                    <span className="text-sm font-medium text-gray-900">{new Date(createdAt).toLocaleDateString("ko-KR")}</span>
-                  </div>
-                )}
-                {lastPaymentAt && (
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-500">최근 결제일</span>
-                    <span className="text-sm font-medium text-gray-900">{new Date(lastPaymentAt).toLocaleDateString("ko-KR")}</span>
+                    <span className="text-sm text-gray-500">다음 결제일</span>
+                    <span className="text-sm font-medium text-[#2D6A4F]">{new Date(expiresAt).toLocaleDateString("ko-KR")}</span>
                   </div>
                 )}
                 {amount && (
@@ -550,14 +617,8 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ user, on
                     <span className="text-sm font-medium text-gray-900">{amount.toLocaleString()}원</span>
                   </div>
                 )}
-                {expiresAt && (
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-500">다음 결제일</span>
-                    <span className="text-sm font-medium text-[#2D6A4F]">{new Date(expiresAt).toLocaleDateString("ko-KR")}</span>
-                  </div>
-                )}
               </div>
-            </div>
+            </button>
 
           </div>
         ) : (
