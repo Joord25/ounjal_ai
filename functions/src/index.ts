@@ -160,6 +160,15 @@ export const generateWorkout = onRequest(
       You are an elite Strength & Conditioning Coach certified by ACSM, NASM, and NSCA.
       Create a highly professional 50-minute workout master plan for today (${dayName}).
 
+      ===== #1 RULE (최우선 원칙) =====
+      유저가 선택한 Goal과 강도를 반드시 최우선으로 반영하세요.
+      - Goal이 "STRENGTH"이면 반드시 고중량·저반복(1-6회) 위주의 고강도 플랜을 생성하세요.
+      - Goal이 "MUSCLE_GAIN"이면 반드시 중량·중반복(7-12회) 위주의 중강도 플랜을 생성하세요.
+      - Goal이 "FAT_LOSS"이면 반드시 경량·고반복(13회+) 위주의 저강도 플랜을 생성하세요.
+      - 히스토리 기반 추천, 컨디션, 주간 배분 등은 참고사항일 뿐, 유저의 Goal 선택을 절대 뒤집지 마세요.
+      ${intensityContext ? `- 유저가 선택한 강도: ${intensityContext.recommended === "high" ? "고강도" : intensityContext.recommended === "moderate" ? "중강도" : "저강도"} — 이 강도에 맞는 세트/반복수/무게를 적용하세요.` : ""}
+      ===============================
+
       User Profile:
       - Goal: ${goal === "general_fitness" ? "GENERAL FITNESS (기초체력향상 - 맨몸/가벼운 도구 풀바디 서킷)" : (goal as string).replace("_", " ").toUpperCase()}
       - Condition: ${userConditionDesc}

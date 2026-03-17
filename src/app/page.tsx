@@ -257,6 +257,7 @@ export default function Home() {
 
     // Compute intensity recommendation from recent history
     let intensityCtx = null;
+    let resolvedIntensity: "high" | "moderate" | "low" | null = null;
     try {
       const raw = localStorage.getItem("alpha_workout_history");
       if (raw) {
@@ -265,18 +266,34 @@ export default function Home() {
         const recent = all.filter(h => new Date(h.date).getTime() > cutoff);
         if (recent.length > 0) {
           const rec = getIntensityRecommendation(recent, condition.birthYear, condition.gender);
+          resolvedIntensity = rec.nextRecommended;
+
+          // Goal-based intensity floor: prevent nonsensical combos
+          // strength goal should never get low intensity, fat_loss should never get high
+          const goalIntensityFloor: Record<string, "high" | "moderate" | "low"> = {
+            strength: "high",
+            muscle_gain: "moderate",
+            fat_loss: "low",
+            general_fitness: "low",
+          };
+          const floor = goalIntensityFloor[goal] || "low";
+          const intensityRank = { high: 3, moderate: 2, low: 1 };
+          if (intensityRank[resolvedIntensity] < intensityRank[floor]) {
+            resolvedIntensity = floor;
+          }
+
           intensityCtx = {
-            recommended: rec.nextRecommended,
+            recommended: resolvedIntensity,
             weekSummary: rec.weekSummary,
             target: rec.target,
             reason: rec.reason,
           };
-          setRecommendedIntensity(rec.nextRecommended);
+          setRecommendedIntensity(resolvedIntensity);
         }
       }
     } catch { /* ignore */ }
 
-    await generatePlan(condition, goal, undefined, intensityCtx, intensityCtx?.recommended || null);
+    await generatePlan(condition, goal, undefined, intensityCtx, resolvedIntensity);
     incrementPlanCount();
     setView("master_plan_preview");
   };
