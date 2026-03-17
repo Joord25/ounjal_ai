@@ -46,7 +46,7 @@ const FAQ_ITEMS: { q: string; a: string | null; key?: string }[] = [
   },
 ];
 
-const TERMS_TEXT = `제1조(목적)
+export const TERMS_TEXT = `제1조(목적)
 이 약관은 오운잘 AI(이하 '회사'라고 합니다)가 제공하는 제반 서비스의 이용과 관련하여 회사와 이용자(이하 '회원'이라고 합니다)와의 권리, 의무 및 책임사항, 기타 필요한 사항을 규정함을 목적으로 합니다.
 
 제2조(정의)
@@ -150,7 +150,7 @@ AI의 특성상 생성된 콘텐츠(운동 루틴, 자세 교언 등)가 항상 
 부칙
 본 약관은 2026년 3월 1일부터 시행합니다.`;
 
-const PRIVACY_TEXT = `제1조(목적)
+export const PRIVACY_TEXT = `제1조(목적)
 오운잘 AI(이하 '회사'라고 함)는 회사가 제공하는 서비스(이하 '회사 서비스')를 이용하는 개인(이하 '이용자' 또는 '개인')의 정보(이하 '개인정보')를 보호하기 위해, 개인정보보호법, 정보통신망 이용촉진 및 정보보호 등에 관한 법률(이하 '정보통신망법') 등 관련 법령을 준수하고, 서비스 이용자의 개인정보 보호 관련한 고충을 신속하고 원활하게 처리할 수 있도록 하기 위하여 다음과 같이 개인정보처리방침(이하 '본 방침')을 수립합니다.
 
 제2조(개인정보 처리의 원칙)
@@ -262,7 +262,7 @@ Google LLC: 맞춤형 운동 플랜 및 리포트 생성을 위한 AI 연동(Gem
 부칙
 본 방침은 2026년 3월 1일부터 시행합니다.`;
 
-const REFUND_TEXT = `제1조(목적)
+export const REFUND_TEXT = `제1조(목적)
 본 환불정책은 오운잘 AI(이하 '회사')가 제공하는 프리미엄 구독 서비스의 환불 기준 및 절차를 안내합니다.
 
 제2조(환불 가능 조건)
@@ -706,24 +706,6 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ user, on
           </div>
         )}
 
-        {/* Business Registration Footer */}
-        <div className="mt-6 pt-6 border-t border-gray-100">
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <button type="button" onClick={() => setShowTerms(true)} className="text-[10px] text-gray-500 underline underline-offset-2 hover:text-gray-700 transition-colors">이용약관</button>
-            <span className="text-gray-300">|</span>
-            <button type="button" onClick={() => setShowPrivacy(true)} className="text-[10px] text-gray-500 underline underline-offset-2 hover:text-gray-700 transition-colors">개인정보 처리방침</button>
-            <span className="text-gray-300">|</span>
-            <button type="button" onClick={() => setShowRefund(true)} className="text-[10px] text-gray-500 underline underline-offset-2 hover:text-gray-700 transition-colors">환불정책</button>
-          </div>
-          <div className="flex flex-col gap-1 text-[10px] text-gray-500 leading-relaxed text-center">
-            <p className="font-medium text-gray-600">주드(Joord) · 대표 임주용</p>
-            <p>사업자등록번호 623-36-01460</p>
-            <p>서울특별시 관악구 은천로35길 40-6, 404호</p>
-            <p>Tel 010-4042-2820</p>
-            <p>ounjal.ai.app@gmail.com</p>
-            <p className="mt-2">Copyright © 2026 Joord. All rights reserved.</p>
-          </div>
-        </div>
       </div>
       </div>
 

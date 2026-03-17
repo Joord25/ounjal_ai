@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { User, updateProfile } from "firebase/auth";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { storage, auth } from "@/lib/firebase";
-import { SubscriptionScreen } from "./SubscriptionScreen";
+import { SubscriptionScreen, TERMS_TEXT, PRIVACY_TEXT, REFUND_TEXT } from "./SubscriptionScreen";
 import { updateGender, updateBirthYear } from "@/utils/userProfile";
 
 interface MyProfileTabProps {
@@ -33,6 +33,9 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout }) =>
   const [birthYearInput, setBirthYearInput] = useState(birthYear);
   const [subStatus, setSubStatus] = useState<"loading" | "free" | "active" | "cancelled">("loading");
   const [showBodyInfo, setShowBodyInfo] = useState(false);
+  const [showTerms, setShowTerms] = useState(false);
+  const [showPrivacy, setShowPrivacy] = useState(false);
+  const [showRefund, setShowRefund] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -340,7 +343,86 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout }) =>
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
           </svg>
         </button>
+
+        {/* Business Registration Footer */}
+        <div className="mt-6 pt-6 border-t border-gray-100">
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <button type="button" onClick={() => setShowTerms(true)} className="text-[10px] text-gray-500 underline underline-offset-2 hover:text-gray-700 transition-colors">이용약관</button>
+            <span className="text-gray-300">|</span>
+            <button type="button" onClick={() => setShowPrivacy(true)} className="text-[10px] text-gray-500 underline underline-offset-2 hover:text-gray-700 transition-colors">개인정보 처리방침</button>
+            <span className="text-gray-300">|</span>
+            <button type="button" onClick={() => setShowRefund(true)} className="text-[10px] text-gray-500 underline underline-offset-2 hover:text-gray-700 transition-colors">환불정책</button>
+          </div>
+          <div className="flex flex-col gap-1 text-[10px] text-gray-500 leading-relaxed text-center">
+            <p className="font-medium text-gray-600">주드(Joord) · 대표 임주용</p>
+            <p>사업자등록번호 623-36-01460</p>
+            <p>서울특별시 관악구 은천로35길 40-6, 404호</p>
+            <p>Tel 010-4042-2820</p>
+            <p>ounjal.ai.app@gmail.com</p>
+            <p className="mt-2">Copyright © 2026 Joord. All rights reserved.</p>
+          </div>
+        </div>
       </div>
+
+      {/* Terms Modal */}
+      {showTerms && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50" onClick={() => setShowTerms(false)}>
+          <div className="bg-white rounded-2xl mx-4 w-full max-h-[85vh] flex flex-col shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+              <h2 className="text-base font-bold text-[#1B4332]">이용약관</h2>
+              <button type="button" onClick={() => setShowTerms(false)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M12 4L4 12M4 4l8 8" stroke="#666" strokeWidth="2" strokeLinecap="round"/></svg>
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto px-5 py-4">
+              <pre className="text-xs text-gray-600 leading-relaxed whitespace-pre-wrap font-sans">{TERMS_TEXT}</pre>
+            </div>
+            <div className="px-5 py-3 border-t border-gray-100">
+              <button type="button" onClick={() => setShowTerms(false)} className="w-full py-3 rounded-xl bg-[#1B4332] text-white text-sm font-bold hover:bg-[#143728] transition-colors">확인</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Privacy Modal */}
+      {showPrivacy && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50" onClick={() => setShowPrivacy(false)}>
+          <div className="bg-white rounded-2xl mx-4 w-full max-h-[85vh] flex flex-col shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+              <h2 className="text-base font-bold text-[#1B4332]">개인정보 처리방침</h2>
+              <button type="button" onClick={() => setShowPrivacy(false)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M12 4L4 12M4 4l8 8" stroke="#666" strokeWidth="2" strokeLinecap="round"/></svg>
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto px-5 py-4">
+              <pre className="text-xs text-gray-600 leading-relaxed whitespace-pre-wrap font-sans">{PRIVACY_TEXT}</pre>
+            </div>
+            <div className="px-5 py-3 border-t border-gray-100">
+              <button type="button" onClick={() => setShowPrivacy(false)} className="w-full py-3 rounded-xl bg-[#1B4332] text-white text-sm font-bold hover:bg-[#143728] transition-colors">확인</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Refund Policy Modal */}
+      {showRefund && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50" onClick={() => setShowRefund(false)}>
+          <div className="bg-white rounded-2xl mx-4 w-full max-h-[85vh] flex flex-col shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+              <h2 className="text-base font-bold text-[#1B4332]">환불정책</h2>
+              <button type="button" onClick={() => setShowRefund(false)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M12 4L4 12M4 4l8 8" stroke="#666" strokeWidth="2" strokeLinecap="round"/></svg>
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto px-5 py-4">
+              <pre className="text-xs text-gray-600 leading-relaxed whitespace-pre-wrap font-sans">{REFUND_TEXT}</pre>
+            </div>
+            <div className="px-5 py-3 border-t border-gray-100">
+              <button type="button" onClick={() => setShowRefund(false)} className="w-full py-3 rounded-xl bg-[#1B4332] text-white text-sm font-bold hover:bg-[#143728] transition-colors">확인</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

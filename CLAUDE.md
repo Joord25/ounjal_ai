@@ -19,7 +19,16 @@ firebase deploy --only functions     # Deploy functions only
 
 There is no test suite configured.
 
-Deployed to Firebase Hosting (project: `ohunjal`, region: asia-east1). CI/CD via GitHub Actions auto-deploys on push to main and creates preview deployments on PRs.
+Deployed to Firebase Hosting (project: `ohunjal`). CI/CD via GitHub Actions auto-deploys on push to main and creates preview deployments on PRs. Deployment requires `FIREBASE_CLI_EXPERIMENTS: webframeworks`.
+
+### Required Environment Variables (`.env.local`)
+
+All are `NEXT_PUBLIC_*` (client-side accessible):
+- `NEXT_PUBLIC_FIREBASE_API_KEY`, `_AUTH_DOMAIN`, `_PROJECT_ID`, `_STORAGE_BUCKET`, `_MESSAGING_SENDER_ID`, `_APP_ID` — Firebase config
+- `NEXT_PUBLIC_GEMINI_API_KEY` — Gemini AI (client-side calls)
+- `NEXT_PUBLIC_PORTONE_STORE_ID`, `NEXT_PUBLIC_PORTONE_CHANNEL_KEY` — PortOne billing integration
+
+Cloud Functions use `GEMINI_API_KEY` (server-side, set via Firebase config).
 
 ## Architecture
 
@@ -32,8 +41,8 @@ Deployed to Firebase Hosting (project: `ohunjal`, region: asia-east1). CI/CD via
 ### Three Codebases in One Repo
 
 1. **Next.js frontend** (root `package.json`, `src/`) — the main app
-2. **`functions/`** — Firebase Cloud Functions (Node 22, `firebase-functions` v6). Handles server-side Gemini calls and subscription management via PortOne billing API. Deployed to `us-central1`. This is the active codebase referenced in `firebase.json`.
-3. **`ohunjal/`** — Separate Cloud Functions codebase (Node 24, `firebase-functions` v7) with subscription/payment endpoints. Has its own manual CORS handling. Not referenced in `firebase.json` rewrites.
+2. **`functions/`** — Firebase Cloud Functions (Node 22, `firebase-functions` v6). Handles server-side Gemini calls and subscription management via PortOne billing API. Function rewrites in `firebase.json` point to `us-central1`. This is the active codebase.
+3. **`ohunjal/`** — Separate Cloud Functions codebase (Node 24, `firebase-functions` v7) with subscription/payment endpoints. Has its own manual CORS handling. **Not actively deployed** — not referenced in `firebase.json` rewrites.
 
 Each has its own `package.json`, `tsconfig.json`, and `node_modules`. The root `tsconfig.json` excludes `functions` and `ohunjal`.
 
@@ -75,6 +84,5 @@ Firebase Auth with Google sign-in (real auth, not mocked). The `onAuthStateChang
 
 ## Important Notes
 
-- Gemini API key: client-side via `NEXT_PUBLIC_GEMINI_API_KEY`, server-side via `GEMINI_API_KEY` (Cloud Functions)
 - Subscription gating: free plan limited to 3 workouts (`FREE_PLAN_LIMIT` in `page.tsx`)
-- The PRD (`prd.md`) contains detailed product requirements and design specs
+- `page.tsx` is a `"use client"` component — all app state lives there, no SSR for the main app

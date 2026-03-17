@@ -15,7 +15,7 @@ function useBodyScroll() {
 const FEATURES = [
   {
     pain: "헬스장 가서 뭐하지?",
-    title: "딸깔! 운동 전문가 AI가 오늘의 운동을 정해줍니다",
+    title: "딸깍! 운동 전문가 AI가 오늘의 운동을 정해줍니다",
     desc: "컨디션과 원하는 목표만 선택하면\nAI가 그날에 딱 맞는 운동 루틴을 자동으로 짜드립니다.\n더 이상 고민할 필요 없어요.",
     video: "/feature-1.mp4",
   },
@@ -459,7 +459,7 @@ export default function LandingContent() {
                     <tr>
                       <td className="py-3 sm:py-4 px-2 sm:px-4 font-bold text-[#1B4332] text-center">월 비용</td>
                       <td className="py-3 sm:py-4 px-2 sm:px-4 text-center text-gray-500">₩15,000~30,000</td>
-                      <td className="py-3 sm:py-4 px-2 sm:px-4 text-center font-bold text-[#059669]">₩6,900</td>
+                      <td className="py-3 sm:py-4 px-2 sm:px-4 text-center font-bold text-[#059669]">₩9,900</td>
                     </tr>
                     <tr className="bg-gray-50/50">
                       <td className="py-3 sm:py-4 px-2 sm:px-4 font-bold text-[#1B4332] text-center">플랜 생성</td>
