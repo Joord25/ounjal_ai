@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useRef, useState } from "react";
-import { WorkoutSessionData, ExerciseLog, WorkoutAnalysis } from "@/constants/workout";
+import { WorkoutSessionData, ExerciseLog, WorkoutAnalysis, WorkoutHistory } from "@/constants/workout";
 import { WorkoutMetrics } from "@/utils/workoutMetrics";
 
 interface ShareCardProps {
@@ -9,37 +9,56 @@ interface ShareCardProps {
   logs: Record<number, ExerciseLog[]>;
   metrics: WorkoutMetrics;
   analysis?: WorkoutAnalysis | null;
-  bodyWeightKg?: number;
+  bodyWeightKg?: number; // kept for interface compatibility
   sessionDate?: string;
+  recentHistory?: WorkoutHistory[];
   onClose: () => void;
 }
 
-// 3대 운동 판별 (바벨 백스쿼트, 벤치프레스, 데드리프트)
-const BIG3_KEYWORDS = ["바벨 백 스쿼트", "벤치 프레스", "데드리프트", "barbell back squat", "bench press", "deadlift"];
 
-function isBig3(name: string): boolean {
-  const lower = name.toLowerCase();
-  return BIG3_KEYWORDS.some(k => lower.includes(k.toLowerCase()));
-}
+// PR 감지: 오늘 세션의 E1RM이 과거 기록보다 높은지 확인
+function detectPRs(
+  allE1RMs: { exerciseName: string; value: number }[],
+  history: WorkoutHistory[],
+): { exerciseName: string; value: number; prevBest: number }[] {
+  // 과거 기록에서 각 운동의 최고 E1RM 추출
+  const historyBestMap = new Map<string, number>();
+  for (const h of history) {
+    const exercises = h.sessionData?.exercises || [];
+    const hLogs = h.logs || {};
+    exercises.forEach((ex, idx) => {
+      const exLogs = hLogs[idx] || [];
+      for (const log of exLogs) {
+        const weightStr = log.weightUsed || ex.weight;
+        if (!weightStr || weightStr === "Bodyweight") continue;
+        const weight = parseFloat(weightStr);
+        if (isNaN(weight) || weight <= 0) continue;
+        const reps = typeof log.repsCompleted === "number" ? log.repsCompleted : (parseInt(String(log.repsCompleted)) || 0);
+        if (reps <= 0) continue;
+        const e1rm = weight * (1 + reps / 30);
+        const prev = historyBestMap.get(ex.name) || 0;
+        if (e1rm > prev) historyBestMap.set(ex.name, e1rm);
+      }
+    });
+  }
 
-// 재미있는 실물 비교 (무게 kg 기준)
-function getWeightComparison(kg: number): { image: string | null; emoji: string; name: string; drama: string } {
-  if (kg >= 200) return { image: "/lion.png", emoji: "", name: "수컷 사자", drama: "수컷 사자 1마리를 거뜬히 들어올린다" };
-  if (kg >= 150) return { image: null, emoji: "🏍️", name: "대형 오토바이", drama: "대형 오토바이 1대를 거뜬히 들어올린다" };
-  if (kg >= 120) return { image: null, emoji: "🧊", name: "대형 냉장고", drama: "대형 냉장고 1대를 거뜬히 들어올린다" };
-  if (kg >= 100) return { image: "/panda.png", emoji: "", name: "성인 판다", drama: "성인 판다 1마리를 거뜬히 들어올린다" };
-  if (kg >= 80) return { image: null, emoji: "🚴", name: "성인남성", drama: "성인남성 1명을 거뜬히 들어올린다" };
-  if (kg >= 60) return { image: "/bigdog.png", emoji: "", name: "대형견", drama: "대형견 1마리 정도는 Easy" };
-  if (kg >= 40) return { image: null, emoji: "🧳", name: "대형 캐리어", drama: "대형 캐리어 2개를 거뜬히 들어올린다" };
-  return { image: null, emoji: "🎒", name: "쌀포대", drama: "쌀포대 1개를 거뜬히 들어올린다" };
+  const prs: { exerciseName: string; value: number; prevBest: number }[] = [];
+  for (const today of allE1RMs) {
+    const prevBest = historyBestMap.get(today.exerciseName);
+    // PR = 과거 기록이 있고, 오늘이 더 높을 때만 (첫 기록은 PR 아님)
+    if (prevBest !== undefined && today.value > prevBest) {
+      prs.push({ exerciseName: today.exerciseName, value: today.value, prevBest });
+    }
+  }
+  return prs.sort((a, b) => b.value - a.value);
 }
 
 export const ShareCard: React.FC<ShareCardProps> = ({
   sessionData,
   logs,
   metrics,
-  bodyWeightKg,
   sessionDate,
+  recentHistory = [],
   onClose,
 }) => {
   const [currentCard, setCurrentCard] = useState(0);
@@ -70,16 +89,16 @@ export const ShareCard: React.FC<ShareCardProps> = ({
     })
     .filter(e => e.sets > 0 && e.type === "strength");
 
-  // 3대 운동 중 수행한 것의 E1RM
-  const big3E1RM = allE1RMs.find(e => isBig3(e.exerciseName));
+  // PR 감지
+  const prs = detectPRs(allE1RMs, recentHistory);
+  const hasPR = prs.length > 0;
 
-  // 카드 2 표시 여부: 3대 운동 E1RM이 있고 체중이 있을 때만
-  const showCard2 = !!(big3E1RM && bodyWeightKg);
-  const totalCards = showCard2 ? 2 : 1;
+  // 카드 2: 항상 표시 (PR 있으면 PR 카드, 없으면 노력 요약 카드)
+  const totalCards = 2;
 
   const labelColor = mode === "filled" ? "rgba(52,211,153,0.6)" : "rgba(255,255,255,0.5)";
   const shadow = mode === "transparent" ? "0 2px 8px rgba(0,0,0,0.8)" : "none";
-  const shadowLight = mode === "transparent" ? "0 1px 4px rgba(0,0,0,0.8)" : "none";
+
 
   const captureCard = async (): Promise<Blob | null> => {
     if (!cardRef.current) return null;
@@ -146,7 +165,7 @@ export const ShareCard: React.FC<ShareCardProps> = ({
 
   // Brand footer (shared)
   const BrandFooter = () => (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", marginTop: 4 }}>
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", marginTop: -8 }}>
       <img src="/share.logo.png" alt="오운잘 AI" style={{ height: 100 }} />
     </div>
   );
@@ -247,69 +266,91 @@ export const ShareCard: React.FC<ShareCardProps> = ({
             </div>
           )}
 
-          {/* ===== Card 2: Big 3 Lift 1RM ===== */}
-          {currentCard === 1 && showCard2 && big3E1RM && bodyWeightKg && (() => {
-            const comparison = getWeightComparison(big3E1RM.value);
-            return (
-            <div style={{ display: "flex", flexDirection: "column", gap: 12, alignItems: "center", textAlign: "center", width: "100%" }}>
-              {/* Illustration */}
-              <div style={{ marginBottom: 4 }}>
-                {comparison.image ? (
-                  <img src={comparison.image} alt="" style={{ height: 140, objectFit: "contain" }} />
-                ) : (
-                  <p style={{ fontSize: 64, lineHeight: 1 }}>{comparison.emoji}</p>
-                )}
-              </div>
+          {/* ===== Card 2: PR 달성 or 노력 요약 ===== */}
+          {currentCard === 1 && (() => {
+            const totalExercises = mainExercises.length;
+            const totalSetsCount = mainExercises.reduce((sum, ex) => sum + ex.sets, 0);
 
-              {/* Drama text */}
-              <p style={{
-                color: "white",
-                fontSize: 18,
-                fontWeight: 900,
-                lineHeight: 1.5,
-                textShadow: shadow,
-              }}>
-                {comparison.drama}
-              </p>
+            if (hasPR) {
+              // PR 카드
+              const topPR = prs[0];
+              const improvement = Math.round(topPR.value - topPR.prevBest);
+              return (
+                <div style={{ display: "flex", flexDirection: "column", gap: 28, alignItems: "center", width: "100%" }}>
+                  <p style={{ color: "#FCD34D", fontSize: 11, fontWeight: 800, letterSpacing: "0.15em" }}>
+                    PERSONAL RECORD
+                  </p>
 
-              {/* Exercise + Weight */}
-              <div style={{
-                display: "flex",
-                alignItems: "baseline",
-                gap: 8,
-                justifyContent: "center",
-              }}>
-                <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 13, fontWeight: 700, textShadow: shadowLight }}>
-                  {big3E1RM.exerciseName.replace(/\s*\(.*\)$/, "")}
-                </span>
-                <span style={{ color: "white", fontSize: 28, fontWeight: 900, textShadow: shadow }}>
-                  {Math.round(big3E1RM.value)}
-                  <span style={{ fontSize: 14, color: "rgba(255,255,255,0.5)", marginLeft: 2 }}>kg</span>
-                </span>
-              </div>
-
-              {/* Other big 3 lifts if available */}
-              {(() => {
-                const otherBig3 = allE1RMs.filter(e => e !== big3E1RM && isBig3(e.exerciseName));
-                if (otherBig3.length === 0) return null;
-                return (
-                  <div style={{ width: "100%", marginTop: 4 }}>
-                    {otherBig3.map((e, i) => (
-                      <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-                        <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 12, fontWeight: 600, textShadow: shadowLight }}>
-                          {e.exerciseName.replace(/\s*\(.*\)$/, "")}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 24, width: "100%" }}>
+                    <div>
+                      <p style={{ color: labelColor, fontSize: 11, fontWeight: 600, marginBottom: 4 }}>
+                        {topPR.exerciseName.replace(/\s*\(.*\)$/, "")}
+                      </p>
+                      <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
+                        <span style={{ color: "white", fontSize: 40, fontWeight: 900, lineHeight: 1, textShadow: shadow }}>
+                          {Math.round(topPR.value)}
                         </span>
-                        <span style={{ color: "rgba(255,255,255,0.6)", fontSize: 12, fontWeight: 800, textShadow: shadowLight }}>
-                          {Math.round(e.value)}kg
-                        </span>
+                        <span style={{ color: labelColor, fontSize: 16, fontWeight: 700 }}>kg</span>
+                        <span style={{ color: "#FCD34D", fontSize: 14, fontWeight: 800, marginLeft: 4 }}>+{improvement}</span>
+                      </div>
+                    </div>
+
+                    {prs.slice(1, 3).map((pr, i) => (
+                      <div key={i}>
+                        <p style={{ color: labelColor, fontSize: 11, fontWeight: 600, marginBottom: 4 }}>
+                          {pr.exerciseName.replace(/\s*\(.*\)$/, "")}
+                        </p>
+                        <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
+                          <span style={{ color: "white", fontSize: 28, fontWeight: 900, lineHeight: 1, textShadow: shadow }}>
+                            {Math.round(pr.value)}
+                          </span>
+                          <span style={{ color: labelColor, fontSize: 14, fontWeight: 700 }}>kg</span>
+                          <span style={{ color: "#FCD34D", fontSize: 12, fontWeight: 800, marginLeft: 4 }}>+{Math.round(pr.value - pr.prevBest)}</span>
+                        </div>
                       </div>
                     ))}
                   </div>
-                );
-              })()}
 
-              <BrandFooter />
-            </div>
+                  <BrandFooter />
+                </div>
+              );
+            }
+
+            // 노력 요약 카드 — Strava 스타일 미니멀
+            return (
+              <div style={{ display: "flex", flexDirection: "column", gap: 28, alignItems: "center", width: "100%" }}>
+                <div style={{ textAlign: "center" }}>
+                  <p style={{ color: labelColor, fontSize: 11, fontWeight: 600, marginBottom: 4 }}>Exercises</p>
+                  <p style={{ color: "white", fontSize: 40, fontWeight: 900, lineHeight: 1, textShadow: shadow }}>
+                    {totalExercises}<span style={{ color: labelColor, fontSize: 16, fontWeight: 700, marginLeft: 4 }}>종목</span>
+                  </p>
+                </div>
+
+                <div style={{ textAlign: "center" }}>
+                  <p style={{ color: labelColor, fontSize: 11, fontWeight: 600, marginBottom: 4 }}>Sets</p>
+                  <p style={{ color: "white", fontSize: 40, fontWeight: 900, lineHeight: 1, textShadow: shadow }}>
+                    {totalSetsCount}<span style={{ color: labelColor, fontSize: 16, fontWeight: 700, marginLeft: 4 }}>세트</span>
+                  </p>
+                </div>
+
+                <div style={{ textAlign: "center" }}>
+                  <p style={{ color: labelColor, fontSize: 11, fontWeight: 600, marginBottom: 4 }}>Time</p>
+                  <p style={{ color: "white", fontSize: 40, fontWeight: 900, lineHeight: 1, textShadow: shadow }}>
+                    {formatDuration(totalDurationSec)}
+                  </p>
+                </div>
+
+                {isStrength && totalVolume > 0 && (
+                  <div style={{ textAlign: "center" }}>
+                    <p style={{ color: labelColor, fontSize: 11, fontWeight: 600, marginBottom: 4 }}>Volume</p>
+                    <p style={{ color: "white", fontSize: 40, fontWeight: 900, lineHeight: 1, textShadow: shadow }}>
+                      {totalVolume.toLocaleString()}<span style={{ color: labelColor, fontSize: 16, fontWeight: 700, marginLeft: 4 }}>kg</span>
+                    </p>
+                  </div>
+                )}
+
+                <BrandFooter />
+              </div>
             );
           })()}
         </div>

@@ -963,6 +963,7 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
           analysis={analysis}
           bodyWeightKg={bodyWeightKg}
           sessionDate={sessionDate}
+          recentHistory={recentHistory}
           onClose={() => setShowShare(false)}
         />
       )}
