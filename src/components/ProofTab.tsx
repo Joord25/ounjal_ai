@@ -792,21 +792,24 @@ export const ProofTab: React.FC<ProofTabProps> = () => {
 
             return (
               <div
-                className="p-4 sm:p-6 bg-white rounded-3xl border border-[#2D6A4F]/10 shadow-sm overflow-visible cursor-pointer active:scale-[0.98] transition-all"
-                onClick={() => setView("weight_detail")}
+                className="p-4 sm:p-6 bg-white rounded-3xl border border-[#2D6A4F]/10 shadow-sm overflow-visible transition-all"
               >
                 <div className="flex justify-between items-baseline mb-1">
                   <div className="flex items-center gap-2">
                     <p className="text-[10px] font-bold text-[#2D6A4F] uppercase tracking-widest">체중 변화</p>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    className="flex items-center gap-2 cursor-pointer active:scale-95 transition-transform"
+                    onClick={() => setView("weight_detail")}
+                  >
                     <span className={`text-[10px] font-black ${diff > 0 ? "text-rose-400" : diff < 0 ? "text-sky-400" : "text-gray-400"}`}>
                       {diff > 0 ? "+" : ""}{diff.toFixed(1)}kg
                     </span>
                     <svg className="w-4 h-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                     </svg>
-                  </div>
+                  </button>
                 </div>
                 <div className="flex items-baseline gap-1 mb-3 sm:mb-4">
                   <h3 className="text-2xl sm:text-3xl font-black text-[#1B4332]">{latestWeight.toFixed(1)}</h3>
