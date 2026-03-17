@@ -393,22 +393,24 @@ export const analyzeWorkout = onRequest(
       - 친근하고 코칭하는 톤. 존댓말 사용.
       - 구체적 숫자(kg, 횟수, %)를 포함해서 말하세요.
 
-      === BRIEFING ===
-      ${historyTrend && historyTrend.sessionCount >= 2 ? `
-      이전 세션 데이터가 있으므로 **변화 추이 분석**을 해주세요 (정확히 3문장):
-      문장 1: 오늘 세션이 이전 대비 어떤 변화가 있었는지 (볼륨, 1RM, 부하 등 구체적 수치 비교)
-      문장 2: 그 변화가 의미하는 바 (성장 중인지, 정체인지, 과부하인지)
-      문장 3: 이 추이를 바탕으로 다음 1-2주간 구체적 방향 제시 (중량 올리기, 디로드, 볼륨 조절 등)
-      ` : `
-      첫 세션이거나 데이터가 부족하므로 오늘 세션만 분석해주세요 (정확히 3문장):
-      문장 1: 오늘 세션 한 줄 판정
-      문장 2: 왜 그런지 쉬운 말로 설명
-      문장 3: 다음에 뭘 하면 좋을지 구체적 조언 1개
-      `}
+      === INTENSITY CONTEXT (강도 판단 기준) ===
+      ${intensityContext ? `
+      오늘 세션 강도: ${intensityContext.sessionIntensity?.level === "high" ? "고강도" : intensityContext.sessionIntensity?.level === "moderate" ? "중강도" : "저강도"}
+      이번 주 완료: 고강도 ${intensityContext.weekSummary?.high || 0}회, 중강도 ${intensityContext.weekSummary?.moderate || 0}회, 저강도 ${intensityContext.weekSummary?.low || 0}회
+      주간 목표: 고 ${intensityContext.target?.high || 0} · 중 ${intensityContext.target?.moderate || 0} · 저 ${intensityContext.target?.low || 0}
+      다음 추천: ${intensityContext.nextRecommended === "high" ? "고강도" : intensityContext.nextRecommended === "moderate" ? "중강도" : "저강도"}
+
+      CRITICAL RULE:
+      - 볼륨/1RM이 이전보다 낮더라도, 오늘 세션 강도가 의도적으로 낮은 것이라면 정상이며 긍정적으로 평가하세요.
+      - 고강도 세션인데 볼륨이 낮으면 그때만 문제로 지적하세요.
+      - "이전보다 줄었다"가 아니라 "주간 배분 계획에 맞게 진행되고 있는지"를 기준으로 판단하세요.
+      - 같은 강도 수준의 세션끼리만 비교하세요 (고강도↔고강도, 저강도↔저강도).
+      ` : "강도 컨텍스트 없음 — 일반 분석 수행."}
 
       ${isStrength ? `
       분석 기준 (근력 세션):
-      - 볼륨 추이: 증가 중이면 성장기, 감소 중이면 디로드 필요 여부 판단
+      - 저강도 세션은 볼륨이 낮아도 정상 — 회복, 근지구력, 테크닉 향상 관점으로 평가
+      - 고강도 세션에서 볼륨 증가 중이면 성장기, 감소 중이면 디로드 필요 여부 판단
       - 1RM 추이: 상승이면 근력 발달 중, 정체면 프로그램 변경 제안
       - 부하 비율 >1.3이 연속이면 과훈련 주의
       ${metrics?.bwRatio !== null ? `
@@ -423,29 +425,48 @@ export const analyzeWorkout = onRequest(
       - 일부 미완료: 체력에 맞게 조절 필요
       `}
 
+      === OUTPUT FORMAT (strict JSON) ===
+
+      반드시 아래 구조로 반환하세요. briefing은 구조화된 객체입니다.
+
+      {
+        "briefing": {
+          "headline": "한 줄 핵심 판정 (15자 이내, 예: '저강도 회복 세션 완료', '고강도 근력 세션 성공')",
+          "weekProgress": "이번 주 강도 배분 달성 상황 한 줄 (예: '고2·중1·저1 완료 — 저강도 1회 남음')",
+          "insight": "핵심 인사이트 한 줄 — 같은 강도의 이전 세션과 비교하거나, 주간 배분 맥락에서 오늘의 의미 (50자 이내)",
+          "action": "다음 세션 구체적 액션 한 줄 (예: '다음 고강도에서 스쿼트 85kg 도전, 볼륨 4,000kg 목표')"
+        },
+        "nextSessionAdvice": "다음 세션: 고강도 추천\\n벤치 프레스: +2.5kg 증가 요망\\n숄더 프레스: 유지"
+      }
+
+      === BRIEFING RULES ===
+      - headline, weekProgress, insight, action 각각 한 줄씩, 짧고 명확하게.
+      - 장황한 설명 금지. 수치를 포함하되 문장은 짧게.
+      - 초등학생도 이해할 수 있는 쉬운 말, 존댓말.
+      ${historyTrend && historyTrend.sessionCount >= 2 ? `
+      - insight에서 이전 세션과 비교할 때 반드시 같은 강도끼리 비교하세요.
+      - 강도가 달라서 볼륨이 다른 건 당연한 거라 언급하지 마세요.
+      ` : `
+      - 첫 세션이거나 데이터 부족 시 insight는 오늘 세션 자체만 평가하세요.
+      `}
+
       === NEXT SESSION ADVICE ===
-      첫 줄: 다음 세션 전체 강도 추천 (위 "다음 추천" 데이터 참고)
+      첫 줄: 다음 세션 전체 강도 추천
       ${intensityContext ? `"다음 세션: ${intensityContext.nextRecommended === "high" ? "고강도 (80%+ 1RM, 1-6회)" : intensityContext.nextRecommended === "moderate" ? "중강도 (60-79% 1RM, 7-12회)" : "저강도 (60% 미만 1RM, 13회+)"} 추천"` : '"다음 세션 강도는 이번 주 배분에 맞게 조절해보세요"'}
       이후 운동별로 "운동이름: 판정" 형식으로 한 줄씩.
       ${isStrength ? `
-      판정은 다음 3가지 중 하나만 사용:
-      - "유지" → 횟수가 점점 줄어들거나 적중률이 보통인 운동
-      - "증가 요망" → 목표 횟수 잘 채우거나 너무 쉬웠던 운동 (구체적 무게 포함)
-      - "감소 요망" → 실패가 많거나 피로가 심했던 운동 (구체적 무게 포함)
+      판정 3가지 중 하나만:
+      - "유지" → 적중률 보통
+      - "증가 요망" → 쉬웠던 운동 (구체적 무게 포함)
+      - "감소 요망" → 실패 많았던 운동 (구체적 무게 포함)
       ` : `
-      판정은 다음 중 하나만 사용:
+      판정 중 하나만:
       - "유지" → 잘 수행한 운동
-      - "+시간 증가 요망" → 시간이나 거리를 늘릴 수 있는 운동
-      - "감소 요망" → 힘들었던 운동은 시간 줄이기
+      - "+시간 증가 요망" → 늘릴 수 있는 운동
+      - "감소 요망" → 힘들었던 운동
       `}
 
-      OUTPUT FORMAT (strict JSON):
-      {
-        "briefing": "지난 세션 대비 총 볼륨이 15% 늘었어요! ...",
-        "nextSessionAdvice": "다음 세션: 중강도 (7-12회) 추천\\n벤치 프레스: +2.5kg 증가 요망\\n숄더 프레스: 유지"
-      }
-
-      IMPORTANT: briefing과 nextSessionAdvice만 반환하세요.
+      IMPORTANT: briefing(객체)과 nextSessionAdvice(문자열)만 반환하세요.
       ${!isStrength ? "무게, 볼륨, e1RM, 부하 비율 등 근력 관련 수치를 언급하지 마세요." : ""}
     `;
 

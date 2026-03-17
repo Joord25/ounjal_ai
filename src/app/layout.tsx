@@ -89,6 +89,7 @@ export default function RootLayout({
     <html lang="ko">
       <head>
         <meta name="theme-color" content="#1B4332" />
+        <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="google-site-verification" content="pT2HHHagN-fpWgy6salyFyDgjf679FnLU5hb2btFn6s" />

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { WorkoutSessionData, ExerciseLog, WorkoutAnalysis, WorkoutHistory } from "@/constants/workout";
+import { WorkoutSessionData, ExerciseLog, WorkoutAnalysis, WorkoutHistory, BriefingStructured } from "@/constants/workout";
 import { analyzeWorkoutSession } from "@/utils/gemini";
 import { buildWorkoutMetrics, estimateTrainingLevel, getOptimalLoadBand, getBig4FromHistory, summarizeHistoryForAI, classifySessionIntensity, getIntensityRecommendation } from "@/utils/workoutMetrics";
 import { ShareCard } from "./ShareCard";
@@ -213,9 +213,23 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
                   <span className="text-[9px] font-bold text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">최근 {historyTrend.sessionCount}세션 기반</span>
                 )}
               </div>
-              <p className="text-[13px] font-medium text-gray-700 leading-relaxed">
-                {analysis.briefing}
-              </p>
+              {typeof analysis.briefing === "object" && analysis.briefing !== null ? (
+                <div className="space-y-2.5">
+                  <p className="text-[15px] font-black text-[#1B4332]">{(analysis.briefing as BriefingStructured).headline}</p>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px]">📅</span>
+                    <p className="text-[11px] font-bold text-gray-500">{(analysis.briefing as BriefingStructured).weekProgress}</p>
+                  </div>
+                  <p className="text-[13px] font-medium text-gray-700 leading-snug">{(analysis.briefing as BriefingStructured).insight}</p>
+                  <div className="bg-emerald-50 rounded-lg px-3 py-2 mt-1">
+                    <p className="text-[12px] font-bold text-[#2D6A4F]">👉 {(analysis.briefing as BriefingStructured).action}</p>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-[13px] font-medium text-gray-700 leading-relaxed">
+                  {typeof analysis.briefing === "string" ? analysis.briefing : JSON.stringify(analysis.briefing)}
+                </p>
+              )}
             </div>
           ) : (
             <div className="bg-white rounded-2xl p-5 border border-gray-100 text-center shadow-sm">

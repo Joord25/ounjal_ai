@@ -283,11 +283,16 @@ export default function Home() {
 
   const handleIntensityChange = (level: "high" | "moderate" | "low") => {
     setRecommendedIntensity(level);
+    // Immediately regenerate plan with new intensity
+    if (!currentCondition || !currentGoal) return;
+    const dayIndex = new Date().getDay();
+    const scheduleIndex = dayIndex === 0 ? 6 : dayIndex - 1;
+    const session = generateAdaptiveWorkout(scheduleIndex, currentCondition, currentGoal, undefined, level);
+    setCurrentWorkoutSession(session);
   };
 
   const handleRegenerate = () => {
     if (!currentCondition || !currentGoal) return;
-    // Rule-based regeneration (no AI call needed for intensity adjustments)
     const dayIndex = new Date().getDay();
     const scheduleIndex = dayIndex === 0 ? 6 : dayIndex - 1;
     const session = generateAdaptiveWorkout(scheduleIndex, currentCondition, currentGoal, undefined, recommendedIntensity);

@@ -63,7 +63,18 @@ Frontend calls Cloud Functions via `/api/*` paths, rewritten in `firebase.json`:
 
 ### Workout Generation
 
-Two paths: (1) AI via Gemini with structured JSON output and Korean-language coaching, (2) algorithm-based fallback in `workout.ts` using day-of-week scheduling (Push/Pull/Legs/Run/Mobility). Both adapt based on `UserCondition` (body state + energy) and `WorkoutGoal`.
+Two paths: (1) AI via Gemini with structured JSON output and Korean-language coaching, (2) rule-based generator `generateAdaptiveWorkout()` in `workout.ts` using day-of-week scheduling (Push/Pull/Legs/Run/Mobility). Both adapt based on `UserCondition` (body state + energy) and `WorkoutGoal`. Plan adjustments (regeneration, intensity changes) use the rule-based path for instant, cost-free results — AI is reserved for initial generation and post-workout analysis.
+
+### Intensity System
+
+Three-tier intensity (`"high" | "moderate" | "low"`) based on ACSM guidelines flows through the app:
+- `page.tsx` holds `recommendedIntensity` state, passes it to `MasterPlanPreview` (intensity picker UI) and into `generateAdaptiveWorkout()`
+- `generateAdaptiveWorkout()` accepts `intensityOverride` parameter that adjusts sets (high +1, low -1), compound reps, isolation reps (`isoRepsKo`/`isoRepsVal`), and weight guides via `getWeightGuide(role, goal, intensityOverride)`
+- Gender-aware adjustments: female users get different rep ranges at the same %1RM
+
+### Exercise Swap
+
+Users can swap individual exercises in both `MasterPlanPreview` and `FitScreen` via a bottom-sheet UI with text search + muscle group filter tabs. `LABELED_EXERCISE_POOLS` (in `workout.ts`) provides categorized exercise lists. `getAlternativeExercises()` returns same-muscle-group alternatives. Note: `FitScreen` has dual render paths (weight picker vs main exercise view) — the swap bottom sheet must be present in both paths.
 
 ### Adaptive Exercise Logic
 
@@ -82,7 +93,9 @@ Firebase Auth with Google sign-in (real auth, not mocked). The `onAuthStateChang
 - Path alias: `@/*` maps to `src/*`
 - `Cross-Origin-Opener-Policy: same-origin-allow-popups` header set in both `next.config.ts` and `firebase.json` (required for Google sign-in popup)
 
-## Important Notes
+## Important Patterns
 
 - Subscription gating: free plan limited to 3 workouts (`FREE_PLAN_LIMIT` in `page.tsx`)
 - `page.tsx` is a `"use client"` component — all app state lives there, no SSR for the main app
+- `WorkoutReport` uses `sessionDate` prop to distinguish history view (share button only) from current session (share + complete buttons)
+- Bottom sheets in `FitScreen` use `rounded-[2rem]` with `bottom-2 left-2 right-2` floating style (no nav bar present, unlike `MasterPlanPreview`)

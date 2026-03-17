@@ -34,8 +34,15 @@ export interface WorkoutSessionData {
   exercises: ExerciseStep[];
 }
 
+export interface BriefingStructured {
+  headline: string;
+  weekProgress: string;
+  insight: string;
+  action: string;
+}
+
 export interface WorkoutAnalysis {
-  briefing: string;
+  briefing: string | BriefingStructured;
   nextSessionAdvice: string;
 }
 
