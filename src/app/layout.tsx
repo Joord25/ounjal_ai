@@ -46,11 +46,20 @@ export const metadata: Metadata = {
     type: "website",
     locale: "ko_KR",
     siteName: "오운잘 AI",
+    images: [
+      {
+        url: "https://ohunjal.com/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "오운잘 AI - AI 맞춤 운동 플래너",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "오운잘 AI - AI 맞춤 운동 플래너",
     description: "AI가 오늘 컨디션에 맞춰 운동 루틴을 자동 생성. 근력 운동 기록, 볼륨 추적, 체중 그래프, AI 분석 리포트.",
+    images: ["https://ohunjal.com/og-image.png"],
   },
   robots: {
     index: true,
