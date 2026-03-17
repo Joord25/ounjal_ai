@@ -12,6 +12,7 @@ export const metadata: Metadata = {
     type: "website",
     locale: "ko_KR",
     siteName: "오운잘 AI",
+    url: "https://ohunjal.com/landing",
   },
 };
 

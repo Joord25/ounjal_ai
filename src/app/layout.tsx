@@ -61,7 +61,7 @@ export const metadata: Metadata = {
     },
   },
   alternates: {
-    canonical: "https://ohunjal.web.app",
+    canonical: "https://ohunjal.com",
   },
   verification: {
     google: "pT2HHHagN-fpWgy6salyFyDgjf679FnLU5hb2btFn6s",
@@ -103,7 +103,7 @@ export default function RootLayout({
               "author": {
                 "@type": "Organization",
                 "name": "주드(Joord)",
-                "url": "https://ohunjal.web.app"
+                "url": "https://ohunjal.com"
               },
               "inLanguage": "ko"
             })
