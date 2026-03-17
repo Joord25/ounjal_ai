@@ -268,7 +268,6 @@ export const ShareCard: React.FC<ShareCardProps> = ({
 
           {/* ===== Card 2: PR 달성 or 노력 요약 ===== */}
           {currentCard === 1 && (() => {
-            const totalExercises = mainExercises.length;
             const totalSetsCount = mainExercises.reduce((sum, ex) => sum + ex.sets, 0);
 
             if (hasPR) {
@@ -319,13 +318,6 @@ export const ShareCard: React.FC<ShareCardProps> = ({
             // 노력 요약 카드 — Strava 스타일 미니멀
             return (
               <div style={{ display: "flex", flexDirection: "column", gap: 28, alignItems: "center", width: "100%" }}>
-                <div style={{ textAlign: "center" }}>
-                  <p style={{ color: labelColor, fontSize: 11, fontWeight: 600, marginBottom: 4 }}>Exercises</p>
-                  <p style={{ color: "white", fontSize: 40, fontWeight: 900, lineHeight: 1, textShadow: shadow }}>
-                    {totalExercises}<span style={{ color: labelColor, fontSize: 16, fontWeight: 700, marginLeft: 4 }}>종목</span>
-                  </p>
-                </div>
-
                 <div style={{ textAlign: "center" }}>
                   <p style={{ color: labelColor, fontSize: 11, fontWeight: 600, marginBottom: 4 }}>Sets</p>
                   <p style={{ color: "white", fontSize: 40, fontWeight: 900, lineHeight: 1, textShadow: shadow }}>
