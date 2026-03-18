@@ -216,6 +216,14 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
               {typeof analysis.briefing === "object" && analysis.briefing !== null ? (
                 <div className="space-y-2.5">
                   <p className="text-[15px] font-black text-[#1B4332]">{(analysis.briefing as BriefingStructured).headline}</p>
+                  {/* 수치 요약 라인 */}
+                  <div className="flex items-center gap-2 text-[11px] font-bold text-gray-500 bg-gray-50 rounded-lg px-3 py-1.5">
+                    <span>볼륨 {totalVolume.toLocaleString()}kg</span>
+                    <span className="text-gray-300">·</span>
+                    <span>1RM {bestE1RM ? Math.round(bestE1RM.value) + "kg" : "-"}</span>
+                    <span className="text-gray-300">·</span>
+                    <span>부하 {loadScore}</span>
+                  </div>
                   <div className="flex items-center gap-1.5">
                     <span className="text-[10px]">📅</span>
                     <p className="text-[11px] font-bold text-gray-500">{(analysis.briefing as BriefingStructured).weekProgress}</p>

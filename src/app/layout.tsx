@@ -16,6 +16,8 @@ const cormorant = Cormorant_Garamond({
 
 export const viewport: Viewport = {
   viewportFit: "cover",
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export const metadata: Metadata = {

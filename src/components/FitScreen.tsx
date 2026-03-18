@@ -47,7 +47,7 @@ export const FitScreen: React.FC<FitScreenProps> = ({
   const isStrengthType = exercise.type === "strength" || exercise.type === "core";
   const isBodyweight = !exercise.weight || exercise.weight === "Bodyweight"
     || /맨몸|체중|bodyweight/i.test(exercise.weight)
-    || /푸쉬업|푸시업|push[\s-]?up|pull[\s-]?up|풀업|턱걸이|딥스|dip|plank|플랭크|버피|burpee|크런치|crunch|레그레이즈|leg raise|마운틴\s?클라이머|mountain\s?climber|점프|jump/i.test(exercise.name);
+    || (/푸쉬업|푸시업|push[\s-]?up|pull[\s-]?up|풀업|친업|chin[\s-]?up|턱걸이|딥스|dip|plank|플랭크|버피|burpee|크런치|crunch|레그레이즈|leg raise|마운틴\s?클라이머|mountain\s?climber|점프|jump/i.test(exercise.name) && !/중량/i.test(exercise.name));
   const hasWeight = isStrengthType && !isBodyweight;
 
   // Default weight by sex/age: male 20kg, female/senior(60+) 15kg
@@ -286,10 +286,10 @@ export const FitScreen: React.FC<FitScreenProps> = ({
   const isLongTitle = exercise.name.length > 20;
   const isVeryLongTitle = exercise.name.length > 40;
   const titleSizeClass = isVeryLongTitle
-    ? "text-2xl"
+    ? "text-3xl"
     : isLongTitle
-      ? "text-3xl"
-      : "text-4xl md:text-5xl";
+      ? "text-4xl"
+      : "text-5xl";
 
   // Reset view when exercise changes or set changes
   const prevIsResting = useRef(isResting);
@@ -672,8 +672,8 @@ export const FitScreen: React.FC<FitScreenProps> = ({
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col items-center justify-center px-4 sm:px-6 text-center gap-3 sm:gap-6 overflow-y-auto">
-        <div className="flex flex-col items-center gap-1 sm:gap-2">
+      <div className="flex-1 flex flex-col items-center justify-center px-6 text-center gap-6 overflow-y-auto">
+        <div className="flex flex-col items-center gap-2">
           {(() => {
             const parts = exercise.name.split('(');
             const mainTitle = parts[0].trim();
@@ -688,29 +688,29 @@ export const FitScreen: React.FC<FitScreenProps> = ({
                   {mainTitle}
                 </h1>
                 {subTitle && (
-                  <p className="text-base sm:text-lg text-gray-400 font-medium font-english tracking-tight mt-0.5">
+                  <p className="text-xl text-gray-400 font-medium font-english tracking-tight mt-1">
                     {subTitle}
                   </p>
                 )}
-                <div className="mt-2.5 flex items-center gap-2">
+                <div className="mt-3 flex items-center gap-2.5">
                   <button
                     onClick={() => setShowGuide(true)}
-                    className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-emerald-50 border border-emerald-100 text-[#2D6A4F] active:scale-95 transition-all"
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-emerald-50 border border-emerald-100 text-[#2D6A4F] active:scale-95 transition-all"
                   >
-                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 100 20 10 10 0 000-20z" />
                     </svg>
-                    <span className="text-[11px] font-bold tracking-wide">자세 가이드</span>
+                    <span className="text-xs font-bold tracking-wide">자세 가이드</span>
                   </button>
                   {alternatives.length > 0 && (
                     <button
                       onClick={() => setShowSwapMenu(true)}
-                      className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-gray-100 border border-gray-200 text-gray-500 active:scale-95 transition-all"
+                      className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-gray-100 border border-gray-200 text-gray-500 active:scale-95 transition-all"
                     >
-                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                       </svg>
-                      <span className="text-[11px] font-bold tracking-wide">운동 변경</span>
+                      <span className="text-xs font-bold tracking-wide">운동 변경</span>
                     </button>
                   )}
                 </div>
@@ -728,10 +728,10 @@ export const FitScreen: React.FC<FitScreenProps> = ({
                   </div>
                 ) : (
                   <>
-                    <p className="text-5xl sm:text-7xl font-black tracking-tighter tabular-nums" style={{ color: THEME.textMain }}>
+                    <p className="text-6xl sm:text-8xl font-black tracking-tighter tabular-nums" style={{ color: THEME.textMain }}>
                       {formatTime(elapsedTime)}
                     </p>
-                    <p className="text-lg sm:text-xl font-bold text-[#2D6A4F] mt-2">
+                    <p className="text-xl sm:text-2xl font-bold text-[#2D6A4F] mt-2">
                         {isDistanceMode ? `${exercise.count}` : (
                             exercise.count.includes('회') || exercise.count.toLowerCase().includes('reps')
                             ? `Goal: ${exercise.count}`
@@ -746,31 +746,31 @@ export const FitScreen: React.FC<FitScreenProps> = ({
               {/* Reps */}
               <button
                 onClick={() => setShowRepsEdit(true)}
-                className="flex items-baseline gap-1.5 active:opacity-60 transition-all"
+                className="flex items-baseline gap-2 active:opacity-60 transition-all"
               >
-                <span className="text-5xl sm:text-6xl font-black" style={{ color: THEME.textMain }}>{adjustedReps}</span>
-                <span className="text-lg sm:text-xl font-bold text-gray-400">REPS</span>
+                <span className="text-6xl sm:text-7xl font-black" style={{ color: THEME.textMain }}>{adjustedReps}</span>
+                <span className="text-xl sm:text-2xl font-bold text-gray-400">REPS</span>
               </button>
 
               {/* Weight */}
               {hasWeight && (
                 <button
                   onClick={() => setShowWeightEdit(true)}
-                  className="flex items-baseline gap-1 active:opacity-60 transition-all mt-1"
+                  className="flex items-baseline gap-1.5 active:opacity-60 transition-all mt-1"
                 >
-                  <span className="text-4xl font-black text-[#2D6A4F]">{selectedWeight}</span>
-                  <span className="text-lg font-bold text-gray-400">kg</span>
+                  <span className="text-5xl font-black text-[#2D6A4F]">{selectedWeight}</span>
+                  <span className="text-xl font-bold text-gray-400">kg</span>
                 </button>
               )}
               {!hasWeight && exercise.weight && (
-                <span className="text-3xl font-bold text-[#2D6A4F] mt-1">
+                <span className="text-4xl font-bold text-[#2D6A4F] mt-1">
                   {setInfo.targetWeight}
                 </span>
               )}
 
               {/* Stopwatch */}
-              <div className="flex flex-col items-center mt-4 sm:mt-8 h-20 sm:h-24">
-                <span className="text-5xl sm:text-7xl font-black tabular-nums tracking-tighter" style={{ color: THEME.textMain }}>
+              <div className="flex flex-col items-center mt-6 h-28">
+                <span className="text-7xl font-black tabular-nums tracking-tighter" style={{ color: THEME.textMain }}>
                   {formatTime(repsStopwatch)}
                 </span>
                 <button
@@ -790,73 +790,73 @@ export const FitScreen: React.FC<FitScreenProps> = ({
       {/* Main CTA */}
       <div className="flex flex-col items-center gap-4 shrink-0 mt-auto" style={{ paddingBottom: "calc(var(--safe-area-bottom, 0px) + 1.5rem)" }}>
         {isTimerMode ? (
-            <div className="flex flex-col items-center gap-4 h-32 sm:h-40 justify-center">
+            <div className="flex flex-col items-center gap-4 h-40 justify-center">
                 {timerCompleted ? (
                   /* Timer completed — show prominent DONE button with pulse */
                   <button
                     onClick={handleDoneClick}
-                    className="w-24 h-24 sm:w-32 sm:h-32 rounded-full flex flex-col items-center justify-center bg-[#1B4332] text-white shadow-2xl active:scale-95 transition-all animate-pulse"
+                    className="w-28 h-28 rounded-full flex flex-col items-center justify-center bg-[#1B4332] text-white shadow-2xl active:scale-95 transition-all animate-pulse"
                   >
-                    <svg className="w-8 h-8 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="w-10 h-10 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                     </svg>
-                    <span className="font-bold text-base tracking-wider">DONE</span>
+                    <span className="font-bold text-lg tracking-wider">DONE</span>
                   </button>
                 ) : !isPlaying && elapsedTime > 0 ? (
                   /* Paused mid-timer — show resume + done */
-                  <div className="flex items-center gap-6">
+                  <div className="flex items-center gap-8">
                       <button
                         onClick={() => setIsPlaying(true)}
-                        className="w-20 h-20 rounded-full flex items-center justify-center bg-[#2D6A4F] text-white shadow-lg active:scale-95 transition-all hover:bg-[#1B4332]"
+                        className="w-28 h-28 rounded-full flex items-center justify-center bg-[#2D6A4F] text-white shadow-xl active:scale-95 transition-all hover:bg-[#1B4332]"
                       >
-                        <svg className="w-8 h-8 ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                        <svg className="w-10 h-10 ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
                       </button>
                       <button
                         onClick={handleDoneClick}
-                        className="w-20 h-20 rounded-full flex items-center justify-center bg-[#1B4332] text-white shadow-lg active:scale-95 transition-all hover:bg-[#2D6A4F]"
+                        className="w-28 h-28 rounded-full flex items-center justify-center bg-[#1B4332] text-white shadow-xl active:scale-95 transition-all hover:bg-[#2D6A4F]"
                       >
-                        <span className="font-bold text-sm tracking-wider">DONE</span>
+                        <span className="font-bold text-lg tracking-wider">DONE</span>
                       </button>
                   </div>
                 ) : !isPlaying && elapsedTime === 0 && !timerCompleted ? (
                   /* Initial state — show play button */
                   <button
                     onClick={() => setIsPlaying(true)}
-                    className="w-24 h-24 rounded-full flex items-center justify-center bg-[#2D6A4F] text-white shadow-xl active:scale-95 transition-all hover:bg-[#1B4332]"
+                    className="w-28 h-28 rounded-full flex items-center justify-center bg-[#2D6A4F] text-white shadow-xl active:scale-95 transition-all hover:bg-[#1B4332]"
                   >
                       <svg className="w-10 h-10 ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
                   </button>
                 ) : (
                   /* Playing — show pause + done */
-                  <div className="flex items-center gap-6">
+                  <div className="flex items-center gap-8">
                       <button
                         onClick={() => setIsPlaying(false)}
-                        className="w-20 h-20 rounded-full flex items-center justify-center bg-amber-500 text-white shadow-lg active:scale-95 transition-all hover:bg-amber-400"
+                        className="w-28 h-28 rounded-full flex items-center justify-center bg-amber-500 text-white shadow-xl active:scale-95 transition-all hover:bg-amber-400"
                       >
-                        <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+                        <svg className="w-10 h-10" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
                       </button>
                       <button
                         onClick={handleDoneClick}
-                        className="w-20 h-20 rounded-full flex items-center justify-center bg-[#1B4332] text-white shadow-lg active:scale-95 transition-all hover:bg-[#2D6A4F]"
+                        className="w-28 h-28 rounded-full flex items-center justify-center bg-[#1B4332] text-white shadow-xl active:scale-95 transition-all hover:bg-[#2D6A4F]"
                       >
-                        <span className="font-bold text-sm tracking-wider">DONE</span>
+                        <span className="font-bold text-lg tracking-wider">DONE</span>
                       </button>
                   </div>
                 )}
             </div>
         ) : (
-            <div className="flex items-center gap-5 sm:gap-8">
+            <div className="flex items-center gap-8">
               {/* Play/Pause stopwatch button */}
               <button
                 onClick={() => setRepsStopwatchRunning(!repsStopwatchRunning)}
-                className={`w-20 h-20 sm:w-28 sm:h-28 rounded-full flex items-center justify-center shadow-xl active:scale-95 transition-all ${
+                className={`w-28 h-28 rounded-full flex items-center justify-center shadow-xl active:scale-95 transition-all ${
                   repsStopwatchRunning ? "bg-amber-500 hover:bg-amber-400" : "bg-[#2D6A4F] hover:bg-[#1B4332]"
                 }`}
               >
                 {repsStopwatchRunning ? (
-                  <svg className="w-8 h-8 sm:w-10 sm:h-10 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+                  <svg className="w-10 h-10 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
                 ) : (
-                  <svg className="w-8 h-8 sm:w-10 sm:h-10 ml-1 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                  <svg className="w-10 h-10 ml-1 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
                 )}
               </button>
 
@@ -864,7 +864,7 @@ export const FitScreen: React.FC<FitScreenProps> = ({
               <button
                 onClick={handleDoneClick}
                 disabled={isDoneAnimating || view === "feedback"}
-                className={`w-20 h-20 sm:w-28 sm:h-28 rounded-full flex items-center justify-center transition-all duration-300 active:scale-95 shadow-xl bg-[#2D6A4F] hover:bg-[#1B4332] ${
+                className={`w-28 h-28 rounded-full flex items-center justify-center transition-all duration-300 active:scale-95 shadow-xl bg-[#2D6A4F] hover:bg-[#1B4332] ${
                   isDoneAnimating ? "scale-105" : ""
                 }`}
               >
