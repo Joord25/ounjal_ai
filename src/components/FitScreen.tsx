@@ -43,6 +43,7 @@ export const FitScreen: React.FC<FitScreenProps> = ({
   const [swapFilter, setSwapFilter] = useState<string | null>(null);
   const alternatives = onSwapExercise ? getAlternativeExercises(exercise.name) : [];
 
+
   const closeSwap = () => { setShowSwapMenu(false); setSwapSearch(""); setSwapFilter(null); };
   const isStrengthType = exercise.type === "strength" || exercise.type === "core";
   const isBodyweight = !exercise.weight || exercise.weight === "Bodyweight"
@@ -90,6 +91,54 @@ export const FitScreen: React.FC<FitScreenProps> = ({
   const [adjustedReps, setAdjustedReps] = useState(setInfo.targetReps);
   const [repsStopwatch, setRepsStopwatch] = useState(0);
   const [repsStopwatchRunning, setRepsStopwatchRunning] = useState(false);
+
+  // --- Warmup Tutorial (ConditionCheck/MasterPlanPreview 동일 패턴) ---
+  const [showGuideTip, setShowGuideTip] = useState(() => {
+    if (typeof window !== "undefined") return !localStorage.getItem("alpha_tip_fit_warmup");
+    return true;
+  });
+  const [showPlayTip, setShowPlayTip] = useState(() => {
+    if (typeof window !== "undefined") return !localStorage.getItem("alpha_tip_fit_warmup");
+    return true;
+  });
+  const [showSkipTip, setShowSkipTip] = useState(() => {
+    if (typeof window !== "undefined") return !localStorage.getItem("alpha_tip_fit_warmup");
+    return true;
+  });
+
+  const dismissGuideTip = () => {
+    setShowGuideTip(false);
+    localStorage.setItem("alpha_tip_fit_warmup", "1");
+  };
+  const dismissPlayTip = () => { setShowPlayTip(false); };
+  const dismissSkipTip = () => { setShowSkipTip(false); };
+
+  const guideRef = useRef<HTMLButtonElement>(null);
+  const playRef = useRef<HTMLButtonElement>(null);
+  const skipRef = useRef<HTMLButtonElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const [guidePos, setGuidePos] = useState<{ top: number; left: number; width: number; height: number } | null>(null);
+  const [playPos, setPlayPos] = useState<{ top: number; left: number; width: number; height: number } | null>(null);
+  const [skipPos, setSkipPos] = useState<{ top: number; left: number; width: number; height: number } | null>(null);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const cr = containerRef.current.getBoundingClientRect();
+
+    if (showGuideTip && guideRef.current) {
+      const r = guideRef.current.getBoundingClientRect();
+      setGuidePos({ top: r.top - cr.top, left: r.left - cr.left, width: r.width, height: r.height });
+    }
+    if (!showGuideTip && showPlayTip && playRef.current) {
+      const r = playRef.current.getBoundingClientRect();
+      setPlayPos({ top: r.top - cr.top, left: r.left - cr.left, width: r.width, height: r.height });
+    }
+    if (!showGuideTip && !showPlayTip && showSkipTip && skipRef.current) {
+      const r = skipRef.current.getBoundingClientRect();
+      setSkipPos({ top: r.top - cr.top, left: r.left - cr.left, width: r.width, height: r.height });
+    }
+  }, [showGuideTip, showPlayTip, showSkipTip]);
 
   // Sync reps from parent (adaptive logic) — render-time sync pattern (React-recommended)
   const [prevTargetReps, setPrevTargetReps] = useState(setInfo.targetReps);
@@ -623,7 +672,7 @@ export const FitScreen: React.FC<FitScreenProps> = ({
 
   // Main Active View
   return (
-    <div className="flex flex-col h-full bg-white animate-fade-in relative">
+    <div ref={containerRef} className="flex flex-col h-full bg-white animate-fade-in relative">
       {/* Header with Back Button */}
       <div className="pt-[max(2.5rem,env(safe-area-inset-top))] pb-3 sm:pb-8 px-6 flex items-center justify-between relative shrink-0">
         <button
@@ -661,6 +710,7 @@ export const FitScreen: React.FC<FitScreenProps> = ({
         {/* Skip Button for Timer Mode */}
         {isTimerMode && (
             <button
+              ref={skipRef}
               onClick={() => onSetComplete(0, "easy")}
               className="absolute right-6 z-10 text-xs font-black text-gray-400 tracking-widest hover:text-gray-600 transition-colors bg-gray-100 px-3 py-1.5 rounded-full"
             >
@@ -694,6 +744,7 @@ export const FitScreen: React.FC<FitScreenProps> = ({
                 )}
                 <div className="mt-3 flex items-center gap-2.5">
                   <button
+                    ref={guideRef}
                     onClick={() => setShowGuide(true)}
                     className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-emerald-50 border border-emerald-100 text-[#2D6A4F] active:scale-95 transition-all"
                   >
@@ -821,6 +872,7 @@ export const FitScreen: React.FC<FitScreenProps> = ({
                 ) : !isPlaying && elapsedTime === 0 && !timerCompleted ? (
                   /* Initial state — show play button */
                   <button
+                    ref={playRef}
                     onClick={() => setIsPlaying(true)}
                     className="w-28 h-28 rounded-full flex items-center justify-center bg-[#2D6A4F] text-white shadow-xl active:scale-95 transition-all hover:bg-[#1B4332]"
                   >
@@ -1155,6 +1207,75 @@ export const FitScreen: React.FC<FitScreenProps> = ({
             >
               확인
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Warmup Tutorial — 자세 가이드 */}
+      {showGuideTip && guidePos && isTimerMode && (
+        <div className="absolute inset-0 z-[60] animate-fade-in" onClick={dismissGuideTip}>
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px]" />
+          <div
+            className="absolute rounded-full border-2 border-white/80 bg-white/10"
+            style={{ top: guidePos.top - 4, left: guidePos.left - 4, width: guidePos.width + 8, height: guidePos.height + 8 }}
+          />
+          <div
+            className="absolute px-4"
+            style={{ top: guidePos.top + guidePos.height + 14, left: 0, right: 0 }}
+          >
+            <div className="bg-white rounded-2xl px-5 py-4 shadow-2xl mx-2 relative">
+              <div className="absolute -top-2 w-4 h-4 bg-white rotate-45 rounded-sm" style={{ left: guidePos.left + guidePos.width / 2 - 8 }} />
+              <p className="text-sm font-bold text-[#1B4332] leading-relaxed">
+                운동을 모르면 여기서<br/>자세를 확인할 수 있어요
+              </p>
+              <p className="text-[11px] text-gray-400 mt-2 font-medium">탭하여 닫기</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Warmup Tutorial — 재생 버튼 */}
+      {!showGuideTip && showPlayTip && playPos && isTimerMode && (
+        <div className="absolute inset-0 z-[60] animate-fade-in" onClick={dismissPlayTip}>
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px]" />
+          <div
+            className="absolute rounded-full border-2 border-white/80 bg-white/10"
+            style={{ top: playPos.top - 4, left: playPos.left - 4, width: playPos.width + 8, height: playPos.height + 8 }}
+          />
+          <div
+            className="absolute px-4"
+            style={{ top: playPos.top - 90, left: 0, right: 0 }}
+          >
+            <div className="bg-white rounded-2xl px-5 py-4 shadow-2xl mx-2 relative">
+              <p className="text-sm font-bold text-[#1B4332] leading-relaxed">
+                재생 버튼을 눌러<br/>운동을 시작하세요
+              </p>
+              <p className="text-[11px] text-gray-400 mt-2 font-medium">탭하여 닫기</p>
+              <div className="absolute -bottom-2 w-4 h-4 bg-white rotate-45 rounded-sm" style={{ left: playPos.left + playPos.width / 2 - 8 }} />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Warmup Tutorial — SKIP 버튼 */}
+      {!showGuideTip && !showPlayTip && showSkipTip && skipPos && isTimerMode && (
+        <div className="absolute inset-0 z-[60] animate-fade-in" onClick={dismissSkipTip}>
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px]" />
+          <div
+            className="absolute rounded-full border-2 border-white/80 bg-white/10"
+            style={{ top: skipPos.top - 4, left: skipPos.left - 4, width: skipPos.width + 8, height: skipPos.height + 8 }}
+          />
+          <div
+            className="absolute px-4"
+            style={{ top: skipPos.top + skipPos.height + 14, left: 0, right: 0 }}
+          >
+            <div className="bg-white rounded-2xl px-5 py-4 shadow-2xl mx-2 relative">
+              <div className="absolute -top-2 w-4 h-4 bg-white rotate-45 rounded-sm" style={{ left: skipPos.left + skipPos.width / 2 - 8 }} />
+              <p className="text-sm font-bold text-[#1B4332] leading-relaxed">
+                넘기고 싶으면 SKIP을 눌러주세요
+              </p>
+              <p className="text-[11px] text-gray-400 mt-2 font-medium">탭하여 닫기</p>
+            </div>
           </div>
         </div>
       )}

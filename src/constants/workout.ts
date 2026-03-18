@@ -484,6 +484,10 @@ const CORE_EXERCISES = {
 
 // --- Exercise Swap: find alternatives from the same muscle-group pool ---
 export const ALL_EXERCISE_POOLS: string[][] = [
+  // Warmup
+  ...Object.values(WARMUP_POOLS),
+  ...Object.values(WARMUP_POOLS_RUN),
+  ...Object.values(WARMUP_POOLS_MOBILITY),
   // Push
   PUSH_EXERCISES.mainCompound,
   PUSH_EXERCISES.verticalPress,
@@ -514,6 +518,7 @@ export const ALL_EXERCISE_POOLS: string[][] = [
 
 // Labeled exercise pools for search with muscle group info
 export const LABELED_EXERCISE_POOLS: { label: string; keywords: string[]; exercises: string[] }[] = [
+  { label: "웜업", keywords: ["웜업", "warmup", "스트레칭", "stretch", "동적", "폼롤러"], exercises: [...new Set([...Object.values(WARMUP_POOLS).flat(), ...Object.values(WARMUP_POOLS_RUN).flat(), ...Object.values(WARMUP_POOLS_MOBILITY).flat()])] },
   { label: "가슴", keywords: ["가슴", "chest", "푸쉬", "push"], exercises: [...PUSH_EXERCISES.mainCompound, ...PUSH_EXERCISES.accessory] },
   { label: "어깨", keywords: ["어깨", "shoulder", "숄더", "델트"], exercises: [...PUSH_EXERCISES.verticalPress, ...PUSH_EXERCISES.isoShoulder] },
   { label: "삼두", keywords: ["삼두", "트라이셉", "tricep", "팔뒤"], exercises: [...PUSH_EXERCISES.isoTricep] },

@@ -62,6 +62,7 @@ export const MasterPlanPreview: React.FC<MasterPlanPreviewProps> = ({
   }, [sessionData]);
 
   const [isEditing, setIsEditing] = useState(false);
+  const [expandedCard, setExpandedCard] = useState<number | null>(null);
   const [guideExercise, setGuideExercise] = useState<ExerciseStep | null>(null);
   const [swapExercise, setSwapExercise] = useState<{ exercise: ExerciseStep; index: number; sameGroup: string[] } | null>(null);
   const [swapSearch, setSwapSearch] = useState("");
@@ -100,11 +101,11 @@ export const MasterPlanPreview: React.FC<MasterPlanPreviewProps> = ({
     localStorage.setItem("alpha_tip_guide_button", "1");
   };
 
-  const firstGuideRef = useRef<HTMLButtonElement>(null);
+  const firstGuideRef = useRef<HTMLDivElement>(null);
   const settingsBtnRef = useRef<HTMLButtonElement>(null);
   const descRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [guideBtnPos, setGuideBtnPos] = useState<{ top: number; left: number } | null>(null);
+  const [guideBtnPos, setGuideBtnPos] = useState<{ top: number; left: number; width: number; height: number } | null>(null);
   const [settingsBtnPos, setSettingsBtnPos] = useState<{ top: number; right: number } | null>(null);
   const [descPos, setDescPos] = useState<{ top: number; left: number; width: number; height: number } | null>(null);
 
@@ -135,6 +136,8 @@ export const MasterPlanPreview: React.FC<MasterPlanPreviewProps> = ({
       setGuideBtnPos({
         top: btnRect.top - containerRect.top,
         left: btnRect.left - containerRect.left,
+        width: btnRect.width,
+        height: btnRect.height,
       });
     }
   }, [showIntroTip, showTip, showGuideTip]);
@@ -265,10 +268,13 @@ export const MasterPlanPreview: React.FC<MasterPlanPreviewProps> = ({
                 {phase.exercises.map((ex, i) => {
                   const globalIdx = localExercises.indexOf(ex);
                   const canAdjustSets = (ex.type === "strength" || ex.type === "core") && ex.sets > 0;
+                  const isExpanded = expandedCard === globalIdx;
+                  const hasSwap = getAlternativeExercises(ex.name).length > 0;
                   return (
                   <div
                     key={i}
-                    className={`rounded-2xl p-4 transition-all bg-white border-2 ${
+                    ref={phaseIdx === 0 && i === 0 ? firstGuideRef : undefined}
+                    className={`rounded-2xl p-4 transition-all bg-white border-2 active:scale-[0.98] ${
                       phase.key === "main"
                         ? "border-[#1B4332] shadow-[2px_2px_0px_0px_#1B4332]"
                         : phase.key === "warmup"
@@ -279,39 +285,9 @@ export const MasterPlanPreview: React.FC<MasterPlanPreviewProps> = ({
                         ? "border-emerald-500 shadow-[2px_2px_0px_0px_#10B981]"
                         : "border-gray-300 shadow-[2px_2px_0px_0px_#D1D5DB]"
                     }`}
+                    onClick={() => setExpandedCard(isExpanded ? null : globalIdx)}
                   >
-                    <div className="flex justify-between items-start gap-2">
-                      <div className="flex flex-col gap-1 shrink-0 mt-0.5">
-                        <button
-                          ref={phaseIdx === 0 && i === 0 ? firstGuideRef : undefined}
-                          onClick={() => setGuideExercise(ex)}
-                          className={`w-6 h-6 rounded-full flex items-center justify-center transition-colors ${
-                            phase.key === "main"
-                              ? "bg-[#1B4332]/10 text-[#1B4332] hover:bg-[#1B4332]/20"
-                              : phase.key === "warmup"
-                              ? "bg-gray-700/10 text-gray-700 hover:bg-gray-700/20"
-                              : phase.key === "core"
-                              ? "bg-gray-600/10 text-gray-600 hover:bg-gray-600/20"
-                              : phase.key === "cardio"
-                              ? "bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20"
-                              : "bg-gray-100 text-gray-400 hover:bg-gray-200"
-                          }`}
-                        >
-                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827m0 3h.01" />
-                          </svg>
-                        </button>
-                        {(ex.type === "strength" || ex.type === "core") && getAlternativeExercises(ex.name).length > 0 && (
-                          <button
-                            onClick={() => openSwapSheet(ex, globalIdx)}
-                            className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 hover:bg-gray-200 hover:text-gray-600 transition-colors"
-                          >
-                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
-                            </svg>
-                          </button>
-                        )}
-                      </div>
+                    <div className="flex justify-between items-center gap-2">
                       <div className="flex-1 min-w-0">
                         <span className="text-sm font-bold block leading-snug text-gray-900">
                           {ex.name}
@@ -323,7 +299,7 @@ export const MasterPlanPreview: React.FC<MasterPlanPreviewProps> = ({
                       <div className="flex items-center gap-1.5 ml-2 shrink-0">
                         {canAdjustSets && (
                           <button
-                            onClick={() => adjustSets(globalIdx, -1)}
+                            onClick={(e) => { e.stopPropagation(); adjustSets(globalIdx, -1); }}
                             disabled={ex.sets <= 1}
                             className="w-6 h-6 rounded-lg bg-gray-100 flex items-center justify-center text-gray-500 active:scale-90 transition-all disabled:opacity-30"
                           >
@@ -347,7 +323,7 @@ export const MasterPlanPreview: React.FC<MasterPlanPreviewProps> = ({
                         </span>
                         {canAdjustSets && (
                           <button
-                            onClick={() => adjustSets(globalIdx, 1)}
+                            onClick={(e) => { e.stopPropagation(); adjustSets(globalIdx, 1); }}
                             disabled={ex.sets >= 10}
                             className="w-6 h-6 rounded-lg bg-gray-100 flex items-center justify-center text-gray-500 active:scale-90 transition-all disabled:opacity-30"
                           >
@@ -358,6 +334,37 @@ export const MasterPlanPreview: React.FC<MasterPlanPreviewProps> = ({
                         )}
                       </div>
                     </div>
+
+                    {/* Expanded Action Buttons */}
+                    {isExpanded && (
+                      <div className="flex gap-2 mt-3 pt-3 border-t border-gray-100">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const parts = ex.name.split('(');
+                            const searchTerm = parts.length > 1 ? parts[1].replace(')', '').trim() : parts[0].trim();
+                            window.open(`https://www.youtube.com/results?search_query=${encodeURIComponent(searchTerm + " exercise form guide")}`, "_blank");
+                          }}
+                          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-[#1B4332] text-white active:scale-95 transition-all"
+                        >
+                          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                          </svg>
+                          <span className="text-xs font-bold">자세 가이드</span>
+                        </button>
+                        {hasSwap && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); openSwapSheet(ex, globalIdx); }}
+                            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-gray-100 text-gray-600 active:scale-95 transition-all"
+                          >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
+                            </svg>
+                            <span className="text-xs font-bold">운동 교체</span>
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
                   );
                 })}
@@ -616,22 +623,22 @@ export const MasterPlanPreview: React.FC<MasterPlanPreviewProps> = ({
         </div>
       )}
 
-      {/* Guide Button Tutorial Overlay */}
+      {/* Card Tap Tutorial Overlay */}
       {!showIntroTip && !showTip && showGuideTip && guideBtnPos && (
         <div className="absolute inset-0 z-[60] animate-fade-in" onClick={dismissGuideTip}>
           <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px]" />
-          <div className="absolute flex items-start gap-3" style={{ top: guideBtnPos.top - 4, left: guideBtnPos.left - 4 }}>
-            {/* Spotlight ring on actual button */}
-            <div className="w-9 h-9 rounded-full border-2 border-white/80 bg-white/10 flex items-center justify-center shrink-0">
-              <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827m0 3h.01" />
-              </svg>
-            </div>
-            {/* Tooltip bubble */}
-            <div className="bg-white rounded-2xl px-5 py-4 shadow-2xl max-w-[240px] relative mt-0.5">
-              <div className="absolute top-3 -left-2 w-4 h-4 bg-white rotate-45 rounded-sm" />
+          <div
+            className="absolute rounded-2xl border-2 border-white/80 bg-white/10"
+            style={{ top: guideBtnPos.top - 4, left: guideBtnPos.left - 4, width: guideBtnPos.width + 8, height: guideBtnPos.height + 8 }}
+          />
+          <div
+            className="absolute px-4"
+            style={{ top: guideBtnPos.top + guideBtnPos.height + 14, left: 0, right: 0 }}
+          >
+            <div className="bg-white rounded-2xl px-5 py-4 shadow-2xl mx-2 relative">
+              <div className="absolute -top-2 left-8 w-4 h-4 bg-white rotate-45 rounded-sm" />
               <p className="text-sm font-bold text-[#1B4332] leading-relaxed">
-                운동 설명과 자세가 궁금하면 여기를,<br/>↔ 버튼으로 운동을 교체할 수 있어요
+                운동 카드를 탭하면<br/>자세 가이드와 운동 교체를 할 수 있어요
               </p>
               <p className="text-[11px] text-gray-400 mt-2 font-medium">탭하여 닫기</p>
             </div>
