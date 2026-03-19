@@ -329,6 +329,13 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ user, on
   // Always fetch full subscription details (initialStatus only sets initial UI state)
   useEffect(() => {
     checkSubscription();
+    // Lazy-load PortOne SDK
+    if (!window.PortOne && !document.querySelector('script[src*="portone"]')) {
+      const s = document.createElement("script");
+      s.src = "https://cdn.portone.io/v2/browser-sdk.js";
+      s.async = true;
+      document.head.appendChild(s);
+    }
   }, []);
 
   const checkSubscription = async () => {

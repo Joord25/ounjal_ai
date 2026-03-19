@@ -10,7 +10,7 @@ import { WorkoutReport } from "@/components/WorkoutReport";
 import { WorkoutSession } from "@/components/WorkoutSession";
 import { ProofTab } from "@/components/ProofTab";
 import { MyProfileTab } from "@/components/MyProfileTab";
-import { generateAdaptiveWorkout, WorkoutSessionData, UserCondition, WorkoutGoal, ExerciseLog, WorkoutHistory } from "@/constants/workout";
+import type { WorkoutSessionData, UserCondition, WorkoutGoal, ExerciseLog, WorkoutHistory } from "@/constants/workout";
 import { generateAIWorkoutPlan } from "@/utils/gemini";
 import { buildWorkoutMetrics, getIntensityRecommendation } from "@/utils/workoutMetrics";
 import { saveWorkoutHistory, updateWorkoutAnalysis, loadWorkoutHistory } from "@/utils/workoutHistory";
@@ -19,6 +19,11 @@ import { onAuthStateChanged, signOut, User } from "firebase/auth";
 import { SubscriptionScreen } from "@/components/SubscriptionScreen";
 import { loadUserProfile } from "@/utils/userProfile";
 import { useSafeArea } from "@/hooks/useSafeArea";
+
+const lazyGenerateWorkout = async (...args: Parameters<typeof import("@/constants/workout").generateAdaptiveWorkout>) => {
+  const { generateAdaptiveWorkout } = await import("@/constants/workout");
+  return await lazyGenerateWorkout(...args);
+};
 
 type ViewState =
   | "login"
@@ -219,7 +224,7 @@ export default function Home() {
         // If sessionMode is set (new UI), use algorithm with min 1.5s loading UX
         if (sessionSel?.sessionMode) {
             const [session] = await Promise.all([
-                Promise.resolve(generateAdaptiveWorkout(scheduleIndex, condition, goal, sessionType, intensityLevel, sessionSel.sessionMode, sessionSel.targetMuscle, sessionSel.runType)),
+                Promise.resolve(await lazyGenerateWorkout(scheduleIndex, condition, goal, sessionType, intensityLevel, sessionSel.sessionMode, sessionSel.targetMuscle, sessionSel.runType)),
                 new Promise(r => setTimeout(r, 2000)),
             ]);
             setCurrentWorkoutSession(session);
@@ -231,7 +236,7 @@ export default function Home() {
                 setCurrentWorkoutSession(aiSession);
             } else {
                 console.warn("AI generation failed, falling back to algorithm.");
-                const session = generateAdaptiveWorkout(scheduleIndex, condition, goal, sessionType, intensityLevel);
+                const session = await lazyGenerateWorkout(scheduleIndex, condition, goal, sessionType, intensityLevel);
                 setCurrentWorkoutSession(session);
             }
         }
@@ -239,7 +244,7 @@ export default function Home() {
         console.error("Error generating workout:", e);
         const dayIndex = new Date().getDay();
         const scheduleIndex = dayIndex === 0 ? 6 : dayIndex - 1;
-        const session = generateAdaptiveWorkout(scheduleIndex, condition, goal, sessionType, intensityLevel, sessionSel?.sessionMode, sessionSel?.targetMuscle, sessionSel?.runType);
+        const session = await lazyGenerateWorkout(scheduleIndex, condition, goal, sessionType, intensityLevel, sessionSel?.sessionMode, sessionSel?.targetMuscle, sessionSel?.runType);
         setCurrentWorkoutSession(session);
     } finally {
         setIsLoading(false);
@@ -306,20 +311,20 @@ export default function Home() {
     setView("master_plan_preview");
   };
 
-  const handleIntensityChange = (level: "high" | "moderate" | "low") => {
+  const handleIntensityChange = async (level: "high" | "moderate" | "low") => {
     setRecommendedIntensity(level);
     if (!currentCondition || !currentGoal) return;
     const dayIndex = new Date().getDay();
     const scheduleIndex = dayIndex === 0 ? 6 : dayIndex - 1;
-    const session = generateAdaptiveWorkout(scheduleIndex, currentCondition, currentGoal, undefined, level, currentSession?.sessionMode, currentSession?.targetMuscle, currentSession?.runType);
+    const session = await lazyGenerateWorkout(scheduleIndex, currentCondition, currentGoal, undefined, level, currentSession?.sessionMode, currentSession?.targetMuscle, currentSession?.runType);
     setCurrentWorkoutSession(session);
   };
 
-  const handleRegenerate = () => {
+  const handleRegenerate = async () => {
     if (!currentCondition || !currentGoal) return;
     const dayIndex = new Date().getDay();
     const scheduleIndex = dayIndex === 0 ? 6 : dayIndex - 1;
-    const session = generateAdaptiveWorkout(scheduleIndex, currentCondition, currentGoal, undefined, recommendedIntensity, currentSession?.sessionMode, currentSession?.targetMuscle, currentSession?.runType);
+    const session = await lazyGenerateWorkout(scheduleIndex, currentCondition, currentGoal, undefined, recommendedIntensity, currentSession?.sessionMode, currentSession?.targetMuscle, currentSession?.runType);
     setCurrentWorkoutSession(session);
   };
 
@@ -343,7 +348,12 @@ export default function Home() {
   };
 
   const renderContent = () => {
-    if (!isInitialized) return null;
+    if (!isInitialized) return (
+      <div className="flex flex-col items-center justify-center h-full bg-white">
+        <div className="w-10 h-10 border-4 border-emerald-100 border-t-[#5C795E] rounded-full animate-spin mb-4" />
+        <p className="text-sm text-gray-400 animate-pulse">잠시만요...</p>
+      </div>
+    );
 
     if (activeTab === "proof") {
       return <ProofTab lockedRuleIds={[]} />;
