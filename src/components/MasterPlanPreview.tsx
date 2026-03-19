@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { THEME } from "@/constants/theme";
 import { WorkoutSessionData, ExerciseStep, getAlternativeExercises, LABELED_EXERCISE_POOLS } from "@/constants/workout";
+import { PlanShareCard } from "./PlanShareCard";
 
 interface MasterPlanPreviewProps {
   sessionData: WorkoutSessionData;
@@ -68,6 +69,7 @@ export const MasterPlanPreview: React.FC<MasterPlanPreviewProps> = ({
   const [swapSearch, setSwapSearch] = useState("");
   const [swapFilter, setSwapFilter] = useState<string | null>(null); // null = 추천(같은부위), or muscle group label
   const [addToPhase, setAddToPhase] = useState<string | null>(null); // phase key for "add exercise" mode
+  const [showShareCard, setShowShareCard] = useState(false);
   const [showIntroTip, setShowIntroTip] = useState(() => {
     if (typeof window !== "undefined") {
       return !localStorage.getItem("alpha_tip_intro");
@@ -421,15 +423,26 @@ export const MasterPlanPreview: React.FC<MasterPlanPreviewProps> = ({
 
       {/* Bottom CTA */}
       <div className="absolute bottom-0 left-0 right-0 px-5 pt-8 bg-gradient-to-t from-[#FAFBF9] via-[#FAFBF9] to-transparent z-20" style={{ paddingBottom: "calc(var(--safe-area-bottom, 0px) + 8px)" }}>
-        <button
-          onClick={() => onStart({ ...sessionData, exercises: localExercises })}
-          className="w-full h-14 rounded-2xl bg-[#1B4332] active:scale-[0.98] transition-all flex items-center justify-center gap-3 shadow-xl shadow-[#1B4332]/20 hover:bg-[#2D6A4F]"
-        >
-          <span className="text-white font-black text-base tracking-wide">START WORKOUT</span>
-          <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M8 5v14l11-7z" />
-          </svg>
-        </button>
+        <div className="flex items-center gap-2.5">
+          <button
+            onClick={() => setShowShareCard(true)}
+            className="h-14 px-5 rounded-2xl bg-white border-2 border-gray-200 active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-sm"
+          >
+            <svg className="w-5 h-5 text-[#1B4332]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+            </svg>
+            <span className="text-[#1B4332] font-black text-sm">공유</span>
+          </button>
+          <button
+            onClick={() => onStart({ ...sessionData, exercises: localExercises })}
+            className="flex-1 h-14 rounded-2xl bg-[#1B4332] active:scale-[0.98] transition-all flex items-center justify-center gap-3 shadow-xl shadow-[#1B4332]/20 hover:bg-[#2D6A4F]"
+          >
+            <span className="text-white font-black text-base tracking-wide">START WORKOUT</span>
+            <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M8 5v14l11-7z" />
+            </svg>
+          </button>
+        </div>
       </div>
 
       {/* Plan Adjustment Bottom Sheet */}
@@ -791,6 +804,15 @@ export const MasterPlanPreview: React.FC<MasterPlanPreviewProps> = ({
       )}
 
       {/* Exercise Guide Bottom Sheet */}
+      {/* Plan Share Card */}
+      {showShareCard && (
+        <PlanShareCard
+          exercises={localExercises}
+          currentIntensity={currentIntensity}
+          onClose={() => setShowShareCard(false)}
+        />
+      )}
+
       {guideExercise && (
         <div className="absolute inset-0 z-50">
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-fade-in" onClick={() => setGuideExercise(null)} />
