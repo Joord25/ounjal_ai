@@ -216,9 +216,12 @@ export default function Home() {
         const dayIndex = new Date().getDay();
         const scheduleIndex = dayIndex === 0 ? 6 : dayIndex - 1;
 
-        // If sessionMode is set (new UI), use algorithm directly (instant, free)
+        // If sessionMode is set (new UI), use algorithm with min 1.5s loading UX
         if (sessionSel?.sessionMode) {
-            const session = generateAdaptiveWorkout(scheduleIndex, condition, goal, sessionType, intensityLevel, sessionSel.sessionMode, sessionSel.targetMuscle, sessionSel.runType);
+            const [session] = await Promise.all([
+                Promise.resolve(generateAdaptiveWorkout(scheduleIndex, condition, goal, sessionType, intensityLevel, sessionSel.sessionMode, sessionSel.targetMuscle, sessionSel.runType)),
+                new Promise(r => setTimeout(r, 2000)),
+            ]);
             setCurrentWorkoutSession(session);
         } else {
             // Legacy path: try Gemini AI first

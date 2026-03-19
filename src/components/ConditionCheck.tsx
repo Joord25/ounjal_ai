@@ -458,7 +458,6 @@ const GoalSelection = ({
   recommendedIntensity: "high" | "moderate" | "low" | null;
   goalSectionRef: React.RefObject<HTMLDivElement | null>;
 }) => {
-  const [showMore, setShowMore] = useState(false);
   const [subView, setSubView] = useState<"split" | "running" | null>(null);
   const recGoal = recommendedIntensity ? INTENSITY_TO_GOAL[recommendedIntensity] : null;
 
@@ -563,35 +562,21 @@ const GoalSelection = ({
         />
       </div>
 
-      {/* 다른 운동 접기/펼치기 */}
-      <button
-        onClick={() => setShowMore(!showMore)}
-        className="flex items-center justify-center gap-1.5 py-3 text-sm font-semibold text-gray-500 hover:text-gray-700 transition-colors"
-      >
-        다른 운동
-        <svg
-          className={`w-4 h-4 transition-transform duration-200 ${showMore ? "rotate-180" : ""}`}
-          fill="none" viewBox="0 0 24 24" stroke="currentColor"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
-        </svg>
-      </button>
-
-      {showMore && (
-        <div className="flex flex-col gap-3 animate-fade-in">
+      {/* 다른 운동 */}
+      <div className="flex flex-col gap-3">
           <ConditionCard
             selected={false}
             onClick={() => setSubView("split")}
             title="부위별 운동"
             desc="가슴, 등, 어깨, 팔, 하체 중 선택"
-            delay={0.05}
+            delay={0.2}
           />
           <ConditionCard
             selected={false}
             onClick={() => setSubView("running")}
             title="러닝 훈련"
             desc="인터벌, 이지런, 장거리 중 선택"
-            delay={0.1}
+            delay={0.25}
           />
           <ConditionCard
             selected={false}
@@ -599,10 +584,9 @@ const GoalSelection = ({
             title="기초체력 강화"
             desc="맨몸 + 덤벨, 집에서도 가능한 전신 운동"
             highlight="Fit"
-            delay={0.15}
+            delay={0.3}
           />
-        </div>
-      )}
+      </div>
     </div>
   );
 };
