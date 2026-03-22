@@ -6,6 +6,6 @@ export default function robots(): MetadataRoute.Robots {
       userAgent: "*",
       allow: "/",
     },
-    sitemap: "https://ohunjal.web.app/sitemap.xml",
+    sitemap: "https://ohunjal.com/sitemap.xml",
   };
 }
