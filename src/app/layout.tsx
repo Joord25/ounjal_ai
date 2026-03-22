@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Cormorant_Garamond } from "next/font/google";
-import "pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css";
+// Pretendard loaded via CDN in <head> for cross-platform reliability
 import "./globals.css";
 
 const inter = Inter({
@@ -91,6 +91,7 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <head>
+        <link rel="stylesheet" as="style" crossOrigin="anonymous" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
         <meta name="theme-color" content="#1B4332" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
