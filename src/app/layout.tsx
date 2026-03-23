@@ -22,7 +22,7 @@ export const metadata: Metadata = {
   },
   manifest: "/manifest.json",
   title: "오운잘 AI - AI 운동 루틴 자동 생성 | 운동 기록 앱 | 헬스 루틴 생성 AI",
-  description: "AI가 오늘 컨디션에 맞춰 운동 루틴을 자동 생성하는 운동 기록 앱. 헬린이도 쉽게! 웨이트, 맨몸운동, 러닝까지 맞춤 운동 추천. 운동 일지 자동 저장, AI 운동 코칭, 운동 분석 리포트 제공. 오운완 인증샷까지. PT 대체 서비스, 월 6,900원.",
+  description: "AI가 오늘 컨디션에 맞춰 운동 루틴을 자동 생성하는 운동 기록 앱. 헬린이도 쉽게! 웨이트, 맨몸운동, 러닝까지 맞춤 운동 추천. 운동 일지 자동 저장, AI 운동 코칭, 운동 분석 리포트 제공. 주간 퀘스트 달성하고 시즌 티어 올리는 게임형 운동 동기부여. 오운완 인증샷까지. PT 대체 서비스, 월 6,900원.",
   keywords: [
     "오운잘", "오운잘AI", "AI 운동", "AI 헬스", "AI 운동 추천", "AI 운동 플래너",
     "운동 루틴", "헬스 루틴", "운동 루틴 추천", "헬스 루틴 추천", "헬스 루틴 생성",
@@ -38,11 +38,13 @@ export const metadata: Metadata = {
     "홈트레이닝", "홈트", "맨몸운동", "덤벨 운동", "바벨 운동",
     "스쿼트", "벤치프레스", "데드리프트", "3대 운동", "분할 운동",
     "체중 기록", "인바디 기록", "운동 볼륨", "운동 분석", "운동 리포트",
+    "운동 퀘스트", "운동 티어", "운동 레벨", "운동 동기부여", "운동 게이미피케이션",
+    "운동 도전", "운동 미션", "운동 성장", "운동 시즌", "운동 랭크",
     "피트니스 플랫폼", "workout planner", "fitness app", "workout tracker",
   ],
   openGraph: {
     title: "오운잘 AI - AI가 만드는 오늘의 맞춤 운동",
-    description: "컨디션 입력하면 AI가 최적의 운동 루틴을 생성. 세트·무게·횟수 자동 조절, 운동 분석 리포트까지.",
+    description: "컨디션 입력하면 AI가 최적의 운동 루틴을 생성. 세트·무게·횟수 자동 조절, 운동 분석 리포트, 주간 퀘스트와 시즌 티어까지.",
     type: "website",
     locale: "ko_KR",
     siteName: "오운잘 AI",
@@ -58,7 +60,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "오운잘 AI - AI 맞춤 운동 플래너",
-    description: "AI가 오늘 컨디션에 맞춰 운동 루틴을 자동 생성. 근력 운동 기록, 볼륨 추적, 체중 그래프, AI 분석 리포트.",
+    description: "AI가 오늘 컨디션에 맞춰 운동 루틴을 자동 생성. 근력 운동 기록, 볼륨 추적, 체중 그래프, AI 분석 리포트. 주간 퀘스트와 시즌 티어로 운동 동기부여.",
     images: ["https://ohunjal.com/og-image.png"],
   },
   robots: {
@@ -95,6 +97,7 @@ export default function RootLayout({
           }}
         />
         <link rel="stylesheet" as="style" crossOrigin="anonymous" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@kfonts/neodgm@0.5.0/index.css" />
         <meta name="theme-color" content="#1B4332" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -114,12 +117,12 @@ export default function RootLayout({
               "name": "오운잘 AI",
               "applicationCategory": "HealthApplication",
               "operatingSystem": "Web",
-              "description": "AI가 오늘 컨디션에 맞춰 운동 루틴을 자동 생성해주는 맞춤형 헬스 트래커. 근력 운동 기록, 볼륨 추적, 체중 변화 그래프, AI 운동 분석 리포트 제공.",
+              "description": "AI가 오늘 컨디션에 맞춰 운동 루틴을 자동 생성해주는 맞춤형 헬스 트래커. 근력 운동 기록, 볼륨 추적, 체중 변화 그래프, AI 운동 분석 리포트 제공. 주간 퀘스트와 시즌 티어로 게임처럼 운동 동기부여.",
               "offers": {
                 "@type": "Offer",
-                "price": "9900",
+                "price": "6900",
                 "priceCurrency": "KRW",
-                "description": "프리미엄 월간 구독"
+                "description": "프리미엄 월간 구독 (초기 특가)"
               },
               "author": {
                 "@type": "Organization",
@@ -147,6 +150,7 @@ export default function RootLayout({
               <li>체중 변화 그래프 - 매일 체중 기록으로 다이어트·벌크업 진행 상황 확인</li>
               <li>AI 운동 분석 리포트 - Gemini AI가 세션 데이터를 분석해 한국어 코칭 제공</li>
               <li>푸시/풀/레그/러닝/모빌리티 분할 운동 프로그램</li>
+              <li>주간 퀘스트 시스템 - 강도별 운동 미션을 완료하고 EXP를 획득해 시즌 티어를 올리는 게임형 동기부여</li>
             </ul>
             <h2>이런 분에게 추천합니다</h2>
             <ul>
@@ -159,7 +163,7 @@ export default function RootLayout({
             <h2>운동 종류</h2>
             <p>스쿼트, 벤치프레스, 데드리프트, 오버헤드프레스, 바벨로우, 풀업, 딥스, 런지, 레그프레스, 케이블 운동 등 100가지 이상의 운동을 지원합니다.</p>
             <h2>요금</h2>
-            <p>무료 플랜: 하루 3회 AI 플랜 생성 / 프리미엄: 월 9,900원 (초기 특가, 카카오페이 결제)</p>
+            <p>무료 플랜: 하루 3회 AI 플랜 생성 / 프리미엄: 월 6,900원 (초기 특가)</p>
             <p>사업자: 주드(Joord) | 대표: 임주용 | 사업자등록번호: 623-36-01460</p>
           </div>
         </noscript>

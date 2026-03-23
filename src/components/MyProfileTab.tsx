@@ -6,6 +6,8 @@ import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { storage, auth } from "@/lib/firebase";
 import { SubscriptionScreen, TERMS_TEXT, PRIVACY_TEXT, REFUND_TEXT } from "./SubscriptionScreen";
 import { updateGender, updateBirthYear } from "@/utils/userProfile";
+import { getTierFromExp, getOrRebuildSeasonExp, getCurrentSeason } from "@/utils/questSystem";
+import { loadWorkoutHistory } from "@/utils/workoutHistory";
 
 interface MyProfileTabProps {
   user: User | null;
@@ -36,6 +38,19 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout }) =>
   const [showTerms, setShowTerms] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
   const [showRefund, setShowRefund] = useState(false);
+  const [tierInfo, setTierInfo] = useState(() => getTierFromExp(0));
+  const [seasonLabel, setSeasonLabel] = useState(() => getCurrentSeason().label);
+
+  // Load tier from workout history
+  useEffect(() => {
+    loadWorkoutHistory().then(history => {
+      const bYear = typeof window !== "undefined" ? parseInt(localStorage.getItem("alpha_birth_year") || "") : NaN;
+      const g = typeof window !== "undefined" ? (localStorage.getItem("alpha_gender") as "male" | "female") || undefined : undefined;
+      const seasonExp = getOrRebuildSeasonExp(history, !isNaN(bYear) ? bYear : undefined, g);
+      setTierInfo(getTierFromExp(seasonExp.totalExp));
+      setSeasonLabel(getCurrentSeason().label);
+    }).catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (!user) return;
@@ -135,22 +150,29 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout }) =>
           disabled={isUploading}
           className="relative group"
         >
-          {displayPhoto ? (
-            <img
-              src={displayPhoto}
-              alt="Profile"
-              className="w-24 h-24 rounded-full object-cover border-2 border-gray-100"
-              referrerPolicy="no-referrer"
-            />
-          ) : (
-            <div className="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center">
-              <svg className="w-12 h-12 text-gray-300" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
-              </svg>
-            </div>
-          )}
+          {/* Tier-colored ring */}
+          <div className="w-[104px] h-[104px] rounded-full flex items-center justify-center p-[3px]" style={{ background: `linear-gradient(135deg, ${tierInfo.tier.color}, ${tierInfo.tier.color}80)` }}>
+            {displayPhoto ? (
+              <img
+                src={displayPhoto}
+                alt="Profile"
+                className="w-full h-full rounded-full object-cover border-2 border-white"
+                referrerPolicy="no-referrer"
+              />
+            ) : (
+              <div className="w-full h-full rounded-full bg-gray-100 flex items-center justify-center border-2 border-white">
+                <svg className="w-12 h-12 text-gray-300" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                </svg>
+              </div>
+            )}
+          </div>
+          {/* Tier badge */}
+          <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full text-[10px] font-black text-white shadow-md" style={{ backgroundColor: tierInfo.tier.color }}>
+            {tierInfo.tier.name}
+          </div>
           {/* Camera overlay */}
-          <div className="absolute inset-0 rounded-full bg-black/0 group-hover:bg-black/30 group-active:bg-black/30 transition-all flex items-center justify-center">
+          <div className="absolute inset-[3px] rounded-full bg-black/0 group-hover:bg-black/30 group-active:bg-black/30 transition-all flex items-center justify-center">
             {isUploading ? (
               <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
             ) : (
@@ -198,6 +220,9 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout }) =>
           )}
           <p className="text-xs text-gray-400 font-medium">
             {user?.email || ""}
+          </p>
+          <p className="text-[10px] font-bold mt-1" style={{ color: tierInfo.tier.color }}>
+            {seasonLabel}
           </p>
         </div>
       </div>
@@ -357,7 +382,7 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout }) =>
             <p className="font-medium text-gray-600">주드(Joord) · 대표 임주용</p>
             <p>사업자등록번호 623-36-01460</p>
             <p>서울특별시 관악구 은천로35길 40-6, 404호</p>
-            <p>Tel 010-4042-2820</p>
+            <p>Tel 010-4042-2820(문자만 가능)</p>
             <p>ounjal.ai.app@gmail.com</p>
             <p className="mt-2">Copyright © 2026 Joord. All rights reserved.</p>
           </div>

@@ -6,6 +6,125 @@ import { analyzeWorkoutSession } from "@/utils/gemini";
 import { buildWorkoutMetrics, estimateTrainingLevel, getOptimalLoadBand, getBig4FromHistory, summarizeHistoryForAI, classifySessionIntensity, getIntensityRecommendation } from "@/utils/workoutMetrics";
 import { ShareCard } from "./ShareCard";
 import { loadRecentHistory as loadRecentHistoryFromStore } from "@/utils/workoutHistory";
+import { getTierFromExp, type ExpLogEntry, sumExp, TIERS, processWorkoutCompletion, getOrRebuildSeasonExp } from "@/utils/questSystem";
+
+/* === RPG 리절트 카드 === */
+function RpgResultCard({ totalDurationSec, totalSets, totalVolume, successRate, isStrengthSession, seasonExp, prevSeasonExp, expGained, formatDuration, onHelpPress }: {
+  totalDurationSec: number; totalSets: number; totalVolume: number; successRate: number;
+  isStrengthSession: boolean; seasonExp: number; prevSeasonExp: number; expGained: ExpLogEntry[];
+  formatDuration: (s: number) => string; onHelpPress: () => void;
+}) {
+  const [visibleChars, setVisibleChars] = useState<number[]>([]);
+  const [currentLine, setCurrentLine] = useState(-1);
+  const [showExp, setShowExp] = useState(false);
+  const current = getTierFromExp(seasonExp);
+  const prev = getTierFromExp(prevSeasonExp);
+  const tierUp = current.tierIdx > prev.tierIdx;
+  const totalExpGained = sumExp(expGained);
+
+  const lines: { text: string; bold?: boolean; highlight?: boolean }[] = [
+    { text: "운동을 완료했다!", bold: true },
+    { text: `${formatDuration(totalDurationSec)} 동안 싸웠다!` },
+    { text: `${totalSets}세트를 클리어했다!` },
+    ...(isStrengthSession && totalVolume > 0 ? [{ text: `총 ${totalVolume.toLocaleString()}kg 을 들어올렸다!` }] : []),
+    { text: `달성률 ${successRate}%!` },
+    // Quest completion lines
+    ...expGained
+      .filter(e => e.source !== "workout")
+      .map(e => ({ text: `${e.detail}! +${e.amount} EXP`, bold: true, highlight: true })),
+    // Total EXP gained
+    ...(totalExpGained > 0 ? [{ text: `+${totalExpGained} EXP 획득!`, bold: true }] : []),
+    // Tier status
+    ...(tierUp
+      ? [{ text: `${prev.tier.name} → ${current.tier.name} 승급!`, bold: true, highlight: true }]
+      : current.nextTier
+        ? [{ text: `${current.tier.name}  ${current.nextTier.name}까지 ${current.remaining} EXP` }]
+        : [{ text: `${current.tier.name}  최고 티어 달성!`, bold: true, highlight: true }]),
+  ];
+
+  useEffect(() => {
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    let baseDelay = 300;
+    const charSpeed = 40; // ms per character
+    const linePause = 400; // pause between lines
+
+    lines.forEach((line, lineIdx) => {
+      // Start this line
+      timers.push(setTimeout(() => setCurrentLine(lineIdx), baseDelay));
+
+      // Type each character
+      for (let c = 0; c <= line.text.length; c++) {
+        timers.push(setTimeout(() => {
+          setVisibleChars(prev => {
+            const next = [...prev];
+            next[lineIdx] = c;
+            return next;
+          });
+        }, baseDelay + c * charSpeed));
+      }
+
+      baseDelay += line.text.length * charSpeed + linePause;
+    });
+
+    // Show EXP bar after all lines
+    timers.push(setTimeout(() => setShowExp(true), baseDelay));
+
+    return () => timers.forEach(clearTimeout);
+  }, []);
+
+  return (
+    <div className="mb-5">
+      <div className="bg-[#0f2a1f] rounded-2xl p-5 shadow-sm border border-[#1B4332] overflow-hidden relative" style={{ fontFamily: "'Neo둥근모', 'NeoDunggeunmo', monospace" }}>
+        {/* 레벨 도움말 버튼 */}
+        <button
+          onClick={onHelpPress}
+          className="absolute top-4 right-4 w-5 h-5 rounded-full bg-white/10 flex items-center justify-center"
+        >
+          <span className="text-[10px] font-black text-[#a7f3d0]">?</span>
+        </button>
+
+        <div className="flex flex-col gap-1.5">
+          {lines.map((line, i) => {
+            if (i > currentLine) return null;
+            const chars = visibleChars[i] ?? 0;
+            const displayText = line.text.slice(0, chars);
+            const isTyping = i === currentLine && chars < line.text.length;
+            return (
+              <p
+                key={i}
+                className={`text-[15px] leading-relaxed ${
+                  line.highlight ? "text-[#34d399] text-base" : line.bold ? "text-white" : "text-[#a7f3d0]"
+                }`}
+              >
+                {displayText}
+                {isTyping && <span className="inline-block w-2 h-4 bg-[#34d399]/50 ml-0.5 animate-pulse" />}
+              </p>
+            );
+          })}
+        </div>
+
+        {/* EXP 바 */}
+        {showExp && (
+          <div className="mt-4 pt-3 border-t border-[#1B4332] animate-fade-in">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[12px]" style={{ color: current.tier.color }}>{current.tier.name}</span>
+              <span className="text-[12px] text-[#a7f3d0]/60">
+                {current.nextTier ? `${seasonExp - current.tier.minExp}/${current.nextTier.minExp - current.tier.minExp} EXP` : "MAX"}
+              </span>
+            </div>
+            <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
+              <div
+                className="h-full rounded-full transition-all duration-1000"
+                style={{ width: `${current.progress * 100}%`, backgroundColor: current.tier.color }}
+              />
+            </div>
+          </div>
+        )}
+
+      </div>
+    </div>
+  );
+}
 
 interface WorkoutReportProps {
   sessionData: WorkoutSessionData;
@@ -57,6 +176,7 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
   const [analysis, setAnalysis] = useState<WorkoutAnalysis | null>(initialAnalysis);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [showLogs, setShowLogs] = useState(false);
+  const [showDetail, setShowDetail] = useState(false);
   const [showShare, setShowShare] = useState(false);
   const [closeAfterShare, setCloseAfterShare] = useState(false);
   const [helpCard, setHelpCard] = useState<string | null>(null);
@@ -197,6 +317,40 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
           <p className="text-xs text-gray-400 font-medium mt-1 animate-report-slide" style={{ animationDelay: "0.2s" }}>{(sessionDate ? new Date(sessionDate) : new Date()).toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric", weekday: "short" })}</p>
         </div>
 
+        {/* === RPG 리절트 화면 === */}
+        {(() => {
+          // Quest-based EXP: process this workout completion and get EXP state
+          const seasonState = getOrRebuildSeasonExp(recentHistory, birthYear, gender);
+          const prevExp = seasonState.totalExp;
+
+          // Build a pseudo WorkoutHistory for the current session to process quests
+          const currentSessionHistory: WorkoutHistory = {
+            id: `session-${Date.now()}`,
+            date: (sessionDate || new Date().toISOString()),
+            sessionData,
+            logs,
+            stats: { totalVolume, totalSets: isStrengthSession ? metrics.strengthSets : metrics.totalSets, totalReps: metrics.totalReps ?? 0, totalDurationSec, successRate },
+          };
+          const allHistoryWithCurrent = [...recentHistory, currentSessionHistory];
+          const expGained = processWorkoutCompletion(currentSessionHistory, allHistoryWithCurrent, birthYear, gender);
+          const currentExp = prevExp + sumExp(expGained);
+
+          return (
+            <RpgResultCard
+              totalDurationSec={totalDurationSec}
+              totalSets={isStrengthSession ? metrics.strengthSets : metrics.totalSets}
+              totalVolume={totalVolume}
+              successRate={successRate}
+              isStrengthSession={isStrengthSession}
+              seasonExp={currentExp}
+              prevSeasonExp={prevExp}
+              expGained={expGained}
+              formatDuration={formatDuration}
+              onHelpPress={() => setHelpCard("levelSystem")}
+            />
+          );
+        })()}
+
         {/* === AI Trend Analysis === */}
         <div className="mb-5">
           {isAnalyzing ? (
@@ -224,23 +378,15 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
                 )}
               </div>
               {typeof analysis.briefing === "object" && analysis.briefing !== null ? (
-                <div className="space-y-2.5">
+                <div className="space-y-3">
                   <p className="text-[15px] font-black text-[#1B4332]">{(analysis.briefing as BriefingStructured).headline}</p>
-                  {/* 수치 요약 라인 */}
-                  <div className="flex items-center gap-2 text-[11px] font-bold text-gray-500 bg-gray-50 rounded-lg px-3 py-1.5">
-                    <span>볼륨 {totalVolume.toLocaleString()}kg</span>
-                    <span className="text-gray-300">·</span>
-                    <span>1RM {bestE1RM ? Math.round(bestE1RM.value) + "kg" : "-"}</span>
-                    <span className="text-gray-300">·</span>
-                    <span>부하 {loadScore}</span>
+                  <p className="text-[13px] font-medium text-gray-600 leading-relaxed">{(analysis.briefing as BriefingStructured).insight}</p>
+                  <div className="flex items-center gap-1.5 text-[11px] text-gray-400">
+                    <span>📅</span>
+                    <p className="font-bold">{(analysis.briefing as BriefingStructured).weekProgress}</p>
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[10px]">📅</span>
-                    <p className="text-[11px] font-bold text-gray-500">{(analysis.briefing as BriefingStructured).weekProgress}</p>
-                  </div>
-                  <p className="text-[13px] font-medium text-gray-700 leading-snug">{(analysis.briefing as BriefingStructured).insight}</p>
-                  <div className="bg-emerald-50 rounded-lg px-3 py-2 mt-1">
-                    <p className="text-[12px] font-bold text-[#2D6A4F]">👉 {(analysis.briefing as BriefingStructured).action}</p>
+                  <div className="bg-[#f0fdf4] rounded-xl px-4 py-3">
+                    <p className="text-[13px] font-bold text-[#2D6A4F]">{(analysis.briefing as BriefingStructured).action}</p>
                   </div>
                 </div>
               ) : (
@@ -256,6 +402,24 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
           )}
         </div>
 
+        {/* === 상세 분석 (펼쳐보기) === */}
+        <div className="mb-5">
+          <button
+            onClick={() => setShowDetail(!showDetail)}
+            className="w-full flex items-center justify-between bg-white rounded-2xl border border-gray-100 p-4 shadow-sm active:scale-[0.99] transition-all"
+          >
+            <div className="flex items-center gap-2">
+              <div className="w-1 h-5 bg-[#2D6A4F] rounded-full" />
+              <span className="text-sm font-bold text-[#1B4332]">상세 분석</span>
+              <span className="text-[10px] text-gray-400 font-medium">1RM · 부하 · 강도 · 피로</span>
+            </div>
+            <svg className={`w-4 h-4 text-gray-400 transition-transform ${showDetail ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+        </div>
+
+        {showDetail && <>
         {/* === 2x2 Metric Cards === */}
         <div className="grid grid-cols-2 gap-2.5 mb-5">
           {isStrengthSession ? (
@@ -545,6 +709,7 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
             </>
           )}
         </div>
+        </>}
 
         {/* === Workout Logs (Collapsible) === */}
         <div className="mb-4">
@@ -900,6 +1065,30 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
                   </div>
                   <p>피로가 크면 다음 세션에서 볼륨을 줄이거나 휴식을 더 가져야 해요. 꾸준히 안정 구간이면 잘 관리되고 있는 거예요.</p>
                   <p className="text-[10px] text-gray-400 mt-2 pt-2 border-t border-gray-100">근거: Morán-Navarro et al. (2017), NSCA 세트간 피로 가이드라인, ACSM 회복 권장</p>
+                </div>
+              </>
+            )}
+            {helpCard === "levelSystem" && (
+              <>
+                <h3 className="text-lg font-black text-[#1B4332] mb-3">시즌 티어 시스템</h3>
+                <div className="space-y-3 text-[13px] text-gray-600 leading-relaxed">
+                  <p>운동을 완료할 때마다 <span className="font-bold text-[#1B4332]">경험치(EXP)</span>가 쌓이고, 일정 횟수를 채우면 티어가 올라가요.</p>
+                  <div className="bg-gray-50 rounded-xl p-3 space-y-2">
+                    <p className="text-[11px] font-bold text-gray-500">시즌 티어 구간</p>
+                    <div className="space-y-1.5">
+                      {TIERS.map((t, i) => {
+                        const next = TIERS[i + 1];
+                        return (
+                          <div key={t.name} className="flex items-center gap-2">
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded shrink-0 min-w-[72px] text-center" style={{ backgroundColor: `${t.color}20`, color: t.color }}>{t.name}</span>
+                            <span className="text-[10px] text-gray-500">{next ? `${t.minExp}~${next.minExp - 1} EXP` : `${t.minExp} EXP+`}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <p>시즌은 <span className="font-bold text-[#1B4332]">4개월마다 리셋</span>돼요 (1~4월, 5~8월, 9~12월). 새 시즌이 시작되면 Iron부터 다시 도전!</p>
+                  <p>주 3회 꾸준히 하면 시즌 내 Diamond까지 갈 수 있어요.</p>
                 </div>
               </>
             )}

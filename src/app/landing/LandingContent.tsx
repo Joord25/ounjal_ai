@@ -20,6 +20,13 @@ const FEATURES = [
     video: "/feature-1.mp4",
   },
   {
+    pain: "운동 꾸준히 하기 너무 힘들어...",
+    title: "주간 퀘스트 + 시즌 티어로 게임처럼 재밌게!",
+    desc: "매주 강도별 운동 퀘스트를 달성하면\nEXP가 쌓이고 Iron → Gold → Diamond → Challenger까지\n시즌 티어가 올라가요.\n운동과학(ACSM) 기반 미션이라\n게임하듯 즐기면서 성장하면 올바른 운동 습관이 만들어져요.",
+    video: "",
+    questCard: true,
+  },
+  {
     pain: "이거 내가 제대로 하고 있는 건가?",
     title: "AI 운동 코칭 + 운동 기록 자동 저장",
     desc: "운동 일지를 자동으로 기록하고,\nACSM 가이드라인과 SCI급 논문을 학습한 AI가\n내 운동을 분석해 피드백합니다.\n헬스 기구 사용법부터 세트·무게 조절까지\nAI가 코칭하는 운동 기록 앱.",
@@ -27,14 +34,14 @@ const FEATURES = [
   },
   {
     pain: "귀찮아, 쉽고 빠르게 하고 싶어",
-    title: "터치 3번이면 오운완 달성",
-    desc: "복잡한 설정 없이\n컨디션 → 목표 → 운동 시작\nAI가 운동 루틴 생성부터 운동 분석 리포트까지\n전부 자동. 오운완 인증샷도 한 번에.",
+    title: "입력 최소화 몇번의 터치로 오운완 달성",
+    desc: "복잡한 조작 설정 없이\n원터치 설정 시스템, 키보드 입력 최소화\n입력 부분 간소화 및 최소화.\n 오운완 인증샷 공유도 한 번에 가능.",
     video: "/easy-to-use.mp4",
   },
   {
     pain: "PT는 너무 비싸...",
     title: "월 6,900원, PT 대체 AI 트레이너",
-    desc: "한국체육대학 석사 출신 전문가가 설계한\nAI 운동 플래너가 매일 맞춤 운동을 처방합니다.\n개인 운동 기록, 헬스 루틴 생성, 운동 분석까지\nPT의 약 95배 저렴한 가격에 전문성은 더 Up!",
+    desc: "개발자가 아닌 현역 트레이너가 직접 만든\nAI 운동 플래너가 매일 맞춤 운동을 처방합니다.\n개인 운동 기록, 헬스 루틴 생성, 운동 분석까지\nPT의 약 95배 저렴한 가격에 전문성은 더 Up!",
     video: "",
     priceCard: true,
   },
@@ -54,6 +61,7 @@ const FAQS = [
   { q: "다른 운동 어플과 뭐가 다른가요?", a: "기존 운동 기록 앱은 직접 운동을 골라 기록해야 하지만, 오운잘 AI는 컨디션만 선택하면 AI가 운동 루틴을 자동 생성하고, 운동 일지 저장부터 AI 운동 코칭, 분석 리포트까지 제공합니다. PT 대체 서비스로 헬스 루틴 생성부터 오운완 인증까지 올인원." },
   { q: "운동 기록은 어떻게 저장되나요?", a: "운동 중 세트별 무게·횟수가 자동으로 기록됩니다. 운동 일지가 자동 저장되고, 운동 볼륨 추적 그래프와 체중 변화 그래프로 개인 운동 기록을 한눈에 확인할 수 있어요." },
   { q: "오운완 인증은 어떻게 하나요?", a: "운동 완료 후 자동으로 생성되는 운동 기록 카드를 카카오톡, 인스타그램 등으로 바로 공유할 수 있습니다. 오운완 인증샷을 예쁘게 만들어드려요." },
+  { q: "퀘스트와 티어 시스템이 뭔가요?", a: "매주 운동 강도별 퀘스트(고강도·중강도·저강도)가 주어지고, 달성하면 경험치(EXP)를 얻어요. EXP가 쌓이면 Iron → Bronze → Silver → Gold → Emerald → Diamond → Master → Challenger까지 티어가 올라갑니다. 4개월마다 시즌이 리셋되어 새로운 도전이 시작돼요. 운동과학(ACSM) 기반이라 게임처럼 즐기면서 올바른 운동 습관이 만들어져요." },
   { q: "앱 설치가 필요한가요?", a: "별도 앱 설치 없이 웹에서 바로 사용 가능합니다. 홈화면에 추가하면 운동 어플처럼 사용할 수 있는 PWA 방식이에요." },
   { q: "구독은 어떻게 해지하나요?", a: "프로필 > 구독 관리에서 언제든지 해지할 수 있으며, 해지해도 결제 기간까지 이용 가능합니다." },
 ];
@@ -168,10 +176,10 @@ export default function LandingContent() {
         <div className="relative max-w-5xl mx-auto px-6 pt-16 sm:pt-24 pb-24 sm:pb-32 text-center">
           <RevealSection>
             <p className="text-sm sm:text-xl text-[#a7f3d0] font-medium mb-4 tracking-wide">
-              AI 운동 루틴 자동 생성 · 운동 기록 앱 · PT 대체 서비스
+              AI 운동 루틴 자동 생성 · 퀘스트 & 티어 성장 · PT 대체 서비스
             </p>
             <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black text-white leading-tight tracking-tight">
-              딸깍! <span className="text-[#34d399]">3번</span> 으로<br />오늘 운동 끝.
+              딸깍! <span className="text-[#34d399]">3번</span> 으로<br />오늘 운동 끝!
             </h1>
             <p className="mt-8 text-base sm:text-lg text-gray-400 max-w-lg mx-auto leading-relaxed">
               <span className="text-white font-semibold">컨디션 선택</span> → <span className="text-white font-semibold">운동 목표</span> → <span className="text-white font-semibold">AI가 맞춤 운동 추천</span><br />
@@ -264,14 +272,15 @@ export default function LandingContent() {
             </div>
           </RevealSection>
           <div className="space-y-14 sm:space-y-20">
-            {FEATURES.map((f, i) => (
+            {FEATURES.map((f, i) => {
+              const isReversed = i % 2 !== 0;
+              return (
               <RevealSection key={i}>
-                <div className={`flex flex-col ${i % 2 === 0 ? "sm:flex-row" : "sm:flex-row-reverse"} items-center gap-8 sm:gap-16`}>
-                  {/* Video or Price Card */}
+                <div className={`flex flex-col ${isReversed ? "sm:flex-row-reverse" : "sm:flex-row"} items-center gap-8 sm:gap-16`}>
+                  {/* Visual column */}
                   <div className={`${f.priceCard ? "w-full max-w-[320px] sm:w-[360px]" : "w-full max-w-[280px] sm:w-[320px]"} shrink-0`}>
                     {f.priceCard ? (
                       <div className="flex items-stretch gap-3 sm:gap-4">
-                        {/* PT */}
                         <div className="flex-1 rounded-2xl bg-white border border-gray-200 p-3 sm:p-5 text-center shadow-lg flex flex-col items-center justify-center">
                           <div className="w-10 h-10 sm:w-12 sm:h-12 bg-red-50 rounded-full flex items-center justify-center mb-3 sm:mb-4">
                             <svg width="24" height="24" viewBox="0 0 20 20" fill="none"><path d="M5 5L15 15M15 5L5 15" stroke="#EF4444" strokeWidth="2.5" strokeLinecap="round"/></svg>
@@ -279,7 +288,6 @@ export default function LandingContent() {
                           <p className="text-xs text-gray-500 font-bold mb-1">PT 업계 월 평균</p>
                           <p className="text-2xl sm:text-3xl font-black text-gray-800">₩660,000</p>
                         </div>
-                        {/* 오운잘 */}
                         <div className="flex-1 rounded-2xl bg-[#f0fdf4] p-3 sm:p-5 text-center shadow-lg border-2 border-[#059669] flex flex-col items-center justify-center">
                           <div className="w-10 h-10 sm:w-12 sm:h-12 bg-[#d1fae5] rounded-full flex items-center justify-center mb-3 sm:mb-4">
                             <svg width="24" height="24" viewBox="0 0 20 20" fill="none"><path d="M4 10L8.5 14.5L16 6" stroke="#059669" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
@@ -290,6 +298,30 @@ export default function LandingContent() {
                             <span className="text-xs font-bold text-white">약 95배 저렴</span>
                           </div>
                         </div>
+                      </div>
+                    ) : f.questCard ? (
+                      <div className="rounded-[32px] border-[5px] border-[#1B4332]/20 bg-gradient-to-br from-[#0f2a1f] to-[#1B4332] shadow-xl overflow-hidden aspect-[9/16] flex flex-col items-center justify-center px-5 gap-4">
+                        <p className="text-white/60 text-xs font-bold">시즌 티어 시스템</p>
+                        <div className="flex flex-wrap items-center justify-center gap-1.5">
+                          {["Iron", "Bronze", "Silver", "Gold", "Emerald", "Diamond", "Master", "Challenger"].map((tier) => {
+                            const colors: Record<string, string> = { Iron: "#6b7280", Bronze: "#cd7f32", Silver: "#94b8d0", Gold: "#ffd700", Emerald: "#34d399", Diamond: "#60a5fa", Master: "#a78bfa", Challenger: "#f87171" };
+                            return (
+                              <span key={tier} className="text-[9px] sm:text-[10px] font-black px-2 py-0.5 rounded-full" style={{ backgroundColor: `${colors[tier]}25`, color: colors[tier] }}>
+                                {tier}
+                              </span>
+                            );
+                          })}
+                        </div>
+                        <div className="w-full max-w-[180px] mt-2">
+                          <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
+                            <div className="h-full rounded-full bg-[#34d399]" style={{ width: "65%" }} />
+                          </div>
+                          <div className="flex justify-between mt-1">
+                            <span className="text-[9px] font-bold text-[#34d399]">80 EXP</span>
+                            <span className="text-[9px] text-white/40">Emerald까지 60</span>
+                          </div>
+                        </div>
+                        <p className="text-white/30 text-[10px] font-medium mt-2">영상 준비중</p>
                       </div>
                     ) : f.video ? (
                       <div className="rounded-[32px] border-[5px] border-gray-200 bg-black shadow-xl overflow-hidden">
@@ -304,14 +336,14 @@ export default function LandingContent() {
                     )}
                   </div>
                   {/* Text */}
-                  <div className="flex-1 text-center sm:text-left">
+                  <div className="flex-1 text-center sm:text-left sm:pl-22">
                     <p className="text-2xl sm:text-4xl font-black text-red-400 mb-4 sm:mb-5">&ldquo;{f.pain}&rdquo;</p>
                     <h3 className="text-xl sm:text-3xl font-black text-[#1B4332] mb-2 sm:mb-3">{f.title}</h3>
                     <p className="text-sm sm:text-base text-gray-500 leading-relaxed max-w-md mx-auto sm:mx-0 whitespace-pre-line">{f.desc}</p>
                   </div>
                 </div>
               </RevealSection>
-            ))}
+            ); })}
           </div>
         </div>
       </section>
@@ -423,6 +455,10 @@ export default function LandingContent() {
                     <svg width="18" height="18" viewBox="0 0 18 18" fill="none" className="mt-0.5 shrink-0"><path d="M4 9L7.5 12.5L14 6" stroke="#059669" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                     적응형 운동 세션
                   </li>
+                  <li className="flex items-start gap-2">
+                    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" className="mt-0.5 shrink-0"><path d="M4 9L7.5 12.5L14 6" stroke="#059669" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    주간 퀘스트 + 시즌 티어 성장
+                  </li>
                 </ul>
                 <a
                   href="/"
@@ -455,6 +491,7 @@ export default function LandingContent() {
               { label: "플랜 생성", other: "직접 운동 골라서 조합", ours: "AI가 운동 루틴 자동 생성" },
               { label: "난이도 조절", other: "정해진 프로그램 그대로 수행", ours: "매 세트 쉬움/적당/힘듦 → 자동 조절" },
               { label: "운동 분석", other: "운동 일지 기록만 저장", ours: "AI 운동 코칭 + 분석 리포트" },
+              { label: "동기부여", other: "기록만 쌓이고 성취감 없음", ours: "주간 퀘스트 + 시즌 티어 성장 시스템" },
               { label: "사용 난이도", other: "설정 복잡, 입력내용 많음", ours: "쉬운 버튼 조작, 터치 한번에 끝" },
             ].map((item, i) => (
               <RevealSection key={i}>
@@ -520,6 +557,11 @@ export default function LandingContent() {
                     <td className="py-4 px-4 text-center font-bold text-[#059669]">AI 운동 코칭 + 분석 리포트</td>
                   </tr>
                   <tr>
+                    <td className="py-4 px-4 font-bold text-[#1B4332] text-center">동기부여</td>
+                    <td className="py-4 px-4 text-center text-gray-500">기록만 쌓이고 성취감 없음</td>
+                    <td className="py-4 px-4 text-center font-bold text-[#059669]">주간 퀘스트 + 시즌 티어 성장</td>
+                  </tr>
+                  <tr className="bg-gray-50/50">
                     <td className="py-4 px-4 font-bold text-[#1B4332] text-center">사용 난이도</td>
                     <td className="py-4 px-4 text-center text-gray-500">설정 복잡, 입력내용 많음</td>
                     <td className="py-4 px-4 text-center font-bold text-[#059669]">쉬운 버튼 조작, 터치 한번에 끝</td>

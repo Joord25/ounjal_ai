@@ -6,6 +6,7 @@ import { WorkoutHistory as WorkoutHistoryType } from "@/constants/workout";
 import { loadWorkoutHistory, deleteWorkoutHistory } from "@/utils/workoutHistory";
 import { updateWeightLog } from "@/utils/userProfile";
 import { estimateTrainingLevelDetailed, getOptimalLoadBand } from "@/utils/workoutMetrics";
+import { getCurrentSeason, getTierFromExp, getOrRebuildSeasonExp, getOrCreateWeeklyQuests, TIERS, type QuestDefinition, type QuestProgress } from "@/utils/questSystem";
 import { WorkoutReport } from "./WorkoutReport";
 import { WorkoutHistory } from "./WorkoutHistory";
 
@@ -33,6 +34,7 @@ export const ProofTab: React.FC<ProofTabProps> = () => {
   const [selectedWeightIdxs, setSelectedWeightIdxs] = useState<Set<number>>(new Set());
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
   const [activeTimelineDot, setActiveTimelineDot] = useState<number | null>(null);
+  const [showAdvancedStats, setShowAdvancedStats] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const touchStartY = useRef(0);
   const isPulling = useRef(false);
@@ -97,8 +99,6 @@ export const ProofTab: React.FC<ProofTabProps> = () => {
     const d = new Date(h.date);
     return d.getFullYear() === viewYear && d.getMonth() === viewMonth;
   });
-  const monthWorkouts = monthHistory.length;
-
   const [reportReturnView, setReportReturnView] = useState<"dashboard" | "list">("list");
 
   const handleSessionClick = (session: WorkoutHistoryType, returnTo: "dashboard" | "list" = "list") => {
@@ -533,83 +533,122 @@ export const ProofTab: React.FC<ProofTabProps> = () => {
         </div>
 
         <div className="mt-6 flex flex-col gap-3">
-          {/* Training Level Estimation Card */}
+          {/* === Season Tier Card === */}
           {(() => {
-            const bw = !isNaN(savedBodyWeight) ? savedBodyWeight : undefined;
-            const g = savedGender;
-            const levelEst = estimateTrainingLevelDetailed(history, bw, g);
-            const lvlLabel = levelEst.level === "advanced" ? "상급" : levelEst.level === "intermediate" ? "중급" : "초급";
-            const lvlGradient = levelEst.level === "advanced"
-              ? "from-amber-500 to-orange-400"
-              : levelEst.level === "intermediate"
-              ? "from-emerald-500 to-teal-400"
-              : "from-gray-400 to-gray-300";
+            const seasonInfo = getCurrentSeason();
+            const seasonExp = getOrRebuildSeasonExp(history, !isNaN(savedBirthYear) ? savedBirthYear : undefined, savedGender);
+            const tierResult = getTierFromExp(seasonExp.totalExp);
+            const seasonSessions = history.filter(h => {
+              const d = h.date.slice(0, 10);
+              return d >= seasonInfo.startDate && d <= seasonInfo.endDate;
+            }).length;
 
             return (
-              <div className="rounded-3xl overflow-hidden border border-[#2D6A4F]/10 shadow-sm">
-                {/* Header — dark with gradient accent */}
-                <div className={`bg-gradient-to-r ${lvlGradient} px-6 py-4`}>
+              <div className="rounded-3xl overflow-hidden border shadow-sm" style={{ borderColor: `${tierResult.tier.color}30` }}>
+                <div className="px-6 py-4" style={{ background: `linear-gradient(135deg, ${tierResult.tier.color}20, ${tierResult.tier.color}08)` }}>
+                  <p className="text-[10px] font-bold text-gray-400 mb-1">{seasonInfo.label}</p>
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-base font-black text-white">훈련 레벨</h3>
-                      <button onClick={() => setHelpCard("trainingLevel")} className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center">
-                        <span className="text-[10px] font-black text-white/80">?</span>
-                      </button>
-                    </div>
-                    <span className="text-xl font-black text-white tracking-tight">{lvlLabel}</span>
+                    <span className="text-2xl font-black" style={{ color: tierResult.tier.color }}>{tierResult.tier.name}</span>
+                    <button onClick={() => setHelpCard("tierSystem")} className="w-5 h-5 rounded-full bg-black/5 flex items-center justify-center">
+                      <span className="text-[10px] font-black text-gray-400">?</span>
+                    </button>
                   </div>
-                  {levelEst.decayed && (
-                    <p className="text-[10px] text-white/70 mt-1">최근 4주 기록 부족으로 하향 조정됨</p>
-                  )}
+                  <div className="mt-3">
+                    <div className="w-full h-2.5 bg-black/5 rounded-full overflow-hidden">
+                      <div className="h-full rounded-full transition-all duration-700" style={{ width: `${tierResult.progress * 100}%`, backgroundColor: tierResult.tier.color }} />
+                    </div>
+                    <div className="flex justify-between mt-1.5">
+                      <span className="text-[11px] font-bold" style={{ color: tierResult.tier.color }}>{seasonExp.totalExp} EXP</span>
+                      <span className="text-[11px] text-gray-400">
+                        {tierResult.nextTier ? `${tierResult.nextTier.name}까지 ${tierResult.remaining} EXP` : "최고 티어!"}
+                      </span>
+                    </div>
+                  </div>
+                  <p className="text-[11px] text-gray-400 mt-2">이번 시즌 {seasonSessions}회 운동</p>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* === Weekly Quest Card === */}
+          {(() => {
+            const bYear = !isNaN(savedBirthYear) ? savedBirthYear : undefined;
+            const { questDefs, questState } = getOrCreateWeeklyQuests(history, bYear, savedGender);
+
+            const coreQuests = questDefs.filter(q => !q.isBonus);
+            const bonusQuests = questDefs.filter(q => q.isBonus);
+            const completedCount = questState.quests.filter(q => q.completed).length;
+            const coreCompleted = coreQuests.every(cq => questState.quests.find(p => p.questId === cq.id)?.completed);
+
+            const getProgress = (qDef: QuestDefinition): QuestProgress => {
+              return questState.quests.find(p => p.questId === qDef.id) || { questId: qDef.id, current: 0, completed: false };
+            };
+
+            return (
+              <div className="rounded-3xl bg-white border border-gray-100 shadow-sm p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-sm font-black text-[#1B4332]">이번 주 퀘스트</h3>
+                  <span className="text-[11px] font-bold text-[#2D6A4F] bg-[#2D6A4F]/10 px-2 py-0.5 rounded-full">{completedCount}/{questDefs.length} 완료</span>
                 </div>
 
-                {/* Body */}
-                <div className="bg-white px-5 py-4">
-                  {levelEst.source === "default" ? (
-                    <p className="text-[12px] text-gray-400 leading-relaxed py-2">아직 3대 운동이나 맨몸 운동 기록이 없어서 기본값(초급)으로 설정돼 있어요. 운동을 기록하면 자동으로 레벨이 조정돼요.</p>
-                  ) : (
-                    <div className="divide-y divide-gray-100">
-                      {levelEst.details.map((d, i) => {
-                        const accent = d.level === "advanced" ? "border-amber-400 text-amber-500 bg-amber-50"
-                          : d.level === "intermediate" ? "border-emerald-400 text-emerald-600 bg-emerald-50"
-                          : "border-gray-300 text-gray-400 bg-gray-50";
-                        const nm = d.level === "advanced" ? "상급" : d.level === "intermediate" ? "중급" : "초급";
+                <div className="space-y-3">
+                  {coreQuests.map(q => {
+                    const p = getProgress(q);
+                    const pct = Math.min(p.current / q.target, 1);
+                    return (
+                      <div key={q.id}>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className={`text-[12px] font-bold ${p.completed ? "text-[#2D6A4F]" : "text-gray-700"}`}>
+                            {p.completed ? "✓ " : ""}{q.label}
+                          </span>
+                          <span className="text-[11px] font-bold text-gray-400">{q.exp} EXP</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                            <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct * 100}%`, backgroundColor: p.completed ? "#2D6A4F" : "#a7f3d0" }} />
+                          </div>
+                          <span className="text-[10px] font-bold text-gray-400 min-w-[32px] text-right">{p.current}/{q.target}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {bonusQuests.length > 0 && (
+                    <div className="pt-2 border-t border-gray-100 space-y-3">
+                      {bonusQuests.map(q => {
+                        const p = getProgress(q);
+                        const pct = Math.min(p.current / q.target, 1);
                         return (
-                          <div key={i} className="flex items-center gap-4 py-4 first:pt-1 last:pb-1">
-                            {/* Left accent bar */}
-                            <div className={`w-1 h-12 rounded-full ${accent.split(" ")[0].replace("border", "bg")}`} />
-                            {/* Exercise name */}
-                            <p className="flex-1 min-w-0 text-[14px] text-gray-700 font-bold">{d.exercise}</p>
-                            {/* Right: 1RM value + badge in a row */}
+                          <div key={q.id} className="opacity-60">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className={`text-[12px] font-bold ${p.completed ? "text-[#2D6A4F]" : "text-gray-500"}`}>
+                                {p.completed ? "✓ " : "☆ "}{q.label}
+                              </span>
+                              <span className="text-[11px] font-bold text-gray-400">{q.exp} EXP</span>
+                            </div>
                             <div className="flex items-center gap-2">
-                              <span className="text-[10px] text-gray-400 font-medium">예상 1RM</span>
-                              <span className="text-[20px] font-black text-[#1B4332] leading-none">{d.value}</span>
-                              <span className={`text-[11px] font-black px-2.5 py-1 rounded-lg ${accent.split(" ").slice(1).join(" ")}`}>{nm}</span>
+                              <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                                <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct * 100}%`, backgroundColor: p.completed ? "#2D6A4F" : "#d1d5db" }} />
+                              </div>
+                              <span className="text-[10px] font-bold text-gray-400 min-w-[32px] text-right">{p.current}/{q.target}</span>
                             </div>
                           </div>
                         );
                       })}
                     </div>
                   )}
-                  <p className="text-[8px] text-gray-300 mt-2 pt-2 border-t border-gray-50">NSCA · Rippetoe & Kilgore (2006) · Epley e1RM</p>
+
+                  {coreCompleted && !questState.weeklyBonusClaimed && (
+                    <div className="mt-2 p-3 bg-[#2D6A4F]/10 rounded-xl text-center">
+                      <span className="text-[12px] font-black text-[#2D6A4F]">올클리어 보너스 +5 EXP!</span>
+                    </div>
+                  )}
                 </div>
               </div>
             );
           })()}
 
-          <button
-            onClick={() => setView("list")}
-            className="p-6 bg-white rounded-3xl border border-gray-100 shadow-sm w-full text-left active:scale-[0.98] transition-all group"
-          >
-            <div className="flex justify-between items-center mb-1">
-                <p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.15em]">총 운동 횟수</p>
-                <svg className="w-5 h-5 text-gray-300 group-hover:text-gray-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-            </div>
-            <h3 className="text-3xl font-black text-[#1B4332]">{monthWorkouts} <span className="text-lg text-[#2D6A4F]/50">세션</span></h3>
-            <p className="text-xs text-gray-400 mt-2 font-medium">클릭하여 기록 상세보기</p>
-          </button>
+          {/* Weight Trend Graph */}
 
           {/* Weight Trend Graph */}
           {weightLog.length > 0 && (() => {
@@ -718,6 +757,91 @@ export const ProofTab: React.FC<ProofTabProps> = () => {
             );
           })()}
 
+          {/* Workout History List Button */}
+          <button
+            onClick={() => setView("list")}
+            className="p-6 bg-white rounded-3xl border border-gray-100 shadow-sm w-full text-left active:scale-[0.98] transition-all group"
+          >
+            <div className="flex justify-between items-center mb-1">
+                <p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.15em]">총 운동 횟수</p>
+                <svg className="w-5 h-5 text-gray-300 group-hover:text-gray-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+            </div>
+            <h3 className="text-3xl font-black text-[#1B4332]">{history.length} <span className="text-lg text-[#2D6A4F]/50">세션</span></h3>
+            <p className="text-xs text-gray-400 mt-2 font-medium">클릭하여 기록 상세보기</p>
+          </button>
+
+          {/* === Collapsible Advanced Stats === */}
+          <button
+            onClick={() => setShowAdvancedStats(v => !v)}
+            className="flex items-center justify-center gap-1.5 w-full py-3 text-[12px] font-bold text-gray-400 active:opacity-60 transition-opacity"
+          >
+            상세 분석
+            <svg className={`w-3.5 h-3.5 transition-transform ${showAdvancedStats ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+
+          {showAdvancedStats && (<>
+          {/* Training Level Estimation Card */}
+          {(() => {
+            const bw = !isNaN(savedBodyWeight) ? savedBodyWeight : undefined;
+            const g = savedGender;
+            const levelEst = estimateTrainingLevelDetailed(history, bw, g);
+            const lvlLabel = levelEst.level === "advanced" ? "고수" : levelEst.level === "intermediate" ? "중수" : "뉴비";
+            const lvlGradient = levelEst.level === "advanced"
+              ? "from-amber-500 to-orange-400"
+              : levelEst.level === "intermediate"
+              ? "from-emerald-500 to-teal-400"
+              : "from-gray-400 to-gray-300";
+
+            return (
+              <div className="rounded-3xl overflow-hidden border border-[#2D6A4F]/10 shadow-sm">
+                <div className={`bg-gradient-to-r ${lvlGradient} px-6 py-4`}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-base font-black text-white">내 운동 등급</h3>
+                      <button onClick={() => setHelpCard("trainingLevel")} className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center">
+                        <span className="text-[10px] font-black text-white/80">?</span>
+                      </button>
+                    </div>
+                    <span className="text-xl font-black text-white tracking-tight">{lvlLabel}</span>
+                  </div>
+                  {levelEst.decayed && (
+                    <p className="text-[10px] text-white/70 mt-1">최근 운동이 뜸해서 등급이 내려갔어요</p>
+                  )}
+                </div>
+                <div className="bg-white px-5 py-4">
+                  {levelEst.source === "default" ? (
+                    <p className="text-[12px] text-gray-400 leading-relaxed py-2">아직 기록이 부족해서 뉴비로 시작해요. 운동을 기록하면 자동으로 등급이 올라가요!</p>
+                  ) : (
+                    <div className="divide-y divide-gray-100">
+                      {levelEst.details.map((d, i) => {
+                        const accent = d.level === "advanced" ? "border-amber-400 text-amber-500 bg-amber-50"
+                          : d.level === "intermediate" ? "border-emerald-400 text-emerald-600 bg-emerald-50"
+                          : "border-gray-300 text-gray-400 bg-gray-50";
+                        const nm = d.level === "advanced" ? "고수" : d.level === "intermediate" ? "중수" : "뉴비";
+                        return (
+                          <div key={i} className="flex items-center gap-4 py-4 first:pt-1 last:pb-1">
+                            <div className={`w-1 h-12 rounded-full ${accent.split(" ")[0].replace("border", "bg")}`} />
+                            <p className="flex-1 min-w-0 text-[14px] text-gray-700 font-bold">{d.exercise}</p>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] text-gray-400 font-medium">최고 무게</span>
+                              <span className="text-[20px] font-black text-[#1B4332] leading-none">{d.value}</span>
+                              <span className={`text-[11px] font-black px-2.5 py-1 rounded-lg ${accent.split(" ").slice(1).join(" ")}`}>{nm}</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                  <p className="text-[8px] text-gray-300 mt-2 pt-2 border-t border-gray-50">NSCA · Rippetoe & Kilgore (2006)</p>
+                </div>
+              </div>
+            );
+          })()}
+
           {/* 4-Week Load Timeline */}
           {(() => {
             const bw = !isNaN(savedBodyWeight) ? savedBodyWeight : undefined;
@@ -749,7 +873,7 @@ export const ProofTab: React.FC<ProofTabProps> = () => {
             return (
               <div className="p-4 sm:p-6 bg-white rounded-3xl border border-[#2D6A4F]/10 shadow-sm">
                 <div className="flex items-center justify-between mb-1">
-                  <p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.15em]">4주 부하 타임라인</p>
+                  <p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.15em]">4주 운동량 변화</p>
                   <button onClick={() => setHelpCard("loadTimeline")} className="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center">
                     <span className="text-[10px] font-black text-gray-400">?</span>
                   </button>
@@ -823,9 +947,9 @@ export const ProofTab: React.FC<ProofTabProps> = () => {
                   <span>&nbsp;</span>
                 </div>
                 <div className="flex justify-center gap-2 text-[9px] text-gray-300 font-medium mt-1">
-                  <span className="flex items-center gap-1"><span className="w-2 h-2 bg-amber-50 border border-amber-200 rounded-sm inline-block" /> 주의</span>
-                  <span className="flex items-center gap-1"><span className="w-2 h-2 bg-emerald-100 rounded-sm inline-block" /> 최적</span>
-                  <span className="flex items-center gap-1"><span className="w-2 h-2 bg-[#2D6A4F] rounded-full inline-block" /> 부하</span>
+                  <span className="flex items-center gap-1"><span className="w-2 h-2 bg-amber-50 border border-amber-200 rounded-sm inline-block" /> 많음</span>
+                  <span className="flex items-center gap-1"><span className="w-2 h-2 bg-emerald-100 rounded-sm inline-block" /> 딱 좋음</span>
+                  <span className="flex items-center gap-1"><span className="w-2 h-2 bg-[#2D6A4F] rounded-full inline-block" /> 운동량</span>
                 </div>
                 {/* Load verdict */}
                 {(() => {
@@ -833,15 +957,15 @@ export const ProofTab: React.FC<ProofTabProps> = () => {
                   const isOverload = latest > loadBand.overload;
                   const isHigh = latest > loadBand.high && !isOverload;
                   const isOptimal = latest >= loadBand.low && latest <= loadBand.high;
-                  const label = isOverload ? "과부하" : isHigh ? "높음" : isOptimal ? "적정" : "낮음";
+                  const label = isOverload ? "너무 많아요" : isHigh ? "조금 많아요" : isOptimal ? "딱 좋아요" : "조금 적어요";
                   const color = "text-gray-500";
                   const comment = isOverload
-                    ? "회복이 부족할 수 있어요. 다음 세션은 가볍게 가는 걸 추천해요."
+                    ? "오늘 좀 무리했어요! 다음엔 가볍게 하는 게 좋겠어요."
                     : isHigh
-                    ? "적정 범위를 살짝 넘었어요. 가끔은 괜찮지만 자주 넘으면 조절이 필요해요."
+                    ? "살짝 많았지만 가끔은 괜찮아요. 자주 이러면 몸이 힘들 수 있어요."
                     : isOptimal
-                    ? "성장에 딱 맞는 부하예요. 이 페이스를 유지하세요!"
-                    : "부하가 낮아요. 회복엔 좋지만 계속되면 근력과 체력이 떨어질 수 있어요.";
+                    ? "딱 좋은 운동량이에요! 이 페이스 유지하면 성장해요."
+                    : "운동량이 적었어요. 쉬는 날엔 괜찮지만 계속되면 아쉬워요.";
                   return (
                     <div className="mt-4 pt-4 border-t border-gray-100 text-center">
                       <p className="text-2xl font-black text-[#1B4332]">{latest.toFixed(1)} <span className={`text-base ${color}`}>— {label}</span></p>
@@ -862,7 +986,7 @@ export const ProofTab: React.FC<ProofTabProps> = () => {
             if (sessionsWithVolume.length === 0) {
               return (
                 <div className="p-6 bg-white rounded-3xl border border-[#2D6A4F]/10 shadow-sm">
-                  <p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.15em] mb-1">세션별 볼륨</p>
+                  <p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.15em] mb-1">이번 달 운동량</p>
                   <h3 className="text-xl font-black text-gray-300">기록 없음</h3>
                 </div>
               );
@@ -927,7 +1051,7 @@ export const ProofTab: React.FC<ProofTabProps> = () => {
             return (
               <div className="p-4 sm:p-6 bg-white rounded-3xl border border-[#2D6A4F]/10 shadow-sm overflow-visible">
                 <div className="flex justify-between items-baseline mb-3 sm:mb-4">
-                  <p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.15em]">세션별 볼륨</p>
+                  <p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.15em]">이번 달 운동량</p>
                   <span className="text-[9px] font-black text-gray-300">최근 {recentGroups.length}일</span>
                 </div>
 
@@ -998,6 +1122,7 @@ export const ProofTab: React.FC<ProofTabProps> = () => {
             );
           })()}
 
+          </>)}
         </div>
       </div>
 
@@ -1008,60 +1133,92 @@ export const ProofTab: React.FC<ProofTabProps> = () => {
           <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-[2rem] p-6 pb-2 animate-slide-up shadow-2xl z-50 max-h-[85vh] flex flex-col">
             <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-5 shrink-0" />
             <div className="flex-1 overflow-y-auto scrollbar-hide">
+            {helpCard === "tierSystem" && (
+              <>
+                <h3 className="text-lg font-black text-[#1B4332] mb-3">시즌 티어 시스템</h3>
+                <div className="space-y-3 text-[13px] text-gray-600 leading-relaxed">
+                  <p>운동하면 <span className="font-bold text-[#1B4332]">경험치(EXP)</span>가 쌓여요. EXP가 쌓이면 티어가 올라가요!</p>
+                  <div className="bg-gray-50 rounded-xl p-3 space-y-2">
+                    <p className="text-[11px] font-bold text-gray-500">EXP를 얻는 방법</p>
+                    <div className="space-y-1.5 text-[11px]">
+                      <p>운동 완료 → <span className="font-bold text-[#2D6A4F]">+1 EXP</span></p>
+                      <p>주간 퀘스트 완료 → <span className="font-bold text-[#2D6A4F]">+2~5 EXP</span></p>
+                      <p>주간 올클리어 → <span className="font-bold text-[#2D6A4F]">+5 EXP 보너스</span></p>
+                    </div>
+                  </div>
+                  <div className="bg-gray-50 rounded-xl p-3 space-y-2">
+                    <p className="text-[11px] font-bold text-gray-500">티어 구간</p>
+                    <div className="space-y-1.5">
+                      {TIERS.map((t, i) => {
+                        const next = TIERS[i + 1];
+                        return (
+                          <div key={t.name} className="flex items-center gap-2">
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded shrink-0 min-w-[72px] text-center" style={{ backgroundColor: `${t.color}20`, color: t.color }}>{t.name}</span>
+                            <span className="text-[10px] text-gray-500">{next ? `${t.minExp}~${next.minExp - 1} EXP` : `${t.minExp} EXP+`}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <p>시즌은 <span className="font-bold text-[#1B4332]">4개월마다 리셋</span>돼요 (1~4월, 5~8월, 9~12월). 새 시즌이 시작되면 Iron부터 다시 도전!</p>
+                  <p>주 3회 꾸준히 + 퀘스트 달성하면 시즌 내 <span className="font-bold text-[#1B4332]">Diamond</span>까지 갈 수 있어요.</p>
+                </div>
+              </>
+            )}
             {helpCard === "loadTimeline" && (
               <>
-                <h3 className="text-lg font-black text-[#1B4332] mb-3">4주 부하 타임라인</h3>
+                <h3 className="text-lg font-black text-[#1B4332] mb-3">4주 운동량 변화</h3>
                 <div className="space-y-3 text-[13px] text-gray-600 leading-relaxed">
-                  <p>최근 4주간의 <span className="font-bold text-[#1B4332]">운동 부하(볼륨)를 그래프로</span> 보여줘요. 점 하나가 운동 한 번이에요.</p>
+                  <p>최근 4주 동안 <span className="font-bold text-[#1B4332]">얼마나 운동했는지</span> 그래프로 보여줘요. 점 하나가 운동 한 번이에요.</p>
                   <div className="bg-gray-50 rounded-xl p-3 space-y-2">
                     <div className="flex items-center gap-2">
                       <span className="w-3 h-3 bg-emerald-100 border border-emerald-200 rounded-sm inline-block shrink-0" />
-                      <p className="text-[11px]"><span className="font-bold text-[#2D6A4F]">초록색 영역 = 성장 구간</span></p>
+                      <p className="text-[11px]"><span className="font-bold text-[#2D6A4F]">초록색 = 딱 좋은 운동량</span></p>
                     </div>
-                    <p className="text-[11px] text-gray-500 ml-5">훈련 레벨과 연령에 맞춘 적정 볼륨 구간이에요. 이 안에 있으면 잘하고 있는 거예요.</p>
+                    <p className="text-[11px] text-gray-500 ml-5">내 등급에 맞는 적정 운동량이에요. 여기 안에 있으면 잘하고 있는 거예요!</p>
                     <div className="flex items-center gap-2 mt-1">
                       <span className="w-3 h-3 bg-amber-50 border border-amber-200 rounded-sm inline-block shrink-0" />
-                      <p className="text-[11px]"><span className="font-bold text-amber-600">노란색 영역 = 고부하 주의</span></p>
+                      <p className="text-[11px]"><span className="font-bold text-amber-600">노란색 = 좀 많았어요</span></p>
                     </div>
-                    <p className="text-[11px] text-gray-500 ml-5">적정 범위를 넘은 구간이에요. 가끔은 괜찮지만 자주 넘으면 조절이 필요해요.</p>
+                    <p className="text-[11px] text-gray-500 ml-5">가끔은 괜찮지만 계속 넘으면 몸이 힘들 수 있어요.</p>
                     <div className="flex items-center gap-2 mt-1">
                       <span className="w-3 h-3 bg-[#2D6A4F] rounded-full inline-block shrink-0" />
-                      <p className="text-[11px]"><span className="font-bold text-[#2D6A4F]">점 = 세션별 부하</span></p>
+                      <p className="text-[11px]"><span className="font-bold text-[#2D6A4F]">점 = 그날 운동량</span></p>
                     </div>
-                    <p className="text-[11px] text-gray-500 ml-5">총 볼륨(무게 × 횟수)을 체중으로 나눈 값이에요. 점을 터치하면 수치를 확인할 수 있어요.</p>
+                    <p className="text-[11px] text-gray-500 ml-5">들어올린 무게 × 횟수의 합이에요. 점을 터치하면 수치를 볼 수 있어요.</p>
                   </div>
-                  <p>꾸준히 초록 영역 안에 점이 찍히면 <span className="font-bold text-[#2D6A4F]">잘 관리되고 있는 거예요</span>.</p>
-                  <p className="text-[10px] text-gray-400 mt-2 pt-2 border-t border-gray-100">근거: ACSM 점진적 과부하 원칙, Schoenfeld et al. (2017), Israetel RP Strength, NSCA</p>
+                  <p>초록 영역 안에 점이 꾸준히 찍히면 <span className="font-bold text-[#2D6A4F]">성장하고 있다는 뜻</span>이에요!</p>
+                  <p className="text-[10px] text-gray-400 mt-2 pt-2 border-t border-gray-100">근거: ACSM, Schoenfeld et al. (2017), NSCA</p>
                 </div>
               </>
             )}
             {helpCard === "trainingLevel" && (
               <>
-                <h3 className="text-lg font-black text-[#1B4332] mb-3">훈련 레벨 추정</h3>
+                <h3 className="text-lg font-black text-[#1B4332] mb-3">내 운동 등급</h3>
                 <div className="space-y-3 text-[13px] text-gray-600 leading-relaxed">
-                  <p>운동 기록을 분석해서 <span className="font-bold text-[#1B4332]">자동으로 훈련 레벨을 판정</span>해요. 이 레벨에 따라 부하 타임라인의 최적 범위가 조정돼요.</p>
+                  <p>운동 기록을 보고 <span className="font-bold text-[#1B4332]">자동으로 등급을 매겨줘요</span>. 이 등급에 따라 운동량 기준이 달라져요.</p>
                   <div className="bg-gray-50 rounded-xl p-3 space-y-2">
-                    <p className="text-[11px] font-bold text-gray-500">판정 기준</p>
+                    <p className="text-[11px] font-bold text-gray-500">어떻게 판정하나요?</p>
                     <div className="space-y-1.5">
                       <div className="flex items-start gap-2">
                         <span className="text-[10px] font-black text-[#2D6A4F] mt-0.5 shrink-0">1순위</span>
-                        <p className="text-[11px]"><span className="font-bold">3대 운동</span>(스쿼트/벤치프레스/데드리프트)의 추정 최대중량(e1RM)을 체중으로 나눈 비율</p>
+                        <p className="text-[11px]"><span className="font-bold">3대 운동</span>(스쿼트/벤치프레스/데드리프트)에서 들 수 있는 최고 무게를 체중과 비교</p>
                       </div>
                       <div className="flex items-start gap-2">
                         <span className="text-[10px] font-black text-[#2D6A4F] mt-0.5 shrink-0">2순위</span>
-                        <p className="text-[11px]"><span className="font-bold">맨몸 운동</span>(푸쉬업/풀업)의 최대 반복 횟수</p>
+                        <p className="text-[11px]"><span className="font-bold">맨몸 운동</span>(푸쉬업/풀업) 몇 개 하는지</p>
                       </div>
                     </div>
                   </div>
                   <div className="bg-gray-50 rounded-xl p-3 space-y-1.5">
-                    <p className="text-[11px] font-bold text-gray-500">레벨 기준 (남성 · 3대 운동 e1RM/체중)</p>
+                    <p className="text-[11px] font-bold text-gray-500">등급 기준 (남성 · 최고 무게/체중)</p>
                     <div className="space-y-1">
                       <div className="flex justify-between text-[10px]">
                         <span className="font-medium text-gray-500">종목</span>
                         <div className="flex gap-3">
-                          <span className="font-bold text-gray-400 w-10 text-center">초급</span>
-                          <span className="font-bold text-[#2D6A4F] w-10 text-center">중급</span>
-                          <span className="font-bold text-amber-600 w-10 text-center">상급</span>
+                          <span className="font-bold text-gray-400 w-10 text-center">뉴비</span>
+                          <span className="font-bold text-[#2D6A4F] w-10 text-center">중수</span>
+                          <span className="font-bold text-amber-600 w-10 text-center">고수</span>
                         </div>
                       </div>
                       <div className="flex justify-between text-[10px]">
@@ -1095,20 +1252,20 @@ export const ProofTab: React.FC<ProofTabProps> = () => {
                     <div className="space-y-1">
                       <div className="flex justify-between text-[10px]">
                         <span className="text-gray-600">푸쉬업</span>
-                        <span className="text-gray-500">~10회 초급 · 10~25회 중급 · 25회+ 상급</span>
+                        <span className="text-gray-500">~10회 뉴비 · 10~25회 중수 · 25회+ 고수</span>
                       </div>
                       <div className="flex justify-between text-[10px]">
                         <span className="text-gray-600">풀업</span>
-                        <span className="text-gray-500">~1회 초급 · 1~8회 중급 · 8회+ 상급</span>
+                        <span className="text-gray-500">~1회 뉴비 · 1~8회 중수 · 8회+ 고수</span>
                       </div>
                     </div>
                   </div>
                   <div className="bg-amber-50 rounded-xl p-3">
-                    <p className="text-[11px] font-bold text-amber-700 mb-1">레벨 유지 조건</p>
-                    <p className="text-[10px] text-amber-600">역대 최고 기록으로 레벨이 올라가지만, 최근 4주간 해당 레벨 수준의 운동 기록이 없으면 한 단계 하향돼요. 꾸준히 운동해야 레벨이 유지됩니다.</p>
+                    <p className="text-[11px] font-bold text-amber-700 mb-1">등급 유지 조건</p>
+                    <p className="text-[10px] text-amber-600">최고 기록으로 등급이 올라가지만, 최근 4주간 운동을 안 하면 한 단계 내려가요. 꾸준히 해야 유지돼요!</p>
                   </div>
-                  <p>여성은 3대 운동 기준 ×0.6, 맨몸 상체 기준 ×0.5가 적용돼요.</p>
-                  <p className="text-[10px] text-gray-400 mt-2 pt-2 border-t border-gray-100">근거: NSCA Essentials of S&C (4th ed.), Rippetoe & Kilgore (2006), Epley e1RM 공식</p>
+                  <p>여성은 기준이 조금 다르게 적용돼요.</p>
+                  <p className="text-[10px] text-gray-400 mt-2 pt-2 border-t border-gray-100">근거: NSCA, Rippetoe & Kilgore (2006)</p>
                 </div>
               </>
             )}
