@@ -917,8 +917,7 @@ export const FitScreen: React.FC<FitScreenProps> = ({
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col items-center px-6 text-center gap-2 overflow-hidden">
-        <div className="flex-[0.3]" />
+      <div className="flex-1 flex flex-col items-center justify-center px-6 text-center gap-2 overflow-hidden">
         <div className="flex flex-col items-center gap-1 shrink-0">
           {(() => {
             const parts = exercise.name.split('(');
@@ -1025,12 +1024,12 @@ export const FitScreen: React.FC<FitScreenProps> = ({
                     onClick={() => setShowWeightEdit(true)}
                     className="flex items-baseline gap-1 active:opacity-60 transition-all"
                   >
-                    <span className="text-6xl font-black text-[#2D6A4F]">{selectedWeight}</span>
-                    <span className="text-xl font-bold text-gray-400">kg</span>
+                    <span className="text-5xl font-black text-[#2D6A4F]">{selectedWeight}</span>
+                    <span className="text-lg font-bold text-gray-400">kg</span>
                   </button>
                 )}
                 {!hasWeight && exercise.weight && (
-                  <span className={`font-black text-[#2D6A4F] ${isBodyweight ? "text-5xl" : "text-3xl"}`}>
+                  <span className={`font-black text-[#2D6A4F] ${isBodyweight ? "text-4xl" : "text-2xl"}`}>
                     {isBodyweight ? "맨몸" : setInfo.targetWeight}
                   </span>
                 )}
@@ -1039,14 +1038,14 @@ export const FitScreen: React.FC<FitScreenProps> = ({
                   onClick={() => setShowRepsEdit(true)}
                   className="flex items-baseline gap-1 active:opacity-60 transition-all"
                 >
-                  <span className="text-6xl font-black" style={{ color: THEME.textMain }}>{adjustedReps}</span>
-                  <span className="text-xl font-bold text-gray-400">REPS</span>
+                  <span className="text-5xl font-black" style={{ color: THEME.textMain }}>{adjustedReps}</span>
+                  <span className="text-lg font-bold text-gray-400">REPS</span>
                 </button>
               </div>
 
               {/* Stopwatch */}
               <div className="flex flex-col items-center mt-1">
-                <span className="text-7xl font-black tabular-nums tracking-tighter" style={{ color: THEME.textMain }}>
+                <span className="text-5xl font-black tabular-nums tracking-tighter" style={{ color: THEME.textMain }}>
                   {formatTime(repsStopwatch)}
                 </span>
                 <button
