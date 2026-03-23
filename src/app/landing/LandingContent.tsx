@@ -167,7 +167,7 @@ export default function LandingContent() {
 
         <div className="relative max-w-5xl mx-auto px-6 pt-16 sm:pt-24 pb-24 sm:pb-32 text-center">
           <RevealSection>
-            <p className="text-lg sm:text-xl text-[#a7f3d0] font-medium mb-4 tracking-wide">
+            <p className="text-sm sm:text-xl text-[#a7f3d0] font-medium mb-4 tracking-wide">
               AI 운동 루틴 자동 생성 · 운동 기록 앱 · PT 대체 서비스
             </p>
             <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black text-white leading-tight tracking-tight">
