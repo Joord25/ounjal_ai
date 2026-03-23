@@ -376,7 +376,7 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ user, on
       const response = await window.PortOne.requestIssueBillingKey({
         storeId: process.env.NEXT_PUBLIC_PORTONE_STORE_ID || "",
         channelKey: process.env.NEXT_PUBLIC_PORTONE_CHANNEL_KEY || "",
-        billingKeyMethod: "EASY_PAY",
+        billingKeyMethod: "CARD",
         issueName: "오운잘 AI 월간 구독",
         customer: {
           customerId: user.uid,
