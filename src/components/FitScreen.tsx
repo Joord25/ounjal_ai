@@ -870,7 +870,7 @@ export const FitScreen: React.FC<FitScreenProps> = ({
   return (
     <div ref={containerRef} className="flex flex-col h-full bg-white animate-fade-in relative">
       {/* Header with Back Button */}
-      <div className="pt-[max(2.5rem,env(safe-area-inset-top))] pb-3 sm:pb-8 px-6 flex items-center justify-between relative shrink-0">
+      <div className="pt-[max(2rem,env(safe-area-inset-top))] pb-1 px-6 flex items-center justify-between relative shrink-0">
         <button
           onClick={onBack}
           className="p-2 -ml-2 z-50 relative"
@@ -891,7 +891,7 @@ export const FitScreen: React.FC<FitScreenProps> = ({
           </svg>
         </button>
 
-        <div className="absolute inset-x-16 top-0 bottom-0 flex flex-col items-center justify-center pt-[max(2.5rem,env(safe-area-inset-top))] pb-3 sm:pb-8 pointer-events-none z-0">
+        <div className="absolute inset-x-16 top-0 bottom-0 flex flex-col items-center justify-center pt-[max(2rem,env(safe-area-inset-top))] pb-1 pointer-events-none z-0">
           <span
             className="text-lg tracking-widest uppercase font-black"
             style={{ color: THEME.textMain }}
@@ -1063,7 +1063,7 @@ export const FitScreen: React.FC<FitScreenProps> = ({
       </div>
 
       {/* Main CTA */}
-      <div className="flex flex-col items-center shrink-0 pb-3">
+      <div className="flex flex-col items-center shrink-0 pb-0">
         {isTimerMode ? (
             <div className="flex flex-col items-center justify-center">
                 {timerCompleted ? (
