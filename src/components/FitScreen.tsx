@@ -605,7 +605,7 @@ export const FitScreen: React.FC<FitScreenProps> = ({
           <div className="w-10" />
         </div>
 
-        <div className="flex-1 flex flex-col items-center justify-center px-6 gap-4 overflow-hidden">
+        <div className="flex-1 flex flex-col items-center justify-center px-6 gap-3 overflow-hidden">
           <div className="flex flex-col items-center gap-0 shrink-0">
             <div className="flex items-center gap-2 justify-center">
               <h1 className="text-3xl font-black text-[#1B4332] tracking-tight leading-tight break-keep text-center">{mainTitle}</h1>
@@ -628,7 +628,7 @@ export const FitScreen: React.FC<FitScreenProps> = ({
             const embedUrl = getVideoEmbedUrl(exercise.name);
             if (embedUrl) {
               return (
-                <button onClick={() => setShowVideoGuide(true)} className="w-48 aspect-[9/13] max-h-[35vh] rounded-2xl overflow-hidden bg-black relative shadow-lg active:scale-[0.97] transition-all shrink-0">
+                <button onClick={() => setShowVideoGuide(true)} className="w-48 aspect-[9/13] max-h-[28vh] rounded-2xl overflow-hidden bg-black relative shadow-lg active:scale-[0.97] transition-all shrink-0">
                   <iframe
                     src={embedUrl}
                     className="w-full h-full pointer-events-none"
@@ -917,7 +917,7 @@ export const FitScreen: React.FC<FitScreenProps> = ({
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col items-center justify-center px-6 text-center gap-3 overflow-hidden">
+      <div className="flex-1 flex flex-col items-center justify-center px-6 text-center gap-2 overflow-hidden">
         <div className="flex flex-col items-center gap-1 shrink-0">
           {(() => {
             const parts = exercise.name.split('(');
@@ -954,7 +954,7 @@ export const FitScreen: React.FC<FitScreenProps> = ({
                   const embedUrl = getVideoEmbedUrl(exercise.name);
                   if (embedUrl) {
                     return (
-                      <button onClick={() => setShowVideoGuide(true)} className="mt-2 w-48 aspect-[9/13] max-h-[35vh] rounded-2xl overflow-hidden bg-black relative shadow-lg active:scale-[0.97] transition-all">
+                      <button onClick={() => setShowVideoGuide(true)} className="mt-2 w-48 aspect-[9/13] max-h-[28vh] rounded-2xl overflow-hidden bg-black relative shadow-lg active:scale-[0.97] transition-all">
                         <iframe
                           src={embedUrl}
                           className="w-full h-full pointer-events-none"
@@ -1044,7 +1044,7 @@ export const FitScreen: React.FC<FitScreenProps> = ({
               </div>
 
               {/* Stopwatch */}
-              <div className="flex flex-col items-center mt-2">
+              <div className="flex flex-col items-center mt-1">
                 <span className="text-7xl font-black tabular-nums tracking-tighter" style={{ color: THEME.textMain }}>
                   {formatTime(repsStopwatch)}
                 </span>
