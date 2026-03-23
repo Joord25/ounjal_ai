@@ -17,7 +17,7 @@ const FEATURES = [
     pain: "헬스장 가서 뭐하지?",
     title: "AI가 오늘의 운동 루틴을 자동 생성",
     desc: "헬린이도 걱정 없어요.\n컨디션과 목표만 선택하면 AI 운동 플래너가\n개인화된 운동 계획을 자동으로 짜드립니다.\n웨이트, 맨몸운동, 러닝까지 맞춤 운동 프로그램을\nAI가 매일 새롭게 추천해요.",
-    video: "/feature-1.mp4",
+    video: "/what.mp4",
   },
   {
     pain: "운동 꾸준히 하기 너무 힘들어...",
@@ -222,7 +222,7 @@ export default function LandingContent() {
                   playsInline
                   className="w-full"
                 >
-                  <source src="/main-video.mp4" type="video/mp4" />
+                  <source src="/hero.mp4" type="video/mp4" />
                 </video>
                 <div className="absolute bottom-0 left-0 right-0 h-1/3 bg-gradient-to-t from-white to-transparent pointer-events-none" />
               </div>
@@ -300,28 +300,10 @@ export default function LandingContent() {
                         </div>
                       </div>
                     ) : f.questCard ? (
-                      <div className="rounded-[32px] border-[5px] border-[#1B4332]/20 bg-gradient-to-br from-[#0f2a1f] to-[#1B4332] shadow-xl overflow-hidden aspect-[9/16] flex flex-col items-center justify-center px-5 gap-4">
-                        <p className="text-white/60 text-xs font-bold">시즌 티어 시스템</p>
-                        <div className="flex flex-wrap items-center justify-center gap-1.5">
-                          {["Iron", "Bronze", "Silver", "Gold", "Emerald", "Diamond", "Master", "Challenger"].map((tier) => {
-                            const colors: Record<string, string> = { Iron: "#6b7280", Bronze: "#cd7f32", Silver: "#94b8d0", Gold: "#ffd700", Emerald: "#34d399", Diamond: "#60a5fa", Master: "#a78bfa", Challenger: "#f87171" };
-                            return (
-                              <span key={tier} className="text-[9px] sm:text-[10px] font-black px-2 py-0.5 rounded-full" style={{ backgroundColor: `${colors[tier]}25`, color: colors[tier] }}>
-                                {tier}
-                              </span>
-                            );
-                          })}
-                        </div>
-                        <div className="w-full max-w-[180px] mt-2">
-                          <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
-                            <div className="h-full rounded-full bg-[#34d399]" style={{ width: "65%" }} />
-                          </div>
-                          <div className="flex justify-between mt-1">
-                            <span className="text-[9px] font-bold text-[#34d399]">80 EXP</span>
-                            <span className="text-[9px] text-white/40">Emerald까지 60</span>
-                          </div>
-                        </div>
-                        <p className="text-white/30 text-[10px] font-medium mt-2">영상 준비중</p>
+                      <div className="rounded-[32px] border-[5px] border-gray-200 bg-black shadow-xl overflow-hidden">
+                        <video autoPlay loop muted playsInline className="w-full">
+                          <source src="/game.mp4" type="video/mp4" />
+                        </video>
                       </div>
                     ) : f.video ? (
                       <div className="rounded-[32px] border-[5px] border-gray-200 bg-black shadow-xl overflow-hidden">
