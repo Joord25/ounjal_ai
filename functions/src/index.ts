@@ -507,7 +507,7 @@ export const analyzeWorkout = onRequest(
 // ============================================
 
 const PORTONE_API_BASE = "https://api.portone.io";
-const SUBSCRIPTION_AMOUNT = 9900;
+const SUBSCRIPTION_AMOUNT = 6900;
 
 function getPortOneSecret(): string {
   const secret = process.env.PORTONE_API_SECRET;

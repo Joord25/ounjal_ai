@@ -647,11 +647,19 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ user, on
               </div>
             )}
 
-            <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-50 border border-amber-200">
-              <span className="text-amber-500 text-base">⚠️</span>
-              <p className="text-xs text-amber-700 font-medium leading-snug">
-                현재 테스트 모드입니다. 결제 시 <span className="font-bold">실제 금액이 청구되지 않습니다.</span>
+            <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-4">
+              <p className="text-sm font-bold text-[#1B4332] mb-2">계좌이체로 구독하기</p>
+              <p className="text-xs text-gray-600 leading-relaxed mb-3">
+                카드 결제 시스템 준비 중입니다.<br/>
+                아래 계좌로 이체 후 카카오톡으로 알려주시면<br/>
+                <span className="font-bold">24시간 이내 프리미엄을 활성화</span>해드립니다.
               </p>
+              <div className="bg-white rounded-lg p-3 text-sm space-y-1">
+                <p className="text-gray-600">예금주: <span className="font-bold text-[#1B4332]">임주용(주드)</span></p>
+                <p className="text-gray-600">은행: <span className="font-bold text-[#1B4332]">신한</span></p>
+                <p className="text-gray-600">계좌: <span className="font-bold text-[#1B4332]">100-037-160223</span></p>
+                <p className="text-gray-600">금액: <span className="font-bold text-[#1B4332]">월 6,900원</span></p>
+              </div>
             </div>
 
             <button
@@ -668,6 +676,13 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ user, on
                 "카카오페이로 구독하기"
               )}
             </button>
+
+            <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-50 border border-amber-200">
+              <span className="text-amber-500 text-base">⚠️</span>
+              <p className="text-xs text-amber-700 font-medium leading-snug">
+                현재 테스트 모드입니다. 결제 시 <span className="font-bold">실제 금액이 청구되지 않습니다.</span>
+              </p>
+            </div>
 
             <p className="text-[10px] text-gray-400 text-center">
               구독은 매월 자동 갱신되며, 언제든 취소할 수 있습니다
