@@ -658,7 +658,7 @@ export default function LandingContent() {
             <p>주드(Joord) · 대표 임주용</p>
             <p>사업자등록번호 | 623-36-01460</p>
             <p>서울특별시 관악구 은천로35길 40-6, 404호</p>
-            <p>Tel 010-4824-2869 | ounjal.ai.app@gmail.com</p>
+            <p>H.P 010-4824-2869 | ounjal.ai.app@gmail.com</p>
           </div>
 
           {/* 링크 */}
