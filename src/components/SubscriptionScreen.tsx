@@ -539,7 +539,7 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ user, on
 
       <div className="flex-1 overflow-y-auto scrollbar-hide">
       <div className="pb-4 px-6 text-center">
-        <h1 className="text-3xl font-black text-[#1B4332]">Primium 구독</h1>
+        <h1 className="text-3xl font-black text-[#1B4332]">Premium 구독</h1>
       </div>
 
       <div className="flex-1 px-6 pb-4">

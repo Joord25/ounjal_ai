@@ -57,7 +57,7 @@ export default function Home() {
   const [subStatus, setSubStatus] = useState<"loading" | "free" | "active" | "cancelled">("loading");
   const [showExitConfirm, setShowExitConfirm] = useState(false);
 
-  const FREE_PLAN_LIMIT = 3;
+  const FREE_PLAN_LIMIT = 5;
 
   // Firebase Auth listener
   useEffect(() => {
