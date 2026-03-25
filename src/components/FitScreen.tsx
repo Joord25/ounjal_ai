@@ -563,14 +563,9 @@ export const FitScreen: React.FC<FitScreenProps> = ({
 
   const submitFeedback = (feedback: FeedbackType, reps: number) => {
     setFeedbackGiven(true);
-    // If timer already done, advance immediately
-    if (localRestSec <= 0) {
-      pendingFeedbackRef.current = null;
-      onSetComplete(reps, feedback, actualWeight);
-      setTimeout(() => onSkipRest(), 50);
-    } else {
-      pendingFeedbackRef.current = { feedback, reps };
-    }
+    pendingFeedbackRef.current = null;
+    onSetComplete(reps, feedback, actualWeight);
+    setTimeout(() => onSkipRest(), 50);
   };
 
   const handleSkipLocalRest = () => {
@@ -1502,29 +1497,7 @@ export const FitScreen: React.FC<FitScreenProps> = ({
                   </div>
                 </div>
               </>
-            ) : (
-              /* === Feedback done, waiting for timer === */
-              <div className="flex flex-col items-center py-4">
-                <svg className="w-10 h-10 text-[#2D6A4F] mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
-                <p className="text-sm font-bold text-[#1B4332]">피드백 완료</p>
-                <p className="text-xs text-gray-400 mt-1">타이머 종료 후 다음 세트로 이동해요</p>
-                <div className="flex items-center gap-2 mt-3">
-                  <button
-                    onClick={() => setShowVideoGuide(true)}
-                    className="px-4 py-2 rounded-full bg-red-50 text-xs font-bold text-red-500 active:scale-95 transition-all flex items-center gap-1.5"
-                  >
-                    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
-                    자세 다시보기
-                  </button>
-                  <button
-                    onClick={() => { setFeedbackGiven(false); pendingFeedbackRef.current = null; }}
-                    className="px-4 py-2 rounded-full bg-gray-100 text-xs font-bold text-gray-500 active:scale-95 transition-all"
-                  >
-                    다시 선택
-                  </button>
-                </div>
-              </div>
-            )}
+            ) : null}
           </div>
         </div>
       )}

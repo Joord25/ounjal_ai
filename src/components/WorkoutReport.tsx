@@ -8,15 +8,15 @@ import { loadRecentHistory as loadRecentHistoryFromStore } from "@/utils/workout
 import { getTierFromExp, type ExpLogEntry, sumExp, TIERS, processWorkoutCompletion, getOrRebuildSeasonExp } from "@/utils/questSystem";
 
 /* === RPG 리절트 카드 === */
-function RpgResultCard({ totalDurationSec, totalSets, totalVolume, successRate, isStrengthSession, seasonExp, prevSeasonExp, expGained, intensityLevel, formatDuration, onHelpPress }: {
+function RpgResultCard({ totalDurationSec, totalSets, totalVolume, successRate, isStrengthSession, seasonExp, prevSeasonExp, expGained, intensityLevel, formatDuration, onHelpPress, skipAnimation }: {
   totalDurationSec: number; totalSets: number; totalVolume: number; successRate: number;
   isStrengthSession: boolean; seasonExp: number; prevSeasonExp: number; expGained: ExpLogEntry[];
   intensityLevel: "high" | "moderate" | "low";
-  formatDuration: (s: number) => string; onHelpPress: () => void;
+  formatDuration: (s: number) => string; onHelpPress: () => void; skipAnimation?: boolean;
 }) {
   const [visibleChars, setVisibleChars] = useState<number[]>([]);
-  const [currentLine, setCurrentLine] = useState(-1);
-  const [showExp, setShowExp] = useState(false);
+  const [currentLine, setCurrentLine] = useState(skipAnimation ? 999 : -1);
+  const [showExp, setShowExp] = useState(skipAnimation ? true : false);
   const current = getTierFromExp(seasonExp);
   const prev = getTierFromExp(prevSeasonExp);
   const tierUp = current.tierIdx > prev.tierIdx;
@@ -51,6 +51,11 @@ function RpgResultCard({ totalDurationSec, totalSets, totalVolume, successRate, 
   ];
 
   useEffect(() => {
+    if (skipAnimation) {
+      // 히스토리 뷰: 즉시 전체 표시
+      setVisibleChars(lines.map(l => l.text.length));
+      return;
+    }
     const timers: ReturnType<typeof setTimeout>[] = [];
     let baseDelay = 300;
     const charSpeed = 40; // ms per character
@@ -326,6 +331,7 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
               intensityLevel={sessionIntensity.level}
               formatDuration={formatDuration}
               onHelpPress={() => setHelpCard("levelSystem")}
+              skipAnimation={!!sessionDate}
             />
           );
         })()}

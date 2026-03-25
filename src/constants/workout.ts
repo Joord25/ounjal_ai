@@ -358,6 +358,8 @@ const LEG_EXERCISES = {
     "덤벨 힙 쓰러스트 (Dumbbell Hip Thrust)",
     "힙 쓰러스트 (Hip Thrust)",
     "케이블 풀 스루 (Cable Pull-Through)",
+    "레그 컬 (Leg Curl)",
+    "힙 어덕션 머신 (Hip Abduction Machine)",
   ],
   calf: [
     "스탠딩 카프 레이즈 (Standing Calf Raises)",

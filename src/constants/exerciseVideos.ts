@@ -22,18 +22,18 @@ export const EXERCISE_VIDEOS: Record<string, string> = {
   // ── 가슴 (PUSH - Accessory) ──
   "인클라인 덤벨 프레스": "98HWfiRonkE",
   "인클라인 덤벨 플라이": "aBEHkzfe4yc",
-  "케이블 크로스오버": "y4RJDSOBEl8",
+  "케이블 크로스오버": "roEVwGRVVWU",
   "케이블 체스트 프레스": "NXpRKhXg2P8",
-  "펙덱 플라이": "a9vQ_hwIksU",
+  "펙덱 플라이": "Qia9J8Do7vw",
   "중량 딥스": "ZDOrGNvRdM0",
   "가슴 딥스": "SpSE_A5L-YA",
   "랜드마인 프레스": "Iu5pYQEkj38",
   "바텀스업 케틀벨 프레스": "PDVTbKBXAl4",
-  "푸쉬업": "HHRDXEG1YCU",
+  "푸쉬업": "_OIVCwJ8JEI",
   "니 푸쉬업": "CHMJix2qYsY",
   "다이아몬드 푸쉬업": "jM_nyUZGCak",
   "와이드 푸쉬업": "j3b4AU0_moo",
-  "아처 푸쉬업": "OskpsD1eDWw",
+  "아처 푸쉬업": "3grrK20JBDc",
   "힌두 푸쉬업": "QmaZpWt2ZOA",
 
   // ── 어깨 (PUSH - Vertical Press) ──
@@ -44,7 +44,7 @@ export const EXERCISE_VIDEOS: Record<string, string> = {
   "밀리터리 프레스": "8AaCUFgLHak",
 
   // ── 어깨 (PUSH - Isolation) ──
-  "사이드 레터럴 레이즈": "U2gMn8GXr2A",
+  "사이드 레터럴 레이즈": "niWbjYgkSI8",
   "프론트 레터럴 레이즈": "yPdoJZ89Xkk",
   "벤트 오버 레터럴 레이즈": "LsT-bR_zxLo",
   "케이블 레터럴 레이즈": "oHIiwKgcS4Y",
@@ -52,42 +52,42 @@ export const EXERCISE_VIDEOS: Record<string, string> = {
 
   // ── 삼두 (PUSH - Isolation) ──
   "트라이셉 로프 푸쉬다운": "",
-  "스컬 크러셔": "Ug8Kut52xjs",
+  "스컬 크러셔": "1cikFylNxqw",
   "오버헤드 트라이셉 익스텐션": "",
   "케이블 푸쉬 다운": "",
   "케이블 오버헤드 트라이셉 익스텐션": "",
   "트라이셉스 킥백": "",
-  "트라이셉스 딥스": "",
+  "트라이셉스 딥스": "XX1_7MN1fEM",
 
   // ══════════════════════════════════
   // ── 등 (PULL - Vertical) ──
   // ══════════════════════════════════
-  "풀업": "",
-  "중량 풀업": "",
-  "랫 풀다운": "",
-  "친업": "",
-  "중량 친업": "",
-  "어시스티드 풀업": "",
-  "암 풀다운": "",
+  "풀업": "ym1V5H35IpA",
+  "중량 풀업": "qwXUU0JPYnY",
+  "랫 풀다운": "bNmvKpJSWKM",
+  "친업": "jIvbJzs1V4I",
+  "중량 친업": "1C272Ws8WwU",
+  "어시스티드 풀업": "CdO5BvP6Ti8",
+  "암 풀다운": "hAMcfubonDc",
   "원 암 랫 풀다운": "8zA8DjHRaq0",
 
   // ── 등 (PULL - Horizontal) ──
-  "바벨 로우": "",
+  "바벨 로우": "FZ_ObAdQPEo",
   "펜들레이 로우": "",
-  "티바 로우": "",
+  "티바 로우": "30-MYPAVXqk",
   "케틀벨 고릴라 로우": "",
   "인버티드 로우": "vZy_Eu_Z0WA",
   "하이로우 머신": "",
-  "케틀벨 로우": "",
+  "케틀벨 로우": "Prwa0uFbSYU",
   "TRX 로우": "",
 
   // ── 등 (PULL - Unilateral) ──
   "싱글 암 덤벨 로우": "",
-  "시티드 케이블 로우": "",
+  "시티드 케이블 로우": "RUygIGMN13M",
   "체스트 서포티드 로우": "",
-  "케이블 로우": "",
+  "케이블 로우": "LyZH4UGdDTc",
   "원 암 시티드 로우 머신": "",
-  "백익스텐션 머신": "",
+  "백익스텐션 머신": "9V2BlUDBn1s",
   "슈퍼맨 동작": "",
   "T-W 레이즈": "",
 
@@ -98,11 +98,11 @@ export const EXERCISE_VIDEOS: Record<string, string> = {
 
   // ── 이두 (PULL - Bicep) ──
   "바벨 컬": "",
-  "해머 컬": "",
+  "해머 컬": "EXzrRuekzLU",
   "인클라인 덤벨 컬": "",
-  "케이블 바이셉 컬": "",
+  "케이블 바이셉 컬": "KbIMqVOSIiw",
   "덤벨 프리쳐 컬": "",
-  "덤벨 컬": "",
+  "덤벨 컬": "-nGL7q-eP5g",
   "프리처 컬 머신": "",
   "오버헤드 케이블 바이셉 컬": "",
   "TRX 바이셉스 컬": "",
@@ -121,7 +121,7 @@ export const EXERCISE_VIDEOS: Record<string, string> = {
   "컨벤셔널 데드리프트": "",
   "케틀벨 스윙": "TIy6s4O2bOY",
   "싱글 레그 케틀벨 RDL": "s32cCgmRV3I",
-  "케틀벨 데드리프트": "",
+  "케틀벨 데드리프트": "foy5yzE4_DA",
 
   // ── 하체 (LEG - Unilateral) ──
   "워킹 런지": "",
@@ -130,11 +130,13 @@ export const EXERCISE_VIDEOS: Record<string, string> = {
   "케틀벨 워킹 런지": "hzYUKP0nETA",
 
   // ── 하체 (LEG - Isolation) ──
-  "레그 프레스": "",
-  "레그 익스텐션": "",
+  "레그 프레스": "6gx_bjn9wdk",
+  "레그 익스텐션": "bKpriLIWrhk",
   "덤벨 힙 쓰러스트": "",
   "힙 쓰러스트": "",
   "케이블 풀 스루": "",
+  "레그 컬": "7F6VF0tcgwo",
+  "힙 어덕션 머신": "tKMx0CVnECk",
 
   // ── 하체 (LEG - Calf) ──
   "스탠딩 카프 레이즈": "",
@@ -161,7 +163,7 @@ export const EXERCISE_VIDEOS: Record<string, string> = {
   "Ab 휠 롤아웃": "",
   "크런치": "",
   "바이시클 크런치": "",
-  "오블리크 크런치": "",
+  "오블리크 크런치": "98eX0ndm7Z4",
   "싱글 레그 레이즈": "",
   "리버스 크런치": "",
   "마운틴 클라이머": "7W4JEfEKuC4",
@@ -169,7 +171,7 @@ export const EXERCISE_VIDEOS: Record<string, string> = {
   "토 터치 크런치": "",
   "플러터 킥": "",
   "레그 레이즈": "",
-  "케이블 크런치": "",
+  "케이블 크런치": "iRYIqSFN21w",
   "덤벨 사이드 벤드": "44DazvtgpGE",
   "브이 업": "saHkR_MvIdA",
   "Ab 슬라이드": "",
@@ -299,7 +301,7 @@ export const EXERCISE_VIDEOS: Record<string, string> = {
   "추가 유산소: 중강도 러닝": "ppmeLjrx6UE",
   "추가 유산소: 가벼운 걷기": "",
   "추가 유산소: 가벼운 조깅 또는 걷기": "ppmeLjrx6UE",
-  "추가 유산소: 인클라인 워킹": "",
+  "추가 유산소: 인클라인 워킹": "JGzA6FPzZS8",
   "추가 유산소: 조깅": "ppmeLjrx6UE",
   "추가 유산소: 쿨다운 스트레칭 및 이완": "",
   "추가 추천: 동적 스트레칭 및 이완": "",
