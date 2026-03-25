@@ -14,6 +14,12 @@ function useBodyScroll() {
 
 const FEATURES = [
   {
+    pain: "운동하면 나 얼마나 변할 수 있어?",
+    title: "운동 AI, 국내 최초 회귀분석 예측모델로 내 미래를 미리 본다",
+    desc: "5kg 감량까지 몇주 예상? 근육량 1kg 언제 달성?\n내 체중·운동빈도·목표를 분석해\n다이어트 정체기 시점, 근육량 증가 기간,\n10km 완주 시점까지 AI가 예측합니다.\n막연한 운동이 아닌 구체적인 목표가 생깁니다.",
+    video: "/predictmodel.mp4",
+  },
+  {
     pain: "헬스장 가서 뭐하지?",
     title: "AI가 오늘의 운동 루틴을 자동 생성",
     desc: "헬린이도 걱정 없어요.\n컨디션과 목표만 선택하면 AI 운동 플래너가\n개인화된 운동 계획을 자동으로 짜드립니다.\n웨이트, 맨몸운동, 러닝까지 맞춤 운동 프로그램을\nAI가 매일 새롭게 추천해요.",
@@ -61,6 +67,7 @@ const FAQS = [
   { q: "다른 운동 어플과 뭐가 다른가요?", a: "기존 운동 기록 앱은 직접 운동을 골라 기록해야 하지만, 오운잘 AI는 컨디션만 선택하면 AI가 운동 루틴을 자동 생성하고, 운동 일지 저장부터 AI 운동 코칭, 분석 리포트까지 제공합니다. PT 대체 서비스로 헬스 루틴 생성부터 오운완 인증까지 올인원." },
   { q: "운동 기록은 어떻게 저장되나요?", a: "운동 중 세트별 무게·횟수가 자동으로 기록됩니다. 운동 일지가 자동 저장되고, 운동 볼륨 추적 그래프와 체중 변화 그래프로 개인 운동 기록을 한눈에 확인할 수 있어요." },
   { q: "오운완 인증은 어떻게 하나요?", a: "운동 완료 후 자동으로 생성되는 운동 기록 카드를 카카오톡, 인스타그램 등으로 바로 공유할 수 있습니다. 오운완 인증샷을 예쁘게 만들어드려요." },
+  { q: "성장 예측은 어떻게 작동하나요?", a: "오운잘 AI는 당신의 운동 데이터에서 총볼륨(중량x횟수), 세트수, 운동시간, 빈도, 체중 등 다양한 입력값을 수집합니다. 이 데이터를 XGBoost(트리 기반 앙상블) 모델과 논문 검증된 회귀분석에 적용하여 칼로리 소모, 근력 성장, 볼륨 추세를 예측합니다. 데이터가 쌓일수록 당신만의 패턴을 학습해 예측 정밀도가 높아집니다. (볼륨-칼로리 상관관계 r=0.89 — Haddock & Wilkin, 2006 / 초보자 근력 성장 메타분석 — Rhea et al., 2003 / ACSM 운동 처방 가이드라인, 2026)" },
   { q: "퀘스트와 티어 시스템이 뭔가요?", a: "매주 운동 강도별 퀘스트(고강도·중강도·저강도)가 주어지고, 달성하면 경험치(EXP)를 얻어요. EXP가 쌓이면 Iron → Bronze → Silver → Gold → Platinum → Emerald → Diamond → Master → Challenger까지 티어가 올라갑니다. 4개월마다 시즌이 리셋되어 새로운 도전이 시작돼요. 운동과학(ACSM) 기반이라 게임처럼 즐기면서 올바른 운동 습관이 만들어져요." },
   { q: "앱 설치가 필요한가요?", a: "별도 앱 설치 없이 웹에서 바로 사용 가능합니다. 홈화면에 추가하면 운동 어플처럼 사용할 수 있는 PWA 방식이에요." },
   { q: "구독은 어떻게 해지하나요?", a: "프로필 > 구독 관리에서 언제든지 해지할 수 있으며, 해지해도 결제 기간까지 이용 가능합니다." },
@@ -176,14 +183,14 @@ export default function LandingContent() {
         <div className="relative max-w-5xl mx-auto px-6 pt-16 sm:pt-24 pb-24 sm:pb-32 text-center">
           <RevealSection>
             <p className="text-sm sm:text-xl text-[#a7f3d0] font-medium mb-4 tracking-wide">
-              AI 운동 루틴 자동 생성 · 퀘스트 & 티어 성장 · PT 대체 서비스
+              AI 성장 예측 · AI 맞춤 운동 루틴 · 퀘스트 & 티어 · 커피 1잔 가격
             </p>
             <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black text-white leading-tight tracking-tight">
-              딸깍! <span className="text-[#34d399]">3번</span> 으로<br />오늘 운동 끝!
+              <span className="text-[#34d399]">국내 최초</span><br />AI 회귀분석 <span className="text-[#34d399]">예측 모델</span> 도입
             </h1>
-            <p className="mt-8 text-base sm:text-lg text-gray-400 max-w-lg mx-auto leading-relaxed">
-              <span className="text-white font-semibold">컨디션 선택</span> → <span className="text-white font-semibold">운동 목표</span> → <span className="text-white font-semibold">AI가 맞춤 운동 추천</span><br />
-              운동 루틴 고민, AI 운동 플래너에게 맡기세요.
+            <p className="mt-6 text-lg sm:text-2xl text-white/70 font-semibold leading-relaxed">
+              운동결과, 시작 전에 본다!<br />
+              감량 시점 · 근력 성장 · 체력 변화 예측
             </p>
             <div className="mt-10">
               <a
@@ -222,7 +229,7 @@ export default function LandingContent() {
                   playsInline
                   className="w-full"
                 >
-                  <source src="/hero.mp4" type="video/mp4" />
+                  <source src="/predictmodel.mp4" type="video/mp4" />
                 </video>
                 <div className="absolute bottom-0 left-0 right-0 h-1/3 bg-gradient-to-t from-white to-transparent pointer-events-none" />
               </div>
@@ -389,6 +396,10 @@ export default function LandingContent() {
                     <svg width="18" height="18" viewBox="0 0 18 18" fill="none" className="mt-0.5 shrink-0"><path d="M4 9L7.5 12.5L14 6" stroke="#059669" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                     운동 기록 저장
                   </li>
+                  <li className="flex items-start gap-2">
+                    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" className="mt-0.5 shrink-0"><path d="M4 9L7.5 12.5L14 6" stroke="#059669" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    AI 성장 예측 맛보기 (1건)
+                  </li>
                 </ul>
                 <a
                   href="/"
@@ -441,6 +452,14 @@ export default function LandingContent() {
                     <svg width="18" height="18" viewBox="0 0 18 18" fill="none" className="mt-0.5 shrink-0"><path d="M4 9L7.5 12.5L14 6" stroke="#059669" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                     주간 퀘스트 + 시즌 티어 성장
                   </li>
+                  <li className="flex items-start gap-2">
+                    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" className="mt-0.5 shrink-0"><path d="M4 9L7.5 12.5L14 6" stroke="#059669" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    AI 성장 예측 리포트
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" className="mt-0.5 shrink-0"><path d="M4 9L7.5 12.5L14 6" stroke="#059669" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    전체 목표별 상세 성장 분석
+                  </li>
                 </ul>
                 <a
                   href="/"
@@ -473,6 +492,7 @@ export default function LandingContent() {
               { label: "플랜 생성", other: "직접 운동 골라서 조합", ours: "AI가 운동 루틴 자동 생성" },
               { label: "난이도 조절", other: "정해진 프로그램 그대로 수행", ours: "매 세트 쉬움/적당/힘듦 → 자동 조절" },
               { label: "운동 분석", other: "운동 일지 기록만 저장", ours: "AI 운동 코칭 + 분석 리포트" },
+              { label: "성장 예측", other: "예측 기능 없음", ours: "AI가 감량·근력·체력 목표 도달 시점 예측" },
               { label: "동기부여", other: "기록만 쌓이고 성취감 없음", ours: "주간 퀘스트 + 시즌 티어 성장 시스템" },
               { label: "사용 난이도", other: "설정 복잡, 입력내용 많음", ours: "쉬운 버튼 조작, 터치 한번에 끝" },
             ].map((item, i) => (
@@ -539,6 +559,11 @@ export default function LandingContent() {
                     <td className="py-4 px-4 text-center font-bold text-[#059669]">AI 운동 코칭 + 분석 리포트</td>
                   </tr>
                   <tr>
+                    <td className="py-4 px-4 font-bold text-[#1B4332] text-center">성장 예측</td>
+                    <td className="py-4 px-4 text-center text-gray-500">예측 기능 없음</td>
+                    <td className="py-4 px-4 text-center font-bold text-[#059669]">AI가 감량·근력·체력 목표 도달 시점 예측</td>
+                  </tr>
+                  <tr className="bg-gray-50/50">
                     <td className="py-4 px-4 font-bold text-[#1B4332] text-center">동기부여</td>
                     <td className="py-4 px-4 text-center text-gray-500">기록만 쌓이고 성취감 없음</td>
                     <td className="py-4 px-4 text-center font-bold text-[#059669]">주간 퀘스트 + 시즌 티어 성장</td>
@@ -560,7 +585,7 @@ export default function LandingContent() {
         <div className="max-w-3xl mx-auto px-6">
           <RevealSection>
             <div className="text-center mb-10 sm:mb-16">
-              <h2 className="text-2xl sm:text-5xl font-black text-[#1B4332]">
+              <h2 className="text-2xl sm:text-4xl font-black text-[#1B4332]">
                 자주 묻는 질문
               </h2>
             </div>

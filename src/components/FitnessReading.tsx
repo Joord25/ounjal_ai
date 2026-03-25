@@ -880,11 +880,7 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
             <p className="text-[12.5px] text-gray-600 leading-relaxed mt-2">
               데이터가 쌓일수록 당신만의 패턴을 학습해{"\n"}예측 정밀도가 높아집니다.
             </p>
-            <div className="mt-3 pt-3 border-t border-gray-100 space-y-1">
-              <p className="text-[11px] text-gray-400">· 볼륨-칼로리 상관관계 r=0.89 — Haddock & Wilkin, 2006</p>
-              <p className="text-[11px] text-gray-400">· 초보자 근력 성장 메타분석 — Rhea et al., 2003</p>
-              <p className="text-[11px] text-gray-400">· ACSM 운동 처방 가이드라인, 2026</p>
-            </div>
+
             <p className="text-[10px] text-gray-400 mt-3 font-medium">탭하여 닫기</p>
           </div>
         </div>
