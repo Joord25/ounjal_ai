@@ -543,38 +543,46 @@ function computeReading(
     // 근력 초보: 중급자 진입까지 예상 기간
     if (label.includes("중급자 진입까지 예상 기간")) {
       const e1t = calcE1RMTrend(h);
-      if (!e1t || e1t.growthPerWeek <= 0) return { value: "데이터 수집 중...", source: "e1RM 성장률 기반 추정" };
+      // 프로필 1RM fallback: 운동 기록 부족 시 프로필 1RM + 표준 초보자 성장률 사용
+      const currentE1RM = e1t?.lastE1RM ?? Math.max(p.bench1RM || 0, p.squat1RM || 0, p.deadlift1RM || 0);
+      const growth = (e1t && e1t.growthPerWeek > 0) ? e1t.growthPerWeek : 2.5; // NSCA 초보자 주간 성장률
+      if (currentE1RM <= 0) return { value: "데이터 수집 중...", source: "e1RM 성장률 기반 추정" };
       // 중급 기준: 벤치 체중×1.0 (ExRx)
       const intermediateTarget = p.bodyWeight * 1.0;
-      const remaining = intermediateTarget - e1t.lastE1RM;
+      const remaining = intermediateTarget - currentE1RM;
       if (remaining <= 0) return { value: "🎉 이미 중급 수준 도달!", source: "ExRx Strength Standards" };
-      const weeksToTarget = Math.ceil(remaining / e1t.growthPerWeek);
+      const weeksToTarget = Math.ceil(remaining / growth);
+      const isEstimated = !e1t;
       return {
         value: `중급 진입까지 약 ${weeksToTarget}주 💪`,
-        sub: `현재 e1RM ${e1t.lastE1RM}kg → 목표 ${Math.round(intermediateTarget)}kg (주간 +${e1t.growthPerWeek}kg)`,
-        source: "e1RM 성장률 × ExRx Standards",
+        sub: `현재 e1RM ${currentE1RM}kg → 목표 ${Math.round(intermediateTarget)}kg (주간 +${growth}kg${isEstimated ? " 추정" : ""})`,
+        source: isEstimated ? "프로필 1RM + NSCA 초보자 평균 성장률" : "e1RM 성장률 × ExRx Standards",
       };
     }
 
     // 근력 상급: 1RM 목표 도달까지 예상 기간
     if (label.includes("1RM 목표 도달까지 예상 기간")) {
       const e1t = calcE1RMTrend(h);
-      if (!e1t || e1t.growthPerWeek <= 0) return { value: "데이터 수집 중...", source: "e1RM 성장률 기반 추정" };
+      // 프로필 1RM fallback: 운동 기록 부족 시 프로필 1RM + 상급자 성장률 사용
+      const currentE1RM = e1t?.lastE1RM ?? Math.max(p.bench1RM || 0, p.squat1RM || 0, p.deadlift1RM || 0);
+      const growth = (e1t && e1t.growthPerWeek > 0) ? e1t.growthPerWeek : 1.0; // 상급자 주간 성장률 (보수적)
+      if (currentE1RM <= 0) return { value: "1RM 데이터 입력 후 예측 가능", action: "edit_1rm" };
       const targets = [
         { name: "벤치 중급", target: p.bodyWeight * 1.0 },
         { name: "스쿼트 중급", target: p.bodyWeight * 1.25 },
         { name: "데드 중급", target: p.bodyWeight * 1.5 },
       ];
       const closest = targets
-        .map(t => ({ ...t, weeksLeft: Math.max(0, Math.ceil((t.target - e1t.lastE1RM) / e1t.growthPerWeek)) }))
+        .map(t => ({ ...t, weeksLeft: Math.max(0, Math.ceil((t.target - currentE1RM) / growth)) }))
         .filter(t => t.weeksLeft > 0)
         .sort((a, b) => a.weeksLeft - b.weeksLeft);
       if (closest.length === 0) return { value: "🎉 모든 중급 기준 달성!", source: "ExRx Strength Standards" };
       const next = closest[0];
+      const isEstimated = !e1t;
       return {
         value: `🎯 ${next.name} (${Math.round(next.target)}kg)까지 약 ${next.weeksLeft}주`,
-        sub: `현재 Best e1RM ${e1t.lastE1RM}kg, 주간 +${e1t.growthPerWeek}kg 기준`,
-        source: "e1RM 성장률 선형 외삽 + ExRx Standards",
+        sub: `현재 Best e1RM ${currentE1RM}kg, 주간 +${growth}kg${isEstimated ? " 추정" : ""} 기준`,
+        source: isEstimated ? "프로필 1RM + 상급자 평균 성장률" : "e1RM 성장률 선형 외삽 + ExRx Standards",
       };
     }
 
@@ -674,29 +682,41 @@ function computeReading(
     // 근력 초보: 주요 종목 e1RM 도달 예측
     if (label.includes("주요 종목 e1RM 도달 예측")) {
       const e1t = calcE1RMTrend(h);
-      if (!e1t) return { value: "e1RM 데이터 수집 중 (3회 이상 필요)", source: "세션별 e1RM 선형 회귀" };
+      const currentE1RM = e1t?.lastE1RM ?? Math.max(p.bench1RM || 0, p.squat1RM || 0, p.deadlift1RM || 0);
+      const growth = (e1t && e1t.growthPerWeek > 0) ? e1t.growthPerWeek : 2.5;
+      if (currentE1RM <= 0) return { value: "1RM 데이터 입력 후 예측 가능", action: "edit_1rm" };
       const targets = [
         { name: "벤치 체중×1배", target: p.bodyWeight * 1.0 },
         { name: "스쿼트 체중×1.25배", target: p.bodyWeight * 1.25 },
       ];
       const predictions = targets
         .map(t => {
-          const remaining = t.target - e1t.lastE1RM;
+          const remaining = t.target - currentE1RM;
           if (remaining <= 0) return `${t.name} ✅ 달성`;
-          const weeks = Math.ceil(remaining / e1t.growthPerWeek);
+          const weeks = Math.ceil(remaining / growth);
           return `${t.name} (${Math.round(t.target)}kg) → ${weeks}주`;
         });
       return {
         value: predictions.join(" / "),
-        sub: `현재 e1RM ${e1t.lastE1RM}kg, 주간 +${e1t.growthPerWeek}kg 성장`,
-        source: "e1RM 회귀 + ExRx Standards",
+        sub: `현재 e1RM ${currentE1RM}kg, 주간 +${growth}kg${!e1t ? " 추정" : ""} 성장`,
+        source: !e1t ? "프로필 1RM + NSCA 성장률" : "e1RM 회귀 + ExRx Standards",
       };
     }
 
     // 근력 상급: e1RM 성장 곡선 및 목표 예측
     if (label.includes("e1RM 성장 곡선 및 목표 예측")) {
       const e1t = calcE1RMTrend(h);
-      if (!e1t) return { value: "e1RM 데이터 수집 중 (3회 이상 필요)", source: "세션별 e1RM 회귀분석" };
+      if (!e1t) {
+        const profile1RM = Math.max(p.bench1RM || 0, p.squat1RM || 0, p.deadlift1RM || 0);
+        if (profile1RM <= 0) return { value: "1RM 데이터 입력 후 예측 가능", action: "edit_1rm" };
+        const estGrowth = 1.0; // 상급자 보수적 주간 성장률
+        const pred4w = Math.round((profile1RM + estGrowth * 4) * 10) / 10;
+        return {
+          value: `4주 후 e1RM ${pred4w}kg 예상 (추정) 🚀`,
+          sub: `현재 ${profile1RM}kg, 주간 +${estGrowth}kg 추정 기준`,
+          source: "프로필 1RM + 상급자 평균 성장률",
+        };
+      }
       const pred4w = Math.round(e1t.regression.predict(e1t.regression.intercept + 28) * 10) / 10;
       return {
         value: `4주 후 e1RM ${pred4w}kg 예상 🚀`,
@@ -791,23 +811,25 @@ function computeReading(
 
     if (label.includes("1RM 목표 도달 예측")) {
       const e1t = calcE1RMTrend(h);
-      if (!e1t || e1t.growthPerWeek <= 0) return { value: "성장 데이터 수집 중...", source: "e1RM 성장률 + 체중 데이터 회귀분석" };
-      // 목표: 체중의 1.5배 벤치, 2배 스쿼트, 2.5배 데드 (중급 기준)
+      const currentE1RM = e1t?.lastE1RM ?? Math.max(p.bench1RM || 0, p.squat1RM || 0, p.deadlift1RM || 0);
+      const growth = (e1t && e1t.growthPerWeek > 0) ? e1t.growthPerWeek : 1.0;
+      if (currentE1RM <= 0) return { value: "1RM 데이터 입력 후 예측 가능", action: "edit_1rm" };
       const targets = [
         { name: "벤치 중급", target: p.bodyWeight * 1.0 },
         { name: "스쿼트 중급", target: p.bodyWeight * 1.25 },
         { name: "데드 중급", target: p.bodyWeight * 1.5 },
       ];
       const closest = targets
-        .map(t => ({ ...t, weeksLeft: Math.max(0, Math.ceil((t.target - e1t.lastE1RM) / e1t.growthPerWeek)) }))
+        .map(t => ({ ...t, weeksLeft: Math.max(0, Math.ceil((t.target - currentE1RM) / growth)) }))
         .filter(t => t.weeksLeft > 0)
         .sort((a, b) => a.weeksLeft - b.weeksLeft);
-      if (closest.length === 0) return { value: "🎉 모든 중급 기준 달성!", source: "exRx Strength Standards" };
+      if (closest.length === 0) return { value: "🎉 모든 중급 기준 달성!", source: "ExRx Strength Standards" };
       const next = closest[0];
+      const isEstimated = !e1t;
       return {
         value: `🎯 ${next.name} (${Math.round(next.target)}kg)까지 약 ${next.weeksLeft}주`,
-        sub: `현재 Best e1RM ${e1t.lastE1RM}kg, 주간 +${e1t.growthPerWeek}kg 기준`,
-        source: "e1RM 성장률 선형 외삽 + exRx Standards",
+        sub: `현재 Best e1RM ${currentE1RM}kg, 주간 +${growth}kg${isEstimated ? " 추정" : ""} 기준`,
+        source: isEstimated ? "프로필 1RM + 상급자 평균 성장률" : "e1RM 성장률 선형 외삽 + ExRx Standards",
       };
     }
 
