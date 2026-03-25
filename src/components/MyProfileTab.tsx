@@ -12,9 +12,10 @@ import { loadWorkoutHistory } from "@/utils/workoutHistory";
 interface MyProfileTabProps {
   user: User | null;
   onLogout: () => void;
+  onShowPrediction?: () => void;
 }
 
-export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout }) => {
+export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout, onShowPrediction }) => {
   const [showSubscription, setShowSubscription] = useState(false);
   const [isEditingName, setIsEditingName] = useState(false);
   const [nameInput, setNameInput] = useState(user?.displayName || "");
@@ -326,8 +327,23 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout }) =>
         )}
 
         <button
+          onClick={onShowPrediction}
+          className="w-full bg-gradient-to-r from-[#0a1a14] to-[#1B4332] rounded-2xl p-6 flex items-center justify-between transition-all active:scale-[0.98] mt-4 shadow-lg shadow-[#0a1a14]/20"
+        >
+          <div className="flex flex-col items-start gap-1">
+            <span className="text-lg font-bold text-white">성장 예측 리포트</span>
+            <span className="text-xs text-emerald-300/60">감량·근력·체력 변화 예측</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <svg className="w-5 h-5 text-[#34d399]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+          </div>
+        </button>
+
+        <button
           onClick={() => setShowSubscription(true)}
-          className="w-full bg-gradient-to-r from-[#1B4332] to-[#2D6A4F] rounded-2xl p-6 flex items-center justify-between transition-all active:scale-[0.98] mt-4 shadow-lg shadow-[#1B4332]/20"
+          className="w-full bg-gradient-to-r from-[#1B4332] to-[#2D6A4F] rounded-2xl p-6 flex items-center justify-between transition-all active:scale-[0.98] shadow-lg shadow-[#1B4332]/20"
         >
           <div className="flex flex-col items-start gap-1">
             <span className="text-lg font-bold text-white">프리미엄 구독</span>

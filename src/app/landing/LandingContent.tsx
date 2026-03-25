@@ -183,7 +183,7 @@ export default function LandingContent() {
         <div className="relative max-w-5xl mx-auto px-6 pt-16 sm:pt-24 pb-24 sm:pb-32 text-center">
           <RevealSection>
             <p className="text-sm sm:text-xl text-[#a7f3d0] font-medium mb-4 tracking-wide">
-              AI 성장 예측 · AI 맞춤 운동 루틴 · 퀘스트 & 티어 · 커피 1잔 가격
+              AI 성장 예측 · AI 맞춤 운동 루틴 · 퀘스트 & 티어
             </p>
             <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black text-white leading-tight tracking-tight">
               <span className="text-[#34d399]">국내 최초</span><br />AI 회귀분석 <span className="text-[#34d399]">예측 모델</span> 도입

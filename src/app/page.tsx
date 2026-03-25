@@ -30,6 +30,7 @@ const lazyGenerateWorkout = async (...args: Parameters<typeof import("@/constant
 type ViewState =
   | "login"
   | "fitness_reading"
+  | "prediction_report"
   | "home"
   | "condition_check"
   | "master_plan_preview"
@@ -371,7 +372,7 @@ export default function Home() {
     }
 
     if (activeTab === "my") {
-      return <MyProfileTab user={user} onLogout={handleLogout} />;
+      return <MyProfileTab user={user} onLogout={handleLogout} onShowPrediction={() => { setActiveTab("today"); setView("prediction_report"); }} />;
     }
 
     switch (view) {
@@ -385,6 +386,20 @@ export default function Home() {
             onComplete={() => setView("condition_check")}
             onPremium={() => setShowPaywall(true)}
             isPremium={subStatus === "active"}
+            workoutCount={(() => { try { return JSON.parse(localStorage.getItem("alpha_workout_history") || "[]").length; } catch { return 0; } })()}
+          />
+        );
+
+      case "prediction_report":
+        return (
+          <FitnessReading
+            userName={user?.displayName?.split(" ")[0] || "회원"}
+            onComplete={() => {}}
+            onPremium={() => setShowPaywall(true)}
+            isPremium={subStatus === "active"}
+            resultOnly
+            onBack={() => { setActiveTab("my"); setView("home"); }}
+            workoutCount={(() => { try { return JSON.parse(localStorage.getItem("alpha_workout_history") || "[]").length; } catch { return 0; } })()}
           />
         );
 

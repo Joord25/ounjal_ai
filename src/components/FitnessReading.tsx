@@ -18,6 +18,9 @@ interface Props {
   onComplete: (profile: FitnessProfile) => void;
   onPremium?: () => void;
   isPremium?: boolean;
+  resultOnly?: boolean;
+  onBack?: () => void;
+  workoutCount?: number;
 }
 
 /* ─── constants ─── */
@@ -30,7 +33,7 @@ const FREQ_OPTIONS = [
 
 const TIME_OPTIONS = [
   { value: 30, label: "30분" },
-  { value: 45, label: "50분" },
+  { value: 45, label: "45분" },
   { value: 60, label: "60분" },
   { value: 90, label: "90분+" },
 ];
@@ -77,9 +80,9 @@ const PREDICTIONS_BY_GOAL: Record<string, GoalPrediction> = {
       { label: "골격근량 1kg 증가 예상 기간" },
     ],
     advanced: [
-      { label: "3대 운동 합계 목표 도달 시점" },
-      { label: "체중 대비 2배 스쿼트 도달 시점" },
-      { label: "3대 운동 중량 등급 예측" },
+      { label: "벤치프레스 체중 2배 도달 예상 시점" },
+      { label: "스쿼트 체중 2배 도달 예상 시점" },
+      { label: "데드리프트 체중 2배 도달 예상 시점" },
     ],
   },
   endurance: {
@@ -127,10 +130,9 @@ function weeksToTargetDate(weeks: number): string {
 }
 
 /* ─── reading results (논문 기반) ─── */
-interface FreePeekData {
-  stat: string;       // 현재 상태 (예: "추정 체지방률: 약 24%")
-  timeline: string;   // 목표 도달 시점 (예: "복근 라인 도달: 약 4개월 (2026년 7월)")
-  condition: string;  // 조건 설명 (예: "하루 60분, 주 3회 기준")
+interface PredictionResult {
+  value: string;      // 예측 결과 값
+  sub?: string;       // 보조 설명
 }
 
 interface ReadingResult {
@@ -138,7 +140,8 @@ interface ReadingResult {
   typeEmoji: string;
   message: string;
   growthStars: number;
-  freePeek: FreePeekData;
+  predictions: PredictionResult[];  // 각 항목별 예측 결과 (PREDICTIONS_BY_GOAL 순서와 1:1 매칭)
+  condition: string;
 }
 
 function computeReading(p: FitnessProfile): ReadingResult {
@@ -185,15 +188,15 @@ function computeReading(p: FitnessProfile): ReadingResult {
           ? "당신의 조건은\n변화를 만들기에 충분합니다"
           : "작은 시작이\n가장 큰 변화를 만듭니다";
 
-  // 무료 공개: 목표별 구체 수치 예측 (논문 기반 계산)
+  // 항목별 예측 계산
   const isBeginner = p.weeklyFrequency <= 2;
+  const level: UserLevel = isBeginner ? "beginner" : "advanced";
+  const goalKey = p.goal;
+  const goalItems = PREDICTIONS_BY_GOAL[goalKey]?.[level] || [];
 
-  // 주간 칼로리 소모 (운동 + 식이 보정)
-  // 운동 칼로리: MET 간이 계산
+  // 공통 계산값
   const exCalPerSession = Math.round(p.sessionMinutes * (p.bodyWeight / 13));
-  // 총 적자 = 운동 칼로리 + 식이 적자 가정 (하루 300kcal 식이 조절)
   const weeklyDeficit = (p.weeklyFrequency * exCalPerSession) + (300 * 7);
-  // 체지방 1kg ≈ 7700kcal — 5kg/10kg 단위 감량 기간 예측
   const weeksFor5kg = weeklyDeficit > 0 ? Math.ceil((5 * 7700) / weeklyDeficit) : 0;
   const weeksFor10kg = weeklyDeficit > 0 ? Math.ceil((10 * 7700) / weeklyDeficit) : 0;
 
@@ -201,86 +204,145 @@ function computeReading(p: FitnessProfile): ReadingResult {
     ? "운동 시작 후 측정"
     : `하루 ${p.sessionMinutes}분, 주 ${p.weeklyFrequency}회 기준`;
 
-  let freePeek: FreePeekData;
-  if (p.goal === "fat_loss") {
-    if (p.weeklyFrequency === 0) {
-      freePeek = {
-        stat: "5kg 감량 목표",
-        timeline: "운동 시작 후 측정 가능",
-        condition: conditionStr,
-      };
-    } else {
-      freePeek = {
-        stat: `5kg 감량: ${weeksToLabel(weeksFor5kg)} (${weeksToTargetDate(weeksFor5kg)})`,
-        timeline: `10kg 감량: ${weeksToLabel(weeksFor10kg)} (${weeksToTargetDate(weeksFor10kg)})`,
-        condition: conditionStr,
-      };
-    }
-  } else if (p.goal === "muscle_gain") {
-    const startBench = Math.round(p.bodyWeight * (isBeginner ? 0.4 : 0.8));
-    const weeklyGainPct = isBeginner ? 2.5 : 1.5;
-    if (isBeginner) {
-      const targetBench = p.bodyWeight;
-      const pctNeeded = ((targetBench - startBench) / startBench) * 100;
-      const weeks = Math.ceil(pctNeeded / weeklyGainPct);
-      freePeek = {
-        stat: `벤치프레스 예상: ${startBench}kg → ${targetBench}kg`,
-        timeline: `체중 1배 도달: ${weeksToLabel(weeks)} (${weeksToTargetDate(weeks)})`,
-        condition: conditionStr,
-      };
-    } else {
-      const target15x = Math.round(p.bodyWeight * 1.5);
-      const weeks = Math.ceil(((target15x - startBench) / startBench * 100) / weeklyGainPct);
-      freePeek = {
-        stat: `현재 추정 벤치프레스: 약 ${startBench}kg`,
-        timeline: `${target15x}kg(1.5배) 도달: ${weeksToLabel(weeks)} (${weeksToTargetDate(weeks)})`,
-        condition: conditionStr,
-      };
-    }
-  } else if (p.goal === "endurance") {
-    if (isBeginner) {
-      const weeksTo5k = p.weeklyFrequency === 0 ? 8 : p.weeklyFrequency >= 2 ? 4 : 6;
-      freePeek = {
-        stat: "5km 완주 목표",
-        timeline: `달성 예상: ${weeksToLabel(weeksTo5k)} (${weeksToTargetDate(weeksTo5k)})`,
-        condition: p.weeklyFrequency === 0 ? "Couch to 5K 프로그램 기준" : conditionStr,
-      };
-    } else {
-      freePeek = {
-        stat: "5km 완주: 이미 가능 수준",
-        timeline: `10km 기록 단축: 약 2~3개월`,
-        condition: conditionStr,
-      };
-    }
-  } else {
-    const healthAge = p.weeklyFrequency === 0
-      ? age + 5
-      : p.weeklyFrequency >= 3 ? age - 3 : age;
-    const diff = healthAge - age;
-    const diffStr = diff > 0 ? `+${diff}세 (개선 필요)` : diff < 0 ? `${diff}세 (더 젊음!)` : "동일";
-    freePeek = {
-      stat: `건강 나이: ${healthAge}세 (실제 ${age}세)`,
-      timeline: `차이: ${diffStr}`,
-      condition: p.weeklyFrequency === 0 ? "규칙적 운동 시작 시 개선 가능" : conditionStr,
-    };
-  }
+  const predictions: PredictionResult[] = goalItems.map((item) => {
+    const label = item.label;
 
-  return { typeName, typeEmoji, message, growthStars: stars, freePeek };
+    // ── 감량 ──
+    if (label.includes("5kg / 10kg 감량")) {
+      if (p.weeklyFrequency === 0) return { value: "운동 시작 후 측정 가능" };
+      return {
+        value: `5kg: ${weeksToLabel(weeksFor5kg)} (${weeksToTargetDate(weeksFor5kg)})`,
+        sub: `10kg: ${weeksToLabel(weeksFor10kg)} (${weeksToTargetDate(weeksFor10kg)})`,
+      };
+    }
+    if (label.includes("옷 핏 달라지는")) {
+      const weeks = Math.max(4, Math.round(weeksFor5kg * 0.6));
+      return { value: p.weeklyFrequency === 0 ? "운동 시작 후 측정" : `${weeksToLabel(weeks)} (${weeksToTargetDate(weeks)})` };
+    }
+    if (label.includes("다이어트 정체기")) {
+      const plateauWeeks = isBeginner ? Math.round(weeksFor5kg * 0.7) : Math.round(weeksFor5kg * 0.5);
+      return { value: p.weeklyFrequency === 0 ? "운동 시작 후 측정" : `${weeksToLabel(plateauWeeks)} 전후 예상` };
+    }
+    if (label.includes("린매스 유지 커팅")) {
+      const cuttingWeeks = Math.round(weeksFor5kg * 0.8);
+      return { value: p.weeklyFrequency === 0 ? "운동 시작 후 측정" : `${weeksToLabel(cuttingWeeks)} (${weeksToTargetDate(cuttingWeeks)})` };
+    }
+
+    // ── 근력 (초보자) ──
+    if (label.includes("벤치프레스 예상 중량")) {
+      const startBench = Math.round(p.bodyWeight * 0.4);
+      const target = p.bodyWeight;
+      return { value: `${startBench}kg → ${target}kg (체중 1배)` };
+    }
+    if (label.includes("체중 1배 벤치")) {
+      const startBench = Math.round(p.bodyWeight * 0.4);
+      const weeks = Math.ceil(((p.bodyWeight - startBench) / startBench * 100) / 2.5);
+      return { value: `${weeksToLabel(weeks)} (${weeksToTargetDate(weeks)})` };
+    }
+    if (label.includes("골격근량 1kg")) {
+      const weeks = isBeginner ? 8 : 16;
+      return { value: `${weeksToLabel(weeks)} (${weeksToTargetDate(weeks)})` };
+    }
+
+    // ── 근력 (상급자) — 3대 개별 체중 2배 ──
+    if (label.includes("벤치프레스 체중 2배")) {
+      const start = Math.round(p.bodyWeight * 0.8);
+      const target = Math.round(p.bodyWeight * 2);
+      const weeks = Math.ceil(((target - start) / start * 100) / 1.5);
+      return { value: `${target}kg 도달: ${weeksToLabel(weeks)} (${weeksToTargetDate(weeks)})` };
+    }
+    if (label.includes("스쿼트 체중 2배")) {
+      const start = Math.round(p.bodyWeight * 1.0);
+      const target = Math.round(p.bodyWeight * 2);
+      const weeks = Math.ceil(((target - start) / start * 100) / 1.5);
+      return { value: `${target}kg 도달: ${weeksToLabel(weeks)} (${weeksToTargetDate(weeks)})` };
+    }
+    if (label.includes("데드리프트 체중 2배")) {
+      const start = Math.round(p.bodyWeight * 1.2);
+      const target = Math.round(p.bodyWeight * 2);
+      const weeks = Math.ceil(((target - start) / start * 100) / 1.5);
+      return { value: `${target}kg 도달: ${weeksToLabel(weeks)} (${weeksToTargetDate(weeks)})` };
+    }
+
+    // ── 체력 (초보자) ──
+    if (label.includes("5km 완주")) {
+      const weeks = p.weeklyFrequency === 0 ? 8 : p.weeklyFrequency >= 2 ? 4 : 6;
+      return { value: `${weeksToLabel(weeks)} (${weeksToTargetDate(weeks)})` };
+    }
+    if (label.includes("계단 3층")) {
+      const weeks = p.weeklyFrequency === 0 ? 4 : 2;
+      return { value: `${weeksToLabel(weeks)} (${weeksToTargetDate(weeks)})` };
+    }
+    if (label.includes("턱걸이 1개")) {
+      const weeks = p.weeklyFrequency === 0 ? 12 : isBeginner ? 8 : 4;
+      return { value: `${weeksToLabel(weeks)} (${weeksToTargetDate(weeks)})` };
+    }
+
+    // ── 체력 (상급자) ──
+    if (label.includes("10km 기록 단축")) {
+      return { value: "약 2~3개월 내 단축 가능" };
+    }
+    if (label.includes("VO2max")) {
+      return { value: "주 3회 이상 유지 시 8~12주 내 향상" };
+    }
+    if (label.includes("심폐 회복")) {
+      return { value: "4~6주 내 회복 속도 개선 예상" };
+    }
+
+    // ── 건강 ──
+    if (label.includes("건강 나이")) {
+      const healthAge = p.weeklyFrequency === 0 ? age + 5 : p.weeklyFrequency >= 3 ? age - 3 : age;
+      const diff = healthAge - age;
+      const diffStr = diff > 0 ? `+${diff}세` : diff < 0 ? `${diff}세` : "동일";
+      return { value: `${healthAge}세 (실제 ${age}세, ${diffStr})` };
+    }
+    if (label.includes("당뇨·심혈관") || label.includes("건강 지표")) {
+      const weeks = p.weeklyFrequency === 0 ? 12 : 8;
+      return { value: `${weeksToLabel(weeks)} 후 지표 개선 예상` };
+    }
+    if (label.includes("근감소증")) {
+      return { value: p.weeklyFrequency === 0 ? "지금 시작하면 예방 가능" : "현재 운동량으로 예방 중" };
+    }
+    if (label.includes("생물학적 나이 역전")) {
+      const weeks = p.weeklyFrequency >= 4 ? 24 : 36;
+      return { value: `${weeksToLabel(weeks)} (${weeksToTargetDate(weeks)})` };
+    }
+    if (label.includes("운동 습관별 건강 나이")) {
+      return { value: "주 3회 이상 유지 시 연 1~2세 역전" };
+    }
+
+    return { value: "데이터 수집 중" };
+  });
+
+  return { typeName, typeEmoji, message, growthStars: stars, predictions, condition: conditionStr };
 }
 
 /* ─── step type ─── */
 type Step = "welcome" | "profile" | "frequency" | "time" | "goal" | "analyzing" | "result";
 
 /* ─── Component ─── */
-export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremium, isPremium }) => {
-  const [step, setStep] = useState<Step>("welcome");
-  const [profile, setProfile] = useState<Partial<FitnessProfile>>({});
-  const [gender, setGender] = useState<"male" | "female" | null>(null);
-  const [birthYear, setBirthYear] = useState("");
-  const [bodyWeight, setBodyWeight] = useState("");
+// 항목별 해금 조건: 1번=기본, 2번=3회 운동, 3번=5회 운동
+const UNLOCK_THRESHOLDS = [0, 3, 5];
+
+export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremium, isPremium, resultOnly, onBack, workoutCount = 0 }) => {
+  // Load saved profile for resultOnly mode
+  const savedProfile = React.useMemo<FitnessProfile | null>(() => {
+    if (!resultOnly) return null;
+    try {
+      const raw = localStorage.getItem("alpha_fitness_profile");
+      if (raw) return JSON.parse(raw) as FitnessProfile;
+    } catch {}
+    return null;
+  }, [resultOnly]);
+
+  const [step, setStep] = useState<Step>(resultOnly && savedProfile ? "result" : "welcome");
+  const [profile, setProfile] = useState<Partial<FitnessProfile>>(savedProfile || {});
+  const [gender, setGender] = useState<"male" | "female" | null>(savedProfile?.gender || null);
+  const [birthYear, setBirthYear] = useState(savedProfile?.birthYear?.toString() || "");
+  const [bodyWeight, setBodyWeight] = useState(savedProfile?.bodyWeight?.toString() || "");
   const [analysisProgress, setAnalysisProgress] = useState(0);
-  const [showResult, setShowResult] = useState(false);
-  const [resultReady, setResultReady] = useState(false);
+  const [showResult, setShowResult] = useState(!!resultOnly);
+  const [resultReady, setResultReady] = useState(!!resultOnly);
 
   const displayName = userName || "회원";
 
@@ -428,6 +490,7 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
   const [welcomeVisible, setWelcomeVisible] = useState(false);
   const [showMLTooltip, setShowMLTooltip] = useState(false);
   const [showOtherGoals, setShowOtherGoals] = useState(false);
+  const [selectedGoalKey, setSelectedGoalKey] = useState<string | null>(null);
 
   useEffect(() => {
     if (step === "welcome") {
@@ -685,9 +748,6 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
 
       {/* Result Screen */}
       {step === "result" && reading && (() => {
-        const goalKey = (profile as FitnessProfile).goal;
-        const allGoals = Object.entries(PREDICTIONS_BY_GOAL);
-        const myGoal = allGoals.find(([k]) => k === goalKey);
         const fp = profile as FitnessProfile;
         const freqLabel = fp.weeklyFrequency === 0 ? "입문" : `주 ${fp.weeklyFrequency}회`;
         const age = new Date().getFullYear() - fp.birthYear;
@@ -741,118 +801,143 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
                 </div>
               </div>
 
-              {/* My goal predictions — my level */}
-              {myGoal && (() => {
+              {/* My goal card (always visible) + other goal buttons */}
+              {(() => {
                 const myLevel: UserLevel = fp.weeklyFrequency <= 2 ? "beginner" : "advanced";
-                const otherLevel: UserLevel = myLevel === "beginner" ? "advanced" : "beginner";
-                const myItems = myGoal[1][myLevel];
+                const myGoalData = PREDICTIONS_BY_GOAL[fp.goal];
+                const myItems = myGoalData?.[myLevel] || [];
                 const levelLabel = myLevel === "beginner" ? "입문자" : "상급자";
-                const otherLevelLabel = otherLevel === "beginner" ? "입문자" : "상급자";
 
                 return (
                   <>
-                    {/* My level card */}
+                    {/* My goal card */}
                     <div
                       className={`w-full bg-white rounded-2xl p-5 mb-4 border-2 border-[#2D6A4F]/20 shadow-sm transition-all duration-700 delay-400 ${
                         showResult ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
                       }`}
                     >
-                      <div className="flex items-center gap-2 mb-3">
-                        <div className="w-2 h-2 rounded-full bg-[#2D6A4F]" />
-                        <span className="text-[#1B4332] text-sm font-bold">내 목표: {myGoal[1].title}</span>
-                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-[#2D6A4F]/10 text-[#2D6A4F]">{levelLabel}</span>
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full bg-[#2D6A4F]" />
+                          <span className="text-[#1B4332] text-sm font-bold">내 목표: {myGoalData?.title}</span>
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-[#2D6A4F]/10 text-[#2D6A4F]">{levelLabel}</span>
+                        </div>
+                        <span className="text-[#6B7280] text-[11px]">{reading.condition}</span>
                       </div>
                       <div className="space-y-2.5">
-                        {myItems.map((item: PredictionItem, i: number) => (
-                          <div key={i}>
-                            {i === 0 ? (
-                              <div className="bg-[#FAFBF9] rounded-xl p-3 -mx-1">
-                                <p className="text-[#6B7280] text-xs mb-1.5">{item.label}</p>
-                                <p className="text-[#1B4332] text-base font-black text-right">{reading.freePeek.stat}</p>
-                                <p className="text-[#2D6A4F] text-sm font-bold mt-1 text-right">{reading.freePeek.timeline}</p>
-                                <p className="text-[#6B7280] text-[11px] mt-1.5 text-right">{reading.freePeek.condition}</p>
-                              </div>
-                            ) : isPremium ? (
-                              <div className="flex items-center justify-between">
-                                <span className="text-[#1B4332] text-sm">{item.label}</span>
-                                <span className="text-[#2D6A4F] text-sm font-bold">데이터 수집 중</span>
-                              </div>
-                            ) : (
-                              <div className="flex items-center justify-between">
-                                <span className="text-[#1B4332] text-sm">{item.label}</span>
-                                <div className="flex items-center gap-1.5">
-                                  <div className="w-16 h-2 bg-gray-100 rounded-full overflow-hidden">
-                                    <div className="h-full w-3/4 bg-gray-200 rounded-full" style={{ filter: "blur(3px)" }} />
-                                  </div>
-                                  <svg className="w-3.5 h-3.5 text-gray-300" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
-                                  </svg>
+                        {myItems.map((item: PredictionItem, i: number) => {
+                          const pred = reading.predictions[i];
+                          const threshold = UNLOCK_THRESHOLDS[i] ?? 999;
+                          const isUnlocked = workoutCount >= threshold;
+                          const isOpen = isUnlocked && (i === 0 || isPremium);
+                          return (
+                            <div key={i}>
+                              {isOpen ? (
+                                <div className="bg-[#FAFBF9] rounded-xl p-3 -mx-1">
+                                  <p className="text-[#6B7280] text-xs mb-1.5">{item.label}</p>
+                                  <p className="text-[#1B4332] text-sm font-black text-right">{pred?.value}</p>
+                                  {pred?.sub && <p className="text-[#2D6A4F] text-sm font-bold mt-1 text-right">{pred.sub}</p>}
                                 </div>
-                              </div>
-                            )}
-                          </div>
-                        ))}
+                              ) : (
+                                <div className="flex items-center justify-between py-1">
+                                  <span className="text-[#1B4332] text-sm">{item.label}</span>
+                                  <div className="flex items-center gap-1.5">
+                                    {!isUnlocked ? (
+                                      <span className="text-[10px] text-gray-400 font-medium">{threshold}회 운동 후 해금</span>
+                                    ) : (
+                                      <span className="text-[10px] text-gray-400 font-medium">프리미엄</span>
+                                    )}
+                                    <svg className="w-3.5 h-3.5 text-gray-300" fill="currentColor" viewBox="0 0 20 20">
+                                      <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                                    </svg>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
 
-                    {/* Other level card (premium only) */}
-                    {isPremium && (
-                      <div
-                        className={`w-full bg-white rounded-2xl p-5 mb-4 border border-gray-100 shadow-sm transition-all duration-700 delay-500 ${
-                          showResult ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
-                        }`}
-                      >
-                        <div className="flex items-center gap-2 mb-3">
-                          <div className="w-2 h-2 rounded-full bg-gray-400" />
-                          <span className="text-[#1B4332] text-sm font-bold">내 목표: {myGoal[1].title}</span>
-                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-500">{otherLevelLabel}</span>
-                        </div>
-                        <div className="space-y-2.5">
-                          {myGoal[1][otherLevel].map((item: PredictionItem, i: number) => (
-                            <div key={i} className="flex items-center justify-between">
-                              <span className="text-[#1B4332] text-sm">{item.label}</span>
-                              <span className="text-[#2D6A4F] text-sm font-bold">데이터 수집 중</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Other goals cards (premium) or button (free) */}
-                    {isPremium ? (
-                      <>
-                        {Object.entries(PREDICTIONS_BY_GOAL).filter(([k]) => k !== fp.goal).map(([key, goalData]) => (
-                          <div
+                    {/* Other goal buttons */}
+                    <div
+                      className={`flex gap-2 mb-4 transition-all duration-700 delay-500 ${
+                        showResult ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
+                      }`}
+                    >
+                      {Object.entries(PREDICTIONS_BY_GOAL).filter(([k]) => k !== fp.goal).map(([key, gd]) => {
+                        const isSelected = selectedGoalKey === key;
+                        const canAccess = isPremium;
+                        return (
+                          <button
                             key={key}
-                            className={`w-full bg-white rounded-2xl p-5 mb-4 border border-gray-100 shadow-sm transition-all duration-700 delay-600 ${
-                              showResult ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
+                            onClick={() => {
+                              if (!canAccess) {
+                                setShowOtherGoals(true);
+                              } else {
+                                setSelectedGoalKey(isSelected ? null : key);
+                              }
+                            }}
+                            className={`flex-1 px-2 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                              isSelected
+                                ? "bg-[#1B4332] text-white"
+                                : canAccess
+                                  ? "bg-white border border-gray-200 text-gray-600 active:scale-95"
+                                  : "bg-gray-50 border border-gray-100 text-gray-300"
                             }`}
                           >
-                            <div className="flex items-center gap-2 mb-3">
+                            {gd.title}{!canAccess ? " 🔒" : ""}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Selected other goal card */}
+                    {selectedGoalKey && isPremium && (() => {
+                      const otherGoalData = PREDICTIONS_BY_GOAL[selectedGoalKey];
+                      const otherItems = otherGoalData?.[myLevel] || [];
+                      const otherReading = computeReading({ ...fp, goal: selectedGoalKey as FitnessProfile["goal"] });
+                      return (
+                        <div className="w-full bg-white rounded-2xl p-5 mb-4 border border-gray-100 shadow-sm animate-fade-in">
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-2">
                               <div className="w-2 h-2 rounded-full bg-[#059669]" />
-                              <span className="text-[#1B4332] text-sm font-bold">{goalData.title}</span>
+                              <span className="text-[#1B4332] text-sm font-bold">{otherGoalData?.title}</span>
+                              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-500">{levelLabel}</span>
                             </div>
-                            <div className="space-y-2.5">
-                              {goalData[myLevel].map((item: PredictionItem, i: number) => (
-                                <div key={i} className="flex items-center justify-between">
-                                  <span className="text-[#1B4332] text-sm">{item.label}</span>
-                                  <span className="text-[#2D6A4F] text-sm font-bold">데이터 수집 중</span>
-                                </div>
-                              ))}
-                            </div>
+                            <span className="text-[#6B7280] text-[11px]">{otherReading.condition}</span>
                           </div>
-                        ))}
-                      </>
-                    ) : (
-                      <button
-                        onClick={() => setShowOtherGoals(true)}
-                        className={`w-full py-3 text-[#6B7280] text-sm font-medium transition-all duration-700 delay-500 ${
-                          showResult ? "opacity-100" : "opacity-0"
-                        }`}
-                      >
-                        {otherLevelLabel}라면? · 다른 목표도 궁금하신가요?
-                      </button>
-                    )}
+                          <div className="space-y-2.5">
+                            {otherItems.map((item: PredictionItem, i: number) => {
+                              const pred = otherReading.predictions[i];
+                              const threshold = UNLOCK_THRESHOLDS[i] ?? 999;
+                              const isUnlocked = workoutCount >= threshold;
+                              return (
+                                <div key={i}>
+                                  {isUnlocked ? (
+                                    <div className="bg-[#FAFBF9] rounded-xl p-3 -mx-1">
+                                      <p className="text-[#6B7280] text-xs mb-1.5">{item.label}</p>
+                                      <p className="text-[#1B4332] text-sm font-black text-right">{pred?.value}</p>
+                                      {pred?.sub && <p className="text-[#2D6A4F] text-sm font-bold mt-1 text-right">{pred.sub}</p>}
+                                    </div>
+                                  ) : (
+                                    <div className="flex items-center justify-between py-1">
+                                      <span className="text-[#1B4332] text-sm">{item.label}</span>
+                                      <div className="flex items-center gap-1.5">
+                                        <span className="text-[10px] text-gray-400 font-medium">{threshold}회 운동 후 해금</span>
+                                        <svg className="w-3.5 h-3.5 text-gray-300" fill="currentColor" viewBox="0 0 20 20">
+                                          <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                                        </svg>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </>
                 );
               })()}
@@ -861,14 +946,16 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
 
             {/* Fixed CTA */}
             <div className="shrink-0 bg-[#FAFBF9] px-6 pb-6 pt-3 border-t border-gray-100">
-              <p className="text-[#6B7280] text-xs text-center mb-3">
-                운동 데이터 수집 후 예측 리포트가 열립니다
-              </p>
+              {!resultOnly && (
+                <p className="text-[#6B7280] text-xs text-center mb-3">
+                  운동 데이터 수집 후 예측 리포트가 열립니다
+                </p>
+              )}
               <button
-                onClick={() => onComplete(profile as FitnessProfile)}
+                onClick={() => resultOnly && onBack ? onBack() : onComplete(profile as FitnessProfile)}
                 className="w-full py-4 rounded-2xl font-bold text-white bg-[#2D6A4F] active:scale-95 transition-all"
               >
-                첫 운동 시작하기
+                {resultOnly ? "돌아가기" : "첫 운동 시작하기"}
               </button>
             </div>
           </div>

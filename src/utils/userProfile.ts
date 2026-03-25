@@ -63,6 +63,7 @@ export async function loadUserProfile(): Promise<UserProfile | null> {
       birthYear: data.birthYear || null,
       bodyWeight: data.bodyWeight || null,
       weightLog: data.weightLog || [],
+      fitnessProfile: data.fitnessProfile || null,
     };
 
     // Sync to localStorage
@@ -71,6 +72,10 @@ export async function loadUserProfile(): Promise<UserProfile | null> {
     if (profile.bodyWeight) localStorage.setItem("alpha_body_weight", String(profile.bodyWeight));
     if (profile.weightLog.length > 0) {
       localStorage.setItem("alpha_weight_log", JSON.stringify(profile.weightLog));
+    }
+    if (profile.fitnessProfile) {
+      localStorage.setItem("alpha_fitness_profile", JSON.stringify(profile.fitnessProfile));
+      localStorage.setItem("alpha_fitness_reading_done", "true");
     }
 
     return profile;
