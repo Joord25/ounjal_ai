@@ -186,7 +186,7 @@ export default function LandingContent() {
               AI 성장 예측 · AI 맞춤 운동 루틴 · 퀘스트 & 티어
             </p>
             <h1 className="text-[2rem] sm:text-6xl lg:text-7xl font-black text-white leading-tight tracking-tight">
-              <span className="text-[#34d399]">국내 최초</span><br />AI 회귀분석<br className="sm:hidden" /> <span className="text-[#34d399]">예측 모델</span> 도입
+              <span className="text-[#34d399]">국내 최초</span><br />AI 회귀분석 <span className="text-[#34d399]">예측 모델</span><br className="sm:hidden" /> 도입
             </h1>
             <p className="mt-6 text-lg sm:text-2xl text-white/70 font-semibold leading-relaxed">
               운동결과, 시작 전에 본다!<br />
