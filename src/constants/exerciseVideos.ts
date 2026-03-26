@@ -51,12 +51,12 @@ export const EXERCISE_VIDEOS: Record<string, string> = {
   "업라이트 로우": "PIC0MTxojZk",
 
   // ── 삼두 (PUSH - Isolation) ──
-  "트라이셉 로프 푸쉬다운": "",
+  "트라이셉 로프 푸쉬다운": "4NWWB0f0vzQ",
   "스컬 크러셔": "1cikFylNxqw",
-  "오버헤드 트라이셉 익스텐션": "",
-  "케이블 푸쉬 다운": "",
-  "케이블 오버헤드 트라이셉 익스텐션": "",
-  "트라이셉스 킥백": "",
+  "오버헤드 트라이셉 익스텐션": "pmcUemVUnP4",
+  "케이블 푸쉬 다운": "XpeCPOHJTK8",
+  "케이블 오버헤드 트라이셉 익스텐션": "pmcUemVUnP4",
+  "트라이셉스 킥백": "WhBxKbe1-NU",
   "트라이셉스 딥스": "XX1_7MN1fEM",
 
   // ══════════════════════════════════
@@ -73,52 +73,52 @@ export const EXERCISE_VIDEOS: Record<string, string> = {
 
   // ── 등 (PULL - Horizontal) ──
   "바벨 로우": "FZ_ObAdQPEo",
-  "펜들레이 로우": "",
+  "펜들레이 로우": "mow6TJ4sTo8",
   "티바 로우": "30-MYPAVXqk",
-  "케틀벨 고릴라 로우": "",
+  "케틀벨 고릴라 로우": "e9oCtQdOwU4",
   "인버티드 로우": "vZy_Eu_Z0WA",
-  "하이로우 머신": "",
+  "하이로우 머신": "0QN8jx2nEQc",
   "케틀벨 로우": "Prwa0uFbSYU",
-  "TRX 로우": "",
+  "TRX 로우": "fAwrRJu5tw0",
 
   // ── 등 (PULL - Unilateral) ──
-  "싱글 암 덤벨 로우": "",
+  "싱글 암 덤벨 로우": "TcaNtjAi4Z4",
   "시티드 케이블 로우": "RUygIGMN13M",
-  "체스트 서포티드 로우": "",
+  "체스트 서포티드 로우": "woHK8Lws2xM",
   "케이블 로우": "LyZH4UGdDTc",
-  "원 암 시티드 로우 머신": "",
+  "원 암 시티드 로우 머신": "1Cfjgf2FBqc",
   "백익스텐션 머신": "9V2BlUDBn1s",
-  "슈퍼맨 동작": "",
+  "슈퍼맨 동작": "ZH0FS5Gp_eg",
   "T-W 레이즈": "HvdLRWBprws",
 
   // ── 후면 어깨 (PULL - Rear Delt) ──
-  "케이블 페이스 풀": "",
-  "리어 델트 플라이": "",
+  "케이블 페이스 풀": "a9AaQh1dtRs",
+  "리어 델트 플라이": "LsT-bR_zxLo",
   "밴드 풀 어파트": "SuvO4TBwSu4",
 
   // ── 이두 (PULL - Bicep) ──
-  "바벨 컬": "",
+  "바벨 컬": "54x2WF1_Suc",
   "해머 컬": "EXzrRuekzLU",
-  "인클라인 덤벨 컬": "",
+  "인클라인 덤벨 컬": "xHkhJK8ox0s",
   "케이블 바이셉 컬": "KbIMqVOSIiw",
-  "덤벨 프리쳐 컬": "",
+  "덤벨 프리쳐 컬": "A4YnL6fnijk",
   "덤벨 컬": "-nGL7q-eP5g",
-  "프리처 컬 머신": "",
-  "오버헤드 케이블 바이셉 컬": "",
-  "TRX 바이셉스 컬": "",
+  "프리처 컬 머신": "R5JK0d7Ji_M",
+  "오버헤드 케이블 바이셉 컬": "zwBRxWpGeZE",
+  "TRX 바이셉스 컬": "Dmr8E-Ho8ao",
 
   // ══════════════════════════════════
   // ── 하체 (LEG - Squat) ──
   // ══════════════════════════════════
   "바벨 백 스쿼트": "Ak1iHbEeeY8",
-  "프론트 스쿼트": "",
+  "프론트 스쿼트": "QY1R4ycPyR8",
   "고블렛 스쿼트": "IbJdK_cH6kk",
   "더블 케틀벨 프론트 스쿼트": "e7y8jEUbQiQ",
   "케틀벨 고블릿 스쿼트": "IbJdK_cH6kk",
 
   // ── 하체 (LEG - Hinge) ──
-  "루마니안 데드리프트": "",
-  "컨벤셔널 데드리프트": "",
+  "루마니안 데드리프트": "Rg27bvMeTKA",
+  "컨벤셔널 데드리프트": "rDk1oz5bbMA",
   "케틀벨 스윙": "TIy6s4O2bOY",
   "싱글 레그 케틀벨 RDL": "s32cCgmRV3I",
   "케틀벨 데드리프트": "foy5yzE4_DA",
@@ -133,23 +133,23 @@ export const EXERCISE_VIDEOS: Record<string, string> = {
   // ── 하체 (LEG - Isolation) ──
   "레그 프레스": "6gx_bjn9wdk",
   "레그 익스텐션": "bKpriLIWrhk",
-  "덤벨 힙 쓰러스트": "",
-  "힙 쓰러스트": "",
-  "케이블 풀 스루": "",
+  "덤벨 힙 쓰러스트": "wYT_Ru0yGD0",
+  "힙 쓰러스트": "_i6qpcI1Nw4",
+  "케이블 풀 스루": "cRszAB1yK0c",
   "레그 컬": "7F6VF0tcgwo",
   "힙 어덕션 머신": "tKMx0CVnECk",
 
   // ── 하체 (LEG - Calf) ──
-  "스탠딩 카프 레이즈": "",
-  "시티드 카프 레이즈": "",
-  "동키 카프 레이즈": "",
+  "스탠딩 카프 레이즈": "SjypFUbZBCA",
+  "시티드 카프 레이즈": "ar8nav0jGoE",
+  "동키 카프 레이즈": "watMaxAQBCU",
 
   // ══════════════════════════════════
   // ── 전신 (FULL BODY) ──
   // ══════════════════════════════════
-  "덤벨 쓰러스터": "",
+  "덤벨 쓰러스터": "UipBcISeiGU",
   "덤벨 로우": "K0lda9eQfNo",
-  "원 레그 루마니안 데드리프트": "",
+  "원 레그 루마니안 데드리프트": "Zvce_rEvM5U",
 
   // ══════════════════════════════════
   // ── 코어 ──
@@ -160,18 +160,18 @@ export const EXERCISE_VIDEOS: Record<string, string> = {
   "러시안 트위스트": "aRUMRbl7KS4",
   "데드버그": "HrxOWhPdsOY",
   "버드 독": "L91QMACdA6Q",
-  "행잉 레그 레이즈": "",
-  "Ab 휠 롤아웃": "",
-  "크런치": "",
-  "바이시클 크런치": "",
+  "행잉 레그 레이즈": "PUnNgY3MB1Y",
+  "Ab 휠 롤아웃": "MinlHnG7j4k",
+  "크런치": "RUNrHkbP4Pc",
+  "바이시클 크런치": "cFDS2S6Vqis",
   "오블리크 크런치": "98eX0ndm7Z4",
-  "싱글 레그 레이즈": "",
-  "리버스 크런치": "",
+  "싱글 레그 레이즈": "lhMVkcEGf9E",
+  "리버스 크런치": "I-qRngqd2wY",
   "마운틴 클라이머": "7W4JEfEKuC4",
-  "시저 킥": "",
+  "시저 킥": "N2aaYFrt2-0",
   "토 터치 크런치": "WShPlCySyfk",
-  "플러터 킥": "",
-  "레그 레이즈": "",
+  "플러터 킥": "Cz6iXfmgtiw",
+  "레그 레이즈": "2wUpI98Ix-k",
   "케이블 크런치": "iRYIqSFN21w",
   "덤벨 사이드 벤드": "44DazvtgpGE",
   "브이 업": "saHkR_MvIdA",
@@ -213,10 +213,10 @@ export const EXERCISE_VIDEOS: Record<string, string> = {
   "월 앵글": "",
   "밴드 페이스 풀": "1s-0WtJMsu8",
   "동적 흉근 스트레칭": "",
-  "폼롤러 흉추 가동성": "H4u3J3Spcvw",
+  "폼롤러 흉추 가동성": "NS73eSohTbc",
   "흉추 스트레칭": "",
   "능동적 어깨 서클": "",
-  "폼롤러 등 마사지 및 흉추 신전": "H4u3J3Spcvw",
+  "폼롤러 등 마사지 및 흉추 신전": "NS73eSohTbc",
   "통증 완화 마사지": "",
   "어깨 돌리기": "0Tx2HnKa2s0",
 
@@ -229,12 +229,12 @@ export const EXERCISE_VIDEOS: Record<string, string> = {
 
   // ── 모빌리티 (전신) ──
   "터키시 겟업": "-Zsx2JTfGsU",
-  "케틀벨 윈드밀": "",
-  "척추 CARs": "",
+  "케틀벨 윈드밀": "k1g44y2PsPY",
+  "척추 CARs": "Jme_9Rt0pmI",
   "힙 CARs": "C4MDREc9ERg",
   "숄더 CARs": "ZOP6RPjdAhA",
-  "앵클 CARs": "",
-  "손목 CARs": "",
+  "앵클 CARs": "ipOfLWlsYY0",
+  "손목 CARs": "rKCGEbsHqNE",
 
   // ══════════════════════════════════
   // ── 웜업 ──
@@ -272,8 +272,8 @@ export const EXERCISE_VIDEOS: Record<string, string> = {
   "동적 팔 스윙": "",
   "팔 흔들기": "XTbPqeswd-Y",
   "스파이더맨 런지": "cNkYSkeyONY",
-  "폼롤러 흉추 스트레칭": "H4u3J3Spcvw",
-  "폼롤러 흉추/광배근 마사지": "H4u3J3Spcvw",
+  "폼롤러 흉추 스트레칭": "NS73eSohTbc",
+  "폼롤러 흉추/광배근 마사지": "NS73eSohTbc",
   "폼롤러 등 마사지": "",
   "폼롤러 둔근 및 햄스트링 이완": "KibUgcGXMTY",
   "폼롤러 둔근 이완": "KibUgcGXMTY",

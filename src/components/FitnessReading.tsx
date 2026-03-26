@@ -10,6 +10,8 @@ import {
   calcE1RMTrend,
   calcWeightTrend,
   detectPlateau,
+  linearRegression,
+  dateToDayIndex,
 } from "@/utils/predictionUtils";
 
 /* ─── types ─── */
@@ -894,6 +896,177 @@ function computeReading(
   return { typeName, typeEmoji, message, growthStars: stars, predictions, condition: conditionStr };
 }
 
+/* ─── 회귀분석 그래프 ─── */
+function RegressionChart({ goal, history, weightLog, profile }: {
+  goal: string;
+  history: WorkoutHistory[];
+  weightLog: { date: string; weight: number }[];
+  profile: FitnessProfile;
+}) {
+  // 목표별 데이터 포인트 + 회귀선 + 예측 구간 생성
+  const chartData = React.useMemo(() => {
+    const sorted = [...history].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    if (sorted.length < 2) return null;
+
+    let points: { x: number; y: number; label: string }[] = [];
+    let yLabel = "";
+    let targetLine: number | null = null;
+    let targetLabel = "";
+
+    const baseDate = sorted[0].date;
+
+    if (goal === "fat_loss") {
+      // 체중 변화 또는 칼로리 추이
+      if (weightLog.length >= 2) {
+        const sortedW = [...weightLog].sort((a, b) => a.date.localeCompare(b.date));
+        const wBase = sortedW[0].date;
+        points = sortedW.map(w => ({ x: dateToDayIndex(w.date, wBase), y: w.weight, label: `${w.weight}kg` }));
+        yLabel = "체중 (kg)";
+        targetLine = Math.round(profile.bodyWeight * 0.9 * 10) / 10;
+        targetLabel = `목표 ${targetLine}kg`;
+      } else {
+        const trend = calcCaloriesTrend(sorted, profile.bodyWeight);
+        if (trend.length < 2) return null;
+        points = trend.map((t, i) => ({ x: i, y: t.calories, label: `${t.calories}kcal` }));
+        yLabel = "세션 칼로리 (kcal)";
+      }
+    } else if (goal === "muscle_gain") {
+      // e1RM 추이
+      const withE1RM = sorted.filter(s => s.stats.bestE1RM && s.stats.bestE1RM > 0);
+      if (withE1RM.length < 2) return null;
+      const e1Base = withE1RM[0].date;
+      points = withE1RM.map(s => ({ x: dateToDayIndex(s.date, e1Base), y: s.stats.bestE1RM!, label: `${s.stats.bestE1RM}kg` }));
+      yLabel = "Best e1RM (kg)";
+      targetLine = profile.bodyWeight * 1.0;
+      targetLabel = `중급 ${Math.round(targetLine)}kg`;
+    } else {
+      // 체력/건강: 주간 운동 빈도 (주차별 집계)
+      const weekMap = new Map<number, number>();
+      sorted.forEach(s => {
+        const week = Math.floor(dateToDayIndex(s.date, baseDate) / 7);
+        weekMap.set(week, (weekMap.get(week) || 0) + 1);
+      });
+      const weeks = Array.from(weekMap.entries()).sort((a, b) => a[0] - b[0]);
+      if (weeks.length < 2) return null;
+      points = weeks.map(([w, freq]) => ({ x: w, y: freq, label: `${freq}회` }));
+      yLabel = "주간 운동 횟수";
+      targetLine = Math.ceil(150 / profile.sessionMinutes);
+      targetLabel = `WHO 권장 ${targetLine}회/주`;
+    }
+
+    if (points.length < 2) return null;
+
+    const reg = linearRegression(points.map(p => ({ x: p.x, y: p.y })));
+    if (!reg) return null;
+
+    // 예측 구간: 마지막 포인트부터 4주(28일) 또는 4주차 앞
+    const lastX = points[points.length - 1].x;
+    const predStep = goal === "endurance" || goal === "health" ? 4 : 28;
+    const predX = lastX + predStep;
+    const predY = reg.predict(predX);
+
+    return { points, reg, yLabel, targetLine, targetLabel, lastX, predX, predY };
+  }, [goal, history, weightLog, profile]);
+
+  if (!chartData) {
+    return (
+      <div className="bg-[#FAFBF9] rounded-xl p-4 text-center">
+        <p className="text-xs text-gray-400">데이터가 더 쌓이면 그래프가 표시됩니다</p>
+      </div>
+    );
+  }
+
+  const { points, reg, yLabel, targetLine, targetLabel, lastX, predX, predY } = chartData;
+
+  // SVG 좌표 계산
+  const W = 300, H = 160, PAD = { top: 20, right: 15, bottom: 30, left: 40 };
+  const chartW = W - PAD.left - PAD.right;
+  const chartH = H - PAD.top - PAD.bottom;
+
+  const allY = [...points.map(p => p.y), predY, ...(targetLine ? [targetLine] : [])];
+  const minY = Math.min(...allY) * 0.95;
+  const maxY = Math.max(...allY) * 1.05;
+  const rangeY = maxY - minY || 1;
+
+  const minX = points[0].x;
+  const rangeX = predX - minX || 1;
+
+  const toSvgX = (x: number) => PAD.left + ((x - minX) / rangeX) * chartW;
+  const toSvgY = (y: number) => PAD.top + (1 - (y - minY) / rangeY) * chartH;
+
+  // 실제 데이터 점
+  const dotPositions = points.map(p => ({ cx: toSvgX(p.x), cy: toSvgY(p.y), label: p.label }));
+
+  // 회귀선 (시작 ~ 마지막 데이터)
+  const regLineStart = { x: toSvgX(minX), y: toSvgY(reg.predict(minX)) };
+  const regLineEnd = { x: toSvgX(lastX), y: toSvgY(reg.predict(lastX)) };
+
+  // 예측 점선 (마지막 데이터 ~ 미래)
+  const predLineEnd = { x: toSvgX(predX), y: toSvgY(predY) };
+
+  return (
+    <div className="bg-[#FAFBF9] rounded-xl p-3">
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-xs font-bold text-[#1B4332]">회귀분석 예측</p>
+        <p className="text-[9px] text-gray-400">R² = {Math.round(reg.r2 * 100)}%</p>
+      </div>
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ maxHeight: 180 }}>
+        {/* Y축 레이블 */}
+        <text x={PAD.left - 5} y={PAD.top - 6} textAnchor="end" className="fill-gray-400" fontSize="8">{yLabel}</text>
+
+        {/* Y축 눈금 */}
+        {[0, 0.25, 0.5, 0.75, 1].map((pct, i) => {
+          const y = PAD.top + (1 - pct) * chartH;
+          const val = minY + pct * rangeY;
+          return (
+            <g key={i}>
+              <line x1={PAD.left} y1={y} x2={W - PAD.right} y2={y} stroke="#e5e7eb" strokeWidth="0.5" />
+              <text x={PAD.left - 4} y={y + 3} textAnchor="end" className="fill-gray-400" fontSize="8">{Math.round(val)}</text>
+            </g>
+          );
+        })}
+
+        {/* 목표 라인 */}
+        {targetLine && (
+          <g>
+            <line x1={PAD.left} y1={toSvgY(targetLine)} x2={W - PAD.right} y2={toSvgY(targetLine)} stroke="#059669" strokeWidth="1" strokeDasharray="4 2" opacity="0.5" />
+            <text x={W - PAD.right} y={toSvgY(targetLine) - 4} textAnchor="end" className="fill-emerald-600" fontSize="7" fontWeight="bold">{targetLabel}</text>
+          </g>
+        )}
+
+        {/* 회귀선 (실제 구간) */}
+        <line x1={regLineStart.x} y1={regLineStart.y} x2={regLineEnd.x} y2={regLineEnd.y} stroke="#2D6A4F" strokeWidth="1.5" opacity="0.6" />
+
+        {/* 예측 점선 (미래 구간) */}
+        <line x1={regLineEnd.x} y1={regLineEnd.y} x2={predLineEnd.x} y2={predLineEnd.y} stroke="#2D6A4F" strokeWidth="1.5" strokeDasharray="4 3" opacity="0.4" />
+
+        {/* 예측 포인트 */}
+        <circle cx={predLineEnd.x} cy={predLineEnd.y} r="4" fill="none" stroke="#2D6A4F" strokeWidth="1.5" strokeDasharray="2 2" />
+        <text x={predLineEnd.x} y={predLineEnd.y - 8} textAnchor="middle" className="fill-emerald-700" fontSize="8" fontWeight="bold">{Math.round(predY * 10) / 10}</text>
+        <text x={predLineEnd.x} y={H - 5} textAnchor="middle" className="fill-gray-400" fontSize="7">4주 후</text>
+
+        {/* 데이터 점 */}
+        {dotPositions.map((d, i) => (
+          <g key={i}>
+            <circle cx={d.cx} cy={d.cy} r="3" fill="#2D6A4F" />
+            {/* 첫 번째와 마지막 점에만 라벨 */}
+            {(i === 0 || i === dotPositions.length - 1) && (
+              <text x={d.cx} y={d.cy - 7} textAnchor="middle" className="fill-gray-600" fontSize="7">{d.label}</text>
+            )}
+          </g>
+        ))}
+
+        {/* X축: 시작/끝 날짜 */}
+        <text x={PAD.left} y={H - 5} textAnchor="start" className="fill-gray-400" fontSize="7">시작</text>
+        <text x={toSvgX(lastX)} y={H - 5} textAnchor="middle" className="fill-gray-400" fontSize="7">현재</text>
+      </svg>
+      <p className="text-[9px] text-gray-400 mt-1 text-right">
+        {reg.slope > 0 ? "▲" : reg.slope < 0 ? "▼" : "—"} 주간 {goal === "muscle_gain" ? "+" : ""}{Math.round(reg.slope * 7 * 10) / 10}{goal === "fat_loss" ? "kg" : goal === "muscle_gain" ? "kg" : "회"}/주
+      </p>
+    </div>
+  );
+}
+
 /* ─── step type ─── */
 type Step = "welcome" | "profile" | "frequency" | "time" | "goal" | "onerm" | "analyzing" | "result";
 
@@ -1100,6 +1273,7 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
   const [showMLTooltip, setShowMLTooltip] = useState(false);
   const [showOtherGoals, setShowOtherGoals] = useState(false);
   const [selectedGoalKey, setSelectedGoalKey] = useState<string | null>(null);
+  const [showChart, setShowChart] = useState(false);
 
   useEffect(() => {
     if (step === "welcome") {
@@ -1536,6 +1710,25 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
                           );
                         })}
                       </div>
+
+                      {/* 회귀분석 그래프 토글 */}
+                      <button
+                        onClick={() => setShowChart(!showChart)}
+                        className="w-full flex items-center justify-center gap-1.5 mt-3 py-2 rounded-xl bg-[#2D6A4F]/5 active:bg-[#2D6A4F]/10 transition-all"
+                      >
+                        <span className="text-[11px] font-bold text-[#2D6A4F]">{showChart ? "그래프 접기" : "회귀분석 그래프 보기"}</span>
+                        <span className={`text-[10px] text-[#2D6A4F] transition-transform ${showChart ? "rotate-180" : ""}`}>▼</span>
+                      </button>
+                      {showChart && (
+                        <div className="mt-3 animate-fade-in">
+                          <RegressionChart
+                            goal={fp.goal}
+                            history={workoutHistory || []}
+                            weightLog={weightLog || []}
+                            profile={fp}
+                          />
+                        </div>
+                      )}
                     </div>
 
                     {/* Other goal buttons */}

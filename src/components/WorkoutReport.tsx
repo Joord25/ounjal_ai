@@ -8,11 +8,20 @@ import { loadRecentHistory as loadRecentHistoryFromStore } from "@/utils/workout
 import { getTierFromExp, type ExpLogEntry, sumExp, TIERS, processWorkoutCompletion, getOrRebuildSeasonExp } from "@/utils/questSystem";
 
 /* === RPG 리절트 카드 === */
-function RpgResultCard({ totalDurationSec, totalSets, totalVolume, successRate, isStrengthSession, seasonExp, prevSeasonExp, expGained, intensityLevel, formatDuration, onHelpPress, skipAnimation }: {
+interface RpgInsight {
+  goalLine?: string;       // 1. 목표 연결 한 줄
+  weightPR?: string;       // 2. 최고 무게 신기록
+  phaseUnlock?: string;    // 3. Phase 해금 알림
+  phaseJustUnlocked?: boolean; // 해금 달성 시 true
+  volumeCompare?: string;  // 4. vs 지난 세션 비교
+}
+
+function RpgResultCard({ totalDurationSec, totalSets, totalVolume, successRate, isStrengthSession, seasonExp, prevSeasonExp, expGained, intensityLevel, formatDuration, onHelpPress, skipAnimation, insight }: {
   totalDurationSec: number; totalSets: number; totalVolume: number; successRate: number;
   isStrengthSession: boolean; seasonExp: number; prevSeasonExp: number; expGained: ExpLogEntry[];
   intensityLevel: "high" | "moderate" | "low";
   formatDuration: (s: number) => string; onHelpPress: () => void; skipAnimation?: boolean;
+  insight?: RpgInsight;
 }) {
   const [visibleChars, setVisibleChars] = useState<number[]>([]);
   const [currentLine, setCurrentLine] = useState(skipAnimation ? 999 : -1);
@@ -34,15 +43,18 @@ function RpgResultCard({ totalDurationSec, totalSets, totalVolume, successRate, 
     { text: `${intensityLabel} ${formatDuration(totalDurationSec)} 전투!` },
     { text: `${totalSets}세트를 클리어했다!` },
     ...(isStrengthSession && totalVolume > 0 ? [{ text: `총 ${totalVolume.toLocaleString()}kg 을 들어올렸다!` }] : []),
-    { text: `달성률 ${successRate}%!` },
-    { text: gradeMsg, bold: true, highlight: successRate >= 80 },
+    { text: `달성률 ${successRate}% — ${gradeMsg}`, bold: true, highlight: successRate >= 80 },
     // Quest completion lines
     ...expGained
       .filter(e => e.source !== "workout")
       .map(e => ({ text: `${e.detail}! +${e.amount} EXP`, bold: true, highlight: true })),
-    // Total EXP gained
+    // ── Insight lines ──
+    ...(insight?.weightPR ? [{ text: insight.weightPR, bold: true, highlight: true }] : []),
+    ...(insight?.volumeCompare ? [{ text: insight.volumeCompare }] : []),
+    ...(insight?.goalLine ? [{ text: insight.goalLine }] : []),
+    ...(insight?.phaseUnlock ? [{ text: insight.phaseUnlock, bold: !!insight.phaseJustUnlocked, highlight: !!insight.phaseJustUnlocked }] : []),
+    // EXP & Tier (맨 밑)
     ...(totalExpGained > 0 ? [{ text: `+${totalExpGained} EXP 획득!`, bold: true }] : []),
-    // Tier status
     ...(tierUp
       ? [{ text: `${prev.tier.name} → ${current.tier.name} 승급!`, bold: true, highlight: true }]
       : current.nextTier
@@ -318,6 +330,97 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
           const expGained = processWorkoutCompletion(currentSessionHistory, allHistoryWithCurrent, birthYear, gender);
           const currentExp = prevExp + sumExp(expGained);
 
+          // ── Insight 계산 ──
+          const insight: RpgInsight = {};
+
+          // 1. 목표 연결 한 줄
+          try {
+            const fp = JSON.parse(localStorage.getItem("alpha_fitness_profile") || "{}");
+            const goal = fp.goal as string | undefined;
+            const bw = fp.bodyWeight as number | undefined;
+            const freq = fp.weeklyFrequency as number | undefined;
+            const sessionMin = fp.sessionMinutes as number | undefined;
+            if (goal && bw && freq && sessionMin) {
+              const metLow = goal === "endurance" ? 5.0 : goal === "fat_loss" ? 4.0 : 3.5;
+              const metHigh = goal === "endurance" ? 8.0 : goal === "fat_loss" ? 7.0 : 6.0;
+              const hours = (sessionMin || 45) / 60;
+              const sessionCal = Math.round(((metLow + metHigh) / 2) * bw * hours);
+              if (goal === "fat_loss") {
+                const weeklyCal = sessionCal * freq;
+                const weeklyLossKg = Math.round((weeklyCal / 7700) * 100) / 100;
+                const pred4w = Math.round((bw - weeklyLossKg * 4) * 10) / 10;
+                insight.goalLine = `이번 운동 ~${sessionCal}kcal 소모 → 4주 후 예상 ${pred4w}kg`;
+              } else if (goal === "muscle_gain") {
+                const bestVal = bestE1RM?.value ?? 0;
+                const target = Math.round(bw * 1.0);
+                if (bestVal > 0) {
+                  const pct = Math.min(100, Math.round((bestVal / target) * 100));
+                  insight.goalLine = `Best e1RM ${bestVal}kg → 중급(${target}kg)까지 ${pct}%`;
+                }
+              } else if (goal === "endurance" || goal === "health") {
+                const whoMin = 150;
+                const weeklyMin = freq * (sessionMin || 45);
+                const pct = Math.min(200, Math.round((weeklyMin / whoMin) * 100));
+                insight.goalLine = `이번 주 WHO 권장량 ${pct}% 달성 중`;
+              }
+            }
+          } catch {}
+
+          // 2. 최고 무게 신기록
+          if (isStrengthSession && logs) {
+            let todayMaxWeight = 0;
+            for (const exLogs of Object.values(logs)) {
+              for (const l of exLogs) {
+                const w = parseFloat(l.weightUsed || "0");
+                if (w > todayMaxWeight) todayMaxWeight = w;
+              }
+            }
+            if (todayMaxWeight > 0) {
+              let historyMaxWeight = 0;
+              for (const h of recentHistory) {
+                if (h.logs) {
+                  for (const exLogs of Object.values(h.logs)) {
+                    for (const l of exLogs) {
+                      const w = parseFloat(l.weightUsed || "0");
+                      if (w > historyMaxWeight) historyMaxWeight = w;
+                    }
+                  }
+                }
+              }
+              if (todayMaxWeight > historyMaxWeight && historyMaxWeight > 0) {
+                insight.weightPR = `최고 무게 신기록! ${historyMaxWeight}kg → ${todayMaxWeight}kg`;
+              }
+            }
+          }
+
+          // 3. Phase 해금 알림
+          const totalWorkouts = allHistoryWithCurrent.length;
+          const phaseThresholds = [5, 10, 20];
+          const nextPhase = phaseThresholds.find(t => totalWorkouts <= t);
+          if (nextPhase && totalWorkouts === nextPhase) {
+            insight.phaseUnlock = `${nextPhase}회 달성! 새로운 예측이 해금되었습니다`;
+            insight.phaseJustUnlocked = true;
+          } else if (nextPhase) {
+            const remaining = nextPhase - totalWorkouts;
+            insight.phaseUnlock = `다음 예측 해금까지 ${remaining}회 남음`;
+          }
+
+          // 4. vs 지난 세션 볼륨 비교
+          if (isStrengthSession && totalVolume > 0 && recentHistory.length > 0) {
+            const lastSession = recentHistory[recentHistory.length - 1];
+            const lastVol = lastSession?.stats?.totalVolume || 0;
+            if (lastVol > 0) {
+              const diff = Math.round(((totalVolume - lastVol) / lastVol) * 100);
+              if (diff > 0) {
+                insight.volumeCompare = `총 볼륨 ${totalVolume.toLocaleString()}kg (지난번 대비 +${diff}%)`;
+              } else if (diff < 0) {
+                insight.volumeCompare = `총 볼륨 ${totalVolume.toLocaleString()}kg (지난번 대비 ${diff}%)`;
+              } else {
+                insight.volumeCompare = `총 볼륨 ${totalVolume.toLocaleString()}kg (지난번과 동일)`;
+              }
+            }
+          }
+
           return (
             <RpgResultCard
               totalDurationSec={totalDurationSec}
@@ -332,6 +435,7 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
               formatDuration={formatDuration}
               onHelpPress={() => setHelpCard("levelSystem")}
               skipAnimation={!!sessionDate}
+              insight={insight}
             />
           );
         })()}
