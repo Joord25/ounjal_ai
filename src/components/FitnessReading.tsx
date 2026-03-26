@@ -920,22 +920,34 @@ function RegressionChart({ goal, history, weightLog, profile }: {
       if (weightLog.length >= 2) {
         const sortedW = [...weightLog].sort((a, b) => a.date.localeCompare(b.date));
         const wBase = sortedW[0].date;
-        points = sortedW.map(w => ({ x: dateToDayIndex(w.date, wBase), y: w.weight, label: `${w.weight}kg` }));
+        points = sortedW.map(w => ({ x: dateToDayIndex(w.date, wBase), y: Math.round(w.weight * 10) / 10, label: `${Math.round(w.weight * 10) / 10}kg` }));
         yLabel = "체중 (kg)";
         targetLine = Math.round(profile.bodyWeight * 0.9 * 10) / 10;
         targetLabel = `목표 ${targetLine}kg`;
       } else {
         const trend = calcCaloriesTrend(sorted, profile.bodyWeight);
         if (trend.length < 2) return null;
-        points = trend.map((t, i) => ({ x: i, y: t.calories, label: `${t.calories}kcal` }));
+        points = trend.map((t, i) => ({ x: i, y: Math.round(t.calories), label: `${Math.round(t.calories)}kcal` }));
         yLabel = "세션 칼로리 (kcal)";
       }
     } else if (goal === "muscle_gain") {
-      // e1RM 추이
+      // e1RM 추이 (이상치 필터링 + 반올림)
       const withE1RM = sorted.filter(s => s.stats.bestE1RM && s.stats.bestE1RM > 0);
       if (withE1RM.length < 2) return null;
-      const e1Base = withE1RM[0].date;
-      points = withE1RM.map(s => ({ x: dateToDayIndex(s.date, e1Base), y: s.stats.bestE1RM!, label: `${s.stats.bestE1RM}kg` }));
+      // IQR 기반 이상치 제거
+      const e1vals = withE1RM.map(s => s.stats.bestE1RM!).sort((a, b) => a - b);
+      const q1 = e1vals[Math.floor(e1vals.length * 0.25)];
+      const q3 = e1vals[Math.floor(e1vals.length * 0.75)];
+      const iqr = q3 - q1;
+      const lower = q1 - 1.5 * iqr;
+      const upper = q3 + 1.5 * iqr;
+      const filtered = withE1RM.filter(s => s.stats.bestE1RM! >= lower && s.stats.bestE1RM! <= upper);
+      if (filtered.length < 2) return null;
+      const e1Base = filtered[0].date;
+      points = filtered.map(s => {
+        const val = Math.round(s.stats.bestE1RM! * 10) / 10;
+        return { x: dateToDayIndex(s.date, e1Base), y: val, label: `${val}kg` };
+      });
       yLabel = "Best e1RM (kg)";
       targetLine = profile.bodyWeight * 1.0;
       targetLabel = `중급 ${Math.round(targetLine)}kg`;
@@ -963,7 +975,9 @@ function RegressionChart({ goal, history, weightLog, profile }: {
     const lastX = points[points.length - 1].x;
     const predStep = goal === "endurance" || goal === "health" ? 4 : 28;
     const predX = lastX + predStep;
-    const predY = reg.predict(predX);
+    const rawPredY = reg.predict(predX);
+    // 예측값 클램핑: 음수 방지, 소수점 반올림
+    const predY = Math.round(Math.max(0, rawPredY) * 10) / 10;
 
     return { points, reg, yLabel, targetLine, targetLabel, lastX, predX, predY };
   }, [goal, history, weightLog, profile]);
@@ -984,8 +998,8 @@ function RegressionChart({ goal, history, weightLog, profile }: {
   const chartH = H - PAD.top - PAD.bottom;
 
   const allY = [...points.map(p => p.y), predY, ...(targetLine ? [targetLine] : [])];
-  const minY = Math.min(...allY) * 0.95;
-  const maxY = Math.max(...allY) * 1.05;
+  const minY = Math.max(0, Math.min(...allY) * 0.9);
+  const maxY = Math.max(...allY) * 1.1;
   const rangeY = maxY - minY || 1;
 
   const minX = points[0].x;
