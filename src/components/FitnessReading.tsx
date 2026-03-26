@@ -259,11 +259,19 @@ function estimateHeight(gender: "male" | "female", age: number): number {
 }
 
 /* ─── reading results ─── */
+interface StrengthBar {
+  name: string;    // 벤치프레스, 스쿼트, 데드리프트
+  level: string;   // 입문, 초급, 중급, 상급, 엘리트
+  ratio: number;   // 체중 대비 배수
+  pct: number;     // 0~100 프로그레스 바 위치
+}
+
 interface PredictionResult {
   value: string;
   sub?: string;
   source?: string;
-  action?: "edit_1rm";  // 클릭 시 동작
+  action?: "edit_1rm";
+  strengthBars?: StrengthBar[];  // 근력 수준 바 데이터
 }
 
 interface ReadingResult {
@@ -300,16 +308,16 @@ function computeReading(
   let typeEmoji: string;
   if (p.goal === "fat_loss") {
     typeName = p.weeklyFrequency >= 4 ? "불꽃 연소형" : "꾸준한 연소형";
-    typeEmoji = "🔥";
+    typeEmoji = "";
   } else if (p.goal === "muscle_gain") {
     typeName = p.weeklyFrequency >= 4 ? "폭발 성장형" : "안정 성장형";
-    typeEmoji = "💪";
+    typeEmoji = "";
   } else if (p.goal === "endurance") {
     typeName = "끈기 상승형";
-    typeEmoji = "⚡";
+    typeEmoji = "";
   } else {
     typeName = "균형 유지형";
-    typeEmoji = "🌿";
+    typeEmoji = "";
   }
 
   const message =
@@ -417,25 +425,27 @@ function computeReading(
     // 근력 상급자: 현재 근력 수준 평가
     if (label.includes("현재 근력 수준 평가")) {
       if (!p.bench1RM && !p.squat1RM && !p.deadlift1RM) {
-        return { value: "1RM 데이터 입력 후 평가 가능", action: "edit_1rm" };
+        return { value: "최대 중량 입력 후 평가 가능", action: "edit_1rm" };
       }
-      const lifts: string[] = [];
+      const std = p.gender === "male"
+        ? { bench: 2.0, squat: 2.5, deadlift: 2.75 }
+        : { bench: 1.2, squat: 1.75, deadlift: 2.0 };
+      const bars: StrengthBar[] = [];
       if (p.bench1RM) {
         const r = assessStrengthLevel("bench", p.bench1RM, p.bodyWeight, p.gender);
-        lifts.push(`벤치 ${r.ratio}배 (${r.level})`);
+        bars.push({ name: "벤치프레스", level: r.level, ratio: r.ratio, pct: Math.min(100, Math.round((r.ratio / std.bench) * 100)) });
       }
       if (p.squat1RM) {
         const r = assessStrengthLevel("squat", p.squat1RM, p.bodyWeight, p.gender);
-        lifts.push(`스쿼트 ${r.ratio}배 (${r.level})`);
+        bars.push({ name: "스쿼트", level: r.level, ratio: r.ratio, pct: Math.min(100, Math.round((r.ratio / std.squat) * 100)) });
       }
       if (p.deadlift1RM) {
         const r = assessStrengthLevel("deadlift", p.deadlift1RM, p.bodyWeight, p.gender);
-        lifts.push(`데드 ${r.ratio}배 (${r.level})`);
+        bars.push({ name: "데드리프트", level: r.level, ratio: r.ratio, pct: Math.min(100, Math.round((r.ratio / std.deadlift) * 100)) });
       }
       return {
-        value: lifts.join(" / "),
-        sub: `체중 ${p.bodyWeight}kg 대비 상대근력`,
-        source: "e1RM Strength Standards, NSCA",
+        value: bars.map(b => `${b.name} ${b.level}`).join(" · "),
+        strengthBars: bars,
       };
     }
 
@@ -518,7 +528,7 @@ function computeReading(
       const weeklyLossKg = Math.round((weeklyBurn / 7700) * 100) / 100; // 7700kcal ≈ 1kg
       const pred4w = Math.round((p.bodyWeight - weeklyLossKg * 4) * 10) / 10;
       return {
-        value: `4주 후 예상: ${pred4w}kg 📉`,
+        value: `4주 후 예상: ${pred4w}kg`,
         sub: `주간 운동 소모 ${weeklyBurn.toLocaleString()}kcal → 약 -${(weeklyLossKg * 4).toFixed(1)}kg`,
         source: "ACSM MET × 실제 운동 볼륨 기반 추정",
       };
@@ -536,7 +546,7 @@ function computeReading(
       const kgToLose = p.bodyWeight - targetWeight;
       const weeksNeeded = weeklyLossKg > 0 ? Math.ceil(kgToLose / weeklyLossKg) : 0;
       return {
-        value: weeksNeeded > 0 ? `${targetWeight}kg까지 약 ${weeksNeeded}주 🎯` : "운동량 증가 필요",
+        value: weeksNeeded > 0 ? `${targetWeight}kg까지 약 ${weeksNeeded}주` : "운동량 증가 필요",
         sub: `현재 ${p.bodyWeight}kg → 목표 -${kgToLose.toFixed(1)}kg (주간 -${weeklyLossKg.toFixed(2)}kg 페이스)`,
         source: "운동 칼로리 적자 기반 추정 (Helms 2014)",
       };
@@ -552,11 +562,11 @@ function computeReading(
       // 중급 기준: 벤치 체중×1.0 (ExRx)
       const intermediateTarget = p.bodyWeight * 1.0;
       const remaining = intermediateTarget - currentE1RM;
-      if (remaining <= 0) return { value: "🎉 이미 중급 수준 도달!", source: "ExRx Strength Standards" };
+      if (remaining <= 0) return { value: "이미 중급 수준 도달", source: "ExRx Strength Standards" };
       const weeksToTarget = Math.ceil(remaining / growth);
       const isEstimated = !e1t;
       return {
-        value: `중급 진입까지 약 ${weeksToTarget}주 💪`,
+        value: `중급 진입까지 약 ${weeksToTarget}주`,
         sub: `현재 e1RM ${currentE1RM}kg → 목표 ${Math.round(intermediateTarget)}kg (주간 +${growth}kg${isEstimated ? " 추정" : ""})`,
         source: isEstimated ? "프로필 1RM + NSCA 초보자 평균 성장률" : "e1RM 성장률 × ExRx Standards",
       };
@@ -578,11 +588,11 @@ function computeReading(
         .map(t => ({ ...t, weeksLeft: Math.max(0, Math.ceil((t.target - currentE1RM) / growth)) }))
         .filter(t => t.weeksLeft > 0)
         .sort((a, b) => a.weeksLeft - b.weeksLeft);
-      if (closest.length === 0) return { value: "🎉 모든 중급 기준 달성!", source: "ExRx Strength Standards" };
+      if (closest.length === 0) return { value: "모든 중급 기준 달성", source: "ExRx Strength Standards" };
       const next = closest[0];
       const isEstimated = !e1t;
       return {
-        value: `🎯 ${next.name} (${Math.round(next.target)}kg)까지 약 ${next.weeksLeft}주`,
+        value: `${next.name} (${Math.round(next.target)}kg)까지 약 ${next.weeksLeft}주`,
         sub: `현재 Best e1RM ${currentE1RM}kg, 주간 +${growth}kg${isEstimated ? " 추정" : ""} 기준`,
         source: isEstimated ? "프로필 1RM + 상급자 평균 성장률" : "e1RM 성장률 선형 외삽 + ExRx Standards",
       };
@@ -595,12 +605,12 @@ function computeReading(
       const currentWeeklyMin = cs.avgWeeklyFreq * p.sessionMinutes;
       const target = 150; // ACSM 권장
       if (currentWeeklyMin >= target) {
-        return { value: "✅ 이미 ACSM 권장량 충족!", sub: `주 ${Math.round(currentWeeklyMin)}분 / 권장 150분`, source: "ACSM Position Stand 2011" };
+        return { value: "이미 ACSM 권장량 충족", sub: `주 ${Math.round(currentWeeklyMin)}분 / 권장 150분`, source: "ACSM Position Stand 2011" };
       }
       const gap = target - currentWeeklyMin;
       const addSessionsNeeded = Math.ceil(gap / p.sessionMinutes);
       return {
-        value: `주 ${addSessionsNeeded}회만 더 하면 충족 🎯`,
+        value: `주 ${addSessionsNeeded}회만 더 하면 충족`,
         sub: `현재 주 ${Math.round(currentWeeklyMin)}분 → 목표 150분 (${Math.round((currentWeeklyMin / target) * 100)}% 달성)`,
         source: "ACSM Position Stand 2011 + 운동 빈도",
       };
@@ -618,7 +628,7 @@ function computeReading(
         ? Math.ceil(((targetVO2 - currentVO2) / currentVO2) / 0.0075)
         : 0;
       return {
-        value: weeksToTarget > 0 ? `VO2max 우수(45) 도달까지 약 ${weeksToTarget}주 ⚡` : `✅ 이미 우수 수준 (${currentVO2})`,
+        value: weeksToTarget > 0 ? `VO2max 우수(45) 도달까지 약 ${weeksToTarget}주` : `이미 우수 수준 (${currentVO2})`,
         sub: `현재 추정 ${currentVO2} → 12주 후 ${predicted12w} mL/kg/min`,
         source: "HERITAGE Study + ACSM 기준",
       };
@@ -631,7 +641,7 @@ function computeReading(
       // HUNT Study: 주 3+회 운동자는 같은 나이 상위 20~30%
       const percentile = cs.avgWeeklyFreq >= 4 ? "상위 20%" : cs.avgWeeklyFreq >= 3 ? "상위 30%" : cs.avgWeeklyFreq >= 2 ? "상위 50%" : "상위 70%";
       return {
-        value: `이 패턴 유지 시 동년배 ${percentile} 체력 🏆`,
+        value: `이 패턴 유지 시 동년배 ${percentile} 체력`,
         sub: `주 평균 ${cs.avgWeeklyFreq}회 운동 기준 (${cs.weeks}주간 데이터)`,
         source: "HUNT Study (Nes et al., 2011)",
       };
@@ -644,7 +654,7 @@ function computeReading(
       const actualWeeklyMin = cs.avgWeeklyFreq * p.sessionMinutes;
       const riskReduction = actualWeeklyMin >= 300 ? "35~40%" : actualWeeklyMin >= 150 ? "25~30%" : "10~20%";
       return {
-        value: `심혈관 질환 위험 ${riskReduction} 감소 예상 🌿`,
+        value: `심혈관 질환 위험 ${riskReduction} 감소 예상`,
         sub: `주 ${Math.round(actualWeeklyMin)}분 운동 기준 (WHO 권장 150~300분)`,
         source: "WHO Physical Activity Guidelines 2020",
       };
@@ -661,7 +671,7 @@ function computeReading(
       const kgToLose = p.bodyWeight - targetWeight;
       const weeksNeeded = Math.ceil(kgToLose / Math.abs(wt.weeklyChange));
       return {
-        value: `${targetWeight}kg 도달까지 약 ${weeksNeeded}주 📉`,
+        value: `${targetWeight}kg 도달까지 약 ${weeksNeeded}주`,
         sub: `실제 감량 속도 주간 ${wt.weeklyChange}kg (R²=${Math.round(wt.regression.r2 * 100)}%)`,
         source: "체중 로그 선형 회귀 (실측 데이터)",
       };
@@ -676,7 +686,7 @@ function computeReading(
       const safe = Math.abs(wt.weeklyChange) <= p.bodyWeight * 0.01;
       return {
         value: `4주 후 ${pred4w}kg / 8주 후 ${pred8w}kg`,
-        sub: `주간 ${wt.weeklyChange > 0 ? "+" : ""}${wt.weeklyChange}kg${safe ? " ✅ 안전 범위" : " ⚠️ 급변 주의"}`,
+        sub: `주간 ${wt.weeklyChange > 0 ? "+" : ""}${wt.weeklyChange}kg${safe ? " · 안전 범위" : " · 급변 주의"}`,
         source: "체중 로그 선형 회귀",
       };
     }
@@ -694,7 +704,7 @@ function computeReading(
       const predictions = targets
         .map(t => {
           const remaining = t.target - currentE1RM;
-          if (remaining <= 0) return `${t.name} ✅ 달성`;
+          if (remaining <= 0) return `${t.name} 달성`;
           const weeks = Math.ceil(remaining / growth);
           return `${t.name} (${Math.round(t.target)}kg) → ${weeks}주`;
         });
@@ -714,14 +724,14 @@ function computeReading(
         const estGrowth = 1.0; // 상급자 보수적 주간 성장률
         const pred4w = Math.round((profile1RM + estGrowth * 4) * 10) / 10;
         return {
-          value: `4주 후 e1RM ${pred4w}kg 예상 (추정) 🚀`,
+          value: `4주 후 e1RM ${pred4w}kg 예상 (추정)`,
           sub: `현재 ${profile1RM}kg, 주간 +${estGrowth}kg 추정 기준`,
           source: "프로필 1RM + 상급자 평균 성장률",
         };
       }
       const pred4w = Math.round(e1t.regression.predict(e1t.regression.intercept + 28) * 10) / 10;
       return {
-        value: `4주 후 e1RM ${pred4w}kg 예상 🚀`,
+        value: `4주 후 e1RM ${pred4w}kg 예상`,
         sub: `${e1t.firstE1RM}kg → ${e1t.lastE1RM}kg (주간 +${e1t.growthPerWeek}kg, R²=${Math.round(e1t.regression.r2 * 100)}%)`,
         source: "세션별 e1RM 회귀분석 (Epley)",
       };
@@ -734,7 +744,7 @@ function computeReading(
       const fAge = fitnessAge(currentVO2, p.gender);
       const diff = age - fAge;
       return {
-        value: diff > 0 ? `동년배보다 ${diff}살 젊은 체력 ⚡` : `실제 나이와 동일한 체력`,
+        value: diff > 0 ? `동년배보다 ${diff}살 젊은 체력` : `실제 나이와 동일한 체력`,
         sub: `추정 VO2max ${currentVO2} mL/kg/min → 피트니스 나이 ${fAge}세 (실제 ${age}세)`,
         source: "HUNT Study + 운동 데이터 반영",
       };
@@ -748,7 +758,7 @@ function computeReading(
       const futureVO2 = Math.round(currentVO2 * (1 + Math.min(0.2, (weeksTraining + 12) * 0.0075)) * 10) / 10;
       const percentile = futureVO2 >= 50 ? "상위 10%" : futureVO2 >= 45 ? "상위 20%" : futureVO2 >= 40 ? "상위 30%" : "상위 50%";
       return {
-        value: `12주 후 동년배 ${percentile} 체력 예상 🏆`,
+        value: `12주 후 동년배 ${percentile} 체력 예상`,
         sub: `현재 VO2max ${currentVO2} → 12주 후 ${futureVO2} mL/kg/min`,
         source: "HUNT Study + HERITAGE 성장 모델",
       };
@@ -762,13 +772,13 @@ function computeReading(
       const plateau = detectPlateau(wl.map(w => ({ date: w.date, value: w.weight })), 5);
       if (plateau?.isPlateau) {
         return {
-          value: `⚠️ 정체기 감지 — ${plateau.durationDays}일간 변화 ${plateau.changePct}%`,
+          value: `정체기 감지 — ${plateau.durationDays}일간 변화 ${plateau.changePct}%`,
           sub: "볼륨 10% 증가 또는 식단 조절 추천",
           source: "체중 변화율 + 볼륨 상관분석",
         };
       }
       return {
-        value: `✅ 순조로운 진행 중 — 4주 후 ${wt.predictInWeeks(4)}kg 예상`,
+        value: `순조로운 진행 중 — 4주 후 ${wt.predictInWeeks(4)}kg 예상`,
         sub: `주간 ${wt.weeklyChange > 0 ? "+" : ""}${wt.weeklyChange}kg`,
         source: "체중 로그 회귀분석",
       };
@@ -784,7 +794,7 @@ function computeReading(
       const weeklyLoss = wt ? Math.abs(wt.weeklyChange) : 0;
       const safeLoss = weeklyLoss <= p.bodyWeight * 0.01;
       return {
-        value: safe && safeLoss ? `✅ 근손실 없는 안전 감량 중` : `⚠️ 조정 필요`,
+        value: safe && safeLoss ? `근손실 없는 안전 감량 중` : `조정 필요`,
         sub: `주간 ${weeklySets}세트 (${weeklySets >= mev ? "근육 유지 충분" : "세트 수 부족"}) / 감량 ${weeklyLoss.toFixed(2)}kg/주 (${safeLoss ? "안전" : "과속"})`,
         source: "Israetel MEV + Helms 2014",
       };
@@ -799,13 +809,13 @@ function computeReading(
       );
       if (plateau?.isPlateau) {
         return {
-          value: `⚠️ e1RM 정체 신호 — ${plateau.durationDays}일간 변화 ${plateau.changePct}%`,
-          sub: "디로드 주간 또는 프로그램 변경 추천 🔄",
+          value: `e1RM 정체 신호 — ${plateau.durationDays}일간 변화 ${plateau.changePct}%`,
+          sub: "디로드 주간 또는 프로그램 변경 추천",
           source: "e1RM 변화율 분석",
         };
       }
       return {
-        value: `✅ 성장 지속 중 — 주간 +${e1t.growthPerWeek}kg`,
+        value: `성장 지속 중 — 주간 +${e1t.growthPerWeek}kg`,
         sub: e1t.growthPerWeek < 0.5 ? "성장 둔화 구간 — 프로그래밍 점검 추천" : "현재 프로그램 유지 추천",
         source: "e1RM 선형 회귀 분석",
       };
@@ -825,11 +835,11 @@ function computeReading(
         .map(t => ({ ...t, weeksLeft: Math.max(0, Math.ceil((t.target - currentE1RM) / growth)) }))
         .filter(t => t.weeksLeft > 0)
         .sort((a, b) => a.weeksLeft - b.weeksLeft);
-      if (closest.length === 0) return { value: "🎉 모든 중급 기준 달성!", source: "ExRx Strength Standards" };
+      if (closest.length === 0) return { value: "모든 중급 기준 달성", source: "ExRx Strength Standards" };
       const next = closest[0];
       const isEstimated = !e1t;
       return {
-        value: `🎯 ${next.name} (${Math.round(next.target)}kg)까지 약 ${next.weeksLeft}주`,
+        value: `${next.name} (${Math.round(next.target)}kg)까지 약 ${next.weeksLeft}주`,
         sub: `현재 Best e1RM ${currentE1RM}kg, 주간 +${growth}kg${isEstimated ? " 추정" : ""} 기준`,
         source: isEstimated ? "프로필 1RM + 상급자 평균 성장률" : "e1RM 성장률 선형 외삽 + ExRx Standards",
       };
@@ -845,7 +855,7 @@ function computeReading(
       const predictedVO2 = Math.round(currentVO2 * (1 + expectedGainPct / 100) * 10) / 10;
       return {
         value: `현재 추정 ${currentVO2} → 12주 후 ${predictedVO2} mL/kg/min`,
-        sub: `⚡ 약 +${Math.round(expectedGainPct)}% 향상 예상 (HERITAGE 기준)`,
+        sub: `약 +${Math.round(expectedGainPct)}% 향상 예상 (HERITAGE 기준)`,
         source: "HERITAGE Family Study + ACSM",
       };
     }
@@ -872,7 +882,7 @@ function computeReading(
       const futureVO2 = currentVO2 * (1 + Math.min(0.2, weeksTraining * 0.0075 + 0.09));
       const futureFAge = fitnessAge(futureVO2, p.gender);
       return {
-        value: `피트니스 나이: ${fAge}세 → 12주 후 ${futureFAge}세 예상 🌿`,
+        value: `피트니스 나이: ${fAge}세 → 12주 후 ${futureFAge}세 예상`,
         sub: `매년 약 ${Math.abs(futureFAge - fAge) > 0 ? "0.5~1세" : "유지"} 개선 가능`,
         source: "HUNT Study 모델 + 운동량 회귀분석",
       };
@@ -884,7 +894,7 @@ function computeReading(
       const healthScore = Math.min(100, cs.score + (vg && vg.trend === "up" ? 10 : 0));
       const riskReduction = weeklyMin >= 300 ? "35~40%" : weeklyMin >= 150 ? "25~30%" : "10~20%";
       return {
-        value: `건강 개선 지수: ${healthScore}점 🌿`,
+        value: `건강 개선 지수: ${healthScore}점`,
         sub: `이 패턴 유지 시 심혈관 위험 ${riskReduction} 감소 예상`,
         source: "WHO 2020 + HUNT Study + 운동 일관성 데이터",
       };
@@ -1727,27 +1737,43 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
                           const threshold = UNLOCK_THRESHOLDS[i] ?? 999;
                           const isUnlocked = workoutCount >= threshold;
                           const isOpen = isUnlocked && (i === 0 || isPremium);
+                          const easyLabel = item.label.replace(/e1RM/g, "최대 중량").replace(/1RM/g, "최대 중량");
+                          const easyValue = pred?.value?.toString().replace(/e1RM/g, "최대 중량").replace(/Best e1RM/g, "최고 기록");
+                          const easySub = pred?.sub?.replace(/e1RM/g, "최대 중량").replace(/Best e1RM/g, "최고 기록").replace(/R²=\d+%/g, "").replace(/\s+,\s*/g, ", ").trim();
                           return (
                             <div key={i}>
                               {isOpen ? (
                                 <div className="bg-[#FAFBF9] rounded-xl p-3 -mx-1">
-                                  <div className="flex items-center justify-between mb-1.5">
-                                    <p className="text-[#6B7280] text-xs">{item.label}</p>
-                                    {item.phase > 0 && (
-                                      <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-600 font-bold">
-                                        Phase {item.phase}
-                                      </span>
-                                    )}
-                                  </div>
-                                  {pred?.action === "edit_1rm" && onEdit1RM ? (
+                                  <p className="text-[#6B7280] text-xs mb-2">{easyLabel}</p>
+                                  {/* 근력 수준 프로그레스 바 */}
+                                  {pred?.strengthBars ? (
+                                    <div className="space-y-2.5">
+                                      {pred.strengthBars.map((bar, bi) => (
+                                        <div key={bi}>
+                                          <div className="flex items-center justify-between mb-1">
+                                            <span className="text-[11px] text-[#1B4332] font-medium">{bar.name}</span>
+                                            <span className="text-[11px] font-bold text-[#2D6A4F]">{bar.level}</span>
+                                          </div>
+                                          <div className="w-full h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                                            <div
+                                              className="h-full rounded-full transition-all duration-700"
+                                              style={{
+                                                width: `${bar.pct}%`,
+                                                backgroundColor: bar.pct >= 80 ? "#059669" : bar.pct >= 50 ? "#2D6A4F" : "#6B7280",
+                                              }}
+                                            />
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  ) : pred?.action === "edit_1rm" && onEdit1RM ? (
                                     <button onClick={onEdit1RM} className="text-[#1B4332] text-sm font-black text-right w-full underline decoration-emerald-400 decoration-2 underline-offset-2 active:opacity-60">
-                                      {pred.value} →
+                                      {easyValue} →
                                     </button>
                                   ) : (
-                                    <p className="text-[#1B4332] text-sm font-black text-right">{pred?.value}</p>
+                                    <p className="text-[#1B4332] text-sm font-black text-right">{easyValue}</p>
                                   )}
-                                  {pred?.sub && <p className="text-[#2D6A4F] text-xs font-bold mt-1 text-right">{pred.sub}</p>}
-                                  {pred?.source && <p className="text-gray-400 text-[9px] mt-1 text-right">출처: {pred.source}</p>}
+                                  {!pred?.strengthBars && easySub && <p className="text-[#2D6A4F] text-[11px] mt-1 text-right">{easySub}</p>}
                                 </div>
                               ) : (
                                 <div className="flex items-center justify-between py-1">
@@ -1816,7 +1842,7 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
                                   : "bg-gray-50 border border-gray-100 text-gray-300"
                             }`}
                           >
-                            {gd.title}{!canAccess ? " 🔒" : ""}
+                            {gd.title}
                           </button>
                         );
                       })}
@@ -1846,17 +1872,9 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
                                 <div key={i}>
                                   {isUnlocked ? (
                                     <div className="bg-[#FAFBF9] rounded-xl p-3 -mx-1">
-                                      <div className="flex items-center justify-between mb-1.5">
-                                        <p className="text-[#6B7280] text-xs">{item.label}</p>
-                                        {item.phase > 0 && (
-                                          <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-600 font-bold">
-                                            Phase {item.phase}
-                                          </span>
-                                        )}
-                                      </div>
-                                      <p className="text-[#1B4332] text-sm font-black text-right">{pred?.value}</p>
-                                      {pred?.sub && <p className="text-[#2D6A4F] text-xs font-bold mt-1 text-right">{pred.sub}</p>}
-                                      {pred?.source && <p className="text-gray-400 text-[9px] mt-1 text-right">출처: {pred.source}</p>}
+                                      <p className="text-[#6B7280] text-xs mb-2">{item.label.replace(/e1RM/g, "최대 중량").replace(/1RM/g, "최대 중량")}</p>
+                                      <p className="text-[#1B4332] text-sm font-black text-right">{pred?.value?.toString().replace(/e1RM/g, "최대 중량").replace(/Best e1RM/g, "최고 기록")}</p>
+                                      {pred?.sub && <p className="text-[#2D6A4F] text-[11px] mt-1 text-right">{pred.sub.replace(/e1RM/g, "최대 중량").replace(/Best e1RM/g, "최고 기록").replace(/R²=\d+%/g, "").replace(/\s+,\s*/g, ", ").trim()}</p>}
                                     </div>
                                   ) : (
                                     <div className="flex items-center justify-between py-1">
