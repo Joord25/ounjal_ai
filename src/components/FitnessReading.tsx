@@ -507,7 +507,7 @@ function computeReading(
     // 감량 초보: 4주 후 예상 체중
     if (label.includes("4주 후 예상 체중")) {
       const trend = calcCaloriesTrend(h, p.bodyWeight);
-      if (trend.length < 2) return { value: "데이터 수집 중..." };
+      if (trend.length < 2) return { value: `${2 - trend.length}회 더 운동하면 예측 가능` };
       const avgCal = Math.round(trend.reduce((s, t) => s + t.calories, 0) / trend.length);
       const weeklyBurn = avgCal * p.weeklyFrequency;
       const weeklyLossKg = Math.round((weeklyBurn / 7700) * 100) / 100; // 7700kcal ≈ 1kg
@@ -521,7 +521,7 @@ function computeReading(
     // 감량 상급: 목표 체중까지 예상 소요 기간
     if (label.includes("목표 체중까지 예상 소요 기간")) {
       const trend = calcCaloriesTrend(h, p.bodyWeight);
-      if (trend.length < 2) return { value: "데이터 수집 중..." };
+      if (trend.length < 2) return { value: `${2 - trend.length}회 더 운동하면 예측 가능` };
       const avgCal = Math.round(trend.reduce((s, t) => s + t.calories, 0) / trend.length);
       const weeklyBurn = avgCal * p.weeklyFrequency;
       const weeklyLossKg = weeklyBurn / 7700;
@@ -541,7 +541,7 @@ function computeReading(
       // 프로필 1RM fallback: 운동 기록 부족 시 프로필 1RM + 표준 초보자 성장률 사용
       const currentE1RM = e1t?.lastE1RM ?? Math.max(p.bench1RM || 0, p.squat1RM || 0, p.deadlift1RM || 0);
       const growth = (e1t && e1t.growthPerWeek > 0) ? e1t.growthPerWeek : 2.5; // NSCA 초보자 주간 성장률
-      if (currentE1RM <= 0) return { value: "데이터 수집 중..." };
+      if (currentE1RM <= 0) return { value: "1RM 입력 또는 운동 기록 필요", action: "edit_1rm" };
       // 중급 기준: 벤치 체중×1.0 (ExRx)
       const intermediateTarget = p.bodyWeight * 1.0;
       const remaining = intermediateTarget - currentE1RM;
@@ -559,7 +559,7 @@ function computeReading(
       // 프로필 1RM fallback: 운동 기록 부족 시 프로필 1RM + 상급자 성장률 사용
       const currentE1RM = e1t?.lastE1RM ?? Math.max(p.bench1RM || 0, p.squat1RM || 0, p.deadlift1RM || 0);
       const growth = (e1t && e1t.growthPerWeek > 0) ? e1t.growthPerWeek : 1.0; // 상급자 주간 성장률 (보수적)
-      if (currentE1RM <= 0) return { value: "1RM 데이터 입력 후 예측 가능", action: "edit_1rm" };
+      if (currentE1RM <= 0) return { value: "1RM을 입력하면 예측 가능", action: "edit_1rm" };
       const targets = [
         { name: "벤치 중급", target: p.bodyWeight * 1.0 },
         { name: "스쿼트 중급", target: p.bodyWeight * 1.25 },
@@ -580,7 +580,7 @@ function computeReading(
     // 체력 초보: ACSM 권장량 완전 충족까지
     if (label.includes("ACSM 권장량 완전 충족까지 예상 기간")) {
       const cs = calcConsistencyScore(h, p.weeklyFrequency);
-      if (cs.weeks === 0) return { value: "데이터 수집 중..." };
+      if (cs.weeks === 0) return { value: "운동 기록이 쌓이면 예측 가능" };
       const currentWeeklyMin = cs.avgWeeklyFreq * p.sessionMinutes;
       const target = 150; // ACSM 권장
       if (currentWeeklyMin >= target) {
@@ -614,7 +614,7 @@ function computeReading(
     // 건강 초보: 이 패턴 유지 시 동년배 체력 순위
     if (label.includes("이 패턴 유지 시 동년배 체력 순위")) {
       const cs = calcConsistencyScore(h, p.weeklyFrequency);
-      if (cs.weeks === 0) return { value: "데이터 수집 중..." };
+      if (cs.weeks === 0) return { value: "운동 기록이 쌓이면 예측 가능" };
       const percentile = cs.avgWeeklyFreq >= 4 ? "상위 20%" : cs.avgWeeklyFreq >= 3 ? "상위 30%" : cs.avgWeeklyFreq >= 2 ? "상위 50%" : "상위 70%";
       return {
         value: `같은 나이 중 ${percentile} 체력`,
@@ -625,7 +625,7 @@ function computeReading(
     // 건강 상급: 이 패턴 유지 시 건강 위험 감소 예측
     if (label.includes("이 패턴 유지 시 건강 위험 감소 예측")) {
       const cs = calcConsistencyScore(h, p.weeklyFrequency);
-      if (cs.weeks === 0) return { value: "데이터 수집 중..." };
+      if (cs.weeks === 0) return { value: "운동 기록이 쌓이면 예측 가능" };
       const actualWeeklyMin = cs.avgWeeklyFreq * p.sessionMinutes;
       const riskReduction = actualWeeklyMin >= 300 ? "35~40%" : actualWeeklyMin >= 150 ? "25~30%" : "10~20%";
       return {
@@ -639,7 +639,7 @@ function computeReading(
     // 감량: 목표 체중 도달 예측
     if (label.includes("목표 체중 도달 예측")) {
       const wt = calcWeightTrend(wl);
-      if (!wt) return { value: "체중 기록 3개 이상 필요" };
+      if (!wt) return { value: `체중 기록 ${3 - wl.length}개 더 필요` };
       if (wt.weeklyChange >= 0) return { value: "현재 체중 유지 또는 증가 추세", sub: "운동량 증가 또는 식단 조절 권장" };
       const targetWeight = Math.round(p.bodyWeight * 0.9 * 10) / 10;
       const kgToLose = p.bodyWeight - targetWeight;
@@ -653,7 +653,7 @@ function computeReading(
     // 감량 상급: 체중 변화 정밀 예측
     if (label.includes("체중 변화 정밀 예측")) {
       const wt = calcWeightTrend(wl);
-      if (!wt) return { value: "체중 기록 3개 이상 필요" };
+      if (!wt) return { value: `체중 기록 ${3 - wl.length}개 더 필요` };
       const pred4w = wt.predictInWeeks(4);
       const pred8w = wt.predictInWeeks(8);
       const safe = Math.abs(wt.weeklyChange) <= p.bodyWeight * 0.01;
@@ -668,7 +668,7 @@ function computeReading(
       const e1t = calcE1RMTrend(h);
       const currentE1RM = e1t?.lastE1RM ?? Math.max(p.bench1RM || 0, p.squat1RM || 0, p.deadlift1RM || 0);
       const growth = (e1t && e1t.growthPerWeek > 0) ? e1t.growthPerWeek : 2.5;
-      if (currentE1RM <= 0) return { value: "1RM 데이터 입력 후 예측 가능", action: "edit_1rm" };
+      if (currentE1RM <= 0) return { value: "1RM을 입력하면 예측 가능", action: "edit_1rm" };
       const targets = [
         { name: "벤치 체중×1배", target: p.bodyWeight * 1.0 },
         { name: "스쿼트 체중×1.25배", target: p.bodyWeight * 1.25 },
@@ -691,7 +691,7 @@ function computeReading(
       const e1t = calcE1RMTrend(h);
       if (!e1t) {
         const profile1RM = Math.max(p.bench1RM || 0, p.squat1RM || 0, p.deadlift1RM || 0);
-        if (profile1RM <= 0) return { value: "1RM 데이터 입력 후 예측 가능", action: "edit_1rm" };
+        if (profile1RM <= 0) return { value: "1RM을 입력하면 예측 가능", action: "edit_1rm" };
         const estGrowth = 1.0;
         const pred4w = Math.round((profile1RM + estGrowth * 4) * 10) / 10;
         return {
@@ -735,7 +735,7 @@ function computeReading(
 
     if (label.includes("감량 정체기 예측")) {
       const wt = calcWeightTrend(wl);
-      if (!wt || wl.length < 5) return { value: "체중 데이터 더 필요 (5개+)" };
+      if (!wt || wl.length < 5) return { value: `체중 기록 ${5 - wl.length}개 더 필요` };
       const plateau = detectPlateau(wl.map(w => ({ date: w.date, value: w.weight })), 5);
       if (plateau?.isPlateau) {
         return {
@@ -766,7 +766,7 @@ function computeReading(
 
     if (label.includes("근력 정체기 예상")) {
       const e1t = calcE1RMTrend(h);
-      if (!e1t) return { value: "데이터 더 필요" };
+      if (!e1t) return { value: "운동 기록이 더 쌓이면 분석 가능" };
       const plateau = detectPlateau(
         h.filter(s => s.stats.bestE1RM).map(s => ({ date: s.date, value: s.stats.bestE1RM! })),
         5
@@ -787,7 +787,7 @@ function computeReading(
       const e1t = calcE1RMTrend(h);
       const currentE1RM = e1t?.lastE1RM ?? Math.max(p.bench1RM || 0, p.squat1RM || 0, p.deadlift1RM || 0);
       const growth = (e1t && e1t.growthPerWeek > 0) ? e1t.growthPerWeek : 1.0;
-      if (currentE1RM <= 0) return { value: "1RM 데이터 입력 후 예측 가능", action: "edit_1rm" };
+      if (currentE1RM <= 0) return { value: "1RM을 입력하면 예측 가능", action: "edit_1rm" };
       const targets = [
         { name: "벤치 중급", target: p.bodyWeight * 1.0 },
         { name: "스쿼트 중급", target: p.bodyWeight * 1.25 },
@@ -853,7 +853,7 @@ function computeReading(
       };
     }
 
-    return { value: "데이터 수집 중" };
+    return { value: "운동 기록이 쌓이면 예측 가능" };
   });
 
   return { typeName, typeEmoji, message, growthStars: stars, predictions, condition: conditionStr };
@@ -948,7 +948,7 @@ function RegressionChart({ goal, history, weightLog, profile }: {
   if (!chartData) {
     return (
       <div className="bg-[#FAFBF9] rounded-xl p-4 text-center">
-        <p className="text-xs text-gray-400">데이터가 더 쌓이면 그래프가 표시됩니다</p>
+        <p className="text-xs text-gray-400">{history.length === 0 ? "운동 기록 2회 이상 필요합니다" : `${2 - history.length}회만 더 운동하면 그래프가 표시됩니다`}</p>
       </div>
     );
   }
