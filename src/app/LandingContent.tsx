@@ -1,20 +1,6 @@
 "use client";
 
 import React, { useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
-import { auth } from "@/lib/firebase";
-import { onAuthStateChanged } from "firebase/auth";
-
-// 로그인된 유저는 /app으로 바로 이동
-function useAuthRedirect() {
-  const router = useRouter();
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) router.replace("/app");
-    });
-    return () => unsubscribe();
-  }, [router]);
-}
 
 // Override body overflow:hidden from globals.css
 function useBodyScroll() {
@@ -148,7 +134,6 @@ function FAQItem({ q, a }: { q: string; a: string }) {
 
 export default function LandingContent() {
   useBodyScroll();
-  useAuthRedirect();
   return (
     <div className="min-h-screen bg-[#FAFBF9] overflow-x-hidden" style={{ overflow: "auto" }}>
       {/* Hero (nav included inside for seamless background) */}
