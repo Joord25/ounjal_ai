@@ -331,7 +331,7 @@ export const ProofTab: React.FC<ProofTabProps> = () => {
         )}
 
         {/* Weight List */}
-        <div className="flex-1 px-4 sm:px-6 overflow-y-auto scrollbar-hide" style={{ paddingBottom: "calc(128px + var(--safe-area-bottom, 0px))" }}>
+        <div className="flex-1 px-4 sm:px-6 overflow-y-auto scrollbar-hide" style={{ paddingBottom: "calc(128px + var(--safe-area-bottom, 0px))", overscrollBehavior: "contain", WebkitOverflowScrolling: "touch" } as React.CSSProperties}>
           {sortedLog.length === 0 ? (
             <div className="text-center py-10 text-gray-400">
               <p>체중 기록이 없습니다.</p>
