@@ -80,7 +80,7 @@ export default function Home() {
 
       if (firebaseUser) {
         setIsLoggedIn(true);
-        document.cookie = "auth_logged_in=1;path=/;max-age=31536000;SameSite=Lax";
+        localStorage.setItem("auth_logged_in", "1");
 
         // Check subscription status (bypass in dev)
         if (process.env.NODE_ENV === "development") {
@@ -370,7 +370,7 @@ export default function Home() {
     } catch (e) {
       console.error("Logout failed:", e);
     }
-    document.cookie = "auth_logged_in=;path=/;max-age=0";
+    localStorage.removeItem("auth_logged_in");
     localStorage.removeItem("alpha_completed_rituals");
     localStorage.removeItem("alpha_workout_history");
     setIsLoggedIn(false);

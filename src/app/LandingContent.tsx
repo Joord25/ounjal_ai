@@ -3,11 +3,11 @@
 import React, { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 
-// 쿠키 기반 빠른 리다이렉트 (Firebase Auth 대기 불필요)
+// localStorage 캐시 기반 리다이렉트
 function useAuthRedirect() {
   const router = useRouter();
   useEffect(() => {
-    if (document.cookie.includes("auth_logged_in=1")) {
+    if (localStorage.getItem("auth_logged_in") === "1") {
       router.replace("/app");
     }
   }, [router]);
