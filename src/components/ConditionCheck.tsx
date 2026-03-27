@@ -92,7 +92,7 @@ export const ConditionCheck: React.FC<ConditionCheckProps> = ({ onComplete, onBa
 
   // 성별+출생연도가 있으면 재방문 유저 (체중만 입력)
   const [hasProfile] = useState(() => {
-    if (typeof window === "undefined") return false;
+    if (isGuest || typeof window === "undefined") return false;
     return !!(localStorage.getItem("alpha_gender") && localStorage.getItem("alpha_birth_year"));
   });
 
