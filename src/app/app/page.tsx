@@ -285,12 +285,6 @@ export default function Home() {
   };
 
   const handleConditionComplete = async (condition: UserCondition, goal: WorkoutGoal, session?: SessionSelection) => {
-    // Guest gate: 비로그인 유저는 1회 체험 후 로그인 유도
-    if (!isLoggedIn && getGuestTrialCount() >= GUEST_TRIAL_LIMIT) {
-      setShowLoginModal(true);
-      return;
-    }
-
     // Check free usage limit
     if (subStatus === "free" && getPlanCount() >= FREE_PLAN_LIMIT) {
       setShowPaywall(true);
@@ -554,7 +548,13 @@ export default function Home() {
         return (
           <HomeScreen
             userName={user?.displayName?.split(" ")[0] || undefined}
-            onStartWorkout={() => setView("condition_check")}
+            onStartWorkout={() => {
+              if (!isLoggedIn && getGuestTrialCount() >= GUEST_TRIAL_LIMIT) {
+                setShowLoginModal(true);
+                return;
+              }
+              setView("condition_check");
+            }}
             onShowPrediction={() => {
               if (!isLoggedIn) { setShowLoginModal(true); return; }
               setView("prediction_report");
