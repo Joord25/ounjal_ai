@@ -72,6 +72,7 @@ export default function Home() {
   const FREE_PLAN_LIMIT = 4;
   const GUEST_TRIAL_LIMIT = 1; // 비로그인 체험 횟수
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [predictionReturnTab, setPredictionReturnTab] = useState<"home" | "my">("home");
 
   // Firebase Auth listener
   useEffect(() => {
@@ -391,7 +392,7 @@ export default function Home() {
     }
 
     if (activeTab === "my") {
-      return <MyProfileTab user={user} onLogout={handleLogout} onShowPrediction={() => { setActiveTab("home"); setView("prediction_report"); }} autoEdit1RM={autoEdit1RM} key={autoEdit1RM ? "edit1rm" : "normal"} />;
+      return <MyProfileTab user={user} onLogout={handleLogout} onShowPrediction={() => { setPredictionReturnTab("my"); setView("prediction_report"); }} autoEdit1RM={autoEdit1RM} key={autoEdit1RM ? "edit1rm" : "normal"} />;
     }
 
     switch (view) {
@@ -403,7 +404,7 @@ export default function Home() {
             onPremium={() => setShowPaywall(true)}
             isPremium={subStatus === "active"}
             resultOnly
-            onBack={() => { setActiveTab("my"); setView("home"); }}
+            onBack={() => { setActiveTab(predictionReturnTab); setView("home"); }}
             workoutCount={(() => { try { return JSON.parse(localStorage.getItem("alpha_workout_history") || "[]").length; } catch { return 0; } })()}
             workoutHistory={(() => { try { return JSON.parse(localStorage.getItem("alpha_workout_history") || "[]"); } catch { return []; } })()}
             weightLog={(() => { try { return JSON.parse(localStorage.getItem("alpha_weight_log") || "[]"); } catch { return []; } })()}
@@ -488,6 +489,10 @@ export default function Home() {
             onClose={() => {
               setActiveTab("proof");
             }}
+            onShowPrediction={() => {
+              setPredictionReturnTab("home");
+              setView("prediction_report");
+            }}
             onAnalysisComplete={(analysis) => {
                 // Update the latest history entry with analysis data
                 try {
@@ -557,6 +562,7 @@ export default function Home() {
             }}
             onShowPrediction={() => {
               if (!isLoggedIn) { setShowLoginModal(true); return; }
+              setPredictionReturnTab("home");
               setView("prediction_report");
             }}
           />
@@ -567,7 +573,7 @@ export default function Home() {
   return (
     <PhoneFrame pullToRefresh={view === "home"}>
       <div className="h-full w-full relative overflow-hidden">
-        <div className={`h-full overflow-y-auto overflow-x-hidden scrollbar-hide ${view === "login" ? "" : ""}`} style={view !== "login" ? { paddingBottom: "calc(80px + var(--safe-area-bottom, 0px))" } : undefined}>
+        <div className={`h-full overflow-y-auto overflow-x-hidden scrollbar-hide ${view === "login" ? "" : ""}`} style={view === "login" ? undefined : view === "workout_session" ? { paddingBottom: "40px" } : { paddingBottom: "calc(80px + var(--safe-area-bottom, 0px))" }}>
           {renderContent()}
         </div>
         

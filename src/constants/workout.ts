@@ -540,7 +540,7 @@ export const LABELED_EXERCISE_POOLS: { label: string; keywords: string[]; exerci
   { label: "종아리", keywords: ["종아리", "calf", "카프"], exercises: [...LEG_EXERCISES.calf] },
   { label: "전신", keywords: ["전신", "full", "풀바디", "컴파운드"], exercises: [...FULL_BODY_EXERCISES.compound, ...FULL_BODY_EXERCISES.upper, ...FULL_BODY_EXERCISES.pull, ...FULL_BODY_EXERCISES.lower] },
   { label: "코어", keywords: ["코어", "core", "복근", "abs", "플랭크"], exercises: [...CORE_EXERCISES.plank, ...CORE_EXERCISES.dynamic] },
-  { label: "가동성", keywords: ["가동성", "mobility", "스트레칭", "CARs", "회전"], exercises: [...CORE_EXERCISES.mobility_upper, ...CORE_EXERCISES.mobility_lower, ...CORE_EXERCISES.mobility_full, ...CORE_EXERCISES.mobility_core] },
+  { label: "가동성", keywords: ["가동성", "mobility", "스트레칭", "CARs", "회전"], exercises: [...new Set([...CORE_EXERCISES.mobility_upper, ...CORE_EXERCISES.mobility_lower, ...CORE_EXERCISES.mobility_full, ...CORE_EXERCISES.mobility_core])] },
 ];
 
 export function getAlternativeExercises(exerciseName: string): string[] {

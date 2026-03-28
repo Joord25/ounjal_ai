@@ -670,7 +670,7 @@ export const FitScreen: React.FC<FitScreenProps> = ({
           <div className="w-10" />
         </div>
 
-        <div className="flex-1 flex flex-col items-center px-6 gap-3 overflow-hidden">
+        <div className="flex-1 flex flex-col items-center justify-evenly px-6 gap-3 overflow-y-auto scrollbar-hide">
           <div className="flex flex-col items-center gap-0 shrink-0">
             <div className="flex items-center gap-2 justify-center">
               <h1 className="text-3xl font-black text-[#1B4332] tracking-tight leading-tight break-keep text-center">{mainTitle}</h1>
@@ -726,18 +726,20 @@ export const FitScreen: React.FC<FitScreenProps> = ({
           })()}
 
           <div className="flex flex-col items-center gap-2">
-            <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">사용 무게</p>
-            {lastSessionRecord && lastSessionRecord.maxWeight > 0 && (() => {
+            {lastSessionRecord && lastSessionRecord.maxWeight > 0 ? (() => {
               const minRep = Math.min(...lastSessionRecord.reps);
               const maxRep = Math.max(...lastSessionRecord.reps);
               const repText = minRep === maxRep ? `${minRep}회` : `${minRep}~${maxRep}회`;
               const challenge = lastSessionRecord.hadEasy ? Math.round(lastSessionRecord.maxWeight * 1.05 / 2.5) * 2.5 : null;
               return (
-                <p className="text-[11px] text-gray-400 font-medium -mt-1">
-                  이전: {lastSessionRecord.maxWeight}kg × {repText}{challenge ? <span className="text-amber-500 font-bold"> → {challenge}kg 도전!</span> : null}
-                </p>
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#2D6A4F]/10">
+                  <img src="/favicon_backup.png" alt="AI" className="w-3.5 h-3.5 rounded-full" />
+                  <p className="text-[11px] font-bold text-[#2D6A4F]">
+                    지난번 {lastSessionRecord.maxWeight}kg × {repText}{challenge ? <span className="text-amber-500"> → {challenge}kg 도전!</span> : null}
+                  </p>
+                </div>
               );
-            })()}
+            })() : null}
             <div className="flex items-center justify-center gap-4 w-full">
               <button
                 onPointerDown={() => startLongPress("down")}
@@ -944,7 +946,7 @@ export const FitScreen: React.FC<FitScreenProps> = ({
 
   // Main Active View
   return (
-    <div ref={containerRef} className="flex flex-col h-full bg-white animate-fade-in relative" style={{ marginBottom: "calc(-80px - var(--safe-area-bottom, 0px))" }}>
+    <div ref={containerRef} className="flex flex-col h-full bg-white animate-fade-in relative">
       {/* Header with Back Button */}
       <div className="pt-[max(2rem,env(safe-area-inset-top))] pb-1 px-6 flex items-center justify-between relative shrink-0">
         <button
@@ -1169,7 +1171,7 @@ export const FitScreen: React.FC<FitScreenProps> = ({
 
         {/* 그룹3: NEXT + CTA */}
         <div className="flex flex-col items-center shrink-0 gap-3 w-full">
-        {nextExerciseName && !isDoneAnimating && setInfo.current === setInfo.total && (
+        {nextExerciseName && setInfo.current === setInfo.total && (
           <div className="self-end bg-gray-100 rounded-l-xl px-3 py-2 -mr-6">
             <p className="text-[7px] font-black text-gray-400 uppercase tracking-[0.2em] text-right">NEXT</p>
             <p className="text-[11px] font-semibold text-gray-600 leading-snug text-right max-w-[150px] truncate">{nextExerciseName}</p>

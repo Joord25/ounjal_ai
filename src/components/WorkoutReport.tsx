@@ -16,11 +16,11 @@ interface RpgInsight {
   volumeCompare?: string;  // 4. vs 지난 세션 비교
 }
 
-function RpgResultCard({ totalDurationSec, totalSets, totalVolume, successRate, isStrengthSession, seasonExp, prevSeasonExp, expGained, intensityLevel, formatDuration, onHelpPress, skipAnimation, insight }: {
+function RpgResultCard({ totalDurationSec, totalSets, totalVolume, successRate, isStrengthSession, seasonExp, prevSeasonExp, expGained, intensityLevel, formatDuration, onHelpPress, onShowPrediction, skipAnimation, insight }: {
   totalDurationSec: number; totalSets: number; totalVolume: number; successRate: number;
   isStrengthSession: boolean; seasonExp: number; prevSeasonExp: number; expGained: ExpLogEntry[];
   intensityLevel: "high" | "moderate" | "low";
-  formatDuration: (s: number) => string; onHelpPress: () => void; skipAnimation?: boolean;
+  formatDuration: (s: number) => string; onHelpPress: () => void; onShowPrediction?: () => void; skipAnimation?: boolean;
   insight?: RpgInsight;
 }) {
   const [visibleChars, setVisibleChars] = useState<number[]>([]);
@@ -38,7 +38,7 @@ function RpgResultCard({ totalDurationSec, totalSets, totalVolume, successRate, 
     : successRate >= 40 ? "조금 아쉽지만 해냈다!"
     : "힘든 날이었지만 나왔다는게 대단하다!";
 
-  const lines: { text: string; bold?: boolean; highlight?: boolean }[] = [
+  const lines: { text: string; bold?: boolean; highlight?: boolean; onTap?: () => void }[] = [
     { text: "운동을 완료했다!", bold: true },
     { text: `${intensityLabel} ${formatDuration(totalDurationSec)} 전투!` },
     { text: `${totalSets}세트를 클리어했다!` },
@@ -52,7 +52,7 @@ function RpgResultCard({ totalDurationSec, totalSets, totalVolume, successRate, 
     ...(insight?.weightPR ? [{ text: insight.weightPR, bold: true, highlight: true }] : []),
     ...(insight?.volumeCompare ? [{ text: insight.volumeCompare }] : []),
     ...(insight?.goalLine ? [{ text: insight.goalLine }] : []),
-    ...(insight?.phaseUnlock ? [{ text: insight.phaseUnlock, bold: !!insight.phaseJustUnlocked, highlight: !!insight.phaseJustUnlocked }] : []),
+    ...(insight?.phaseUnlock ? [{ text: insight.phaseUnlock + (insight.phaseJustUnlocked ? " →" : ""), bold: !!insight.phaseJustUnlocked, highlight: !!insight.phaseJustUnlocked, onTap: insight.phaseJustUnlocked && onShowPrediction ? onShowPrediction : undefined }] : []),
     // EXP & Tier (맨 밑)
     ...(totalExpGained > 0 ? [{ text: `+${totalExpGained} EXP 획득!`, bold: true }] : []),
     ...(tierUp
@@ -119,7 +119,8 @@ function RpgResultCard({ totalDurationSec, totalSets, totalVolume, successRate, 
                 key={i}
                 className={`text-[15px] leading-relaxed ${
                   line.highlight ? "text-[#34d399] text-base" : line.bold ? "text-white" : "text-[#a7f3d0]"
-                }`}
+                } ${line.onTap ? "underline underline-offset-2 cursor-pointer active:opacity-70" : ""}`}
+                onClick={line.onTap}
               >
                 {displayText}
                 {isTyping && <span className="inline-block w-2 h-4 bg-[#34d399]/50 ml-0.5 animate-pulse" />}
@@ -163,6 +164,7 @@ interface WorkoutReportProps {
   onClose: () => void;
   onRestart?: () => void;
   onDelete?: () => void;
+  onShowPrediction?: () => void;
   onAnalysisComplete?: (analysis: WorkoutAnalysis) => void;
 }
 
@@ -198,6 +200,7 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
   onClose,
   onRestart,
   onDelete,
+  onShowPrediction,
   onAnalysisComplete
 }) => {
   const analysis = initialAnalysis;
@@ -448,6 +451,7 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
               intensityLevel={sessionIntensity.level}
               formatDuration={formatDuration}
               onHelpPress={() => setHelpCard("levelSystem")}
+              onShowPrediction={onShowPrediction}
               skipAnimation={!!sessionDate}
               insight={insight}
             />
