@@ -84,6 +84,7 @@ export const EXERCISE_VIDEOS: Record<string, string> = {
   // ── 등 (PULL - Unilateral) ──
   "싱글 암 덤벨 로우": "TcaNtjAi4Z4",
   "시티드 케이블 로우": "RUygIGMN13M",
+  "시티드 로우": "RUygIGMN13M",
   "체스트 서포티드 로우": "woHK8Lws2xM",
   "케이블 로우": "LyZH4UGdDTc",
   "원 암 시티드 로우 머신": "1Cfjgf2FBqc",
@@ -256,6 +257,9 @@ export const EXERCISE_VIDEOS: Record<string, string> = {
   "앞벅지 스트레치": "",
   "앞벅지 스트레칭": "",
   "고양이-낙타 자세": "n53z-ooCrIU",
+  "캣-카멜 스트레칭": "n53z-ooCrIU",
+  "캣 카멜 스트레치": "n53z-ooCrIU",
+  "캣-카멜 자세": "n53z-ooCrIU",
   "캣 카우 스트레치": "n53z-ooCrIU",
   "캣-카우 스트레칭": "n53z-ooCrIU",
   "캣-카우 자세": "n53z-ooCrIU",

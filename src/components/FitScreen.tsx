@@ -997,7 +997,8 @@ export const FitScreen: React.FC<FitScreenProps> = ({
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col items-center justify-center px-6 text-center gap-2 overflow-hidden">
+      <div className="flex-1 flex flex-col px-6 text-center overflow-hidden">
+        {/* 상단: 운동 이름 + 영상 */}
         <div className="flex flex-col items-center gap-1 shrink-0">
           {(() => {
             const parts = exercise.name.split('(');
@@ -1034,7 +1035,7 @@ export const FitScreen: React.FC<FitScreenProps> = ({
                   const embedUrl = getVideoEmbedUrl(exercise.name);
                   if (embedUrl) {
                     return (
-                      <button onClick={() => setShowVideoGuide(true)} className="mt-2 w-48 aspect-[9/13] max-h-[32dvh] rounded-2xl overflow-hidden bg-black relative shadow-lg active:scale-[0.97] transition-all">
+                      <button onClick={() => setShowVideoGuide(true)} className="mt-2 w-48 aspect-[9/13] max-h-[24dvh] rounded-2xl overflow-hidden bg-black relative shadow-lg active:scale-[0.97] transition-all">
                         <iframe
                           src={embedUrl}
                           className="w-full h-full pointer-events-none"
@@ -1073,7 +1074,8 @@ export const FitScreen: React.FC<FitScreenProps> = ({
           })()}
         </div>
 
-        <div className="flex flex-col items-center gap-2 shrink-0">
+        {/* 중앙: 타이머/무게+렙 — 남은 공간에서 가운데 정렬 */}
+        <div className="flex-1 flex flex-col items-center justify-center gap-2">
           {isTimerMode ? (
              <div className="flex flex-col items-center">
                 {timerCompleted && !isDistanceMode ? (
@@ -1170,10 +1172,10 @@ export const FitScreen: React.FC<FitScreenProps> = ({
         </div>
       </div>
 
-      {/* Main CTA */}
-      <div className="flex flex-col items-center shrink-0 pb-0 relative">
+      {/* 하단: NEXT 미리보기 + CTA */}
+      <div className="flex flex-col items-center shrink-0 pb-0 gap-2">
         {nextExerciseName && !isDoneAnimating && setInfo.current === setInfo.total && (
-          <div className="absolute right-0 -top-12 bg-gray-100 rounded-l-xl px-3 py-2 max-[400px]:-top-9 max-[400px]:px-2 max-[400px]:py-1.5 max-[400px]:rounded-l-lg">
+          <div className="self-end bg-gray-100 rounded-l-xl px-3 py-2">
             <p className="text-[7px] font-black text-gray-400 uppercase tracking-[0.2em] text-right">NEXT</p>
             <p className="text-[11px] font-semibold text-gray-600 leading-snug text-right max-w-[150px] truncate">{nextExerciseName}</p>
           </div>

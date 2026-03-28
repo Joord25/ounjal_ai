@@ -354,8 +354,11 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
                 const bestVal = bestE1RM?.value ?? 0;
                 const target = Math.round(bw * 1.0);
                 if (bestVal > 0) {
+                  const rounded = Math.round(bestVal * 10) / 10;
+                  const eNameFull = bestE1RM!.exerciseName.split("(")[0].trim();
+                  const eName = eNameFull.length > 6 ? eNameFull.slice(0, 6) + ".." : eNameFull;
                   const pct = Math.min(100, Math.round((bestVal / target) * 100));
-                  insight.goalLine = `Best e1RM ${bestVal}kg → 중급(${target}kg)까지 ${pct}%`;
+                  insight.goalLine = `${eName} 추정1RM ${rounded}kg (중급 ${pct}%)`;
                 }
               } else if (goal === "endurance" || goal === "health") {
                 const whoMin = 150;
