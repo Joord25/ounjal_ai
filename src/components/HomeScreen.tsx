@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import type { WorkoutHistory, WorkoutGoal } from "@/constants/workout";
 import { getOrCreateWeeklyQuests, type QuestDefinition, type QuestProgress } from "@/utils/questSystem";
 import { getIntensityRecommendation } from "@/utils/workoutMetrics";
-import { calcE1RMTrendByExercise, calcVolumeGrowthRate, calcWeightTrend, dateToDayIndex } from "@/utils/predictionUtils";
+import { calcE1RMTrendByExercise, calcVolumeGrowthRate, calcWeightTrend } from "@/utils/predictionUtils";
 
 interface HomeScreenProps {
   userName?: string;
@@ -264,12 +264,10 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onStartWorkout
       // 경로 1: 운동별 e1RM 회귀분석 (3대 운동 중 데이터 가장 많은 종목)
       const byEx = calcE1RMTrendByExercise(history);
       if (byEx.length > 0) {
-        const best = byEx[0]; // 첫 번째 매칭 종목
-        const lastDay = dateToDayIndex(
-          history.filter(h => h.stats.bestE1RM && h.stats.bestE1RM > 0).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()).slice(-1)[0]?.date || new Date().toISOString(),
-          history.filter(h => h.stats.bestE1RM && h.stats.bestE1RM > 0).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0]?.date || new Date().toISOString()
-        );
-        const pred4w = Math.round(Math.max(0, best.regression.predict(lastDay + 28)) * 10) / 10;
+        const best = byEx[0];
+        const raw4w = best.lastE1RM + best.growthPerWeek * 4;
+        // 현재값의 ±50% 이내로 제한 (비현실적 예측 방지)
+        const pred4w = Math.round(Math.max(best.lastE1RM * 0.5, Math.min(best.lastE1RM * 1.5, raw4w)) * 10) / 10;
         const isGrowing = pred4w > best.lastE1RM;
         return {
           current: `${best.lastE1RM}kg`,

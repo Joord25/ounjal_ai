@@ -356,10 +356,10 @@ function computeReading(
       const deadRM = p.deadlift1RM || byEx.find(e => e.name === "deadlift")?.lastE1RM || 0;
       if (benchRM <= 0 && squatRM <= 0 && deadRM <= 0) return { value: "1RM 입력 또는 운동 기록 필요", action: "edit_1rm" };
       const items: string[] = [];
-      if (benchRM > 0) { const r = benchRM / p.bodyWeight; items.push(`벤치 ${r >= 1.5 ? "상급" : r >= 1.0 ? "중급" : "초급"}`); }
-      if (squatRM > 0) { const r = squatRM / p.bodyWeight; items.push(`스쿼트 ${r >= 1.5 ? "상급" : r >= 1.0 ? "중급" : "초급"}`); }
-      if (deadRM > 0) { const r = deadRM / p.bodyWeight; items.push(`데드 ${r >= 1.5 ? "상급" : r >= 1.0 ? "중급" : "초급"}`); }
-      return { value: items.join(" · "), sub: `체중 ${p.bodyWeight}kg 기준` };
+      if (benchRM > 0) { const r = benchRM / p.bodyWeight; items.push(`벤치 ${Math.round(benchRM)}kg ${r >= 1.5 ? "상급" : r >= 1.0 ? "중급" : "초급"}`); }
+      if (squatRM > 0) { const r = squatRM / p.bodyWeight; items.push(`스쿼트 ${Math.round(squatRM)}kg ${r >= 1.5 ? "상급" : r >= 1.0 ? "중급" : "초급"}`); }
+      if (deadRM > 0) { const r = deadRM / p.bodyWeight; items.push(`데드 ${Math.round(deadRM)}kg ${r >= 1.5 ? "상급" : r >= 1.0 ? "중급" : "초급"}`); }
+      return { value: items.join("\n"), sub: `체중 ${p.bodyWeight}kg 기준` };
     }
 
     // 근력: 초보자 근성장 속도
@@ -1430,7 +1430,7 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
                                       {easyValue} →
                                     </button>
                                   ) : (
-                                    <p className="text-[#1B4332] text-sm font-black text-right">{easyValue}</p>
+                                    <p className="text-[#1B4332] text-sm font-black text-right whitespace-pre-line">{easyValue}</p>
                                   )}
                                   {!pred?.strengthBars && easySub && <p className="text-[#2D6A4F] text-[11px] mt-1 text-right">{easySub}</p>}
                                 </div>
@@ -1532,7 +1532,7 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
                                   {isUnlocked ? (
                                     <div className="bg-[#FAFBF9] rounded-xl p-3 -mx-1">
                                       <p className="text-[#6B7280] text-xs mb-2">{item.label.replace(/e1RM/g, "최대 중량").replace(/1RM/g, "최대 중량")}</p>
-                                      <p className="text-[#1B4332] text-sm font-black text-right">{pred?.value?.toString().replace(/e1RM/g, "최대 중량").replace(/Best e1RM/g, "최고 기록")}</p>
+                                      <p className="text-[#1B4332] text-sm font-black text-right whitespace-pre-line">{pred?.value?.toString().replace(/e1RM/g, "최대 중량").replace(/Best e1RM/g, "최고 기록")}</p>
                                       {pred?.sub && <p className="text-[#2D6A4F] text-[11px] mt-1 text-right">{pred.sub.replace(/e1RM/g, "최대 중량").replace(/Best e1RM/g, "최고 기록").replace(/R²=\d+%/g, "").replace(/\s+,\s*/g, ", ").trim()}</p>}
                                     </div>
                                   ) : (
