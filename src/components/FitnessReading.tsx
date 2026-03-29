@@ -107,18 +107,8 @@ const PREDICTIONS_BY_GOAL: Record<string, GoalPrediction> = {
   },
   muscle_gain: {
     title: "근력 증가",
-    beginner: [
-      { label: "현재 근력 수준 평가", phase: 0, source: "ExRx/NSCA Strength Standards" },
-      { label: "중급 진입 예상 기간", phase: 1, source: "e1RM 선형 회귀" },
-      { label: "상급 진입 예상 기간", phase: 2, source: "e1RM 선형 회귀" },
-      { label: "+40kg 증량 예상 기간", phase: 3, source: "e1RM 선형 회귀" },
-    ],
-    advanced: [
-      { label: "현재 근력 수준 평가", phase: 0, source: "ExRx/NSCA Strength Standards" },
-      { label: "중급 진입 예상 기간", phase: 1, source: "e1RM 선형 회귀" },
-      { label: "상급 진입 예상 기간", phase: 2, source: "e1RM 선형 회귀" },
-      { label: "+40kg 증량 예상 기간", phase: 3, source: "e1RM 선형 회귀" },
-    ],
+    beginner: [], // 동적 생성 — getMuscleGainItems()에서 처리
+    advanced: [],
   },
   endurance: {
     title: "기초 체력",
@@ -151,6 +141,43 @@ const PREDICTIONS_BY_GOAL: Record<string, GoalPrediction> = {
     ],
   },
 };
+
+/** 근력 등급에 따라 동적 예측 항목 생성 */
+function getMuscleGainItems(p: FitnessProfile, history?: WorkoutHistory[]): PredictionItem[] {
+  const byEx = history ? calcE1RMTrendByExercise(history) : [];
+  // 3대 운동 최고 e1RM (프로필 vs 기록 중 높은 값)
+  const bestE1RM = Math.max(
+    p.bench1RM || 0, p.squat1RM || 0, p.deadlift1RM || 0,
+    ...byEx.map(e => e.lastE1RM)
+  );
+  const midTarget = p.bodyWeight * 1.0;
+  const advTarget = p.bodyWeight * 1.5;
+  const isIntermediate = bestE1RM >= midTarget;
+  const isAdvanced = bestE1RM >= advTarget;
+
+  const items: PredictionItem[] = [
+    { label: "현재 근력 수준 평가", phase: 0, source: "ExRx/NSCA Strength Standards" },
+  ];
+
+  if (isAdvanced) {
+    // 상급 달성 → +20, +40, +60
+    items.push({ label: "+20kg 증량 예상 기간", phase: 1, source: "e1RM 선형 회귀" });
+    items.push({ label: "+40kg 증량 예상 기간", phase: 2, source: "e1RM 선형 회귀" });
+    items.push({ label: "+60kg 증량 예상 기간", phase: 3, source: "e1RM 선형 회귀" });
+  } else if (isIntermediate) {
+    // 중급 달성 → 상급, +20, +40
+    items.push({ label: "상급 진입 예상 기간", phase: 1, source: "e1RM 선형 회귀" });
+    items.push({ label: "+20kg 증량 예상 기간", phase: 2, source: "e1RM 선형 회귀" });
+    items.push({ label: "+40kg 증량 예상 기간", phase: 3, source: "e1RM 선형 회귀" });
+  } else {
+    // 초급 → 중급, 상급, +20
+    items.push({ label: "중급 진입 예상 기간", phase: 1, source: "e1RM 선형 회귀" });
+    items.push({ label: "상급 진입 예상 기간", phase: 2, source: "e1RM 선형 회귀" });
+    items.push({ label: "+20kg 증량 예상 기간", phase: 3, source: "e1RM 선형 회귀" });
+  }
+
+  return items;
+}
 
 /* ─── 과학적 계산 함수 ─── */
 
@@ -282,7 +309,7 @@ function computeReading(
   // 항목 선택
   const isBeginner = p.weeklyFrequency <= 2;
   const level: UserLevel = isBeginner ? "beginner" : "advanced";
-  const goalItems = PREDICTIONS_BY_GOAL[p.goal]?.[level] || [];
+  const goalItems = p.goal === "muscle_gain" ? getMuscleGainItems(p, history) : (PREDICTIONS_BY_GOAL[p.goal]?.[level] || []);
 
   const conditionStr = p.weeklyFrequency === 0
     ? "운동 시작 후 측정"
@@ -522,8 +549,10 @@ function computeReading(
       };
     }
 
-    // 근력: 3대 운동 각각 +40kg 증량 예상 기간
-    if (label.includes("+40kg 증량 예상 기간")) {
+    // 근력: 3대 운동 각각 +Nkg 증량 예상 기간
+    const kgIncMatch = label.match(/\+(\d+)kg 증량 예상 기간/);
+    if (kgIncMatch) {
+      const incKg = parseInt(kgIncMatch[1]);
       const byEx = calcE1RMTrendByExercise(h);
       const allLifts = [
         { name: "bench", label: "벤치", profile: p.bench1RM || 0, tracked: byEx.find(e => e.name === "bench") },
@@ -534,9 +563,9 @@ function computeReading(
         .filter(lift => lift.profile > 0 || lift.tracked)
         .map(lift => {
           const current = Math.max(lift.profile, lift.tracked?.lastE1RM || 0);
-          const target = current + 40;
+          const target = current + incKg;
           const growth = (lift.tracked?.growthPerWeek || 0) > 0 ? lift.tracked!.growthPerWeek : 2.5;
-          const weeksNeeded = Math.ceil(40 / growth);
+          const weeksNeeded = Math.ceil(incKg / growth);
           const duration = weeksNeeded > 12 ? `${Math.round(weeksNeeded / 4)}개월` : `${weeksNeeded}주`;
           return `${lift.label} ${current}→${target}kg ${duration}`;
         });
@@ -1513,7 +1542,7 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
               {(() => {
                 const myLevel: UserLevel = fp.weeklyFrequency <= 2 ? "beginner" : "advanced";
                 const myGoalData = PREDICTIONS_BY_GOAL[fp.goal];
-                const myItems = myGoalData?.[myLevel] || [];
+                const myItems = fp.goal === "muscle_gain" ? getMuscleGainItems(fp, workoutHistory) : (myGoalData?.[myLevel] || []);
                 const levelLabel = myLevel === "beginner" ? "입문자" : "상급자";
 
                 return (
@@ -1651,7 +1680,7 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
                     {/* Selected other goal card */}
                     {selectedGoalKey && isPremium && (() => {
                       const otherGoalData = PREDICTIONS_BY_GOAL[selectedGoalKey];
-                      const otherItems = otherGoalData?.[myLevel] || [];
+                      const otherItems = selectedGoalKey === "muscle_gain" ? getMuscleGainItems(fp, workoutHistory) : (otherGoalData?.[myLevel] || []);
                       const otherReading = computeReading({ ...fp, goal: selectedGoalKey as FitnessProfile["goal"] }, workoutCount, workoutHistory, weightLog);
                       return (
                         <div className="w-full bg-white rounded-2xl p-5 mb-4 border border-gray-100 shadow-sm animate-fade-in">
