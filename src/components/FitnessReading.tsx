@@ -1740,7 +1740,13 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
                                   {isUnlocked ? (
                                     <div className="bg-[#FAFBF9] rounded-xl p-3 -mx-1">
                                       <p className="text-[#6B7280] text-xs mb-2">{item.label.replace(/e1RM/g, "최대 중량").replace(/1RM/g, "최대 중량")}</p>
-                                      <p className="text-[#1B4332] text-sm font-black text-right whitespace-pre-line">{pred?.value?.toString().replace(/e1RM/g, "최대 중량").replace(/Best e1RM/g, "최고 기록")}</p>
+                                      {pred?.action === "fitness_test" ? (
+                                        <button onClick={() => setShowFitnessTest(true)} className="text-[#1B4332] text-sm font-black text-right w-full underline decoration-emerald-400 decoration-2 underline-offset-2 active:opacity-60">
+                                          {pred?.value?.toString()} →
+                                        </button>
+                                      ) : (
+                                        <p className="text-[#1B4332] text-sm font-black text-right whitespace-pre-line">{pred?.value?.toString().replace(/e1RM/g, "최대 중량").replace(/Best e1RM/g, "최고 기록")}</p>
+                                      )}
                                       {pred?.sub && <p className="text-[#2D6A4F] text-[11px] mt-1 text-right">{pred.sub.replace(/e1RM/g, "최대 중량").replace(/Best e1RM/g, "최고 기록").replace(/R²=\d+%/g, "").replace(/\s+,\s*/g, ", ").trim()}</p>}
                                     </div>
                                   ) : (
