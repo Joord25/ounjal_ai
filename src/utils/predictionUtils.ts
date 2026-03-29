@@ -375,7 +375,7 @@ export function calcRecoveryPattern(sessions: WorkoutHistory[]): {
 const BIG3_LIFT_PATTERNS: { name: string; label: string; match: string[]; exclude: string[] }[] = [
   { name: "bench", label: "벤치프레스", match: ["벤치 프레스", "벤치프레스", "bench press", "flat bench"], exclude: ["덤벨", "dumbbell", "인클라인", "incline", "디클라인", "decline"] },
   { name: "squat", label: "스쿼트", match: ["스쿼트", "squat", "백 스쿼트", "백스쿼트"], exclude: ["프론트", "front", "고블릿", "goblet", "덤벨", "dumbbell"] },
-  { name: "deadlift", label: "데드리프트", match: ["데드리프트", "deadlift"], exclude: ["루마니안", "romanian", "스티프", "stiff", "스모", "sumo", "트랩바", "trap bar"] },
+  { name: "deadlift", label: "데드리프트", match: ["데드리프트", "deadlift"], exclude: ["트랩바", "trap bar", "케틀벨", "kettlebell"] },
 ];
 
 function matchBig3Lift(exerciseName: string): string | null {
