@@ -72,6 +72,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onStartWorkout
   const [, setIntensityLabel] = useState<string>("중간");
   const [showAllQuests, setShowAllQuests] = useState(false);
   const [typedText, setTypedText] = useState("");
+  const [previewIdx, setPreviewIdx] = useState(0);
   const [typingDone, setTypingDone] = useState(false);
   const typingStarted = useRef(false);
   const [profile, setProfile] = useState<FitnessProfile | null>(null);
@@ -257,37 +258,38 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onStartWorkout
     subBadges.push(`이번 주 ${thisWeekCount}회`);
   }
 
-    // 성장 예측 프리뷰 (선형 회귀 기반 — FitnessReading과 동일한 예측 모델 사용)
-    const predictionPreview = (() => {
-      if (history.length < 3) return null;
+    // 성장 예측 프리뷰 (여러 경로 수집 → 자동 슬라이드)
+    const predictionPreviews = (() => {
+      if (history.length < 3) return [];
+      const previews: { current: string; predicted: string; timeline: string; label: string }[] = [];
 
-      // 경로 1: 운동별 e1RM 회귀분석 (3대 운동 중 데이터 가장 많은 종목)
+      // 경로 1: 운동별 e1RM 회귀분석
       const byEx = calcE1RMTrendByExercise(history);
-      if (byEx.length > 0) {
-        const best = byEx[0];
-        // 주당 최대 ±5kg 제한 (표시용 — 회귀분석 모델 자체는 유지)
-        const clampedGrowth = Math.max(-5, Math.min(5, best.growthPerWeek));
-        const pred4w = Math.round(Math.max(0, best.lastE1RM + clampedGrowth * 4) * 10) / 10;
-        const isGrowing = pred4w > best.lastE1RM;
-        const r2 = best.regression.r2;
+      for (const ex of byEx) {
+        const clampedGrowth = Math.max(-5, Math.min(5, ex.growthPerWeek));
+        const pred4w = Math.round(Math.max(0, ex.lastE1RM + clampedGrowth * 4) * 10) / 10;
+        const isGrowing = pred4w > ex.lastE1RM;
+        const r2 = ex.regression.r2;
         const lowConfidence = r2 < 0.5;
-        const timelineMsg = isGrowing ? `${best.label} 4주 후 더 강해져요` : `${best.label} 페이스 점검 필요`;
-        return {
-          current: `${best.lastE1RM}kg`,
+        const timelineMsg = isGrowing ? `${ex.label} 4주 후 더 강해져요` : `${ex.label} 페이스 점검 필요`;
+        previews.push({
+          current: `${ex.lastE1RM}kg`,
           predicted: `${pred4w}kg`,
-          timeline: lowConfidence ? `${timelineMsg} (데이터 부족, 예측 정확도 낮음)` : timelineMsg,
-          label: best.label,
-        };
+          timeline: lowConfidence ? `${timelineMsg} (데이터 부족)` : timelineMsg,
+          label: ex.label,
+        });
       }
 
       // 경로 2: 체지방 감량 (칼로리 밸런스 회귀분석)
-      if (profile && profile.goal === "fat_loss" && history.length >= 3) {
-        const fp = (() => { try { return JSON.parse(localStorage.getItem("alpha_fitness_profile") || "{}"); } catch { return {}; } })();
+      try {
+        const fp = JSON.parse(localStorage.getItem("alpha_fitness_profile") || "{}");
         const heightCm = fp.height || 170;
-        const age = new Date().getFullYear() - (profile.birthYear || 1990);
-        const balanceTrend = calcCalorieBalanceTrend(history, profile.gender as "male" | "female" || "male", profile.bodyWeight || 70, heightCm, age);
+        const gender = fp.gender || profile?.gender || "male";
+        const bw = profile?.bodyWeight || fp.bodyWeight || 70;
+        const age = new Date().getFullYear() - (fp.birthYear || profile?.birthYear || 1990);
+        const balanceTrend = calcCalorieBalanceTrend(history, gender, bw, heightCm, age);
         if (balanceTrend && balanceTrend.points.length >= 2) {
-          const reg = linearRegression(balanceTrend.points.map(p => ({ x: p.x, y: p.y })));
+          const reg = linearRegression(balanceTrend.points.map(pt => ({ x: pt.x, y: pt.y })));
           if (reg) {
             const lastX = balanceTrend.points[balanceTrend.points.length - 1].x;
             const pred4w = Math.round(reg.predict(lastX + 28));
@@ -295,30 +297,46 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onStartWorkout
             const predKgLoss = Math.round(Math.abs(pred4w) / 7700 * 10) / 10;
             const currentKgLoss = Math.round(Math.abs(currentCum) / 7700 * 10) / 10;
             const isLosing = pred4w < currentCum;
-            return {
+            previews.push({
               current: `-${currentKgLoss}kg`,
               predicted: `-${predKgLoss}kg`,
               timeline: isLosing ? "꾸준히 감량 중이에요" : "페이스 점검이 필요해요",
               label: "누적 감량 예상",
-            };
+            });
           }
         }
-      }
+      } catch { /* ignore */ }
 
       // 경로 3: 볼륨 성장률
       const volGrowth = calcVolumeGrowthRate(history);
       if (volGrowth) {
         const clampedPct = Math.max(-50, Math.min(50, volGrowth.growthPct));
         const pred4wVol = Math.round(Math.max(0, volGrowth.lastVolume * (1 + clampedPct / 100)));
-        return {
+        previews.push({
           current: `${Math.round(volGrowth.lastVolume).toLocaleString()}kg`,
           predicted: `${pred4wVol.toLocaleString()}kg`,
           timeline: volGrowth.trend === "up" ? "세션 볼륨이 꾸준히 늘고 있어요" : "볼륨 유지 중, 강도를 올려보세요",
           label: "운동 볼륨",
-        };
+        });
       }
 
-      return null;
+      return previews;
+    })();
+
+    // 목표에 맞는 프리뷰 우선 정렬
+    const sortedPreviews = (() => {
+      if (!savedGoal || predictionPreviews.length === 0) return predictionPreviews;
+      const goalOrder: Record<string, string[]> = {
+        fat_loss: ["누적 감량 예상"],
+        muscle_gain: ["벤치", "스쿼트", "데드"],
+        general_fitness: ["운동 볼륨"],
+      };
+      const priority = goalOrder[savedGoal] || [];
+      return [...predictionPreviews].sort((a, b) => {
+        const aIdx = priority.findIndex(p => a.label.includes(p));
+        const bIdx = priority.findIndex(p => b.label.includes(p));
+        return (aIdx === -1 ? 999 : aIdx) - (bIdx === -1 ? 999 : bIdx);
+      });
     })();
 
 
@@ -347,6 +365,15 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onStartWorkout
     }, 30);
     return () => clearInterval(timer);
   }, [coachMessage]);
+
+  // 성장 예측 프리뷰 자동 슬라이드 (4초 간격)
+  useEffect(() => {
+    if (sortedPreviews.length <= 1) return;
+    const timer = setInterval(() => {
+      setPreviewIdx(prev => prev + 1);
+    }, 4000);
+    return () => clearInterval(timer);
+  }, [sortedPreviews.length]);
 
   // 첫 방문자 화면
   if (isFirstVisit) {
@@ -482,34 +509,47 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onStartWorkout
               ))}
             </div>
           </div>
-          {/* 성장 예측 프리뷰 — 코칭 카드 안에 통합 */}
-          {predictionPreview && (
-            <div
-              className="border-t border-gray-100 pt-3 mb-3 cursor-pointer active:opacity-80 transition-all"
-              onClick={onShowPrediction}
-            >
-              <p className="text-[12px] font-medium text-gray-500 mb-2">지금 페이스대로라면</p>
-              <div className="flex items-center justify-between mb-1.5">
-                <div className="text-center">
-                  <p className="text-[10px] font-bold text-gray-400 mb-0.5">현재</p>
-                  <p className="text-[18px] font-black text-[#1B4332]">{predictionPreview.current}</p>
+          {/* 성장 예측 프리뷰 — 자동 슬라이드 */}
+          {sortedPreviews.length > 0 && (() => {
+            const preview = sortedPreviews[previewIdx % sortedPreviews.length];
+            return (
+              <div
+                className="border-t border-gray-100 pt-3 mb-3 cursor-pointer active:opacity-80 transition-all"
+                onClick={onShowPrediction}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-[12px] font-medium text-gray-500">지금 페이스대로라면</p>
+                  {sortedPreviews.length > 1 && (
+                    <div className="flex gap-1">
+                      {sortedPreviews.map((_, i) => (
+                        <div key={i} className={`w-1.5 h-1.5 rounded-full transition-all ${i === previewIdx % sortedPreviews.length ? "bg-[#2D6A4F]" : "bg-gray-200"}`} />
+                      ))}
+                    </div>
+                  )}
                 </div>
-                <div className="flex-1 flex items-center justify-center px-3">
-                  <div className="flex-1 h-[2px] bg-gray-200 rounded-full relative">
-                    <div className="absolute right-0 top-1/2 -translate-y-1/2 w-0 h-0 border-t-[4px] border-t-transparent border-b-[4px] border-b-transparent border-l-[6px] border-l-[#2D6A4F]" />
+                <p className="text-[10px] font-bold text-[#2D6A4F]/60 mb-1">{preview.label}</p>
+                <div className="flex items-center justify-between mb-1.5">
+                  <div className="text-center">
+                    <p className="text-[10px] font-bold text-gray-400 mb-0.5">현재</p>
+                    <p className="text-[18px] font-black text-[#1B4332]">{preview.current}</p>
+                  </div>
+                  <div className="flex-1 flex items-center justify-center px-3">
+                    <div className="flex-1 h-[2px] bg-gray-200 rounded-full relative">
+                      <div className="absolute right-0 top-1/2 -translate-y-1/2 w-0 h-0 border-t-[4px] border-t-transparent border-b-[4px] border-b-transparent border-l-[6px] border-l-[#2D6A4F]" />
+                    </div>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-[10px] font-bold text-[#2D6A4F]/60 mb-0.5">4주 후</p>
+                    <p className="text-[18px] font-black text-[#2D6A4F]">{preview.predicted}</p>
                   </div>
                 </div>
-                <div className="text-center">
-                  <p className="text-[10px] font-bold text-[#2D6A4F]/60 mb-0.5">4주 후</p>
-                  <p className="text-[18px] font-black text-[#2D6A4F]">{predictionPreview.predicted}</p>
-                </div>
+                <p className="text-[10px] text-gray-400 font-medium">{preview.timeline}</p>
+                <p className="text-[11px] font-bold text-[#2D6A4F] text-center mt-2">
+                  전체 리포트 보기 &gt;
+                </p>
               </div>
-              <p className="text-[10px] text-gray-400 font-medium">{predictionPreview.timeline}</p>
-              <p className="text-[11px] font-bold text-[#2D6A4F] text-center mt-2">
-                전체 리포트 보기 &gt;
-              </p>
-            </div>
-          )}
+            );
+          })()}
           <button
             onClick={onStartWorkout}
             className="w-full py-3.5 rounded-xl bg-[#1B4332] text-white font-bold text-[15px] flex items-center justify-center gap-2 active:scale-[0.98] transition-all shadow-lg"
