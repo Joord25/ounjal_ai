@@ -363,6 +363,20 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout, onSh
           </div>
           <div className="h-px bg-gray-100" />
 
+          {/* Height */}
+          <div className="flex justify-between items-center min-h-[32px]">
+            <span className="text-sm font-bold text-gray-500">키</span>
+            <span className="text-sm font-medium text-gray-900">
+              {(() => {
+                try {
+                  const fp = JSON.parse(localStorage.getItem("alpha_fitness_profile") || "{}");
+                  return fp.height ? `${fp.height}cm` : "미설정";
+                } catch { return "미설정"; }
+              })()}
+            </span>
+          </div>
+          <div className="h-px bg-gray-100" />
+
           {/* 3대 운동 1RM */}
           <div className="flex justify-between items-center min-h-[32px]">
             <span className="text-sm font-bold text-gray-500">3대 1RM</span>
