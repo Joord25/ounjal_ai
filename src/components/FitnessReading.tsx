@@ -469,46 +469,56 @@ function computeReading(
       };
     }
 
-    // 근력: 중급/상급 진입 예상 기간 (운동별 회귀분석)
+    // 근력: 중급/상급 진입 예상 기간 (달성 시 자동 승격)
     if (label.includes("중급 진입 예상 기간") || label.includes("상급 진입 예상 기간")) {
       const byEx = calcE1RMTrendByExercise(h);
       const isAdvanced = label.includes("상급");
-      const ratio = isAdvanced ? 1.5 : 1.0;
-      const levelName = isAdvanced ? "상급" : "중급";
+      const midTarget = p.bodyWeight * 1.0;
+      const advTarget = p.bodyWeight * 1.5;
 
-      if (byEx.length === 0) {
-        const currentE1RM = Math.max(p.bench1RM || 0, p.squat1RM || 0, p.deadlift1RM || 0);
-        if (currentE1RM <= 0) return { value: "1RM 입력 또는 운동 기록 필요", action: "edit_1rm" };
-        const target = p.bodyWeight * ratio;
-        const remaining = target - currentE1RM;
-        if (remaining <= 0) return { value: `이미 ${levelName} 달성` };
-        const weeksNeeded = Math.ceil(remaining / 2.5);
-        const duration = weeksNeeded > 12 ? `${Math.round(weeksNeeded / 4)}개월` : `${weeksNeeded}주`;
-        return { value: `${levelName} (${Math.round(target)}kg)까지 ${duration}`, sub: `현재 ${currentE1RM}kg, 주 +2.5kg 기준` };
-      }
-
-      // 프로필 1RM + 운동 기록 중 높은 값 사용
       const allLifts = [
         { name: "bench", label: "벤치", profile: p.bench1RM || 0, tracked: byEx.find(e => e.name === "bench") },
         { name: "squat", label: "스쿼트", profile: p.squat1RM || 0, tracked: byEx.find(e => e.name === "squat") },
         { name: "deadlift", label: "데드", profile: p.deadlift1RM || 0, tracked: byEx.find(e => e.name === "deadlift") },
       ];
-      const target = p.bodyWeight * ratio;
-      const results = allLifts
-        .filter(lift => lift.profile > 0 || lift.tracked)
-        .map(lift => {
-          const current = Math.max(lift.profile, lift.tracked?.lastE1RM || 0);
-          const remaining = target - current;
-          if (remaining <= 0) return `${lift.label} ${levelName} 달성`;
-          const growth = (lift.tracked?.growthPerWeek || 0) > 0 ? lift.tracked!.growthPerWeek : 2.5;
+      const available = allLifts.filter(lift => lift.profile > 0 || lift.tracked);
+      if (available.length === 0) return { value: "1RM 입력 또는 운동 기록 필요", action: "edit_1rm" };
+
+      const results = available.map(lift => {
+        const current = Math.max(lift.profile, lift.tracked?.lastE1RM || 0);
+        const growth = (lift.tracked?.growthPerWeek || 0) > 0 ? lift.tracked!.growthPerWeek : 2.5;
+
+        if (isAdvanced) {
+          // 상급 진입 칸
+          const remaining = advTarget - current;
+          if (remaining <= 0) return `${lift.label} 상급 달성`;
           const weeksNeeded = Math.ceil(remaining / growth);
           const duration = weeksNeeded > 12 ? `${Math.round(weeksNeeded / 4)}개월` : `${weeksNeeded}주`;
-          return `${lift.label} ${Math.round(target)}kg까지 ${duration}`;
-        });
-      if (results.length === 0) return { value: "1RM 입력 또는 운동 기록 필요", action: "edit_1rm" };
+          return `${lift.label} 상급 ${Math.round(advTarget)}kg까지 ${duration}`;
+        } else {
+          // 중급 진입 칸 — 이미 중급이면 상급으로 승격, 상급이면 +20kg
+          const midRemaining = midTarget - current;
+          if (midRemaining > 0) {
+            const weeksNeeded = Math.ceil(midRemaining / growth);
+            const duration = weeksNeeded > 12 ? `${Math.round(weeksNeeded / 4)}개월` : `${weeksNeeded}주`;
+            return `${lift.label} 중급 ${Math.round(midTarget)}kg까지 ${duration}`;
+          }
+          const advRemaining = advTarget - current;
+          if (advRemaining > 0) {
+            const weeksNeeded = Math.ceil(advRemaining / growth);
+            const duration = weeksNeeded > 12 ? `${Math.round(weeksNeeded / 4)}개월` : `${weeksNeeded}주`;
+            return `${lift.label} 중급 달성 → 상급 ${Math.round(advTarget)}kg까지 ${duration}`;
+          }
+          // 상급도 달성 → +20kg
+          const target20 = current + 20;
+          const weeksNeeded = Math.ceil(20 / growth);
+          const duration = weeksNeeded > 12 ? `${Math.round(weeksNeeded / 4)}개월` : `${weeksNeeded}주`;
+          return `${lift.label} 상급 달성 → ${Math.round(target20)}kg까지 ${duration}`;
+        }
+      });
       return {
         value: results.join("\n"),
-        sub: `체중 ${p.bodyWeight}kg × ${ratio}배 기준`,
+        sub: `체중 ${p.bodyWeight}kg 기준`,
       };
     }
 
