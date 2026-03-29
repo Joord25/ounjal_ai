@@ -1635,8 +1635,9 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
                                       {easyValue} →
                                     </button>
                                   ) : pred?.action === "fitness_test" ? (
-                                    <button onClick={() => setShowFitnessTest(true)} className="text-[#1B4332] text-sm font-black text-center w-full bg-[#2D6A4F]/10 px-3 py-2 rounded-xl active:bg-[#2D6A4F]/20 transition-all">
-                                      {easyValue}
+                                    <button onClick={() => setShowFitnessTest(true)} className="flex items-center justify-center gap-2 w-full bg-[#2D6A4F]/10 px-3 py-2 rounded-xl active:bg-[#2D6A4F]/20 transition-all">
+                                      <span className="text-[#1B4332] text-sm font-black">{easyValue}</span>
+                                      <svg className="w-4 h-4 text-[#2D6A4F]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
                                     </button>
                                   ) : (
                                     <p className="text-[#1B4332] text-sm font-black text-right whitespace-pre-line">{easyValue}</p>
@@ -1741,8 +1742,9 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
                                     <div className="bg-[#FAFBF9] rounded-xl p-3 -mx-1">
                                       <p className="text-[#6B7280] text-xs mb-2">{item.label.replace(/e1RM/g, "최대 중량").replace(/1RM/g, "최대 중량")}</p>
                                       {pred?.action === "fitness_test" ? (
-                                        <button onClick={() => setShowFitnessTest(true)} className="text-[#1B4332] text-sm font-black text-center w-full bg-[#2D6A4F]/10 px-3 py-2 rounded-xl active:bg-[#2D6A4F]/20 transition-all">
-                                          {pred?.value?.toString()}
+                                        <button onClick={() => setShowFitnessTest(true)} className="flex items-center justify-center gap-2 w-full bg-[#2D6A4F]/10 px-3 py-2 rounded-xl active:bg-[#2D6A4F]/20 transition-all">
+                                          <span className="text-[#1B4332] text-sm font-black">{pred?.value?.toString()}</span>
+                                          <svg className="w-4 h-4 text-[#2D6A4F]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
                                         </button>
                                       ) : (
                                         <p className="text-[#1B4332] text-sm font-black text-right whitespace-pre-line">{pred?.value?.toString().replace(/e1RM/g, "최대 중량").replace(/Best e1RM/g, "최고 기록")}</p>
