@@ -851,7 +851,7 @@ function Big3RegressionChart({ history, profile }: { history: WorkoutHistory[]; 
   const r2Explain = reg.r2 >= 0.7 ? "높은 신뢰도" : reg.r2 >= 0.4 ? "보통 신뢰도" : "낮은 신뢰도 (데이터 변동 큼)";
 
   return (
-    <div className="bg-[#FAFBF9] rounded-xl p-3">
+    <div className="bg-[#FAFBF9] rounded-xl p-3" onClick={(e) => e.stopPropagation()}>
       {/* 종목 탭 */}
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-1.5">
