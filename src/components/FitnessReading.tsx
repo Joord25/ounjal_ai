@@ -861,15 +861,15 @@ function Big3RegressionChart({ history, profile }: { history: WorkoutHistory[]; 
       </div>
       {byEx.length > 1 && (
         <div className="flex gap-1.5 mb-3">
-          {byEx.map((e, i) => (
+          {byEx.map((ex, i) => (
             <button
-              key={e.name}
-              onClick={(e) => { e.stopPropagation(); setActiveIdx(i); }}
+              key={ex.name}
+              onClick={(ev) => { ev.stopPropagation(); setActiveIdx(i); }}
               className={`flex-1 py-1.5 rounded-lg text-[11px] font-bold transition-all ${
                 i === activeIdx % byEx.length ? "bg-[#1B4332] text-white" : "bg-gray-100 text-gray-500"
               }`}
             >
-              {e.label}
+              {ex.label}
             </button>
           ))}
         </div>
