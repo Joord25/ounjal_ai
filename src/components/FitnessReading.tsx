@@ -593,7 +593,7 @@ function computeReading(
           const latest = testHistory[testHistory.length - 1];
           const gradeLabels = ["", "최우수", "우수", "양호", "보통", "미흡"];
           return {
-            value: `종합 ${gradeLabels[latest.overallGrade]}`,
+            value: `종합 평가 : ${gradeLabels[latest.overallGrade]} (${latest.overallGrade}등급)`,
             sub: `푸쉬업 ${latest.pushups}회(${gradeLabels[latest.pushupGrade]}) · 크런치 ${latest.crunches}회(${gradeLabels[latest.crunchGrade]}) · 스쿼트 ${latest.squats}회(${gradeLabels[latest.squatGrade]})`,
             action: "fitness_test",
           };
@@ -1635,8 +1635,8 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
                                       {easyValue} →
                                     </button>
                                   ) : pred?.action === "fitness_test" ? (
-                                    <button onClick={() => setShowFitnessTest(true)} className="text-[#1B4332] text-sm font-black text-right w-full bg-[#2D6A4F]/10 px-3 py-1.5 rounded-xl active:bg-[#2D6A4F]/20 transition-all">
-                                      {easyValue} →
+                                    <button onClick={() => setShowFitnessTest(true)} className="text-[#1B4332] text-sm font-black text-center w-full bg-[#2D6A4F]/10 px-3 py-2 rounded-xl active:bg-[#2D6A4F]/20 transition-all">
+                                      {easyValue}
                                     </button>
                                   ) : (
                                     <p className="text-[#1B4332] text-sm font-black text-right whitespace-pre-line">{easyValue}</p>
@@ -1741,8 +1741,8 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
                                     <div className="bg-[#FAFBF9] rounded-xl p-3 -mx-1">
                                       <p className="text-[#6B7280] text-xs mb-2">{item.label.replace(/e1RM/g, "최대 중량").replace(/1RM/g, "최대 중량")}</p>
                                       {pred?.action === "fitness_test" ? (
-                                        <button onClick={() => setShowFitnessTest(true)} className="text-[#1B4332] text-sm font-black text-right w-full bg-[#2D6A4F]/10 px-3 py-1.5 rounded-xl active:bg-[#2D6A4F]/20 transition-all">
-                                          {pred?.value?.toString()} →
+                                        <button onClick={() => setShowFitnessTest(true)} className="text-[#1B4332] text-sm font-black text-center w-full bg-[#2D6A4F]/10 px-3 py-2 rounded-xl active:bg-[#2D6A4F]/20 transition-all">
+                                          {pred?.value?.toString()}
                                         </button>
                                       ) : (
                                         <p className="text-[#1B4332] text-sm font-black text-right whitespace-pre-line">{pred?.value?.toString().replace(/e1RM/g, "최대 중량").replace(/Best e1RM/g, "최고 기록")}</p>
