@@ -532,24 +532,24 @@ function computeReading(
           if (remaining <= 0) return `${lift.label} 상급 달성`;
           const weeksNeeded = Math.ceil(remaining / growth);
           const duration = weeksNeeded > 12 ? `${Math.round(weeksNeeded / 4)}개월` : `${weeksNeeded}주`;
-          return `${lift.label} 상급 ${Math.round(advTarget)}kg까지 ${duration}`;
+          return `${lift.label} 상급 ${Math.round(advTarget)}kg까지 → ${duration}`;
         } else {
           const midRemaining = midTarget - current;
           if (midRemaining > 0) {
             const weeksNeeded = Math.ceil(midRemaining / growth);
             const duration = weeksNeeded > 12 ? `${Math.round(weeksNeeded / 4)}개월` : `${weeksNeeded}주`;
-            return `${lift.label} 중급 ${Math.round(midTarget)}kg까지 ${duration}`;
+            return `${lift.label} 중급 ${Math.round(midTarget)}kg까지 → ${duration}`;
           }
           const advRemaining = advTarget - current;
           if (advRemaining > 0) {
             const weeksNeeded = Math.ceil(advRemaining / growth);
             const duration = weeksNeeded > 12 ? `${Math.round(weeksNeeded / 4)}개월` : `${weeksNeeded}주`;
-            return `${lift.label} 중급 달성 → 상급 ${Math.round(advTarget)}kg까지 ${duration}`;
+            return `${lift.label} 상급 ${Math.round(advTarget)}kg까지 → ${duration}`;
           }
           const target20 = current + 20;
           const weeksNeeded = Math.ceil(20 / growth);
           const duration = weeksNeeded > 12 ? `${Math.round(weeksNeeded / 4)}개월` : `${weeksNeeded}주`;
-          return `${lift.label} 상급 달성 → ${Math.round(target20)}kg까지 ${duration}`;
+          return `${lift.label} ${Math.round(target20)}kg까지 → ${duration}`;
         }
       });
       return {
@@ -576,7 +576,7 @@ function computeReading(
           const growth = (lift.tracked?.growthPerWeek || 0) > 0 ? lift.tracked!.growthPerWeek : 2.5;
           const weeksNeeded = Math.ceil(incKg / growth);
           const duration = weeksNeeded > 12 ? `${Math.round(weeksNeeded / 4)}개월` : `${weeksNeeded}주`;
-          return `${lift.label} ${current}→${target}kg ${duration}`;
+          return `${lift.label} ${current}→${target}kg까지 → ${duration}`;
         });
       if (results.length === 0) return { value: "1RM 입력 또는 운동 기록 필요", action: "edit_1rm" };
       return {
