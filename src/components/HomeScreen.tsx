@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import type { WorkoutHistory, WorkoutGoal } from "@/constants/workout";
 import { getOrCreateWeeklyQuests, type QuestDefinition, type QuestProgress } from "@/utils/questSystem";
 import { getIntensityRecommendation } from "@/utils/workoutMetrics";
-import { calcCaloriesTrend } from "@/utils/predictionUtils";
+import { calcCaloriesTrend, calcE1RMTrend, calcVolumeGrowthRate, dateToDayIndex } from "@/utils/predictionUtils";
 
 interface HomeScreenProps {
   userName?: string;
@@ -69,7 +69,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onStartWorkout
   const [history, setHistory] = useState<WorkoutHistory[]>([]);
   const [questData, setQuestData] = useState<ReturnType<typeof getOrCreateWeeklyQuests> | null>(null);
   const [savedGoal, setSavedGoal] = useState<WorkoutGoal | null>(null);
-  const [intensityLabel, setIntensityLabel] = useState<string>("중간");
+  const [, setIntensityLabel] = useState<string>("중간");
   const [showAllQuests, setShowAllQuests] = useState(false);
   const [typedText, setTypedText] = useState("");
   const [typingDone, setTypingDone] = useState(false);
@@ -257,68 +257,53 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onStartWorkout
     subBadges.push(`이번 주 ${thisWeekCount}회`);
   }
 
-    // 성장 예측 프리뷰 (목표별 핵심 수치 하나)
+    // 성장 예측 프리뷰 (선형 회귀 기반 — FitnessReading과 동일한 예측 모델 사용)
     const predictionPreview = (() => {
-      if (history.length < 2) return null;
+      if (history.length < 3) return null;
 
-      // 1RM 데이터가 있으면 근력 성장 예측 (프로필 불필요)
-      const e1rms = history.filter(h => h.stats.bestE1RM && h.stats.bestE1RM > 0);
-      if (e1rms.length >= 2) {
-        const first = e1rms[0].stats.bestE1RM!;
-        const last = e1rms[e1rms.length - 1].stats.bestE1RM!;
-        const days = (new Date(e1rms[e1rms.length - 1].date).getTime() - new Date(e1rms[0].date).getTime()) / (24 * 60 * 60 * 1000);
-        if (days >= 7 && last > first) {
-          const weeklyGrowth = ((last - first) / days) * 7;
-          const pred4w = Math.round((last + weeklyGrowth * 4) * 10) / 10;
-          return {
-            current: `${Math.round(last)}kg`,
-            predicted: `${pred4w}kg`,
-            diff: `+${Math.round((pred4w - last) * 10) / 10}kg`,
-            timeline: "현재 성장 속도 유지 시 4주 후 예상",
-            label: "추정 1RM",
-          };
-        }
+      // 경로 1: e1RM 회귀분석 (calcE1RMTrend 사용)
+      const e1t = calcE1RMTrend(history);
+      if (e1t) {
+        const lastDay = dateToDayIndex(
+          history.filter(h => h.stats.bestE1RM && h.stats.bestE1RM > 0).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()).slice(-1)[0].date,
+          history.filter(h => h.stats.bestE1RM && h.stats.bestE1RM > 0).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0].date
+        );
+        const pred4w = Math.round(Math.max(0, e1t.regression.predict(lastDay + 28)) * 10) / 10;
+        const isGrowing = pred4w > e1t.lastE1RM;
+        return {
+          current: `${e1t.lastE1RM}kg`,
+          predicted: `${pred4w}kg`,
+          timeline: isGrowing ? "이 페이스면 4주 후 더 강해져요" : "페이스 점검이 필요해요",
+          label: "추정 1RM",
+        };
       }
 
-      // 프로필이 있고 감량 목표면 체중 예측
+      // 경로 2: 체중 감량 예측
       if (profile && profile.goal === "fat_loss" && profile.bodyWeight > 0 && profile.weeklyFrequency > 0) {
         const trend = calcCaloriesTrend(history, profile.bodyWeight);
         if (trend.length >= 2) {
           const avgCal = Math.round(trend.reduce((s, t) => s + t.calories, 0) / trend.length);
           const weeklyBurn = avgCal * profile.weeklyFrequency;
           const weeklyLossKg = Math.round((weeklyBurn / 7700) * 100) / 100;
-          if (weeklyLossKg > 0) {
-            const pred4w = Math.round((profile.bodyWeight - weeklyLossKg * 4) * 10) / 10;
-            const targetWeight = Math.round(profile.bodyWeight * 0.9 * 10) / 10;
-            const weeksToGoal = Math.ceil((profile.bodyWeight - targetWeight) / weeklyLossKg);
-            const targetDate = new Date();
-            targetDate.setDate(targetDate.getDate() + weeksToGoal * 7);
-            const monthStr = `${targetDate.getMonth() + 1}월`;
-            return {
-              current: `${profile.bodyWeight}kg`,
-              predicted: `${pred4w}kg`,
-              diff: `-${Math.round((profile.bodyWeight - pred4w) * 10) / 10}kg`,
-              timeline: `이 속도면 ${monthStr} 중 목표(${targetWeight}kg) 도달 예상`,
-              label: "4주 후 예상 체중",
-            };
-          }
+          const pred4w = Math.round((profile.bodyWeight - weeklyLossKg * 4) * 10) / 10;
+          return {
+            current: `${profile.bodyWeight}kg`,
+            predicted: `${pred4w}kg`,
+            timeline: weeklyLossKg > 0 ? "꾸준히 감량 중이에요" : "운동 빈도를 늘려보세요",
+            label: "4주 후 예상 체중",
+          };
         }
       }
 
-      // 볼륨 성장 폴백 (프로필 불필요 — 누구나 볼 수 있음)
-      const sorted = [...history].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-      const firstHalf = sorted.slice(0, Math.floor(sorted.length / 2));
-      const secondHalf = sorted.slice(Math.floor(sorted.length / 2));
-      const avgFirst = firstHalf.reduce((s, h) => s + h.stats.totalVolume, 0) / firstHalf.length;
-      const avgSecond = secondHalf.reduce((s, h) => s + h.stats.totalVolume, 0) / secondHalf.length;
-      if (avgFirst > 0 && avgSecond > avgFirst) {
-        const growthPct = Math.round(((avgSecond - avgFirst) / avgFirst) * 100);
-        const pred4wVol = Math.round(avgSecond * (1 + growthPct / 100));
+      // 경로 3: 볼륨 성장률
+      const volGrowth = calcVolumeGrowthRate(history);
+      if (volGrowth) {
+        const clampedPct = Math.max(-50, Math.min(50, volGrowth.growthPct));
+        const pred4wVol = Math.round(Math.max(0, volGrowth.lastVolume * (1 + clampedPct / 100)));
         return {
-          current: `${Math.round(avgSecond).toLocaleString()}kg`,
+          current: `${Math.round(volGrowth.lastVolume).toLocaleString()}kg`,
           predicted: `${pred4wVol.toLocaleString()}kg`,
-          diff: `+${growthPct}%`,
-          timeline: "세션 평균 볼륨 기준 성장 추세",
+          timeline: volGrowth.trend === "up" ? "세션 볼륨이 꾸준히 늘고 있어요" : "볼륨 유지 중, 강도를 올려보세요",
           label: "운동 볼륨",
         };
       }
@@ -326,13 +311,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onStartWorkout
       return null;
     })();
 
-  // 예상 소요 시간 (마지막 운동 기준 or 기본 45분)
-  const estMinutes = (() => {
-    if (history.length === 0) return 45;
-    const last = history[history.length - 1];
-    if (last.stats.totalDurationSec) return Math.round(last.stats.totalDurationSec / 60);
-    return 45;
-  })();
 
   // AI 코치 메시지 타이핑 효과
   const coachMessage = (() => {
@@ -489,12 +467,39 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onStartWorkout
           <div className={`transition-opacity duration-500 ${typingDone ? "opacity-100" : "opacity-0"}`}>
             <div className="flex items-center gap-2 flex-wrap mb-4">
               <span className="text-[11px] font-bold text-[#2D6A4F] bg-[#2D6A4F]/10 px-2 py-0.5 rounded-full">{routineInfo.goalLabel}</span>
-              <span className="text-[11px] text-gray-400 font-medium">{estMinutes}분 · {intensityLabel} 강도</span>
               {subBadges.map((badge, i) => (
                 <span key={i} className="text-[11px] font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">{badge}</span>
               ))}
             </div>
           </div>
+          {/* 성장 예측 프리뷰 — 코칭 카드 안에 통합 */}
+          {predictionPreview && (
+            <div
+              className="border-t border-gray-100 pt-3 mb-3 cursor-pointer active:opacity-80 transition-all"
+              onClick={onShowPrediction}
+            >
+              <p className="text-[12px] font-medium text-gray-500 mb-2">지금 페이스대로라면</p>
+              <div className="flex items-center justify-between mb-1.5">
+                <div className="text-center">
+                  <p className="text-[10px] font-bold text-gray-400 mb-0.5">현재</p>
+                  <p className="text-[18px] font-black text-[#1B4332]">{predictionPreview.current}</p>
+                </div>
+                <div className="flex-1 flex items-center justify-center px-3">
+                  <div className="flex-1 h-[2px] bg-gray-200 rounded-full relative">
+                    <div className="absolute right-0 top-1/2 -translate-y-1/2 w-0 h-0 border-t-[4px] border-t-transparent border-b-[4px] border-b-transparent border-l-[6px] border-l-[#2D6A4F]" />
+                  </div>
+                </div>
+                <div className="text-center">
+                  <p className="text-[10px] font-bold text-[#2D6A4F]/60 mb-0.5">4주 후</p>
+                  <p className="text-[18px] font-black text-[#2D6A4F]">{predictionPreview.predicted}</p>
+                </div>
+              </div>
+              <p className="text-[10px] text-gray-400 font-medium">{predictionPreview.timeline}</p>
+              <p className="text-[11px] font-bold text-[#2D6A4F] text-center mt-2">
+                전체 리포트 보기 &gt;
+              </p>
+            </div>
+          )}
           <button
             onClick={onStartWorkout}
             className="w-full py-3.5 rounded-xl bg-[#1B4332] text-white font-bold text-[15px] flex items-center justify-center gap-2 active:scale-[0.98] transition-all shadow-lg"
@@ -526,40 +531,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onStartWorkout
           </div>
         )}
 
-        {/* AI 성장 예측 프리뷰 */}
-        {predictionPreview && (
-          <div
-            className="rounded-2xl bg-white border border-gray-100 shadow-sm p-4 mb-4 cursor-pointer active:scale-[0.99] transition-all"
-            onClick={onShowPrediction}
-          >
-            <div className="flex items-center gap-2 mb-3">
-              <img src="/favicon_backup.png" alt="AI" className="w-4 h-4 rounded-full shrink-0" />
-              <span className="text-[11px] font-bold text-gray-400">AI 성장 예측</span>
-            </div>
-            <p className="text-[13px] font-medium text-gray-500 mb-3">지금 페이스대로라면</p>
-            <div className="flex items-center justify-between mb-2">
-              <div className="text-center">
-                <p className="text-[10px] font-bold text-gray-400 mb-0.5">현재</p>
-                <p className="text-[20px] font-black text-[#1B4332]">{predictionPreview.current}</p>
-              </div>
-              <div className="flex-1 flex items-center justify-center px-3">
-                <div className="flex-1 h-[2px] bg-gray-200 rounded-full relative">
-                  <div className="absolute right-0 top-1/2 -translate-y-1/2 w-0 h-0 border-t-[4px] border-t-transparent border-b-[4px] border-b-transparent border-l-[6px] border-l-[#2D6A4F]" />
-                </div>
-              </div>
-              <div className="text-center">
-                <p className="text-[10px] font-bold text-[#2D6A4F]/60 mb-0.5">4주 후</p>
-                <p className="text-[20px] font-black text-[#2D6A4F]">{predictionPreview.predicted}</p>
-              </div>
-            </div>
-            <p className="text-[11px] text-gray-400 font-medium mb-3">{predictionPreview.timeline}</p>
-            {onShowPrediction && (
-              <p className="text-[12px] font-bold text-[#2D6A4F] text-center pt-2 border-t border-gray-100">
-                전체 리포트 보기 &gt;
-              </p>
-            )}
-          </div>
-        )}
 
         {/* 주간 퀘스트 축약 */}
         {renderQuestPreview()}
