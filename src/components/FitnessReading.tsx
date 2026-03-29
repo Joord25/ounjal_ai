@@ -487,34 +487,50 @@ function computeReading(
         return { value: `${levelName} (${Math.round(target)}kg)까지 ${duration}`, sub: `현재 ${currentE1RM}kg, 주 +2.5kg 기준` };
       }
 
-      const results = byEx.map(ex => {
-        const target = p.bodyWeight * ratio;
-        const remaining = target - ex.lastE1RM;
-        if (remaining <= 0) return `${ex.label} ${levelName} 달성`;
-        const growth = ex.growthPerWeek > 0 ? ex.growthPerWeek : 2.5;
-        const weeksNeeded = Math.ceil(remaining / growth);
-        const duration = weeksNeeded > 12 ? `${Math.round(weeksNeeded / 4)}개월` : `${weeksNeeded}주`;
-        return `${ex.label} ${Math.round(target)}kg까지 ${duration}`;
-      });
+      // 프로필 1RM + 운동 기록 중 높은 값 사용
+      const allLifts = [
+        { name: "bench", label: "벤치", profile: p.bench1RM || 0, tracked: byEx.find(e => e.name === "bench") },
+        { name: "squat", label: "스쿼트", profile: p.squat1RM || 0, tracked: byEx.find(e => e.name === "squat") },
+        { name: "deadlift", label: "데드", profile: p.deadlift1RM || 0, tracked: byEx.find(e => e.name === "deadlift") },
+      ];
+      const target = p.bodyWeight * ratio;
+      const results = allLifts
+        .filter(lift => lift.profile > 0 || lift.tracked)
+        .map(lift => {
+          const current = Math.max(lift.profile, lift.tracked?.lastE1RM || 0);
+          const remaining = target - current;
+          if (remaining <= 0) return `${lift.label} ${levelName} 달성`;
+          const growth = (lift.tracked?.growthPerWeek || 0) > 0 ? lift.tracked!.growthPerWeek : 2.5;
+          const weeksNeeded = Math.ceil(remaining / growth);
+          const duration = weeksNeeded > 12 ? `${Math.round(weeksNeeded / 4)}개월` : `${weeksNeeded}주`;
+          return `${lift.label} ${Math.round(target)}kg까지 ${duration}`;
+        });
+      if (results.length === 0) return { value: "1RM 입력 또는 운동 기록 필요", action: "edit_1rm" };
       return {
         value: results.join("\n"),
         sub: `체중 ${p.bodyWeight}kg × ${ratio}배 기준`,
       };
     }
 
-    // 근력: 3대 운동 각각 +20kg 증량 예상 기간 (운동별 회귀분석)
+    // 근력: 3대 운동 각각 +20kg 증량 예상 기간
     if (label.includes("+20kg 증량 예상 기간")) {
       const byEx = calcE1RMTrendByExercise(h);
-      if (byEx.length === 0) return { value: "3대 운동 기록 필요", sub: "벤치/스쿼트/데드리프트 기록이 쌓이면 예측합니다" };
-
-      const results = byEx.map(ex => {
-        const current = ex.lastE1RM;
-        const target = current + 20;
-        const growth = ex.growthPerWeek > 0 ? ex.growthPerWeek : 2.5;
-        const weeksNeeded = Math.ceil(20 / growth);
-        const duration = weeksNeeded > 12 ? `${Math.round(weeksNeeded / 4)}개월` : `${weeksNeeded}주`;
-        return `${ex.label} ${current}→${target}kg ${duration}`;
-      });
+      const allLifts = [
+        { name: "bench", label: "벤치", profile: p.bench1RM || 0, tracked: byEx.find(e => e.name === "bench") },
+        { name: "squat", label: "스쿼트", profile: p.squat1RM || 0, tracked: byEx.find(e => e.name === "squat") },
+        { name: "deadlift", label: "데드", profile: p.deadlift1RM || 0, tracked: byEx.find(e => e.name === "deadlift") },
+      ];
+      const results = allLifts
+        .filter(lift => lift.profile > 0 || lift.tracked)
+        .map(lift => {
+          const current = Math.max(lift.profile, lift.tracked?.lastE1RM || 0);
+          const target = current + 20;
+          const growth = (lift.tracked?.growthPerWeek || 0) > 0 ? lift.tracked!.growthPerWeek : 2.5;
+          const weeksNeeded = Math.ceil(20 / growth);
+          const duration = weeksNeeded > 12 ? `${Math.round(weeksNeeded / 4)}개월` : `${weeksNeeded}주`;
+          return `${lift.label} ${current}→${target}kg ${duration}`;
+        });
+      if (results.length === 0) return { value: "1RM 입력 또는 운동 기록 필요", action: "edit_1rm" };
       return {
         value: results.join("\n"),
         sub: `각 종목별 성장률 기준`,
