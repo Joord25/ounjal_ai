@@ -864,7 +864,7 @@ function Big3RegressionChart({ history, profile }: { history: WorkoutHistory[]; 
           {byEx.map((e, i) => (
             <button
               key={e.name}
-              onClick={() => setActiveIdx(i)}
+              onClick={(e) => { e.stopPropagation(); setActiveIdx(i); }}
               className={`flex-1 py-1.5 rounded-lg text-[11px] font-bold transition-all ${
                 i === activeIdx % byEx.length ? "bg-[#1B4332] text-white" : "bg-gray-100 text-gray-500"
               }`}
