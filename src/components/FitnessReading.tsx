@@ -1631,11 +1631,11 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
                                       ))}
                                     </div>
                                   ) : pred?.action === "edit_1rm" && onEdit1RM ? (
-                                    <button onClick={onEdit1RM} className="text-[#1B4332] text-sm font-black text-right w-full underline decoration-emerald-400 decoration-2 underline-offset-2 active:opacity-60">
+                                    <button onClick={onEdit1RM} className="text-[#1B4332] text-sm font-black text-right w-full bg-[#2D6A4F]/10 px-3 py-1.5 rounded-xl active:bg-[#2D6A4F]/20 transition-all">
                                       {easyValue} →
                                     </button>
                                   ) : pred?.action === "fitness_test" ? (
-                                    <button onClick={() => setShowFitnessTest(true)} className="text-[#1B4332] text-sm font-black text-right w-full underline decoration-emerald-400 decoration-2 underline-offset-2 active:opacity-60">
+                                    <button onClick={() => setShowFitnessTest(true)} className="text-[#1B4332] text-sm font-black text-right w-full bg-[#2D6A4F]/10 px-3 py-1.5 rounded-xl active:bg-[#2D6A4F]/20 transition-all">
                                       {easyValue} →
                                     </button>
                                   ) : (
@@ -1741,7 +1741,7 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
                                     <div className="bg-[#FAFBF9] rounded-xl p-3 -mx-1">
                                       <p className="text-[#6B7280] text-xs mb-2">{item.label.replace(/e1RM/g, "최대 중량").replace(/1RM/g, "최대 중량")}</p>
                                       {pred?.action === "fitness_test" ? (
-                                        <button onClick={() => setShowFitnessTest(true)} className="text-[#1B4332] text-sm font-black text-right w-full underline decoration-emerald-400 decoration-2 underline-offset-2 active:opacity-60">
+                                        <button onClick={() => setShowFitnessTest(true)} className="text-[#1B4332] text-sm font-black text-right w-full bg-[#2D6A4F]/10 px-3 py-1.5 rounded-xl active:bg-[#2D6A4F]/20 transition-all">
                                           {pred?.value?.toString()} →
                                         </button>
                                       ) : (

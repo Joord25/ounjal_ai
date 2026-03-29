@@ -24,9 +24,9 @@ type TestPhase = "intro" | "ready" | "testing" | "rest" | "result";
 type Exercise = "pushups" | "crunches" | "squats";
 
 const EXERCISES: { key: Exercise; label: string; icon: string }[] = [
-  { key: "pushups", label: "푸쉬업", icon: "💪" },
-  { key: "crunches", label: "크런치", icon: "🔥" },
-  { key: "squats", label: "맨몸 스쿼트", icon: "🦵" },
+  { key: "pushups", label: "푸쉬업", icon: "" },
+  { key: "crunches", label: "크런치", icon: "" },
+  { key: "squats", label: "맨몸 스쿼트", icon: "" },
 ];
 
 const TEST_DURATION = 120; // 2분
@@ -216,7 +216,6 @@ export const FitnessTest: React.FC<FitnessTestProps> = ({ gender, birthYear, onC
           </button>
         </div>
         <div className="flex-1 flex flex-col items-center justify-center px-6 text-center">
-          <p className="text-5xl mb-4">🏋️</p>
           <h1 className="text-2xl font-black text-[#1B4332] mb-2">기초체력 테스트</h1>
           <p className="text-sm text-gray-500 mb-8 leading-relaxed">
             3가지 종목을 각 2분씩 측정합니다.<br />
@@ -225,7 +224,7 @@ export const FitnessTest: React.FC<FitnessTestProps> = ({ gender, birthYear, onC
           <div className="w-full space-y-3 mb-8">
             {EXERCISES.map((ex, i) => (
               <div key={ex.key} className="flex items-center gap-3 bg-gray-50 rounded-xl p-4">
-                <span className="text-2xl">{ex.icon}</span>
+                <span className="text-sm font-black text-[#2D6A4F] w-6">{i + 1}</span>
                 <div className="flex-1 text-left">
                   <p className="text-sm font-bold text-[#1B4332]">{i + 1}. {ex.label}</p>
                   <p className="text-[11px] text-gray-400">2분간 최대 횟수</p>
@@ -252,7 +251,6 @@ export const FitnessTest: React.FC<FitnessTestProps> = ({ gender, birthYear, onC
           <p className="text-[10px] font-bold text-gray-400 tracking-widest mb-4">
             종목 {exerciseIdx + 1} / {EXERCISES.length}
           </p>
-          <p className="text-5xl mb-4">{currentExercise.icon}</p>
           <h1 className="text-3xl font-black text-[#1B4332] mb-2">{currentExercise.label}</h1>
           <p className="text-sm text-gray-500 mb-2">2분간 최대 횟수를 수행하세요</p>
           <p className="text-xs text-gray-400 mb-8">준비되면 시작 버튼을 눌러주세요</p>
@@ -338,7 +336,7 @@ export const FitnessTest: React.FC<FitnessTestProps> = ({ gender, birthYear, onC
           <p className="text-4xl font-black text-[#2D6A4F] mb-6">{count}회 기록</p>
           <p className="text-sm text-gray-500 mb-2">잠시 휴식 후 다음 종목</p>
           <p className="text-6xl font-black text-[#1B4332] tabular-nums mb-4">{restTimer}</p>
-          <p className="text-xs text-gray-400 mb-8">다음: {nextEx?.icon} {nextEx?.label}</p>
+          <p className="text-xs text-gray-400 mb-8">다음: {nextEx?.label}</p>
           <button
             onClick={startNextExercise}
             className="px-8 py-3 rounded-xl bg-[#2D6A4F] text-white font-bold active:scale-95 transition-all"
@@ -382,7 +380,6 @@ export const FitnessTest: React.FC<FitnessTestProps> = ({ gender, birthYear, onC
             return (
               <div key={ex.key} className="bg-gray-50 rounded-2xl p-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <span className="text-2xl">{ex.icon}</span>
                   <div>
                     <p className="text-sm font-bold text-[#1B4332]">{ex.label}</p>
                     <p className="text-xs text-gray-400">{reps}회 / 2분</p>
