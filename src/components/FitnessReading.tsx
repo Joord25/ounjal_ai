@@ -111,13 +111,13 @@ const PREDICTIONS_BY_GOAL: Record<string, GoalPrediction> = {
       { label: "현재 근력 수준 평가", phase: 0, source: "ExRx/NSCA Strength Standards" },
       { label: "중급 진입 예상 기간", phase: 1, source: "e1RM 선형 회귀" },
       { label: "상급 진입 예상 기간", phase: 2, source: "e1RM 선형 회귀" },
-      { label: "+20kg 증량 예상 기간", phase: 3, source: "e1RM 선형 회귀" },
+      { label: "+40kg 증량 예상 기간", phase: 3, source: "e1RM 선형 회귀" },
     ],
     advanced: [
       { label: "현재 근력 수준 평가", phase: 0, source: "ExRx/NSCA Strength Standards" },
       { label: "중급 진입 예상 기간", phase: 1, source: "e1RM 선형 회귀" },
       { label: "상급 진입 예상 기간", phase: 2, source: "e1RM 선형 회귀" },
-      { label: "+20kg 증량 예상 기간", phase: 3, source: "e1RM 선형 회귀" },
+      { label: "+40kg 증량 예상 기간", phase: 3, source: "e1RM 선형 회귀" },
     ],
   },
   endurance: {
@@ -522,8 +522,8 @@ function computeReading(
       };
     }
 
-    // 근력: 3대 운동 각각 +20kg 증량 예상 기간
-    if (label.includes("+20kg 증량 예상 기간")) {
+    // 근력: 3대 운동 각각 +40kg 증량 예상 기간
+    if (label.includes("+40kg 증량 예상 기간")) {
       const byEx = calcE1RMTrendByExercise(h);
       const allLifts = [
         { name: "bench", label: "벤치", profile: p.bench1RM || 0, tracked: byEx.find(e => e.name === "bench") },
@@ -534,9 +534,9 @@ function computeReading(
         .filter(lift => lift.profile > 0 || lift.tracked)
         .map(lift => {
           const current = Math.max(lift.profile, lift.tracked?.lastE1RM || 0);
-          const target = current + 20;
+          const target = current + 40;
           const growth = (lift.tracked?.growthPerWeek || 0) > 0 ? lift.tracked!.growthPerWeek : 2.5;
-          const weeksNeeded = Math.ceil(20 / growth);
+          const weeksNeeded = Math.ceil(40 / growth);
           const duration = weeksNeeded > 12 ? `${Math.round(weeksNeeded / 4)}개월` : `${weeksNeeded}주`;
           return `${lift.label} ${current}→${target}kg ${duration}`;
         });
