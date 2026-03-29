@@ -1634,6 +1634,17 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
                               );
                             })}
                           </div>
+                          {/* 다른 목표 그래프 */}
+                          {selectedGoalKey === "muscle_gain" && (
+                            <div className="mt-3">
+                              <Big3RegressionChart history={workoutHistory || []} profile={fp} />
+                            </div>
+                          )}
+                          {selectedGoalKey === "fat_loss" && (
+                            <div className="mt-3">
+                              <RegressionChart goal="fat_loss" history={workoutHistory || []} weightLog={weightLog || []} profile={fp} />
+                            </div>
+                          )}
                         </div>
                       );
                     })()}
