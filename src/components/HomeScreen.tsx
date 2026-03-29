@@ -265,14 +265,17 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onStartWorkout
       const byEx = calcE1RMTrendByExercise(history);
       if (byEx.length > 0) {
         const best = byEx[0];
-        const raw4w = best.lastE1RM + best.growthPerWeek * 4;
-        // 현재값의 ±50% 이내로 제한 (비현실적 예측 방지)
-        const pred4w = Math.round(Math.max(best.lastE1RM * 0.5, Math.min(best.lastE1RM * 1.5, raw4w)) * 10) / 10;
+        // 주당 최대 ±5kg 제한 (표시용 — 회귀분석 모델 자체는 유지)
+        const clampedGrowth = Math.max(-5, Math.min(5, best.growthPerWeek));
+        const pred4w = Math.round(Math.max(0, best.lastE1RM + clampedGrowth * 4) * 10) / 10;
         const isGrowing = pred4w > best.lastE1RM;
+        const r2 = best.regression.r2;
+        const lowConfidence = r2 < 0.5;
+        const timelineMsg = isGrowing ? `${best.label} 4주 후 더 강해져요` : `${best.label} 페이스 점검 필요`;
         return {
           current: `${best.lastE1RM}kg`,
           predicted: `${pred4w}kg`,
-          timeline: isGrowing ? `${best.label} 4주 후 더 강해져요` : `${best.label} 페이스 점검 필요`,
+          timeline: lowConfidence ? `${timelineMsg} (데이터 부족, 예측 정확도 낮음)` : timelineMsg,
           label: best.label,
         };
       }
