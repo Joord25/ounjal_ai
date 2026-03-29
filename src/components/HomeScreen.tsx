@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import type { WorkoutHistory, WorkoutGoal } from "@/constants/workout";
 import { getOrCreateWeeklyQuests, type QuestDefinition, type QuestProgress } from "@/utils/questSystem";
 import { getIntensityRecommendation } from "@/utils/workoutMetrics";
-import { calcE1RMTrendByExercise, calcVolumeGrowthRate, calcWeightTrend } from "@/utils/predictionUtils";
+import { calcE1RMTrendByExercise, calcVolumeGrowthRate, calcCalorieBalanceTrend, linearRegression } from "@/utils/predictionUtils";
 
 interface HomeScreenProps {
   userName?: string;
@@ -280,22 +280,26 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onStartWorkout
         };
       }
 
-      // 경로 2: 체중 감량 예측 (회귀분석 기반, 최소 4회 체중 기록 필요)
-      if (profile && profile.goal === "fat_loss") {
-        const weightLog: { date: string; weight: number }[] = (() => {
-          try { return JSON.parse(localStorage.getItem("alpha_weight_log") || "[]"); } catch { return []; }
-        })();
-        if (weightLog.length >= 4) {
-          const wt = calcWeightTrend(weightLog);
-          if (wt) {
-            const current = weightLog.sort((a, b) => a.date.localeCompare(b.date)).slice(-1)[0].weight;
-            const pred4w = wt.predictInWeeks(4);
-            const isLosing = pred4w < current;
+      // 경로 2: 체지방 감량 (칼로리 밸런스 회귀분석)
+      if (profile && profile.goal === "fat_loss" && history.length >= 3) {
+        const fp = (() => { try { return JSON.parse(localStorage.getItem("alpha_fitness_profile") || "{}"); } catch { return {}; } })();
+        const heightCm = fp.height || 170;
+        const age = new Date().getFullYear() - (profile.birthYear || 1990);
+        const balanceTrend = calcCalorieBalanceTrend(history, profile.gender as "male" | "female" || "male", profile.bodyWeight || 70, heightCm, age);
+        if (balanceTrend && balanceTrend.points.length >= 2) {
+          const reg = linearRegression(balanceTrend.points.map(p => ({ x: p.x, y: p.y })));
+          if (reg) {
+            const lastX = balanceTrend.points[balanceTrend.points.length - 1].x;
+            const pred4w = Math.round(reg.predict(lastX + 28));
+            const currentCum = balanceTrend.cumulative;
+            const predKgLoss = Math.round(Math.abs(pred4w) / 7700 * 10) / 10;
+            const currentKgLoss = Math.round(Math.abs(currentCum) / 7700 * 10) / 10;
+            const isLosing = pred4w < currentCum;
             return {
-              current: `${current}kg`,
-              predicted: `${pred4w}kg`,
+              current: `-${currentKgLoss}kg`,
+              predicted: `-${predKgLoss}kg`,
               timeline: isLosing ? "꾸준히 감량 중이에요" : "페이스 점검이 필요해요",
-              label: "4주 후 예상 체중",
+              label: "누적 감량 예상",
             };
           }
         }

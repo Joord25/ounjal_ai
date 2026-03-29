@@ -8,7 +8,6 @@ import {
   calcCaloriesTrend,
   calcCalorieBalanceTrend,
   calcE1RMTrendByExercise,
-  calcWeightTrend,
   calcBig3VolumeBalance,
   linearRegression,
   dateToDayIndex,
@@ -89,21 +88,21 @@ const PREDICTIONS_BY_GOAL: Record<string, GoalPrediction> = {
     title: "체지방 감량",
     beginner: [
       { label: "안전한 주간 체중 감량 속도", phase: 0, source: "Helms et al. 2014 (ISSN)" },
-      { label: "1개월 후 예상 체중", phase: 1, source: "체중 로그 선형 회귀" },
-      { label: "-5kg 감량 예상 기간", phase: 1, source: "체중 로그 선형 회귀" },
-      { label: "2개월 후 예상 체중", phase: 2, source: "체중 로그 선형 회귀" },
-      { label: "-10kg 감량 예상 기간", phase: 2, source: "체중 로그 선형 회귀" },
-      { label: "4개월 후 예상 체중", phase: 3, source: "체중 로그 선형 회귀" },
-      { label: "-20kg 감량 예상 기간", phase: 3, source: "체중 로그 선형 회귀" },
+      { label: "1개월 후 예상 체중", phase: 1, source: "칼로리 밸런스 회귀분석" },
+      { label: "-5kg 감량 예상 기간", phase: 1, source: "칼로리 밸런스 회귀분석" },
+      { label: "2개월 후 예상 체중", phase: 2, source: "칼로리 밸런스 회귀분석" },
+      { label: "-10kg 감량 예상 기간", phase: 2, source: "칼로리 밸런스 회귀분석" },
+      { label: "4개월 후 예상 체중", phase: 3, source: "칼로리 밸런스 회귀분석" },
+      { label: "-20kg 감량 예상 기간", phase: 3, source: "칼로리 밸런스 회귀분석" },
     ],
     advanced: [
       { label: "안전한 주간 체중 감량 속도", phase: 0, source: "Helms et al. 2014 (ISSN)" },
-      { label: "1개월 후 예상 체중", phase: 1, source: "체중 로그 선형 회귀" },
-      { label: "-5kg 감량 예상 기간", phase: 1, source: "체중 로그 선형 회귀" },
-      { label: "2개월 후 예상 체중", phase: 2, source: "체중 로그 선형 회귀" },
-      { label: "-10kg 감량 예상 기간", phase: 2, source: "체중 로그 선형 회귀" },
-      { label: "4개월 후 예상 체중", phase: 3, source: "체중 로그 선형 회귀" },
-      { label: "-20kg 감량 예상 기간", phase: 3, source: "체중 로그 선형 회귀" },
+      { label: "1개월 후 예상 체중", phase: 1, source: "칼로리 밸런스 회귀분석" },
+      { label: "-5kg 감량 예상 기간", phase: 1, source: "칼로리 밸런스 회귀분석" },
+      { label: "2개월 후 예상 체중", phase: 2, source: "칼로리 밸런스 회귀분석" },
+      { label: "-10kg 감량 예상 기간", phase: 2, source: "칼로리 밸런스 회귀분석" },
+      { label: "4개월 후 예상 체중", phase: 3, source: "칼로리 밸런스 회귀분석" },
+      { label: "-20kg 감량 예상 기간", phase: 3, source: "칼로리 밸런스 회귀분석" },
     ],
   },
   muscle_gain: {
@@ -426,31 +425,44 @@ function computeReading(
 
     // ── Phase 1 (5회): 미래 예측 (운동 데이터 기반) ──
     const h = history || [];
-    const wl = weightLog || [];
 
-    // 감량: N개월 후 예상 체중 (회귀분석 기반)
+    // 감량: N개월 후 예상 체중 (칼로리 밸런스 회귀분석)
     const monthMatch = label.match(/(\d+)개월 후 예상 체중/);
     if (monthMatch) {
       const months = parseInt(monthMatch[1]);
-      const wt = calcWeightTrend(wl);
-      if (!wt) return { value: `체중 기록 ${Math.max(0, 3 - wl.length)}회 더 필요` };
-      const pred = wt.predictInWeeks(months * 4);
+      const heightCm = p.height || 170;
+      const balanceTrend = calcCalorieBalanceTrend(h, p.gender, p.bodyWeight, heightCm, age);
+      if (!balanceTrend || balanceTrend.points.length < 2) return { value: `운동 기록 ${Math.max(0, 2 - h.length)}회 더 필요` };
+      const reg = linearRegression(balanceTrend.points.map(pt => ({ x: pt.x, y: pt.y })));
+      if (!reg) return { value: "데이터 분석 중" };
+      const lastX = balanceTrend.points[balanceTrend.points.length - 1].x;
+      const predCum = reg.predict(lastX + months * 30);
+      const predKgChange = Math.round(predCum / 7700 * 10) / 10;
+      const predWeight = Math.round((p.bodyWeight + predKgChange) * 10) / 10;
       return {
-        value: `${months}개월 후 예상: ${pred}kg`,
-        sub: `매주 ${Math.abs(wt.weeklyChange).toFixed(1)}kg씩 ${wt.weeklyChange < 0 ? "감량" : "증가"} 추세`,
+        value: `${months}개월 후 예상: ${predWeight}kg`,
+        sub: `누적 ${predKgChange > 0 ? "+" : ""}${predKgChange}kg (칼로리 밸런스 기준)`,
       };
     }
 
-    // 감량: -Nkg 감량 예상 기간 (회귀분석 기반)
+    // 감량: -Nkg 감량 예상 기간 (칼로리 밸런스 회귀분석)
     const kgMatch = label.match(/-(\d+)kg 감량 예상 기간/);
     if (kgMatch) {
       const targetKg = parseInt(kgMatch[1]);
-      const wt = calcWeightTrend(wl);
-      if (!wt) return { value: `체중 기록 ${Math.max(0, 3 - wl.length)}회 더 필요` };
-      if (wt.weeklyChange >= 0) return { value: "감량 추세가 필요해요", sub: "운동량 증가 또는 식단 조절 권장" };
-      const targetWeight = Math.round((p.bodyWeight - targetKg) * 10) / 10;
-      const weeksNeeded = Math.ceil(targetKg / Math.abs(wt.weeklyChange));
+      const heightCm = p.height || 170;
+      const balanceTrend = calcCalorieBalanceTrend(h, p.gender, p.bodyWeight, heightCm, age);
+      if (!balanceTrend || balanceTrend.points.length < 2) return { value: `운동 기록 ${Math.max(0, 2 - h.length)}회 더 필요` };
+      const reg = linearRegression(balanceTrend.points.map(pt => ({ x: pt.x, y: pt.y })));
+      if (!reg) return { value: "데이터 분석 중" };
+      // 목표 적자: -targetKg * 7700kcal
+      const targetDeficit = -targetKg * 7700;
+      if (reg.slope >= 0) return { value: "감량 추세가 필요해요", sub: "운동량 증가 또는 식단 조절 권장" };
+      // 현재 누적에서 목표까지 남은 적자 / 일일 적자율 = 남은 일수
+      const remaining = targetDeficit - balanceTrend.cumulative;
+      const daysNeeded = Math.ceil(Math.abs(remaining) / Math.abs(reg.slope));
+      const weeksNeeded = Math.ceil(daysNeeded / 7);
       const duration = weeksNeeded > 12 ? `${Math.round(weeksNeeded / 4)}개월` : `${weeksNeeded}주`;
+      const targetWeight = Math.round((p.bodyWeight - targetKg) * 10) / 10;
       return {
         value: `${targetWeight}kg까지 ${duration}`,
         sub: `현재 ${p.bodyWeight}kg → ${targetWeight}kg`,
