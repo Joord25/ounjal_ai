@@ -24,12 +24,6 @@ interface FitnessProfile {
   deadlift1RM?: number;
 }
 
-const GOAL_LABELS: Record<WorkoutGoal, string> = {
-  muscle_gain: "근육 키우기",
-  strength: "근력 강화",
-  fat_loss: "체지방 감량",
-  general_fitness: "체력 향상",
-};
 
 export const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onStartWorkout, onShowPrediction }) => {
   const [history, setHistory] = useState<WorkoutHistory[]>([]);
@@ -148,59 +142,34 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onStartWorkout
     const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
     const thisMonth = history.filter(h => new Date(h.date) >= thisMonthStart);
 
-    // 1RM 보너스 (있을 때만)
+    // 1RM 성장 (경험 번역)
     const e1rmEntries = history.filter(h => h.stats.bestE1RM && h.stats.bestE1RM > 0);
     if (e1rmEntries.length >= 2) {
       const recent = e1rmEntries[e1rmEntries.length - 1].stats.bestE1RM!;
       const older = e1rmEntries[0].stats.bestE1RM!;
       const diff = recent - older;
       if (diff > 0) {
-        return `추정 1RM ${Math.round(recent)}kg (+${Math.round(diff)}kg)`;
+        return `같은 무게가 점점 가벼워지고 있어요 (1RM +${Math.round(diff)}kg)`;
       }
     }
 
-    // 이번 주 실제 횟수 기반
+    // 이번 주 (경험 번역)
+    if (thisWeekCount >= 3) {
+      return `이번 주 벌써 ${thisWeekCount}회! 몸이 달라지는 걸 곧 느끼게 돼요`;
+    }
     if (thisWeekCount > 0) {
-      return `이번 주 ${thisWeekCount}회 운동 완료!`;
+      return `이번 주 ${thisWeekCount}회 완료! 꾸준함이 최고의 무기예요`;
     }
     if (thisMonth.length > 0) {
-      return `이번 달 ${thisMonth.length}회 운동 완료`;
+      return `이번 달 ${thisMonth.length}회 운동 중! 습관이 만들어지고 있어요`;
     }
 
     return null;
   })();
 
-  // 연속 출석 최고 기록
-  const bestStreak = (() => {
-    if (history.length < 2) return 0;
-    let best = 0, cur = 1;
-    const sorted = [...history].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-    for (let i = 1; i < sorted.length; i++) {
-      const prev = new Date(sorted[i - 1].date);
-      const curr = new Date(sorted[i].date);
-      prev.setHours(0, 0, 0, 0);
-      curr.setHours(0, 0, 0, 0);
-      const diff = (curr.getTime() - prev.getTime()) / (24 * 60 * 60 * 1000);
-      if (diff === 1) cur++;
-      else if (diff > 1) { best = Math.max(best, cur); cur = 1; }
-    }
-    return Math.max(best, cur);
-  })();
 
   // 헤드라인: "이전 → 오늘" 연결 (항상 표시 — AI가 나를 안다)
 
-  // 서브 뱃지: 연속 출석 / 이번 주 달성 (있을 때만)
-  const subBadges: string[] = [];
-  if (streak >= 2 && streak >= bestStreak) {
-    subBadges.push(`연속 ${streak}일째 최고 기록`);
-  } else if (streak >= 2) {
-    subBadges.push(`연속 ${streak}일째`);
-  }
-  if (!didWorkoutToday && thisWeekCount >= 1) {
-    subBadges.push(`오늘 하면 이번 주 ${thisWeekCount + 1}회`);
-  } else if (thisWeekCount > 0) {
-    subBadges.push(`이번 주 ${thisWeekCount}회`);
-  }
 
     // 성장 예측 프리뷰 (여러 경로 수집 → 자동 슬라이드)
     const predictionPreviews = (() => {
@@ -474,65 +443,16 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onStartWorkout
       </div>
 
       <div className="flex-1 overflow-y-auto px-6 pt-4 pb-6">
-        {/* 추천 루틴 카드 */}
+        {/* AI 코치 카드 (슬림) */}
         <div className="rounded-2xl bg-white border border-gray-100 shadow-sm p-5 mb-4">
           <div className="flex items-center gap-2 mb-3">
-            <img src="/favicon_backup.png " alt="AI" className="w-6 h-6 rounded-full shrink-0" />
+            <img src="/favicon_backup.png" alt="AI" className="w-6 h-6 rounded-full shrink-0" />
             <span className="text-[11px] font-bold text-gray-400">오운잘 AI 코치</span>
           </div>
-          <p className="text-[15px] font-bold text-[#1B4332] leading-relaxed mb-3 min-h-[3em]">
+          <p className="text-[15px] font-bold text-[#1B4332] leading-relaxed mb-4 min-h-[2.5em]">
             {typedText}
             {!typingDone && <span className="inline-block w-[2px] h-[14px] bg-[#2D6A4F] ml-0.5 animate-pulse align-middle" />}
           </p>
-          <div className={`transition-opacity duration-500 ${typingDone ? "opacity-100" : "opacity-0"}`}>
-            <div className="flex items-center gap-2 flex-wrap mb-4">
-              <span className="text-[11px] font-bold text-[#2D6A4F] bg-[#2D6A4F]/10 px-2 py-0.5 rounded-full">{GOAL_LABELS[savedGoal || "muscle_gain"]}</span>
-              {subBadges.map((badge, i) => (
-                <span key={i} className="text-[11px] font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">{badge}</span>
-              ))}
-            </div>
-          </div>
-          {/* 성장 예측 프리뷰 — 자동 슬라이드 */}
-          {sortedPreviews.length > 0 && (() => {
-            const preview = sortedPreviews[previewIdx % sortedPreviews.length];
-            return (
-              <div
-                className="border-t border-gray-100 pt-3 mb-3 cursor-pointer active:opacity-80 transition-all"
-                onClick={onShowPrediction}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-[12px] font-medium text-gray-500">지금 페이스대로라면</p>
-                  {sortedPreviews.length > 1 && (
-                    <div className="flex gap-1">
-                      {sortedPreviews.map((_, i) => (
-                        <div key={i} className={`w-1.5 h-1.5 rounded-full transition-all ${i === previewIdx % sortedPreviews.length ? "bg-[#2D6A4F]" : "bg-gray-200"}`} />
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <p className="text-[10px] font-bold text-[#2D6A4F]/60 mb-1">{preview.label}</p>
-                <div className="flex items-center justify-between mb-1.5">
-                  <div className="text-center">
-                    <p className="text-[10px] font-bold text-gray-400 mb-0.5">현재</p>
-                    <p className="text-[18px] font-black text-[#1B4332]">{preview.current}</p>
-                  </div>
-                  <div className="flex-1 flex items-center justify-center px-3">
-                    <div className="flex-1 h-[2px] bg-gray-200 rounded-full relative">
-                      <div className="absolute right-0 top-1/2 -translate-y-1/2 w-0 h-0 border-t-[4px] border-t-transparent border-b-[4px] border-b-transparent border-l-[6px] border-l-[#2D6A4F]" />
-                    </div>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-[10px] font-bold text-[#2D6A4F]/60 mb-0.5">4주 후</p>
-                    <p className="text-[18px] font-black text-[#2D6A4F]">{preview.predicted}</p>
-                  </div>
-                </div>
-                <p className="text-[10px] text-gray-400 font-medium">{preview.timeline}</p>
-                <p className="text-[11px] font-bold text-[#2D6A4F] text-center mt-2">
-                  전체 리포트 보기 &gt;
-                </p>
-              </div>
-            );
-          })()}
           <button
             onClick={onStartWorkout}
             className="w-full py-3.5 rounded-xl bg-[#1B4332] text-white font-bold text-[15px] flex items-center justify-center gap-2 active:scale-[0.98] transition-all shadow-lg"
@@ -541,7 +461,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onStartWorkout
           </button>
         </div>
 
-        {/* 성장 통계 카드 */}
+        {/* 성장 통계 */}
         <div className="flex gap-3 mb-4">
           <div className="flex-1 bg-white rounded-2xl border border-gray-100 p-3.5 shadow-sm text-center">
             <p className="text-2xl font-black text-[#1B4332] leading-none">{history.length}<span className="text-[11px] font-bold text-gray-400 ml-0.5">회</span></p>
@@ -557,15 +477,64 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onStartWorkout
           </div>
         </div>
 
-        {/* 성장 인사이트 */}
+        {/* 성장 인사이트 (경험 번역) */}
         {growthInsight && (
           <div className="rounded-2xl bg-[#2D6A4F]/5 border border-[#2D6A4F]/10 px-4 py-3 mb-4">
-            <p className="text-[13px] font-bold text-[#1B4332]">{growthInsight}</p>
+            <p className="text-[13px] font-bold text-[#2D6A4F]">{growthInsight}</p>
           </div>
         )}
 
+        {/* 성장 예측 프리뷰 (분리된 카드) */}
+        {sortedPreviews.length > 0 && (() => {
+          const preview = sortedPreviews[previewIdx % sortedPreviews.length];
+          // 경험 번역
+          const previewExpMsg = (() => {
+            const label = (preview.label || "").toLowerCase();
+            if (/볼륨/.test(label)) return "이 페이스면 거울 속 변화가 다가오고 있어요";
+            if (/감량|체중/.test(label)) return "이 페이스면 4주 뒤 청바지 핏이 달라져요";
+            if (/1rm|근력/.test(label)) return "같은 무게가 점점 가벼워지고 있어요";
+            return "꾸준함이 변화를 만들고 있어요";
+          })();
+          return (
+            <div
+              className="rounded-2xl bg-white border border-gray-100 shadow-sm p-5 mb-4 cursor-pointer active:opacity-80 transition-all"
+              onClick={onShowPrediction}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-[12px] font-medium text-gray-500">지금 페이스대로라면</p>
+                {sortedPreviews.length > 1 && (
+                  <div className="flex gap-1">
+                    {sortedPreviews.map((_, i) => (
+                      <div key={i} className={`w-1.5 h-1.5 rounded-full transition-all ${i === previewIdx % sortedPreviews.length ? "bg-[#2D6A4F]" : "bg-gray-200"}`} />
+                    ))}
+                  </div>
+                )}
+              </div>
+              <p className="text-[10px] font-bold text-[#2D6A4F]/60 mb-1">{preview.label}</p>
+              <div className="flex items-center justify-between mb-1.5">
+                <div className="text-center">
+                  <p className="text-[10px] font-bold text-gray-400 mb-0.5">현재</p>
+                  <p className="text-[18px] font-black text-[#1B4332]">{preview.current}</p>
+                </div>
+                <div className="flex-1 flex items-center justify-center px-3">
+                  <div className="flex-1 h-[2px] bg-gray-200 rounded-full relative">
+                    <div className="absolute right-0 top-1/2 -translate-y-1/2 w-0 h-0 border-t-[4px] border-t-transparent border-b-[4px] border-b-transparent border-l-[6px] border-l-[#2D6A4F]" />
+                  </div>
+                </div>
+                <div className="text-center">
+                  <p className="text-[10px] font-bold text-[#2D6A4F]/60 mb-0.5">4주 후</p>
+                  <p className="text-[18px] font-black text-[#2D6A4F]">{preview.predicted}</p>
+                </div>
+              </div>
+              <p className="text-[13px] font-bold text-[#2D6A4F] leading-relaxed mt-2">{previewExpMsg}</p>
+              <p className="text-[11px] font-bold text-gray-400 text-center mt-2">
+                전체 리포트 보기 &gt;
+              </p>
+            </div>
+          );
+        })()}
 
-        {/* 주간 퀘스트 축약 */}
+        {/* 주간 퀘스트 */}
         {renderQuestPreview()}
       </div>
     </div>
