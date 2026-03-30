@@ -381,8 +381,141 @@ export default function Home() {
         <div className="w-10 h-10 border-4 border-emerald-100 border-t-[#5C795E] rounded-full animate-spin mb-4" />
         <p className="text-sm text-gray-400 animate-pulse">잠시만요...</p>
       </div>
+    );
 
-savedDurationSec={workoutDurationSec}
+    if (activeTab === "proof") {
+      return <ProofTab lockedRuleIds={[]} />;
+    }
+
+    switch (view) {
+      case "prediction_report":
+        return (
+          <FitnessReading
+            userName={user?.displayName?.split(" ")[0] || "회원"}
+            onComplete={() => {}}
+            onPremium={() => setShowPaywall(true)}
+            isPremium={subStatus === "active"}
+            resultOnly
+            onBack={() => { setActiveTab(predictionReturnTab); setView("home"); }}
+            workoutCount={(() => { try { return JSON.parse(localStorage.getItem("alpha_workout_history") || "[]").length; } catch { return 0; } })()}
+            workoutHistory={(() => { try { return JSON.parse(localStorage.getItem("alpha_workout_history") || "[]"); } catch { return []; } })()}
+            weightLog={(() => { try { return JSON.parse(localStorage.getItem("alpha_weight_log") || "[]"); } catch { return []; } })()}
+            onEdit1RM={() => { setAutoEdit1RM(true); setActiveTab("my"); setView("home"); }}
+          />
+        );
+
+      case "condition_check":
+        return (
+          <ConditionCheck
+            onComplete={handleConditionComplete}
+            onBack={() => { setView("home"); setActiveTab("home"); }}
+            userName={user?.displayName?.split(" ")[0] || undefined}
+            isGuest={!isLoggedIn}
+          />
+        );
+
+      case "master_plan_preview":
+        return (
+          <MasterPlanPreview
+            sessionData={currentWorkoutSession!}
+            onStart={(modifiedData) => { setCurrentWorkoutSession(modifiedData); setView("workout_session"); }}
+            onBack={() => setView("condition_check")}
+            onRegenerate={handleRegenerate}
+            onIntensityChange={handleIntensityChange}
+            currentIntensity={recommendedIntensity}
+            recommendedIntensity={recommendedIntensity}
+          />
+        );
+
+      case "workout_session":
+        return (
+          <WorkoutSession
+            sessionData={currentWorkoutSession!}
+            onComplete={(completedData, logs, timing) => {
+              setCurrentWorkoutSession(completedData);
+              setWorkoutLogs(logs);
+              setWorkoutDurationSec(timing.totalDurationSec);
+              completeRitual("workout");
+
+              // Calculate stats for history (pass actual elapsed time)
+              const wMetrics = buildWorkoutMetrics(completedData.exercises, logs, currentCondition?.bodyWeightKg, timing.totalDurationSec);
+
+              // Save to Workout History
+              const historyEntry: WorkoutHistory = {
+                id: Date.now().toString(),
+                date: new Date().toISOString(),
+                sessionData: completedData,
+                logs: logs,
+                stats: {
+                  totalVolume: wMetrics.totalVolume,
+                  totalSets: wMetrics.totalSets,
+                  totalReps: wMetrics.totalReps,
+                  totalDurationSec: wMetrics.totalDurationSec,
+                  bestE1RM: wMetrics.bestE1RM?.value,
+                  bwRatio: wMetrics.bwRatio ?? undefined,
+                  successRate: wMetrics.successRate,
+                  loadScore: wMetrics.loadScore,
+                },
+                exerciseTimings: timing.exerciseTimings,
+              };
+
+              saveWorkoutHistory(historyEntry);
+
+              // 비로그인 체험 카운트 증가
+              if (!isLoggedIn) incrementGuestTrial();
+              setView("workout_report");
+            }}
+            onBack={() => setView("master_plan_preview")}
+          />
+        );
+
+      case "workout_report":
+        return (
+          <WorkoutReport
+            sessionData={currentWorkoutSession!}
+            logs={workoutLogs}
+            bodyWeightKg={currentCondition?.bodyWeightKg}
+            gender={currentCondition?.gender}
+            birthYear={currentCondition?.birthYear}
+            savedDurationSec={workoutDurationSec}
+            onClose={() => {
+              setActiveTab("proof");
+            }}
+            onAnalysisComplete={(analysis) => {
+                // Update the latest history entry with analysis data
+                try {
+                    const history = JSON.parse(localStorage.getItem("alpha_workout_history") || "[]");
+                    if (history.length > 0) {
+                        const lastEntry = history[history.length - 1];
+                        updateWorkoutAnalysis(lastEntry.id, analysis);
+                    }
+                } catch (e) {
+                    console.error("Failed to save analysis to history", e);
+                }
+            }}
+          />
+        );
+
+      case "login":
+        return <LoginScreen onLogin={handleLogin} onTryFree={() => setView("home")} />;
+
+      case "home":
+      default:
+        // My 탭
+        if (activeTab === "my") {
+          return <MyProfileTab user={user} onLogout={handleLogout} onShowPrediction={() => { setPredictionReturnTab("my"); setView("prediction_report"); }} autoEdit1RM={autoEdit1RM} key={autoEdit1RM ? "edit1rm" : "normal"} />;
+        }
+
+        // If workout is already done, show report or proof (홈탭에서만)
+        if (completedRitualIds.includes("workout")) {
+           return (
+             <WorkoutReport
+               sessionData={currentWorkoutSession || { title: "Daily Workout", description: "Completed", exercises: [] }}
+               logs={workoutLogs}
+               bodyWeightKg={currentCondition?.bodyWeightKg || (() => { const w = parseFloat(localStorage.getItem("alpha_body_weight") || ""); return isNaN(w) ? undefined : w; })()}
+               gender={currentCondition?.gender || (localStorage.getItem("alpha_gender") as "male" | "female") || undefined}
+               birthYear={currentCondition?.birthYear || (() => { const y = parseInt(localStorage.getItem("alpha_birth_year") || ""); return isNaN(y) ? undefined : y; })()}
+               savedDurationSec={workoutDurationSec}
                onClose={() => {
                  setActiveTab("proof");
                }}
