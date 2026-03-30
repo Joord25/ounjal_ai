@@ -708,77 +708,6 @@ export const ProofTab: React.FC<ProofTabProps> = () => {
         )}
 
         <div className="mt-6 flex flex-col gap-3">
-          {/* === Season Tier Card === */}
-          {(() => {
-            const seasonInfo = getCurrentSeason();
-            const seasonExp = getOrRebuildSeasonExp(history, !isNaN(savedBirthYear) ? savedBirthYear : undefined, savedGender);
-            const tierResult = getTierFromExp(seasonExp.totalExp);
-            const seasonSessions = history.filter(h => {
-              const d = h.date.slice(0, 10);
-              return d >= seasonInfo.startDate && d <= seasonInfo.endDate;
-            }).length;
-
-            const expLog = [...seasonExp.expLog].sort((a, b) => b.date.localeCompare(a.date));
-
-            return (
-              <div className="rounded-3xl overflow-hidden border shadow-sm" style={{ borderColor: `${tierResult.tier.color}30` }}>
-                <div
-                  className="px-6 py-4 cursor-pointer"
-                  style={{ background: `linear-gradient(135deg, ${tierResult.tier.color}20, ${tierResult.tier.color}08)` }}
-                  onClick={() => setExpLogOpen(v => !v)}
-                >
-                  <div className="flex items-center justify-between">
-                    <p className="text-[10px] font-bold text-gray-400 mb-1">{seasonInfo.label}</p>
-                    <button onClick={(e) => { e.stopPropagation(); setHelpCard("tierSystem"); }} className="w-5 h-5 rounded-full bg-black/5 flex items-center justify-center -mt-1 -mr-1">
-                      <span className="text-[10px] font-black text-gray-400">?</span>
-                    </button>
-                  </div>
-                  <span className="text-2xl font-black" style={{ color: tierResult.tier.color }}>{tierResult.tier.name}</span>
-                  <div className="mt-3">
-                    <div className="w-full h-2.5 bg-black/5 rounded-full overflow-hidden">
-                      <div className="h-full rounded-full transition-all duration-700" style={{ width: `${tierResult.progress * 100}%`, backgroundColor: tierResult.tier.color }} />
-                    </div>
-                    <div className="flex justify-between mt-1.5">
-                      <span className="text-[11px] font-bold" style={{ color: tierResult.tier.color }}>{seasonExp.totalExp} EXP</span>
-                      <span className="text-[11px] text-gray-400">
-                        {tierResult.nextTier ? `${tierResult.nextTier.name}까지 ${tierResult.remaining} EXP` : "최고 티어!"}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between mt-2">
-                    <p className="text-[11px] text-gray-400">이번 시즌 {seasonSessions}회 운동</p>
-                    <svg className={`w-3.5 h-3.5 text-gray-400 transition-transform duration-300 ${expLogOpen ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" /></svg>
-                  </div>
-                </div>
-
-                {/* EXP 내역 아코디언 */}
-                <div className={`overflow-hidden transition-all duration-300 ${expLogOpen ? "max-h-[300px]" : "max-h-0"}`}>
-                  <div className="px-6 py-3 border-t overflow-y-auto max-h-[280px]" style={{ borderColor: `${tierResult.tier.color}15` }}>
-                    {expLog.length === 0 ? (
-                      <p className="text-[11px] text-gray-400 text-center py-2">아직 경험치 내역이 없어요</p>
-                    ) : (
-                      <div className="flex flex-col gap-2">
-                        {expLog.map((entry, i) => (
-                          <div key={i} className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <span className="text-[10px] text-gray-400 w-12 shrink-0">
-                                {entry.date.slice(5, 10).replace("-", ".")}
-                              </span>
-                              <span className="text-[11px] text-gray-600">{entry.detail}</span>
-                            </div>
-                            <span className="text-[11px] font-bold shrink-0 ml-2" style={{ color: tierResult.tier.color }}>+{entry.amount}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            );
-          })()}
-
-          {/* Weight Trend Graph */}
-
           {/* Weight Trend Graph */}
           {weightLog.length > 0 && (() => {
             const sorted = [...weightLog].sort((a, b) => a.date.localeCompare(b.date));
@@ -884,6 +813,75 @@ export const ProofTab: React.FC<ProofTabProps> = () => {
                   <span className="absolute left-0 -translate-x-1/2">{recent[0].date.slice(5).replace("-", "/")}</span>
                   <span className="absolute right-0 translate-x-1/2">{recent[recent.length - 1].date.slice(5).replace("-", "/")}</span>
                   <span>&nbsp;</span>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* === Season Tier Card === */}
+          {(() => {
+            const seasonInfo = getCurrentSeason();
+            const seasonExp = getOrRebuildSeasonExp(history, !isNaN(savedBirthYear) ? savedBirthYear : undefined, savedGender);
+            const tierResult = getTierFromExp(seasonExp.totalExp);
+            const seasonSessions = history.filter(h => {
+              const d = h.date.slice(0, 10);
+              return d >= seasonInfo.startDate && d <= seasonInfo.endDate;
+            }).length;
+
+            const expLog = [...seasonExp.expLog].sort((a, b) => b.date.localeCompare(a.date));
+
+            return (
+              <div className="rounded-3xl overflow-hidden border shadow-sm" style={{ borderColor: `${tierResult.tier.color}30` }}>
+                <div
+                  className="px-6 py-4 cursor-pointer"
+                  style={{ background: `linear-gradient(135deg, ${tierResult.tier.color}20, ${tierResult.tier.color}08)` }}
+                  onClick={() => setExpLogOpen(v => !v)}
+                >
+                  <div className="flex items-center justify-between">
+                    <p className="text-[10px] font-bold text-gray-400 mb-1">{seasonInfo.label}</p>
+                    <button onClick={(e) => { e.stopPropagation(); setHelpCard("tierSystem"); }} className="w-5 h-5 rounded-full bg-black/5 flex items-center justify-center -mt-1 -mr-1">
+                      <span className="text-[10px] font-black text-gray-400">?</span>
+                    </button>
+                  </div>
+                  <span className="text-2xl font-black" style={{ color: tierResult.tier.color }}>{tierResult.tier.name}</span>
+                  <div className="mt-3">
+                    <div className="w-full h-2.5 bg-black/5 rounded-full overflow-hidden">
+                      <div className="h-full rounded-full transition-all duration-700" style={{ width: `${tierResult.progress * 100}%`, backgroundColor: tierResult.tier.color }} />
+                    </div>
+                    <div className="flex justify-between mt-1.5">
+                      <span className="text-[11px] font-bold" style={{ color: tierResult.tier.color }}>{seasonExp.totalExp} EXP</span>
+                      <span className="text-[11px] text-gray-400">
+                        {tierResult.nextTier ? `${tierResult.nextTier.name}까지 ${tierResult.remaining} EXP` : "최고 티어!"}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between mt-2">
+                    <p className="text-[11px] text-gray-400">이번 시즌 {seasonSessions}회 운동</p>
+                    <svg className={`w-3.5 h-3.5 text-gray-400 transition-transform duration-300 ${expLogOpen ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" /></svg>
+                  </div>
+                </div>
+
+                {/* EXP 내역 아코디언 */}
+                <div className={`overflow-hidden transition-all duration-300 ${expLogOpen ? "max-h-[300px]" : "max-h-0"}`}>
+                  <div className="px-6 py-3 border-t overflow-y-auto max-h-[280px]" style={{ borderColor: `${tierResult.tier.color}15` }}>
+                    {expLog.length === 0 ? (
+                      <p className="text-[11px] text-gray-400 text-center py-2">아직 경험치 내역이 없어요</p>
+                    ) : (
+                      <div className="flex flex-col gap-2">
+                        {expLog.map((entry, i) => (
+                          <div key={i} className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] text-gray-400 w-12 shrink-0">
+                                {entry.date.slice(5, 10).replace("-", ".")}
+                              </span>
+                              <span className="text-[11px] text-gray-600">{entry.detail}</span>
+                            </div>
+                            <span className="text-[11px] font-bold shrink-0 ml-2" style={{ color: tierResult.tier.color }}>+{entry.amount}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             );
