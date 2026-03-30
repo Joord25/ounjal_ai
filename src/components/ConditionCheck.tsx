@@ -171,7 +171,7 @@ export const ConditionCheck: React.FC<ConditionCheckProps> = ({ onComplete, onBa
               AI 분석 • 단계 {step === "body_check" ? "1" : step === "weight_input" ? "2" : "3"}
             </span>
           </div>
-          <h1 className="text-3xl font-black mt-2 leading-tight text-[#5C795E] whitespace-pre-line">
+          <h1 className="text-3xl font-black mt-2 leading-tight text-[#1B4332] whitespace-pre-line">
             {step === "body_check" ? `${displayName}님,\n오늘 몸 상태는 어때요?` : step === "weight_input" ? (hasProfile ? `${displayName}님,\n오늘 체중을 알려주세요` : "기본 정보를 입력해주세요") : `${displayName}님,\n오늘은 무슨 운동 할까요?`}
           </h1>
         </div>
@@ -245,7 +245,7 @@ export const ConditionCheck: React.FC<ConditionCheckProps> = ({ onComplete, onBa
                       value={birthYear}
                       onChange={(e) => setBirthYear(e.target.value)}
                       placeholder="1995"
-                      className="w-full text-center text-3xl font-black text-[#5C795E] bg-transparent border-b-2 border-[#2D6A4F] outline-none pb-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      className="w-full text-center text-3xl font-black text-[#1B4332] bg-transparent border-b-2 border-[#2D6A4F] outline-none pb-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     />
                   </div>
                 </div>
@@ -258,7 +258,7 @@ export const ConditionCheck: React.FC<ConditionCheckProps> = ({ onComplete, onBa
                       value={bodyWeight}
                       onChange={(e) => setBodyWeight(e.target.value)}
                       placeholder="70"
-                      className="w-full text-center text-3xl font-black text-[#5C795E] bg-transparent border-b-2 border-[#2D6A4F] outline-none pb-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      className="w-full text-center text-3xl font-black text-[#1B4332] bg-transparent border-b-2 border-[#2D6A4F] outline-none pb-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     />
                     <span className="text-sm font-bold text-gray-400 pb-2">kg</span>
                   </div>
@@ -277,7 +277,7 @@ export const ConditionCheck: React.FC<ConditionCheckProps> = ({ onComplete, onBa
                       onChange={(e) => setBodyWeight(e.target.value)}
                       placeholder="70"
                       autoFocus
-                      className="w-32 text-center text-4xl font-black text-[#5C795E] bg-transparent border-b-2 border-[#2D6A4F] outline-none pb-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      className="w-32 text-center text-4xl font-black text-[#1B4332] bg-transparent border-b-2 border-[#2D6A4F] outline-none pb-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     />
                     <span className="text-lg font-bold text-gray-400 pb-2">kg</span>
                   </div>
@@ -289,7 +289,17 @@ export const ConditionCheck: React.FC<ConditionCheckProps> = ({ onComplete, onBa
                   style={{ animationDelay: "0.05s", animationFillMode: "forwards" }}
                 >
                   <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] mb-2">이전 체중</p>
-                  <p className="text-4xl font-black text-[#5C795E]">{bodyWeight || "—"}<span className="text-lg font-bold text-gray-400 ml-1">kg</span></p>
+                  <p className="text-4xl font-black text-[#1B4332]">{bodyWeight || "—"}<span className="text-lg font-bold text-gray-400 ml-1">kg</span></p>
+                  {(() => {
+                    const prevWeight = recentHistory.length > 0 && recentHistory[recentHistory.length - 1].stats
+                      ? parseFloat(localStorage.getItem("alpha_prev_weight") || "0") : 0;
+                    const currentW = parseFloat(bodyWeight || "0");
+                    if (prevWeight > 0 && currentW > 0 && prevWeight !== currentW) {
+                      const diff = Math.round((currentW - prevWeight) * 10) / 10;
+                      return <p className={`text-[12px] font-bold mt-1 ${diff < 0 ? "text-[#2D6A4F]" : "text-gray-400"}`}>이전 대비 {diff > 0 ? "+" : ""}{diff}kg</p>;
+                    }
+                    return null;
+                  })()}
                   <p className="text-sm font-bold text-[#2D6A4F] mt-3">어제랑 같아요</p>
                 </button>
               )
@@ -303,17 +313,28 @@ export const ConditionCheck: React.FC<ConditionCheckProps> = ({ onComplete, onBa
 
             <button
               onClick={() => handleNext()}
-              className={`w-full py-4 rounded-2xl font-bold text-lg transition-all active:scale-[0.98] bg-[#5C795E] text-white hover:bg-[#2D6A4F] ${hasProfile && !showWeightEdit ? "hidden" : ""}`}
+              className={`w-full py-4 rounded-2xl font-bold text-lg transition-all active:scale-[0.98] bg-[#1B4332] text-white hover:bg-[#2D6A4F] ${hasProfile && !showWeightEdit ? "hidden" : ""}`}
             >
               다음
             </button>
           </div>
         ) : (
           /* Goal Selection */
-          <GoalSelection
-            goal={goal}
-            onSelect={(g, session) => handleNext(undefined, g, session)}
-          />
+          <>
+            {/* 컨디션 기반 AI 코치 안내 */}
+            {(bodyPart === "full_fatigue" || bodyPart === "upper_stiff" || bodyPart === "lower_heavy") && (
+              <div className="bg-[#2D6A4F]/5 rounded-xl px-4 py-3 flex items-center gap-2 -mt-2 mb-1">
+                <img src="/favicon_backup.png" alt="AI" className="w-5 h-5 rounded-full shrink-0" />
+                <p className="text-[12px] font-bold text-[#2D6A4F]">
+                  {bodyPart === "full_fatigue" ? "오늘은 가볍게 가는 게 좋아요. 회복도 운동이에요!" : bodyPart === "upper_stiff" ? "상체가 뻐근하면 하체나 유산소가 좋아요!" : "하체가 무거우면 상체 위주로 가볼까요?"}
+                </p>
+              </div>
+            )}
+            <GoalSelection
+              goal={goal}
+              onSelect={(g, session) => handleNext(undefined, g, session)}
+            />
+          </>
         )}
       </div>
 
@@ -402,8 +423,9 @@ const GoalSelection = ({
         delay={0.15}
       />
 
-      {/* 부위별 운동 칩 — 직접 노출 */}
-      <div className="flex gap-2 mt-2 animate-card-enter" style={{ animationDelay: "0.2s", animationFillMode: "forwards" }}>
+      {/* 부위별 집중 */}
+      <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] mt-3 mb-1">부위별 집중</p>
+      <div className="flex gap-2 animate-card-enter" style={{ animationDelay: "0.2s", animationFillMode: "forwards" }}>
         {[
           { key: "chest" as TargetMuscle, label: "가슴" },
           { key: "back" as TargetMuscle, label: "등" },
@@ -421,7 +443,8 @@ const GoalSelection = ({
         ))}
       </div>
 
-      {/* 하단 특수 훈련 칩 */}
+      {/* 특수 훈련 */}
+      <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] mt-2 mb-1">특수 훈련</p>
       <div className="flex gap-2">
         {[
           { label: "기초체력", sub: "초보 홈트용", onClick: () => onSelect("general_fitness", { goal: "general_fitness", sessionMode: "home_training" }) },

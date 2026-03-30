@@ -158,6 +158,23 @@ export const MasterPlanPreview: React.FC<MasterPlanPreviewProps> = ({
     }));
   };
 
+  const handleMoveExercise = (globalIdx: number, direction: "up" | "down", phaseExercises: ExerciseStep[]) => {
+    const ex = localExercises[globalIdx];
+    const phaseIndex = phaseExercises.indexOf(ex);
+    const targetPhaseIndex = direction === "up" ? phaseIndex - 1 : phaseIndex + 1;
+    if (targetPhaseIndex < 0 || targetPhaseIndex >= phaseExercises.length) return;
+    const targetGlobalIdx = localExercises.indexOf(phaseExercises[targetPhaseIndex]);
+    if (targetGlobalIdx === -1) return;
+
+    setLocalExercises(prev => {
+      const next = [...prev];
+      [next[globalIdx], next[targetGlobalIdx]] = [next[targetGlobalIdx], next[globalIdx]];
+      return next;
+    });
+    // 펼친 카드 따라가기
+    setExpandedCard(targetGlobalIdx);
+  };
+
   const handleDeleteExercise = (globalIdx: number) => {
     setLocalExercises(prev => {
       // Prevent deleting the last MAIN phase exercise
@@ -274,11 +291,10 @@ export const MasterPlanPreview: React.FC<MasterPlanPreviewProps> = ({
       <div className="flex-1 overflow-y-auto px-6 scrollbar-hide" style={{ paddingBottom: "calc(90px + var(--safe-area-bottom, 0px))" }}>
         {/* Hero Section */}
         <div className="pt-2 pb-5">
-          {/* Session Type Badge */}
+          {/* AI 코치 + 강도 */}
           <div ref={descRef} className="flex items-center gap-2 mb-3">
-            <span className="bg-[#1B4332] text-white text-[10px] font-black px-2 py-1 rounded tracking-wider uppercase">
-              AI
-            </span>
+            <img src="/favicon_backup.png" alt="AI" className="w-5 h-5 rounded-full shrink-0" />
+            <span className="text-[11px] font-bold text-gray-400">오운잘 AI 코치</span>
             {currentIntensity && (
               <span className={`text-[10px] font-black px-2 py-0.5 rounded ${
                 currentIntensity === "high" ? "bg-red-100 text-red-600"
@@ -288,17 +304,27 @@ export const MasterPlanPreview: React.FC<MasterPlanPreviewProps> = ({
                 {currentIntensity === "high" ? "고강도" : currentIntensity === "moderate" ? "중강도" : "저강도"}
               </span>
             )}
-            <span className="text-[10px] font-bold text-gray-500 tracking-widest uppercase">
-              Program
-            </span>
           </div>
 
           {/* Title */}
           <h1 className="text-2xl font-black text-[#1B4332] leading-tight tracking-tight mb-2">
             오늘의 운동 플랜
           </h1>
-          <p className="text-sm text-gray-500 leading-relaxed line-clamp-2">
+          <p className="text-sm text-gray-500 leading-relaxed line-clamp-2 mb-2">
             {sessionData.description}
+          </p>
+          {/* 경험 메시지 */}
+          <p className="text-[13px] font-bold text-[#2D6A4F] leading-relaxed">
+            {(() => {
+              const desc = (sessionData.description || "").toLowerCase();
+              if (/가슴|푸시|chest|push|벤치/.test(desc)) return "이 플랜을 마치면 거울 앞 어깨 라인이 달라져요";
+              if (/등|풀|back|pull|로우|랫/.test(desc)) return "이 플랜을 마치면 자세가 펴지고 등이 단단해져요";
+              if (/하체|레그|스쿼트|leg|squat|런지|데드/.test(desc)) return "이 플랜을 마치면 계단이 가뿐해질 거예요";
+              if (/코어|복근|core|ab|플랭크/.test(desc)) return "이 플랜을 마치면 오래 앉아도 허리가 편해져요";
+              if (/러닝|유산소|cardio|run|hiit|서킷/.test(desc)) return "이 플랜을 마치면 일상이 가벼워질 거예요";
+              if (/모빌리티|회복|스트레칭/.test(desc)) return "이 플랜을 마치면 몸이 한결 풀릴 거예요";
+              return "이 플랜을 마치면 오늘보다 더 강해진 내가 될 거예요";
+            })()}
           </p>
         </div>
 
@@ -433,6 +459,28 @@ export const MasterPlanPreview: React.FC<MasterPlanPreviewProps> = ({
                             <span className="text-xs font-bold">운동 교체</span>
                           </button>
                         )}
+                        {phase.exercises.length > 1 && (
+                          <div className="flex gap-1">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleMoveExercise(globalIdx, "up", phase.exercises); }}
+                              disabled={i === 0}
+                              className="w-9 h-9 rounded-xl bg-gray-100 flex items-center justify-center active:scale-90 transition-all disabled:opacity-30"
+                            >
+                              <svg className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
+                              </svg>
+                            </button>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleMoveExercise(globalIdx, "down", phase.exercises); }}
+                              disabled={i === phase.exercises.length - 1}
+                              className="w-9 h-9 rounded-xl bg-gray-100 flex items-center justify-center active:scale-90 transition-all disabled:opacity-30"
+                            >
+                              <svg className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                              </svg>
+                            </button>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -471,7 +519,7 @@ export const MasterPlanPreview: React.FC<MasterPlanPreviewProps> = ({
             onClick={() => onStart({ ...sessionData, exercises: localExercises })}
             className="flex-1 h-14 rounded-2xl bg-[#1B4332] active:scale-[0.98] transition-all flex items-center justify-center gap-3 shadow-xl shadow-[#1B4332]/20 hover:bg-[#2D6A4F]"
           >
-            <span className="text-white font-black text-base tracking-wide">START WORKOUT</span>
+            <span className="text-white font-black text-base tracking-wide">운동 시작</span>
             <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
               <path d="M8 5v14l11-7z" />
             </svg>
