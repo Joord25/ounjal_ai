@@ -383,7 +383,7 @@ export default function Home() {
       </div>
     );
 
-    if (activeTab === "proof") {
+    if (activeTab === "proof" && view === "home") {
       return <ProofTab lockedRuleIds={[]} onShowPrediction={() => { setPredictionReturnTab("proof"); setView("prediction_report"); }} />;
     }
 
