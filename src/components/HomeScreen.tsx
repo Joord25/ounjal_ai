@@ -40,7 +40,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onStartWorkout
   const [typedText, setTypedText] = useState("");
   const [previewIdx, setPreviewIdx] = useState(0);
   const [typingDone, setTypingDone] = useState(false);
-  const typingStarted = useRef(false);
+
   const [profile, setProfile] = useState<FitnessProfile | null>(null);
   const isFirstVisit = history.length === 0;
 
@@ -320,17 +320,22 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onStartWorkout
     return desc ? `지난번 ${desc} 했어요. 오늘도 해볼까요?` : "오늘 운동 한번 해볼까요?";
   })();
 
+  const prevCoachRef = useRef("");
   useEffect(() => {
-    if (!coachMessage || typingStarted.current) return;
+    if (!coachMessage) return;
     // 같은 메시지 캐시 있으면 타이핑 생략
     const cached = sessionStorage.getItem("coach_typed");
     if (cached === coachMessage) {
       setTypedText(coachMessage);
       setTypingDone(true);
-      typingStarted.current = true;
       return;
     }
-    typingStarted.current = true;
+    // 메시지가 바뀌었으면 리셋
+    if (prevCoachRef.current && prevCoachRef.current !== coachMessage) {
+      setTypedText("");
+      setTypingDone(false);
+    }
+    prevCoachRef.current = coachMessage;
     let i = 0;
     const timer = setInterval(() => {
       i++;
