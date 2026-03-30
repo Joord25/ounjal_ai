@@ -227,6 +227,15 @@ export const WorkoutSession: React.FC<WorkoutSessionProps> = ({
     exerciseStartRef.current = Date.now();
   };
 
+  const handleAddSet = () => {
+    const updated = [...exercises];
+    updated[currentExerciseIndex] = { ...updated[currentExerciseIndex], sets: updated[currentExerciseIndex].sets + 1 };
+    const ex = updated[currentExerciseIndex];
+    const repsStr = typeof ex.reps === "number" ? `${ex.reps}회` : String(ex.reps);
+    updated[currentExerciseIndex].count = `${ex.sets}세트 / ${repsStr}`;
+    setExercises(updated);
+  };
+
   const handleSwapExercise = (newExerciseName: string) => {
     const updated = [...exercises];
     updated[currentExerciseIndex] = { ...updated[currentExerciseIndex], name: newExerciseName };
@@ -413,6 +422,7 @@ export const WorkoutSession: React.FC<WorkoutSessionProps> = ({
         onSkipRest={skipRest}
         isLastExercise={currentExerciseIndex === totalExercises - 1 && currentSet === (currentExercise.sets || 1)}
         onSwapExercise={currentExercise.type === "strength" || currentExercise.type === "core" ? handleSwapExercise : undefined}
+        onAddSet={currentExercise.type === "strength" || currentExercise.type === "core" ? handleAddSet : undefined}
         nextExerciseName={currentExerciseIndex < totalExercises - 1 ? exercises[currentExerciseIndex + 1].name : undefined}
         lastSessionRecord={lastSessionRecord}
       />

@@ -25,6 +25,7 @@ interface FitScreenProps {
   onSkipRest: () => void;
   isLastExercise: boolean;
   onSwapExercise?: (newExerciseName: string) => void;
+  onAddSet?: () => void;
   nextExerciseName?: string;
   lastSessionRecord?: {
     weights: number[];
@@ -47,6 +48,7 @@ export const FitScreen: React.FC<FitScreenProps> = ({
   onSkipRest,
   isLastExercise,
   onSwapExercise,
+  onAddSet,
   nextExerciseName,
   lastSessionRecord,
 }) => {
@@ -93,6 +95,7 @@ export const FitScreen: React.FC<FitScreenProps> = ({
   const [showAiTip, setShowAiTip] = useState(!!lastSessionRecord && (lastSessionRecord.maxWeight ?? 0) > 0);
 
   const [view, setView] = useState<"active" | "feedback">("active");
+  const [autoFeedbackToast, setAutoFeedbackToast] = useState(false);
   const [failedReps, setFailedReps] = useState(Math.max(0, setInfo.targetReps - 1));
   const [easyExtraReps, setEasyExtraReps] = useState(4);
   const [isDoneAnimating, setIsDoneAnimating] = useState(false);
@@ -633,9 +636,28 @@ export const FitScreen: React.FC<FitScreenProps> = ({
     }
     setRepsStopwatchRunning(false);
     playAlarmSound("start");
+
+    // 강도별 휴식 시간 (ACSM 기준)
+    const restBySets = adjustedReps <= 6 ? 150 : adjustedReps <= 12 ? 75 : 45;
+    const restByType = exercise.type === "core" ? 45 : restBySets;
+
+    // 목표 렙 달성 시 자동 "target" 처리 (피드백 시트 생략)
+    if (adjustedReps === setInfo.targetReps) {
+      setAutoFeedbackToast(true);
+      setLocalRestSec(restByType);
+      setView("feedback");
+      setFeedbackGiven(true);
+      pendingFeedbackRef.current = null;
+      onSetComplete(adjustedReps, "target", hasWeight ? selectedWeight : undefined);
+      setTimeout(() => onSkipRest(), 50);
+      setTimeout(() => setAutoFeedbackToast(false), 3000);
+      return;
+    }
+
+    // 목표 미달 or 초과 → 피드백 시트 표시
     setView("feedback");
     setFeedbackGiven(false);
-    setLocalRestSec(75); // default rest, will be active immediately
+    setLocalRestSec(restByType);
     pendingFeedbackRef.current = null;
   };
 
@@ -987,7 +1009,7 @@ export const FitScreen: React.FC<FitScreenProps> = ({
               onClick={() => onSetComplete(0, "easy")}
               className="absolute right-6 z-10 text-xs font-black text-gray-400 tracking-widest hover:text-gray-600 transition-colors bg-gray-100 px-3 py-1.5 rounded-full"
             >
-              SKIP
+              건너뛰기
             </button>
         )}
 
@@ -1137,7 +1159,7 @@ export const FitScreen: React.FC<FitScreenProps> = ({
                   </button>
                 )}
                 {!hasWeight && exercise.weight && (
-                  <span className={`font-black text-[#2D6A4F] ${isBodyweight ? "text-4xl" : "text-2xl"}`}>
+                  <span className={`font-black text-[#2D6A4F] ${isBodyweight ? valueSize : "text-2xl"}`}>
                     {isBodyweight ? "맨몸" : setInfo.targetWeight}
                   </span>
                 )}
@@ -1162,7 +1184,7 @@ export const FitScreen: React.FC<FitScreenProps> = ({
                     repsStopwatch > 0 && !repsStopwatchRunning ? "visible" : "invisible"
                   }`}
                 >
-                  RESET
+                  초기화
                 </button>
               </div>
             </>
@@ -1267,9 +1289,20 @@ export const FitScreen: React.FC<FitScreenProps> = ({
 
        {/* Success Overlay */}
        {isDoneAnimating && isLastExercise && setInfo.current === setInfo.total && (
-        <div className="absolute inset-0 bg-white/95 flex items-center justify-center z-50 animate-fade-in">
-          <p className="text-2xl font-bold" style={{ color: THEME.textMain }}>
+        <div className="absolute inset-0 bg-white/95 flex flex-col items-center justify-center z-50 animate-fade-in">
+          <p className="text-2xl font-black" style={{ color: THEME.textMain }}>
             오늘도 해냈다!
+          </p>
+          <p className="text-sm font-bold text-[#2D6A4F] mt-2">
+            {(() => {
+              const desc = (exercise.name || "").toLowerCase();
+              if (/가슴|푸시|chest|push|벤치/.test(desc)) return "거울 앞 어깨 라인이 달라지고 있어요";
+              if (/등|풀|back|pull|로우|랫/.test(desc)) return "자세가 펴지고 등이 단단해지고 있어요";
+              if (/하체|레그|스쿼트|leg|squat|런지|데드/.test(desc)) return "계단이 가뿐해지는 날이 올 거예요";
+              if (/코어|복근|core|ab|플랭크/.test(desc)) return "허리가 덜 뻐근해지는 중이에요";
+              if (/러닝|유산소|cardio|run|hiit/.test(desc)) return "일상이 가벼워지고 있어요";
+              return "꾸준함이 최고의 무기예요";
+            })()}
           </p>
         </div>
       )}
@@ -1531,29 +1564,57 @@ export const FitScreen: React.FC<FitScreenProps> = ({
           <div className="w-full rounded-t-[2.5rem] shadow-[0_-10px_40px_rgba(0,0,0,0.2)] animate-slide-up flex flex-col relative z-10 bg-white px-4 sm:px-6 pt-6" style={{ paddingBottom: "calc(var(--safe-area-bottom, 0px) + 24px)" }}>
              <div className="w-12 h-1 bg-gray-200 rounded-full mx-auto mb-4" />
 
-            {/* Rest Timer (always visible) */}
-            <div className="flex items-center justify-between mb-5 bg-[#1B4332] rounded-2xl px-5 py-4">
-              <div className="flex items-center gap-3">
-                <p className="text-xs font-bold text-emerald-300/70 uppercase tracking-[0.15em]">REST</p>
-                <div className="text-3xl font-black text-white tracking-tighter">
-                  {Math.floor(localRestSec / 60)}:{(localRestSec % 60).toString().padStart(2, "0")}
+            {/* Rest Timer + 격려 */}
+            <div className="mb-5 bg-[#1B4332] rounded-2xl px-5 py-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <p className="text-xs font-bold text-emerald-300/70 uppercase tracking-[0.15em]">REST</p>
+                  <div className="text-3xl font-black text-white tracking-tighter">
+                    {Math.floor(localRestSec / 60)}:{(localRestSec % 60).toString().padStart(2, "0")}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setLocalRestSec(prev => prev + 30)}
+                    className="px-3 py-2 bg-white/10 rounded-full text-xs font-bold text-white active:scale-95 transition-all"
+                  >
+                    +30초
+                  </button>
+                  <button
+                    onClick={handleSkipLocalRest}
+                    className="px-4 py-2 bg-emerald-500 rounded-full text-xs font-bold text-white tracking-widest hover:bg-emerald-400 active:scale-95 transition-all"
+                  >
+                    {feedbackGiven ? "건너뛰기" : "휴식 건너뛰기"}
+                  </button>
                 </div>
               </div>
-              <button
-                onClick={handleSkipLocalRest}
-                className="px-4 py-2 bg-emerald-500 rounded-full text-xs font-bold text-white tracking-widest hover:bg-emerald-400 active:scale-95 transition-all"
-              >
-                {feedbackGiven ? "SKIP" : "SKIP REST"}
-              </button>
+              <p className="text-[11px] font-bold text-emerald-300/50 mt-2">
+                {setInfo.current >= setInfo.total
+                  ? "마지막 세트였어요! 다음 운동으로"
+                  : setInfo.current >= setInfo.total - 1
+                    ? `${setInfo.current}/${setInfo.total} 세트 완료! 마지막 하나 남았어요`
+                    : `${setInfo.current}/${setInfo.total} 세트 완료! ${setInfo.total - setInfo.current}세트 남았어요`}
+              </p>
             </div>
 
+
+            {/* 자동 피드백 토스트 */}
+            {autoFeedbackToast && feedbackGiven && (
+              <button
+                onClick={() => { setAutoFeedbackToast(false); setFeedbackGiven(false); }}
+                className="mb-4 w-full py-3 rounded-2xl bg-emerald-50 border border-emerald-100 text-center active:scale-[0.98] transition-all"
+              >
+                <p className="text-[14px] font-bold text-[#1B4332]">좋아요! 다음 세트 준비 👌</p>
+                <p className="text-[10px] text-[#2D6A4F]/60 mt-0.5">탭하면 피드백 수정 가능</p>
+              </button>
+            )}
 
             {!feedbackGiven ? (
               /* === FEEDBACK OPTIONS === */
               <>
                 <div className="text-center mb-3">
                   <h2 className="text-lg font-black tracking-tight" style={{ color: THEME.textMain }}>
-                    FEEDBACK
+                    이번 세트 어땠어요?
                   </h2>
                 </div>
 
@@ -1563,7 +1624,7 @@ export const FitScreen: React.FC<FitScreenProps> = ({
                     <div className="flex items-center justify-between">
                        <div className="flex flex-col items-start">
                         <span className="font-bold text-base">{easyExtraReps}개 더 가능</span>
-                        <span className="text-[10px] text-emerald-300 font-medium tracking-wide">REPS UP ▲</span>
+                        <span className="text-[10px] text-emerald-300 font-medium tracking-wide">다음엔 횟수 올려요 ▲</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <div className="flex items-center bg-[#2D6A4F]/50 rounded-lg px-1.5">
@@ -1582,8 +1643,8 @@ export const FitScreen: React.FC<FitScreenProps> = ({
                   <button onClick={() => submitFeedback("target", adjustedReps)} className="w-full p-4 rounded-2xl bg-emerald-50 border-2 border-emerald-100 active:scale-[0.98] transition-all">
                     <div className="flex items-center justify-between">
                       <div className="flex flex-col items-start">
-                        <span className="font-bold text-base text-[#1B4332]">딱 조아!</span>
-                        <span className="text-[10px] font-bold tracking-wide text-[#2D6A4F]/70">KEEP GOING -</span>
+                        <span className="font-bold text-base text-[#1B4332]">딱 좋아요!</span>
+                        <span className="text-[10px] font-bold tracking-wide text-[#2D6A4F]/70">이 강도 유지해요</span>
                       </div>
                       <span className="text-xl">👌</span>
                     </div>
@@ -1592,8 +1653,8 @@ export const FitScreen: React.FC<FitScreenProps> = ({
                   {/* Option: FAIL */}
                   <div className="w-full p-4 rounded-2xl bg-red-50 border-2 border-red-100 flex items-center justify-between">
                       <div className="flex flex-col items-start shrink-0">
-                        <span className="font-bold text-base text-red-500">실패 지점</span>
-                        <span className="text-[10px] text-red-300 font-bold tracking-wide">FAIL REPS</span>
+                        <span className="font-bold text-base text-red-500">여기서 실패했어요</span>
+                        <span className="text-[10px] text-red-300 font-bold tracking-wide">실패 횟수</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <div className="flex items-center bg-red-100/60 rounded-lg px-1.5">
@@ -1607,6 +1668,15 @@ export const FitScreen: React.FC<FitScreenProps> = ({
                       </div>
                   </div>
                 </div>
+                {/* 마지막 세트일 때 세트 추가 옵션 */}
+                {setInfo.current === setInfo.total && onAddSet && (
+                  <button
+                    onClick={() => { onAddSet(); setView("active"); setLocalRestSec(0); }}
+                    className="w-full mt-3 py-3 rounded-2xl border-2 border-dashed border-gray-200 text-center active:scale-[0.98] transition-all"
+                  >
+                    <span className="text-sm font-bold text-gray-500">+ 1세트 추가</span>
+                  </button>
+                )}
               </>
             ) : null}
           </div>
