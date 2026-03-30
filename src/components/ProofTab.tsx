@@ -488,12 +488,8 @@ export const ProofTab: React.FC<ProofTabProps> = () => {
     <div className="flex flex-col h-full bg-[#FAFBF9] animate-fade-in relative overflow-hidden">
       {/* Fixed Header */}
       <div className="pt-[max(1.5rem,env(safe-area-inset-top))] pb-3 sm:pb-4 px-4 sm:px-6 text-center z-10 shrink-0">
-        <span className="text-[11px] tracking-[0.4em] uppercase font-serif font-medium text-[#2D6A4F]">Proof</span>
-        <h1 className="text-3xl sm:text-4xl font-black text-[#1B4332] mt-2">훈련 기록</h1>
-        {monthHistory.length > 0 && (
-          <p className="text-[12px] font-bold text-[#2D6A4F] mt-1">{isCurrentMonth ? "이번" : `${viewMonth + 1}`}달 {monthHistory.length}회 완료</p>
-        )}
-        <div className="mt-4 inline-flex items-center gap-1 bg-[#2D6A4F]/10 rounded-full">
+        {/* 월 네비게이션 */}
+        <div className="inline-flex items-center gap-1 bg-[#2D6A4F]/10 rounded-full">
           <button
             onClick={() => setMonthOffset(prev => prev - 1)}
             className="p-2 pl-3 active:opacity-60 transition-opacity"
@@ -512,6 +508,25 @@ export const ProofTab: React.FC<ProofTabProps> = () => {
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
             </svg>
           </button>
+        </div>
+        {/* 성취 숫자 or 안내 */}
+        <div className="mt-3">
+          {monthHistory.length > 0 ? (
+            <>
+              <h1 className="text-4xl font-black text-[#1B4332]">{monthHistory.length}<span className="text-lg font-bold text-[#2D6A4F]/50 ml-1">회 운동</span></h1>
+              <p className="text-[12px] font-medium text-gray-400 mt-1">{isCurrentMonth ? "이번 달의 기록" : `${viewMonth + 1}월의 기록`}</p>
+            </>
+          ) : isCurrentMonth ? (
+            <>
+              <h1 className="text-xl font-black text-[#1B4332]">첫 기록을 만들어보세요</h1>
+              <p className="text-[12px] font-medium text-gray-400 mt-1">오늘 시작하면 여기에 쌓여요</p>
+            </>
+          ) : (
+            <>
+              <h1 className="text-xl font-black text-gray-300">기록이 없어요</h1>
+              <p className="text-[12px] font-medium text-gray-400 mt-1">{viewMonth + 1}월</p>
+            </>
+          )}
         </div>
       </div>
 
