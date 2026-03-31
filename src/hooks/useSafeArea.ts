@@ -36,6 +36,10 @@ export function useSafeArea() {
         const navBarHeight = window.screen.height - window.innerHeight;
         // Only apply if reasonable range (16~80px), otherwise small fallback
         const fallback = navBarHeight > 16 && navBarHeight < 80 ? navBarHeight : 24;
+        // DEBUG: 임시 디버그 (확인 후 제거)
+        if (typeof document !== "undefined") {
+          document.title = `safe:${fallback}px nav:${navBarHeight} scr:${window.screen.height} inn:${window.innerHeight}`;
+        }
         document.documentElement.style.setProperty(
           "--safe-area-bottom",
           `${fallback}px`
