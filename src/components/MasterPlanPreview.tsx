@@ -504,7 +504,7 @@ export const MasterPlanPreview: React.FC<MasterPlanPreviewProps> = ({
       </div>
 
       {/* Bottom CTA */}
-      <div className="absolute bottom-0 left-0 right-0 px-5 pt-8 bg-gradient-to-t from-[#FAFBF9] via-[#FAFBF9] to-transparent z-20" style={{ paddingBottom: "calc(var(--safe-area-bottom, 0px) + 8px)" }}>
+      <div className="absolute bottom-0 left-0 right-0 px-5 pt-8 pb-0 bg-gradient-to-t from-[#FAFBF9] via-[#FAFBF9] to-transparent z-20">
         <div className="flex items-center gap-2.5">
           <button
             onClick={() => setShowShareCard(true)}

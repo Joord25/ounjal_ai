@@ -1192,7 +1192,7 @@ export const FitScreen: React.FC<FitScreenProps> = ({
         </div>
 
         {/* 그룹3: NEXT + CTA */}
-        <div className="flex flex-col items-center shrink-0 gap-3 w-full">
+        <div className="flex flex-col items-center shrink-0 gap-3 w-full" style={{ paddingBottom: "var(--safe-area-bottom, 0px)" }}>
         {nextExerciseName && setInfo.current === setInfo.total && (
           <div className="self-end bg-gray-100 rounded-l-xl px-3 py-2 -mr-6">
             <p className="text-[7px] font-black text-gray-400 uppercase tracking-[0.2em] text-right">NEXT</p>

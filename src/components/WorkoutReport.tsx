@@ -1264,7 +1264,7 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
 
       {/* Footer Button — only for current session (not history view) */}
       {!sessionDate && (
-        <div className={`absolute bottom-0 left-0 right-0 px-5 bg-gradient-to-t from-[#FAFAFA] via-[#FAFAFA] to-transparent pt-10 z-20 ${showShare ? "hidden" : ""}`} style={{ paddingBottom: "calc(var(--safe-area-bottom, 0px) + 8px)" }}>
+        <div className={`absolute bottom-0 left-0 right-0 px-5 bg-gradient-to-t from-[#FAFAFA] via-[#FAFAFA] to-transparent pt-10 pb-0 z-20 ${showShare ? "hidden" : ""}`}>
           <div className="flex gap-2">
             {onRestart && (
               <button
