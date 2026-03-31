@@ -571,7 +571,7 @@ export default function Home() {
   return (
     <PhoneFrame pullToRefresh={view === "home"}>
       <div className="h-full w-full relative overflow-hidden">
-        <div className={`h-full overflow-y-auto overflow-x-hidden scrollbar-hide ${view === "login" ? "" : ""}`} style={view === "login" || view === "workout_session" ? undefined : { paddingBottom: "calc(80px + var(--safe-area-bottom, 0px))" }}>
+        <div className={`h-full overflow-y-auto overflow-x-hidden scrollbar-hide ${view === "login" ? "" : ""}`} style={view === "login" || view === "workout_session" || view === "master_plan_preview" ? undefined : { paddingBottom: "calc(80px + var(--safe-area-bottom, 0px))" }}>
           {renderContent()}
         </div>
         
