@@ -282,6 +282,11 @@ export default function Home() {
   };
 
   const handleConditionComplete = async (condition: UserCondition, goal: WorkoutGoal, session?: SessionSelection) => {
+    // 비로그인 게스트 체험 제한
+    if (!isLoggedIn && getGuestTrialCount() >= GUEST_TRIAL_LIMIT) {
+      setShowLoginModal(true);
+      return;
+    }
     // Check free usage limit
     if (subStatus === "free" && getPlanCount() >= FREE_PLAN_LIMIT) {
       setShowPaywall(true);
