@@ -194,7 +194,7 @@ export default function LandingContent() {
 
         <div className="relative max-w-5xl mx-auto px-6 pt-16 sm:pt-24 pb-24 sm:pb-32 text-center">
           <RevealSection>
-            <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black text-white leading-tight tracking-tight">
+            <h1 className="text-3xl sm:text-6xl lg:text-7xl font-black text-white leading-tight tracking-tight">
               <span className="text-[#34d399]">헬스장 처음?</span><br />AI가 3초 만에 <span className="text-[#34d399]">짜드려요</span>
             </h1>
             <p className="mt-6 text-sm sm:text-lg text-white/50 font-medium tracking-wide">
