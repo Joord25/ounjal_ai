@@ -195,17 +195,17 @@ export default function LandingContent() {
         <div className="relative max-w-5xl mx-auto px-6 pt-16 sm:pt-24 pb-24 sm:pb-32 text-center">
           <RevealSection>
             <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black text-white leading-tight tracking-tight">
-              <span className="text-[#34d399]">러닝머신만 타는 당신</span><br />3초 입력, <span className="text-[#34d399]">해결하세요!</span>
+              <span className="text-[#34d399]">헬스장 처음?</span><br />AI가 3초 만에 <span className="text-[#34d399]">짜드려요</span>
             </h1>
             <p className="mt-6 text-sm sm:text-lg text-white/50 font-medium tracking-wide">
-              AI가 운동을 대신하는 게 아니라, 당신의 시간을 되돌려줍니다
+              몸 상태만 고르면 AI 맞춤 운동 루틴이 바로 나와요
             </p>
             <div className="mt-10">
               <a
                 href="/app"
                 className="inline-block px-10 py-4 bg-[#059669] text-white font-bold text-base rounded-2xl shadow-[0_4px_24px_rgba(5,150,105,0.4)] hover:shadow-[0_8px_40px_rgba(5,150,105,0.55)] hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200"
               >
-                무료로 시작하기
+                3초 만에 오늘 운동 받기
               </a>
             </div>
             <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4 mt-8 text-xs sm:text-sm text-white/50">
