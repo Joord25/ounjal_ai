@@ -488,6 +488,7 @@ export default function Home() {
             birthYear={currentCondition?.birthYear}
             savedDurationSec={workoutDurationSec}
             onClose={() => {
+              setView("home");
               setActiveTab("proof");
             }}
             onAnalysisComplete={(analysis) => {
@@ -526,6 +527,7 @@ export default function Home() {
                birthYear={currentCondition?.birthYear || (() => { const y = parseInt(localStorage.getItem("alpha_birth_year") || ""); return isNaN(y) ? undefined : y; })()}
                savedDurationSec={workoutDurationSec}
                onClose={() => {
+                 setView("home");
                  setActiveTab("proof");
                }}
                onRestart={() => {
