@@ -35,6 +35,12 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout, auto
   });
   const [isEditingBirthYear, setIsEditingBirthYear] = useState(false);
   const [birthYearInput, setBirthYearInput] = useState(birthYear);
+  const [height, setHeight] = useState(() => {
+    if (typeof window === "undefined") return "";
+    try { return JSON.parse(localStorage.getItem("alpha_fitness_profile") || "{}").height || ""; } catch { return ""; }
+  });
+  const [isEditingHeight, setIsEditingHeight] = useState(false);
+  const [heightInput, setHeightInput] = useState(height);
   const [subStatus, setSubStatus] = useState<"loading" | "free" | "active" | "cancelled">("loading");
   const [showBodyInfo, setShowBodyInfo] = useState(!!autoEdit1RM);
 
@@ -105,6 +111,18 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout, auto
     const next = gender === "male" ? "female" : "male";
     setGender(next);
     updateGender(next);
+  };
+
+  const handleHeightSave = () => {
+    const val = parseInt(heightInput.trim());
+    if (isNaN(val) || val < 100 || val > 250) return;
+    setHeight(String(val));
+    try {
+      const fp = JSON.parse(localStorage.getItem("alpha_fitness_profile") || "{}");
+      fp.height = val;
+      localStorage.setItem("alpha_fitness_profile", JSON.stringify(fp));
+    } catch { /* ignore */ }
+    setIsEditingHeight(false);
   };
 
   const handleBirthYearSave = () => {
@@ -380,14 +398,34 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout, auto
           {/* Height */}
           <div className="flex justify-between items-center min-h-[32px]">
             <span className="text-sm font-bold text-gray-500">키</span>
-            <span className="text-sm font-medium text-gray-900">
-              {(() => {
-                try {
-                  const fp = JSON.parse(localStorage.getItem("alpha_fitness_profile") || "{}");
-                  return fp.height ? `${fp.height}cm` : "미설정";
-                } catch { return "미설정"; }
-              })()}
-            </span>
+            {isEditingHeight ? (
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  value={heightInput}
+                  onChange={(e) => setHeightInput(e.target.value)}
+                  autoFocus
+                  placeholder="170"
+                  className="text-sm font-medium text-gray-900 bg-white border border-gray-200 rounded-lg px-3 py-1.5 w-[100px] outline-none focus:border-[#2D6A4F] transition-colors text-right"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleHeightSave();
+                    if (e.key === "Escape") { setIsEditingHeight(false); setHeightInput(height); }
+                  }}
+                />
+                <span className="text-sm text-gray-400">cm</span>
+                <button onClick={handleHeightSave} className="text-xs font-bold text-[#2D6A4F] active:opacity-60 shrink-0">저장</button>
+              </div>
+            ) : (
+              <button
+                onClick={() => { setHeightInput(height); setIsEditingHeight(true); }}
+                className="flex items-center gap-2 active:opacity-60"
+              >
+                <span className="text-sm font-medium text-gray-900">{height ? `${height}cm` : "미설정"}</span>
+                <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                </svg>
+              </button>
+            )}
           </div>
           <div className="h-px bg-gray-100" />
 
