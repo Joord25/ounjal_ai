@@ -94,13 +94,18 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onStartWorkout
     return count;
   })();
 
-  // 이번 주 운동 횟수
+  // 이번 주 운동 일수 (당일 N회도 1일로 카운트)
   const thisWeekCount = (() => {
     const now = new Date();
     const monday = new Date(now);
     monday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
     monday.setHours(0, 0, 0, 0);
-    return history.filter(h => new Date(h.date).getTime() >= monday.getTime()).length;
+    const days = new Set(
+      history
+        .filter(h => new Date(h.date).getTime() >= monday.getTime())
+        .map(h => new Date(h.date).toDateString())
+    );
+    return days.size;
   })();
 
   const displayName = userName || "회원";
@@ -160,8 +165,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onStartWorkout
     if (thisWeekCount > 0) {
       return `이번 주 ${thisWeekCount}회 완료! 꾸준함이 최고의 무기예요`;
     }
-    if (thisMonth.length > 0) {
-      return `이번 달 ${thisMonth.length}회 운동 중! 습관이 만들어지고 있어요`;
+    const thisMonthDays = new Set(thisMonth.map(h => new Date(h.date).toDateString())).size;
+    if (thisMonthDays > 0) {
+      return `이번 달 ${thisMonthDays}일 운동 중! 습관이 만들어지고 있어요`;
     }
 
     return null;
