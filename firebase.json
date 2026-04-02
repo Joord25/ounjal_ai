@@ -35,7 +35,8 @@
       { "source": "/api/subscribe", "function": { "functionId": "subscribe", "region": "us-central1" } },
       { "source": "/api/cancelSubscription", "function": { "functionId": "cancelSubscription", "region": "us-central1" } },
       { "source": "/api/adminActivate", "function": { "functionId": "adminActivate", "region": "us-central1" } },
-      { "source": "/api/adminCheckUser", "function": { "functionId": "adminCheckUser", "region": "us-central1" } }
+      { "source": "/api/adminCheckUser", "function": { "functionId": "adminCheckUser", "region": "us-central1" } },
+      { "source": "/api/adminLogs", "function": { "functionId": "adminLogs", "region": "us-central1" } }
     ]
   },
   "functions": {

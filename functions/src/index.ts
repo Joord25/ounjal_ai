@@ -907,3 +907,43 @@ export const adminCheckUser = onRequest(
   }
 );
 
+/**
+ * POST /adminLogs
+ * Admin only: 최근 활성화 이력 조회
+ */
+export const adminLogs = onRequest(
+  { cors: true },
+  async (req, res) => {
+    if (req.method !== "POST") { res.status(405).json({ error: "Method not allowed" }); return; }
+
+    try { await verifyAdmin(req.headers.authorization); } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Unauthorized";
+      res.status(msg.includes("Forbidden") ? 403 : 401).json({ error: msg });
+      return;
+    }
+
+    try {
+      const snapshot = await db.collection("admin_logs")
+        .orderBy("timestamp", "desc")
+        .limit(20)
+        .get();
+
+      const logs = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          action: data.action,
+          targetEmail: data.targetEmail,
+          months: data.months,
+          expiresAt: data.expiresAt,
+          timestamp: data.timestamp?.toDate?.().toISOString() || null,
+        };
+      });
+
+      res.status(200).json({ logs });
+    } catch (error) {
+      console.error("adminLogs error:", error);
+      res.status(500).json({ error: "이력 조회에 실패했습니다." });
+    }
+  }
+);
+
