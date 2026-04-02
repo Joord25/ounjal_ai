@@ -27,7 +27,7 @@ interface FitnessProfile {
 
 
 export const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onStartWorkout, onShowPrediction }) => {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const [history, setHistory] = useState<WorkoutHistory[]>([]);
   const [questData, setQuestData] = useState<ReturnType<typeof getOrCreateWeeklyQuests> | null>(null);
   const [savedGoal, setSavedGoal] = useState<WorkoutGoal | null>(null);
@@ -137,7 +137,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onStartWorkout
     const now = new Date();
     const month = now.getMonth() + 1;
     const date = now.getDate();
-    const days = ["일", "월", "화", "수", "목", "금", "토"];
+    const days = locale === "en" ? ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] : ["일", "월", "화", "수", "목", "금", "토"];
     return `${month}월 ${date}일 (${days[now.getDay()]})`;
   })();
 
@@ -271,30 +271,30 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onStartWorkout
     }
 
     // 최근 3개 기록에서 한 부위 추출
-    const allParts = ["가슴", "등", "어깨", "팔", "하체", "코어", "유산소"];
+    const allParts = [t("home.bodyPart.chest"), t("home.bodyPart.back"), t("home.bodyPart.shoulder"), t("home.bodyPart.arm"), t("home.bodyPart.lower"), t("home.bodyPart.core"), t("home.bodyPart.cardio")];
     const recentTitles = history.slice(-3).map(h =>
       (h.sessionData.title + " " + h.sessionData.description).toLowerCase()
     );
     const doneParts = new Set<string>();
-    for (const t of recentTitles) {
-      if (/가슴|푸시|chest|push|벤치/.test(t)) doneParts.add("가슴");
-      if (/등|풀|back|pull|로우|랫/.test(t)) doneParts.add("등");
-      if (/어깨|shoulder|프레스|레이즈/.test(t)) doneParts.add("어깨");
-      if (/팔|이두|삼두|arm|bicep|tricep|컬/.test(t)) doneParts.add("팔");
-      if (/하체|레그|스쿼트|leg|squat|런지|데드/.test(t)) doneParts.add("하체");
-      if (/코어|복근|core|ab|플랭크/.test(t)) doneParts.add("코어");
-      if (/러닝|유산소|cardio|run|hiit|서킷/.test(t)) doneParts.add("유산소");
+    for (const title of recentTitles) {
+      if (/가슴|푸시|chest|push|벤치/.test(title)) doneParts.add(t("home.bodyPart.chest"));
+      if (/등|풀|back|pull|로우|랫/.test(title)) doneParts.add(t("home.bodyPart.back"));
+      if (/어깨|shoulder|프레스|레이즈/.test(title)) doneParts.add(t("home.bodyPart.shoulder"));
+      if (/팔|이두|삼두|arm|bicep|tricep|컬/.test(title)) doneParts.add(t("home.bodyPart.arm"));
+      if (/하체|레그|스쿼트|leg|squat|런지|데드/.test(title)) doneParts.add(t("home.bodyPart.lower"));
+      if (/코어|복근|core|ab|플랭크/.test(title)) doneParts.add(t("home.bodyPart.core"));
+      if (/러닝|유산소|cardio|run|hiit|서킷/.test(title)) doneParts.add(t("home.bodyPart.cardio"));
     }
     const missing = allParts.filter(p => !doneParts.has(p));
 
     if (missing.length > 0 && missing.length < allParts.length) {
       const done = [...doneParts].join(" · ");
       const recommend = missing.slice(0, 2).join(" · ");
-      return `최근 ${done} 했어요. 오늘은 ${recommend} 어때요?`;
+      return t("home.coach.recommend", { done, recommend });
     }
     const last = history[history.length - 1];
     const desc = last.sessionData.description || last.sessionData.title || "";
-    return desc ? `지난번 ${desc} 했어요. 오늘도 해볼까요?` : "오늘 운동 한번 해볼까요?";
+    return desc ? t("home.coach.lastSession", { desc }) : t("home.coach.default");
   })();
 
   const prevCoachRef = useRef("");
@@ -431,7 +431,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onStartWorkout
             onClick={() => setShowAllQuests(v => !v)}
             className="w-full mt-3 pt-3 border-t border-gray-100 text-[12px] font-bold text-[#2D6A4F] text-center"
           >
-            {showAllQuests ? "접기" : `전체 퀘스트 보기 (${questDefs.length})`}
+            {showAllQuests ? t("home.quest.collapse") : t("home.quest.showAll", { count: String(questDefs.length) })}
           </button>
         )}
       </div>
@@ -465,7 +465,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onStartWorkout
             onClick={onStartWorkout}
             className="w-full py-3.5 rounded-xl bg-[#1B4332] text-white font-bold text-[15px] flex items-center justify-center gap-2 active:scale-[0.98] transition-all shadow-lg"
           >
-            {didWorkoutToday ? "한 번 더 운동하기" : "오늘 운동 시작하기"}
+            {didWorkoutToday ? t("home.coach.oneMore") : t("home.coach.startToday")}
           </button>
         </div>
 
@@ -502,10 +502,10 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onStartWorkout
           // 경험 번역
           const previewExpMsg = (() => {
             const label = (preview.label || "").toLowerCase();
-            if (/볼륨/.test(label)) return "이 페이스면 거울 속 변화가 다가오고 있어요";
-            if (/감량|체중/.test(label)) return "이 페이스면 4주 뒤 청바지 핏이 달라져요";
-            if (/1rm|근력/.test(label)) return "같은 무게가 점점 가벼워지고 있어요";
-            return "꾸준함이 변화를 만들고 있어요";
+            if (/볼륨|volume/i.test(label)) return t("home.prediction.volume");
+            if (/감량|체중|weight|loss/i.test(label)) return t("home.prediction.weightLoss");
+            if (/1rm|근력|strength/i.test(label)) return t("home.prediction.strength");
+            return t("home.prediction.default");
           })();
           return (
             <div
