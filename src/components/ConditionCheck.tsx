@@ -334,7 +334,7 @@ export const ConditionCheck: React.FC<ConditionCheckProps> = ({ onComplete, onBa
               <div className="bg-[#2D6A4F]/5 rounded-xl px-4 py-3 flex items-center gap-2 -mt-2 mb-1">
                 <img src="/favicon_backup.png" alt="AI" className="w-5 h-5 rounded-full shrink-0" />
                 <p className="text-[12px] font-bold text-[#2D6A4F]">
-                  {bodyPart === "full_fatigue" ? "오늘은 가볍게 가는 게 좋아요. 회복도 운동이에요!" : bodyPart === "upper_stiff" ? "상체가 뻐근하면 하체나 유산소가 좋아요!" : "하체가 무거우면 상체 위주로 가볼까요?"}
+                  {bodyPart === "full_fatigue" ? t("condition.tip.fatigue") : bodyPart === "upper_stiff" ? t("condition.tip.upper") : t("condition.tip.lower")}
                 </p>
               </div>
             )}
@@ -365,6 +365,7 @@ const GoalSelection = ({
   goal: WorkoutGoal | null;
   onSelect: (g: WorkoutGoal, session?: SessionSelection) => void;
 }) => {
+  const { t } = useTranslation();
   const [subView, setSubView] = useState<"running" | null>(null);
 
   // 러닝 종류 서브뷰
@@ -406,40 +407,40 @@ const GoalSelection = ({
       <ConditionCard
         selected={goal === "fat_loss"}
         onClick={() => onSelect("fat_loss", { goal: "fat_loss", sessionMode: "balanced" })}
-        title="살 빼기"
-        desc="다이어트, 미용"
-        badge="저강도"
+        title={t("condition.goal.fatLoss")}
+        desc={t("condition.goal.fatLoss.desc")}
+        badge={t("plan.intensity.low")}
         badgeColor="text-emerald-600 bg-emerald-50"
         delay={0.05}
       />
       <ConditionCard
         selected={goal === "muscle_gain"}
         onClick={() => onSelect("muscle_gain", { goal: "muscle_gain", sessionMode: "balanced" })}
-        title="근육 키우기"
-        desc="근비대, 몸 만들기"
-        badge="중강도"
+        title={t("condition.goal.muscleGain")}
+        desc={t("condition.goal.muscleGain.desc")}
+        badge={t("plan.intensity.moderate")}
         badgeColor="text-amber-600 bg-amber-50"
         delay={0.1}
       />
       <ConditionCard
         selected={goal === "strength"}
         onClick={() => onSelect("strength", { goal: "strength", sessionMode: "balanced" })}
-        title="힘 세지기"
-        desc="3대 500 목표"
-        badge="고강도"
+        title={t("condition.goal.strength")}
+        desc={t("condition.goal.strength.desc")}
+        badge={t("plan.intensity.high")}
         badgeColor="text-red-500 bg-red-50"
         delay={0.15}
       />
 
       {/* 부위별 집중 */}
-      <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] mt-3 mb-1">부위별 집중</p>
+      <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] mt-3 mb-1">{t("condition.split.title")}</p>
       <div className="flex gap-2 animate-card-enter" style={{ animationDelay: "0.2s", animationFillMode: "forwards" }}>
         {[
-          { key: "chest" as TargetMuscle, label: "가슴" },
-          { key: "back" as TargetMuscle, label: "등" },
-          { key: "shoulders" as TargetMuscle, label: "어깨" },
-          { key: "arms" as TargetMuscle, label: "팔" },
-          { key: "legs" as TargetMuscle, label: "하체" },
+          { key: "chest" as TargetMuscle, label: t("home.bodyPart.chest") },
+          { key: "back" as TargetMuscle, label: t("home.bodyPart.back") },
+          { key: "shoulders" as TargetMuscle, label: t("home.bodyPart.shoulder") },
+          { key: "arms" as TargetMuscle, label: t("home.bodyPart.arm") },
+          { key: "legs" as TargetMuscle, label: t("home.bodyPart.lower") },
         ].map((m) => (
           <button
             key={m.key}
@@ -452,11 +453,11 @@ const GoalSelection = ({
       </div>
 
       {/* 특수 훈련 */}
-      <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] mt-2 mb-1">특수 훈련</p>
+      <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] mt-2 mb-1">{t("condition.special.title")}</p>
       <div className="flex gap-2">
         {[
-          { label: "기초체력", sub: "초보 홈트용", onClick: () => onSelect("general_fitness", { goal: "general_fitness", sessionMode: "home_training" }) },
-          { label: "러닝", sub: "러너용", onClick: () => setSubView("running") },
+          { label: t("condition.special.fitness"), sub: t("condition.special.fitness.desc"), onClick: () => onSelect("general_fitness", { goal: "general_fitness", sessionMode: "home_training" }) },
+          { label: t("condition.special.running"), sub: t("condition.special.running.desc"), onClick: () => setSubView("running") },
         ].map((item, i) => (
           <button
             key={item.label}
