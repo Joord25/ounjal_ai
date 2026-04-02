@@ -570,7 +570,7 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ user, on
 
       <div className="flex-1 overflow-y-auto scrollbar-hide">
       <div className="pb-4 px-6 text-center">
-        <h1 className="text-3xl font-black text-[#1B4332]">Premium 구독</h1>
+        <h1 className="text-3xl font-black text-[#1B4332]">{t("sub.heading")}</h1>
       </div>
 
       <div className="flex-1 px-6 pb-4">
@@ -596,7 +596,7 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ user, on
             <div className="bg-gray-50 rounded-2xl p-5">
               <h3 className="text-sm font-bold text-gray-900 mb-3">포함된 기능</h3>
               <div className="flex flex-col gap-2">
-                {["AI 맞춤 운동 플랜 무제한", "전체 목표 성장 예측 리포트", "운동 분석 리포트", "체중 변화 추적"].map((feature) => (
+                {[t("sub.feature.unlimited"), t("sub.feature.prediction"), t("sub.feature.analysisReport"), t("sub.feature.weightTrack")].map((feature) => (
                   <div key={feature} className="flex items-center gap-2">
                     <svg className="w-4 h-4 text-[#2D6A4F] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -648,7 +648,7 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ user, on
 
             {/* Pricing Card */}
             <div className="p-6 rounded-2xl border-2 border-[#2D6A4F] bg-[#f0fdf4] relative text-center">
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-[#2D6A4F] text-white text-xs font-bold rounded-full whitespace-nowrap">초기 특가</div>
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-[#2D6A4F] text-white text-xs font-bold rounded-full whitespace-nowrap">{t("sub.earlyBird")}</div>
               <div className="mb-5 mt-2">
                 <div className="flex items-baseline justify-center gap-2">
                   <span className="text-lg text-gray-400 line-through">₩9,900</span>
@@ -656,12 +656,12 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ user, on
                   <span className="text-base font-medium text-gray-400">/월</span>
                 </div>
                 <div className="flex items-center justify-center gap-2 mt-2">
-                  <span className="px-2 py-0.5 bg-red-500 text-white text-xs font-bold rounded-full">30% 할인</span>
-                  <span className="text-xs text-[#2D6A4F] font-semibold">초기 특가</span>
+                  <span className="px-2 py-0.5 bg-red-500 text-white text-xs font-bold rounded-full">{t("sub.discount")}</span>
+                  <span className="text-xs text-[#2D6A4F] font-semibold">{t("sub.earlyBird")}</span>
                 </div>
               </div>
               <div className="flex flex-col gap-2.5 text-left">
-                {["AI 운동 플랜 무제한", "전체 목표 성장 예측 리포트", "레벨별 상세 성장 분석", "세션별 AI 분석 리포트", "적응형 운동 세션"].map((feature) => (
+                {[t("sub.feature.unlimited"), t("sub.feature.prediction"), t("sub.feature.levelAnalysis"), t("sub.feature.sessionReport"), t("sub.feature.adaptive")].map((feature) => (
                   <div key={feature} className="flex items-center gap-2">
                     <svg width="18" height="18" viewBox="0 0 18 18" fill="none" className="shrink-0">
                       <path d="M4 9L7.5 12.5L14 6" stroke="#2D6A4F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -851,7 +851,7 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ user, on
               <div className="bg-amber-50 rounded-2xl p-5 border border-amber-200 mb-6">
                 <h3 className="text-sm font-bold text-amber-800 mb-3">취소하면 잃게 되는 혜택</h3>
                 <div className="flex flex-col gap-2">
-                  {["AI 맞춤 운동 플랜 무제한 생성", "전체 목표 성장 예측 리포트", "레벨별 상세 성장 분석", "세션별 AI 분석 리포트"].map((feature) => (
+                  {[t("sub.feature.unlimited"), t("sub.feature.prediction"), t("sub.feature.levelAnalysis"), t("sub.feature.sessionReport")].map((feature) => (
                     <div key={feature} className="flex items-center gap-2">
                       <svg className="w-4 h-4 text-red-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -929,22 +929,22 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ user, on
 
               {/* Type to confirm */}
               <h3 className="text-base font-black text-gray-900 mb-1">정말 취소하시겠습니까?</h3>
-              <p className="text-xs text-gray-400 mb-4">확인을 위해 아래에 <span className="font-bold text-red-400">"취소"</span>를 입력해 주세요</p>
+              <p className="text-xs text-gray-400 mb-4">{t("sub.cancel.confirmLabel").split('"')[0]}<span className="font-bold text-red-400">&quot;{t("sub.cancel.confirmWord")}&quot;</span>{t("sub.cancel.confirmLabel").split('"').pop()}</p>
               <input
                 type="text"
                 value={confirmInput}
                 onChange={(e) => setConfirmInput(e.target.value)}
-                placeholder="취소"
+                placeholder={t("sub.cancel.confirmWord")}
                 className="w-full px-4 py-3 rounded-2xl border border-gray-200 bg-gray-50 text-sm font-medium text-gray-900 outline-none focus:border-red-300 transition-colors"
               />
 
               <div className="mt-8 flex flex-col gap-3">
                 <button
                   onClick={handleCancel}
-                  disabled={confirmInput !== "취소" || confirmCountdown > 0 || isProcessing}
+                  disabled={confirmInput !== t("sub.cancel.confirmWord") || confirmCountdown > 0 || isProcessing}
                   className="w-full py-3 rounded-2xl text-sm font-bold text-red-400 bg-red-50 active:scale-[0.98] transition-all disabled:opacity-30"
                 >
-                  {isProcessing ? "처리 중..." : confirmCountdown > 0 ? `${confirmCountdown}초 후 취소 가능` : "구독 취소 확정"}
+                  {isProcessing ? t("sub.cancel.processing") : confirmCountdown > 0 ? t("sub.cancel.countdown", { n: String(confirmCountdown) }) : t("sub.cancel.confirmButton")}
                 </button>
                 <button
                   onClick={() => setCancelStep(0)}
