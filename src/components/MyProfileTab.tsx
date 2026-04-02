@@ -43,6 +43,14 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout, auto
   const [heightInput, setHeightInput] = useState(height);
   const [subStatus, setSubStatus] = useState<"loading" | "free" | "active" | "cancelled">("loading");
   const [showBodyInfo, setShowBodyInfo] = useState(!!autoEdit1RM);
+  const rmRef = useRef<HTMLDivElement>(null);
+
+  // autoEdit1RM → BODY INFO 열고 1RM으로 자동 스크롤
+  useEffect(() => {
+    if (autoEdit1RM && rmRef.current) {
+      setTimeout(() => rmRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 300);
+    }
+  }, [autoEdit1RM]);
 
   // 1RM states
   const [editing1RM, setEditing1RM] = useState(!!autoEdit1RM);
@@ -430,7 +438,7 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout, auto
           <div className="h-px bg-gray-100" />
 
           {/* 3대 운동 1RM */}
-          <div className="flex justify-between items-center min-h-[32px]">
+          <div ref={rmRef} className="flex justify-between items-center min-h-[32px]">
             <span className="text-sm font-bold text-gray-500">3대 1RM</span>
             {editing1RM ? (
               <button onClick={handle1RMSave} className="text-xs font-bold text-[#2D6A4F] active:opacity-60">저장</button>
