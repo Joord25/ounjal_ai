@@ -263,15 +263,14 @@ export default function LandingContent() {
           <RevealSection>
             <div className="space-y-4">
               {[
-                { emoji: "⚖️", text: "살 빼려고 운동 시작한 다이어터" },
-                { emoji: "💰", text: "PT 비용이 부담되는 자기주도 운동러" },
-                { emoji: "🏠", text: "집에서 혼자 루틴 짜기 귀찮은 홈트족" },
-                { emoji: "🏃", text: "체계적으로 달리고 싶은 러너" },
-                { emoji: "💪", text: "헬스장에서 뭘 해야 할지 모르는 헬린이" },
-              ].map((item, i) => (
-                <div key={i} className="flex items-center gap-4 px-5 py-4 rounded-2xl bg-[#f0fdf4] border border-[#d1fae5]">
-                  <span className="text-2xl">{item.emoji}</span>
-                  <span className="text-base sm:text-lg font-bold text-[#1B4332]">{item.text}</span>
+                "살 빼려고 운동 시작한 다이어터",
+                "PT 비용이 부담되는 자기주도 운동러",
+                "집에서 혼자 루틴 짜기 귀찮은 홈트족",
+                "체계적으로 달리고 싶은 러너",
+                "헬스장에서 뭘 해야 할지 모르는 헬린이",
+              ].map((text, i) => (
+                <div key={i} className="px-5 py-4 rounded-2xl bg-[#f0fdf4] border border-[#d1fae5] text-center">
+                  <span className="text-base sm:text-lg font-bold text-[#1B4332]">{text}</span>
                 </div>
               ))}
             </div>
@@ -280,7 +279,7 @@ export default function LandingContent() {
       </section>
 
       {/* Partners Scroll */}
-      <section className="py-12 sm:py-16 bg-[#FAFBF9] overflow-hidden">
+      <section className="py-12 sm:py-16 bg-white overflow-hidden">
         <div
           className="flex items-center w-max"
           style={{ animation: "scroll-left 30s linear infinite" }}
