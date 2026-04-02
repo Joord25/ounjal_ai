@@ -317,8 +317,8 @@ function computeReading(
   const goalItems = p.goal === "muscle_gain" ? getMuscleGainItems(p, history) : (PREDICTIONS_BY_GOAL[p.goal]?.[level] || []);
 
   const conditionStr = p.weeklyFrequency === 0
-    ? "운동 시작 후 측정"
-    : `하루 ${p.sessionMinutes}분, 주 ${p.weeklyFrequency}회 기준`;
+    ? "growth.condition.notStarted"
+    : `growth.condition.active:${p.sessionMinutes}:${p.weeklyFrequency}`;
 
   // 공통 계산값 (Phase 0: 순수 산술만)
   const sessionCal = estimateSessionCalories(p.bodyWeight, p.sessionMinutes, p.goal);
@@ -1568,7 +1568,7 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
                 const myLevel: UserLevel = fp.weeklyFrequency <= 2 ? "beginner" : "advanced";
                 const myGoalData = PREDICTIONS_BY_GOAL[fp.goal];
                 const myItems = fp.goal === "muscle_gain" ? getMuscleGainItems(fp, workoutHistory) : (myGoalData?.[myLevel] || []);
-                const levelLabel = myLevel === "beginner" ? "입문자" : "상급자";
+                const levelLabel = myLevel === "beginner" ? (locale === "en" ? "Beginner" : "입문자") : (locale === "en" ? "Advanced" : "상급자");
 
                 return (
                   <>
@@ -1618,7 +1618,15 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
                                 <span className="text-[#1B4332] text-sm font-bold">{!isOtherGoal ? t("growth.myGoal") : ""}: {t(`growth.goal.${activeGoalKey}`)}</span>
                                 <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-[#2D6A4F]/10 text-[#2D6A4F]">{levelLabel}</span>
                               </div>
-                              <span className="text-[#6B7280] text-[11px]">{activeReading.condition}</span>
+                              <span className="text-[#6B7280] text-[11px]">{(() => {
+                                const c = activeReading.condition;
+                                if (c === "growth.condition.notStarted") return locale === "en" ? "After starting" : "운동 시작 후 측정";
+                                if (c.startsWith("growth.condition.active:")) {
+                                  const [, min, freq] = c.split(":");
+                                  return locale === "en" ? `${min} min/day, ${freq}x/week` : `하루 ${min}분, 주 ${freq}회 기준`;
+                                }
+                                return c;
+                              })()}</span>
                             </div>
                       <div className="space-y-2.5">
                         {activeItems.map((item: PredictionItem, i: number) => {
@@ -1626,7 +1634,24 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
                           const threshold = UNLOCK_THRESHOLDS[item.phase] ?? 999;
                           const isUnlocked = workoutCount >= threshold;
                           const isOpen = isUnlocked && (i === 0 || isPremium);
-                          const easyLabel = item.label.replace(/e1RM/g, "최대 중량").replace(/1RM/g, "최대 중량");
+                          const rawLabel = locale === "en" ? item.label
+                            .replace("안전한 주간 체중 감량 속도", "Safe weekly weight loss rate")
+                            .replace("1개월 후 예상 체중", "Projected weight in 1 month")
+                            .replace("2개월 후 예상 체중", "Projected weight in 2 months")
+                            .replace("4개월 후 예상 체중", "Projected weight in 4 months")
+                            .replace(/-(\d+)kg 감량 예상 기간/, "-$1kg loss timeline")
+                            .replace("현재 근력 수준", "Current strength level")
+                            .replace("강점·약점 분석", "Strength & weakness analysis")
+                            .replace(/(\d+)kg 증량 예상 기간/, "$1kg gain timeline")
+                            .replace("상급 진입 예상 기간", "Advanced level timeline")
+                            .replace("중급 진입 예상 기간", "Intermediate level timeline")
+                            .replace("체력 테스트 등급", "Fitness test grade")
+                            .replace("체력 점수 변화 예측", "Fitness score projection")
+                            .replace("건강 지표 현황", "Health metrics status")
+                            .replace("주간 균형 분석", "Weekly balance analysis")
+                            .replace("맞춤 운동 추천", "Personalized recommendations")
+                            : item.label;
+                          const easyLabel = rawLabel.replace(/e1RM/g, locale === "en" ? "est. 1RM" : "최대 중량").replace(/1RM/g, locale === "en" ? "1RM" : "최대 중량");
                           const easyValue = pred?.value?.toString().replace(/e1RM/g, "최대 중량").replace(/Best e1RM/g, "최고 기록");
                           const easySub = pred?.sub?.replace(/e1RM/g, "최대 중량").replace(/Best e1RM/g, "최고 기록").replace(/R²=\d+%/g, "").replace(/\s+,\s*/g, ", ").trim();
                           return (
@@ -1670,10 +1695,10 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
                                   {!pred?.strengthBars && easySub && <p className="text-[#2D6A4F] text-[11px] mt-1 text-right">{easySub}</p>}
                                   {!pred?.strengthBars && !pred?.action && (() => {
                                     const label = (easyLabel || "").toLowerCase();
-                                    if (/체중|감량|kg/.test(label)) return <p className="text-[#2D6A4F] text-[11px] mt-1.5 text-right font-bold">꾸준히 하면 거울 속 변화가 다가와요</p>;
-                                    if (/1rm|중량|근력/.test(label)) return <p className="text-[#2D6A4F] text-[11px] mt-1.5 text-right font-bold">같은 무게가 점점 가벼워지고 있어요</p>;
-                                    if (/칼로리|kcal/.test(label)) return <p className="text-[#2D6A4F] text-[11px] mt-1.5 text-right font-bold">이 페이스면 몸이 달라지고 있어요</p>;
-                                    if (/who|권장/.test(label)) return <p className="text-[#2D6A4F] text-[11px] mt-1.5 text-right font-bold">건강한 삶의 기준을 넘어서고 있어요</p>;
+                                    if (/체중|감량|kg|weight|loss/i.test(label)) return <p className="text-[#2D6A4F] text-[11px] mt-1.5 text-right font-bold">{t("home.prediction.weightLoss")}</p>;
+                                    if (/1rm|중량|근력|strength/i.test(label)) return <p className="text-[#2D6A4F] text-[11px] mt-1.5 text-right font-bold">{t("home.prediction.strength")}</p>;
+                                    if (/칼로리|kcal|calorie/i.test(label)) return <p className="text-[#2D6A4F] text-[11px] mt-1.5 text-right font-bold">{t("home.prediction.volume")}</p>;
+                                    if (/who|권장|health/i.test(label)) return <p className="text-[#2D6A4F] text-[11px] mt-1.5 text-right font-bold">{t("growth.coach.good")}</p>;
                                     return null;
                                   })()}
                                 </div>
