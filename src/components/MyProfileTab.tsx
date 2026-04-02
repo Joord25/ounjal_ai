@@ -492,7 +492,7 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout, auto
             <p>서울특별시 관악구 은천로35길 40-6, 404호</p>
             <p>H.P 010-4824-2869</p>
             <p>ounjal.ai.app@gmail.com</p>
-            <p className="mt-2">Copyright © 2026 Joord. All rights reserved.</p>
+            <p className="mt-2">Copyright © 2026 오운잘 AI. All rights reserved.</p>
           </div>
         </div>
       </div>
