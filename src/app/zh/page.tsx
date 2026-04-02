@@ -349,6 +349,11 @@ export default function ZhLandingPage() {
             <img src="/favicon.png" alt="ohunjal AI" className="w-8 h-8 rounded-lg" />
             <span className="font-bold text-[#10B981] text-lg">ohunjal AI</span>
           </div>
+          <div className="flex items-center justify-center gap-4 mb-6 text-sm">
+            <a href="/zh/terms" className="text-gray-400 hover:text-gray-300 transition-colors underline underline-offset-2">服务条款</a>
+            <span className="text-gray-600">|</span>
+            <a href="/zh/privacy" className="text-gray-400 hover:text-gray-300 transition-colors underline underline-offset-2">隐私政策</a>
+          </div>
           <div className="space-y-1">
             <p className="text-xs text-gray-500">&copy; 2026 ohunjal AI. All rights reserved.</p>
             <p className="text-[10px] text-gray-600 leading-relaxed max-w-lg mx-auto">
