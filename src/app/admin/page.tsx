@@ -219,6 +219,37 @@ export default function AdminPage() {
     finally { setDeactivating(false); }
   };
 
+  const handleQuickActivate = async (email: string) => {
+    const m = prompt(`${email} 활성화 기간 (개월 수)`, "1");
+    if (!m) return;
+    try {
+      const token = await getToken();
+      const res = await fetch("/api/adminActivate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+        body: JSON.stringify({ email, months: parseInt(m) || 1 }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error);
+      alert(`${email} → ${m}개월 활성화 완료`);
+      loadUserList(); loadDashboard(); loadLogs();
+    } catch (e: unknown) { alert(e instanceof Error ? e.message : "실패"); }
+  };
+
+  const handleQuickDeactivate = async (email: string) => {
+    if (!confirm(`${email} 비활성화?`)) return;
+    try {
+      const token = await getToken();
+      const res = await fetch("/api/adminDeactivate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+        body: JSON.stringify({ email }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error);
+      alert(`${email} → 비활성화 완료`);
+      loadUserList(); loadDashboard(); loadLogs();
+    } catch (e: unknown) { alert(e instanceof Error ? e.message : "실패"); }
+  };
+
   const statusLabel = (s: string) => s === "active" ? "구독중" : s === "free" ? "무료" : s === "cancelled" ? "해지됨" : s === "expired" ? "만료됨" : s;
   const statusColor = (s: string) => s === "active" ? "bg-emerald-100 text-emerald-700" : s === "cancelled" ? "bg-amber-100 text-amber-700" : s === "expired" ? "bg-red-100 text-red-700" : "bg-gray-100 text-gray-600";
 
@@ -238,8 +269,8 @@ export default function AdminPage() {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-3xl mx-auto px-4 py-6">
+    <div className="min-h-screen bg-gray-50 overflow-y-auto">
+      <div className="max-w-3xl mx-auto px-4 py-6 pb-20">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-xl font-black text-[#1B4332]">오운잘 관리자</h1>
@@ -366,15 +397,25 @@ export default function AdminPage() {
               ) : (
                 <>
                   {userList.map((u, i) => (
-                    <div key={u.uid} className={`flex items-center justify-between px-4 py-3 ${i < userList.length - 1 ? "border-b border-gray-50" : ""}`}>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium text-gray-800 truncate">{u.email}</p>
+                    <div key={u.uid} className={`px-4 py-3 ${i < userList.length - 1 ? "border-b border-gray-50" : ""}`}>
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="text-sm font-medium text-gray-800 truncate flex-1 min-w-0">{u.email}</p>
+                        <span className={`px-2 py-1 rounded-full text-[10px] font-bold shrink-0 ml-2 ${statusColor(u.status)}`}>{statusLabel(u.status)}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
                         <p className="text-xs text-gray-400">
                           {u.expiresAt ? `만료: ${new Date(u.expiresAt).toLocaleDateString("ko-KR")}` : "구독 없음"}
                           {u.billingKey !== "-" ? ` · ${u.billingKey}` : ""}
                         </p>
+                        <div className="flex gap-1.5 shrink-0 ml-2">
+                          <button onClick={() => handleQuickActivate(u.email)}
+                            className="px-2 py-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 rounded-lg hover:bg-emerald-100">활성화</button>
+                          {u.status !== "free" && (
+                            <button onClick={() => handleQuickDeactivate(u.email)}
+                              className="px-2 py-1 text-[10px] font-bold text-red-500 bg-red-50 rounded-lg hover:bg-red-100">비활성화</button>
+                          )}
+                        </div>
                       </div>
-                      <span className={`px-2 py-1 rounded-full text-[10px] font-bold shrink-0 ml-2 ${statusColor(u.status)}`}>{statusLabel(u.status)}</span>
                     </div>
                   ))}
                   {/* Pagination */}
