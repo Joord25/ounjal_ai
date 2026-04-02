@@ -18,7 +18,78 @@ interface MyProfileTabProps {
 }
 
 // 영어 약관/개인정보 요약 (모달용)
-const TERMS_EN = `NOTICE: This English translation is provided for reference only. The legally binding version is the Korean original.\n\n---\n\nArticle 1 (Purpose)\nThese Terms govern the rights, obligations, and responsibilities between ohunjal AI ("the Company") and users ("Members") regarding the use of services provided by the Company.\n\nArticle 11 (AI Service Disclosure)\nAI workout plans and analysis reports are generated automatically and do not replace professional medical consultation. AI-generated content may not always be 100% accurate. Members should exercise their own judgment.\n\nArticle 12 (Limitation of Liability)\nThe Company is not liable for injuries or damages resulting from AI-generated content.\n\nFull terms available at ohunjal.com/en/terms\n\nEffective from March 1, 2026.`;
+const TERMS_EN = `NOTICE: This English translation is provided for reference purposes only. The legally binding version is the Korean original. In the event of any discrepancy between this translation and the Korean original, the Korean version shall prevail.
+
+---
+
+Article 1 (Purpose)
+These Terms govern the rights, obligations, and responsibilities between ohunjal AI (hereinafter "the Company") and users (hereinafter "Members") regarding the use of services provided by the Company.
+
+Article 2 (Definitions)
+1. "Service" refers to the AI-based workout planning, tracking, and analysis services provided by the Company through ohunjal.com.
+2. "Member" refers to any person who has agreed to these Terms and uses the Service.
+3. "AI Workout Plan" refers to workout routines automatically generated based on the Member's body condition, goals, and exercise history.
+
+Article 3 (Effectiveness and Amendment of Terms)
+The Company shall post these Terms on the Service screen. The Company may amend these Terms within the scope permitted by applicable laws, providing at least 7 days' notice (or 30 days for changes unfavorable to Members) before the effective date.
+
+Article 4 (Registration)
+1. Membership is established when a person agrees to these Terms and completes the sign-up process via Google Account authentication.
+2. The Company may reject or cancel registration if false information is provided or if registration requirements are not met.
+
+Article 5 (Member Obligations)
+1. Members shall manage their account credentials responsibly and shall not allow third parties to use their accounts.
+2. Members shall not engage in the following: impersonating others, posting false information, infringing intellectual property, interfering with Service operations, or engaging in illegal activities.
+3. Members are responsible for the accuracy and legality of data they input.
+
+Article 6 (Service Provision and Modification)
+1. The Service is provided 24/7 in principle, but may be temporarily suspended for maintenance, system updates, or force majeure.
+2. The Company may modify or discontinue part or all of the Service for operational or technical reasons, with prior notice.
+
+Article 7 (Subscription and Payment)
+1. The Service operates on a freemium model with limited free features and a paid Premium subscription.
+2. Premium subscriptions are billed monthly via KakaoPay and auto-renew unless cancelled.
+3. The Company may change subscription pricing with at least 30 days' notice.
+
+Article 8 (Cancellation and Refund)
+1. Members may cancel their subscription at any time through their Profile settings.
+2. Upon cancellation, the subscription remains active until the end of the current billing period.
+3. Refunds are available within 7 days of the initial subscription if no premium features have been used. Refund requests may be submitted to ounjal.ai.app@gmail.com.
+
+Article 9 (Intellectual Property)
+All intellectual property related to the Service, including AI algorithms, workout plans, UI design, and content, belongs to the Company. Members may not copy, modify, distribute, or commercially exploit any Service content without prior written consent.
+
+Article 10 (Personal Information)
+The Company handles Member personal information in accordance with the Privacy Policy. AI-generated workout plans may use Member-provided body data for personalization purposes only.
+
+Article 11 (AI Service Disclosure)
+1. AI workout plans and analysis reports are generated automatically using artificial intelligence and do not replace direct exercise prescription by certified professionals or medical practitioners.
+2. AI-generated content (workout routines, form guidance, etc.) may not always be 100% accurate or complete. All AI-generated content is for reference only. Members should exercise their own judgment based on their health condition and fitness level.
+3. This Service is not a medical device and is not intended for diagnosis, treatment, or prevention of disease. Members with pre-existing conditions or physical limitations must consult a medical professional before using the Service. The Company is not liable for health issues arising from failure to do so.
+
+Article 12 (Limitation of Liability)
+1. The Company is not liable for service interruption due to force majeure or similar circumstances.
+2. The Company is not liable for service disruptions caused by Member negligence.
+3. The Company is not liable for failure to achieve expected workout results.
+4. The Company is not legally liable for injuries or damages resulting from errors or inaccuracies in AI-generated content (workout plans, growth predictions, calorie analysis, estimated 1RM, strength assessments, etc.).
+
+Article 13 (Intellectual Property and Usage Restrictions)
+All intellectual property related to the Service, including AI algorithms, workout plans, UI design, and content, belongs to the Company. Members may not copy, modify, distribute, or commercially exploit any Service content without prior written consent. Unauthorized crawling, scraping, or automated access to the Service is prohibited.
+
+Article 14 (Service Restriction and Account Suspension)
+The Company may restrict or suspend a Member's account in the following cases: violation of these Terms, interference with Service operations, impersonation, distribution of false information, or any activity that threatens other Members' use of the Service. The Company will provide prior notice where possible, except in urgent cases.
+
+Article 15 (Termination and Withdrawal)
+Members may terminate their agreement and withdraw from the Service at any time through the account deletion feature. Upon withdrawal, personal information is processed in accordance with the Privacy Policy and destroyed after the legally required retention period.
+
+Article 16 (Governing Law and Jurisdiction)
+Disputes related to the Service shall be governed by the laws of the Republic of Korea, with jurisdiction at the court of the Company's registered address. Disputes between the Company and Members may also be submitted for mediation to the Korea Consumer Agency.
+
+Article 17 (Severability)
+If any provision of these Terms is found to be invalid or unenforceable under applicable law, the remaining provisions shall remain in full force and effect.
+
+Supplementary Provisions
+These Terms shall be effective from March 1, 2026.`;
 
 const PRIVACY_EN = `NOTICE: This English translation is provided for reference only. The legally binding version is the Korean original.\n\n---\n\nArticle 1 (Purpose)\nThis Privacy Policy describes how ohunjal AI collects, uses, and protects personal information.\n\nItems Collected: Email, name (Google login), gender, birth year, weight, workout records, auto-generated health metrics.\n\nPurpose: AI workout plan generation, growth predictions, payment processing, service improvement.\n\nThird-party Processing: Google Firebase (auth/storage), Google Gemini API (AI plans), PortOne (payments).\n\nFull policy available at ohunjal.com/en/privacy\n\nEffective from March 1, 2026.`;
 
