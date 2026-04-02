@@ -608,7 +608,7 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout, auto
 
           {/* 3대 운동 1RM */}
           <div ref={rmRef} className="flex justify-between items-center min-h-[32px]">
-            <span className="text-sm font-bold text-gray-500">3대 1RM</span>
+            <span className="text-sm font-bold text-gray-500">{t("my.oneRM")}</span>
             {editing1RM ? (
               <button onClick={handle1RMSave} className="text-xs font-bold text-[#2D6A4F] active:opacity-60">저장</button>
             ) : (
