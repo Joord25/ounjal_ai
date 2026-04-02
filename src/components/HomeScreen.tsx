@@ -28,6 +28,18 @@ interface FitnessProfile {
 
 export const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onStartWorkout, onShowPrediction }) => {
   const { t, locale } = useTranslation();
+
+  // 퀘스트 라벨 번역 헬퍼
+  const tq = (label: string) => {
+    if (locale !== "en") return label;
+    return label
+      .replace(/이번 주 (\d+)일 운동/, "$1 days this week")
+      .replace(/(\d+)일 연속 운동/, "$1-day streak")
+      .replace(/고강도 운동 (\d+)회/, "$1 high intensity sessions")
+      .replace(/중강도 운동 (\d+)회/, "$1 moderate sessions")
+      .replace(/저강도 운동 (\d+)회/, "$1 light sessions")
+      .replace(/새 운동 (\d+)종목 시도/, "Try $1 new exercises");
+  };
   const [history, setHistory] = useState<WorkoutHistory[]>([]);
   const [questData, setQuestData] = useState<ReturnType<typeof getOrCreateWeeklyQuests> | null>(null);
   const [savedGoal, setSavedGoal] = useState<WorkoutGoal | null>(null);
@@ -138,6 +150,10 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onStartWorkout
     const month = now.getMonth() + 1;
     const date = now.getDate();
     const days = locale === "en" ? ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] : ["일", "월", "화", "수", "목", "금", "토"];
+    if (locale === "en") {
+      const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      return `${months[month - 1]} ${date} (${days[now.getDay()]})`;
+    }
     return `${month}월 ${date}일 (${days[now.getDay()]})`;
   })();
 
@@ -192,7 +208,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onStartWorkout
         const isGrowing = pred4w > ex.lastE1RM;
         const r2 = ex.regression.r2;
         const lowConfidence = r2 < 0.5;
-        const timelineMsg = isGrowing ? `${ex.label} 4주 후 더 강해져요` : `${ex.label} 페이스 점검 필요`;
+        const timelineMsg = isGrowing ? t("home.prediction.stronger", { label: ex.label }) : t("home.prediction.checkPace", { label: ex.label });
         previews.push({
           current: `${ex.lastE1RM}kg`,
           predicted: `${pred4w}kg`,
@@ -221,8 +237,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onStartWorkout
             previews.push({
               current: `-${currentKgLoss}kg`,
               predicted: `-${predKgLoss}kg`,
-              timeline: isLosing ? "꾸준히 감량 중이에요" : "페이스 점검이 필요해요",
-              label: "누적 감량 예상",
+              timeline: isLosing ? t("home.prediction.losing") : t("home.prediction.checkPaceGeneral"),
+              label: t("home.prediction.weightLabel"),
             });
           }
         }
@@ -236,8 +252,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onStartWorkout
         previews.push({
           current: `${Math.round(volGrowth.lastVolume).toLocaleString()}kg`,
           predicted: `${pred4wVol.toLocaleString()}kg`,
-          timeline: volGrowth.trend === "up" ? "세션 볼륨이 꾸준히 늘고 있어요" : "볼륨 유지 중, 강도를 올려보세요",
-          label: "운동 볼륨",
+          timeline: volGrowth.trend === "up" ? t("home.prediction.volumeUp") : t("home.prediction.volumeFlat"),
+          label: t("home.prediction.volumeLabel"),
         });
       }
 
@@ -248,9 +264,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onStartWorkout
     const sortedPreviews = (() => {
       if (!savedGoal || predictionPreviews.length === 0) return predictionPreviews;
       const goalOrder: Record<string, string[]> = {
-        fat_loss: ["누적 감량 예상"],
-        muscle_gain: ["벤치", "스쿼트", "데드"],
-        general_fitness: ["운동 볼륨"],
+        fat_loss: [t("home.prediction.weightLabel")],
+        muscle_gain: [t("my.1rm.bench"), t("my.1rm.squat"), t("my.1rm.deadlift")],
+        general_fitness: [t("home.prediction.volumeLabel")],
       };
       const priority = goalOrder[savedGoal] || [];
       return [...predictionPreviews].sort((a, b) => {
@@ -377,8 +393,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onStartWorkout
     intensity_moderate: "ACSM: 중강도 훈련은 근비대와 체력 향상의 핵심",
     intensity_low: "NSCA: 저강도 회복 세션이 과훈련을 예방합니다",
     consistency: "WHO: 주 150분 이상 운동 시 만성질환 위험 감소",
-    bonus_streak: "연속 운동이 습관 형성의 핵심입니다 (Lally, 2010)",
-    bonus_new_exercise: "새로운 자극은 정체기 돌파에 효과적 (NSCA)",
+    bonus_streak: t("home.quest.streakDesc"),
+    bonus_new_exercise: t("home.quest.newExDesc"),
   };
 
   // 퀘스트 헬퍼 (축약 2개 + 전체 펼치기)
@@ -412,7 +428,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onStartWorkout
               <div key={q.id}>
                 <div className="flex items-center justify-between mb-1">
                   <span className={`text-[12px] font-bold ${p.completed ? "text-[#2D6A4F]" : q.isBonus ? "text-gray-500" : "text-gray-700"}`}>
-                    {p.completed ? "✓ " : ""}{q.label}
+                    {p.completed ? "✓ " : ""}{tq(q.label)}
                   </span>
                   <span className="text-[10px] font-bold text-gray-400">{p.current}/{q.target}</span>
                 </div>
@@ -476,15 +492,15 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onStartWorkout
               const now = new Date();
               const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
               return history.filter(h => new Date(h.date) >= monthStart).length;
-            })()}<span className="text-[11px] font-bold text-gray-400 ml-0.5">회</span></p>
+            })()}<span className="text-[11px] font-bold text-gray-400 ml-0.5">{t("home.stats.unit.sessions")}</span></p>
             <p className="text-[10px] font-bold text-gray-400 mt-1">{t("home.stats.thisMonth")}</p>
           </div>
           <div className="flex-1 bg-white rounded-2xl border border-gray-100 p-3.5 shadow-sm text-center">
-            <p className="text-2xl font-black text-[#1B4332] leading-none">{streak}<span className="text-[11px] font-bold text-gray-400 ml-0.5">일</span></p>
+            <p className="text-2xl font-black text-[#1B4332] leading-none">{streak}<span className="text-[11px] font-bold text-gray-400 ml-0.5">{t("home.stats.unit.days")}</span></p>
             <p className="text-[10px] font-bold text-gray-400 mt-1">{t("home.stats.streak")}</p>
           </div>
           <div className="flex-1 bg-white rounded-2xl border border-gray-100 p-3.5 shadow-sm text-center">
-            <p className="text-2xl font-black text-[#1B4332] leading-none">{thisWeekCount}<span className="text-[11px] font-bold text-gray-400 ml-0.5">일</span></p>
+            <p className="text-2xl font-black text-[#1B4332] leading-none">{thisWeekCount}<span className="text-[11px] font-bold text-gray-400 ml-0.5">{t("home.stats.unit.days")}</span></p>
             <p className="text-[10px] font-bold text-gray-400 mt-1">{t("home.stats.thisWeek")}</p>
           </div>
         </div>
