@@ -6,6 +6,7 @@ import { updateWeight, updateGender, updateBirthYear } from "@/utils/userProfile
 import { getIntensityRecommendation, type IntensityLevel } from "@/utils/workoutMetrics";
 import { CoachTooltip } from "./Tutorial";
 import { trackEvent } from "@/utils/analytics";
+import { useTranslation } from "@/hooks/useTranslation";
 
 export interface SessionSelection {
   goal: WorkoutGoal;
@@ -24,7 +25,8 @@ interface ConditionCheckProps {
 type Step = "body_check" | "weight_input" | "goal_select";
 
 export const ConditionCheck: React.FC<ConditionCheckProps> = ({ onComplete, onBack, userName, isGuest }) => {
-  const displayName = userName || "회원";
+  const { t } = useTranslation();
+  const displayName = userName || t("home.defaultName");
   const [step, setStep] = useState<Step>("body_check");
 
   // State
@@ -178,7 +180,7 @@ export const ConditionCheck: React.FC<ConditionCheckProps> = ({ onComplete, onBa
             </span>
           </div>
           <h1 className="text-3xl font-black mt-2 leading-tight text-[#1B4332] whitespace-pre-line">
-            {step === "body_check" ? `${displayName}님,\n오늘 몸 상태는 어때요?` : step === "weight_input" ? (hasProfile ? `${displayName}님,\n오늘 체중을 알려주세요` : "기본 정보를 입력해주세요") : `${displayName}님,\n오늘은 무슨 운동 할까요?`}
+            {step === "body_check" ? `${displayName}${t("condition.suffix.name")}\n${t("condition.title.bodyCheck")}` : step === "weight_input" ? (hasProfile ? `${displayName}${t("condition.suffix.name")}\n${t("condition.title.weightInput")}` : t("condition.title.profileInput")) : `${displayName}${t("condition.suffix.name")}\n${t("condition.title.goalSelect")}`}
           </h1>
         </div>
         {step === "body_check" ? (
@@ -189,29 +191,29 @@ export const ConditionCheck: React.FC<ConditionCheckProps> = ({ onComplete, onBa
               <ConditionCard
                 selected={bodyPart === "upper_stiff"}
                 onClick={() => handleNext("upper_stiff")}
-                title="상체가 굳어있음"
-                desc="목, 어깨, 등, 날개뼈 주위가 뻐근함"
+                title={t("condition.body.upperStiff")}
+                desc={t("condition.body.upperStiff.desc")}
                 delay={0.05}
               />
               <ConditionCard
                 selected={bodyPart === "lower_heavy"}
                 onClick={() => handleNext("lower_heavy")}
-                title="하체가 무거움"
-                desc="고관절, 햄스트링, 종아리가 타이트함"
+                title={t("condition.body.lowerHeavy")}
+                desc={t("condition.body.lowerHeavy.desc")}
                 delay={0.1}
               />
               <ConditionCard
                 selected={bodyPart === "full_fatigue"}
                 onClick={() => handleNext("full_fatigue")}
-                title="전반적 피로감"
-                desc="근육통 혹은 전신 컨디션 저하"
+                title={t("condition.body.fullFatigue")}
+                desc={t("condition.body.fullFatigue.desc")}
                 delay={0.15}
               />
               <ConditionCard
                 selected={bodyPart === "good"}
                 onClick={() => handleNext("good")}
-                title="컨디션 좋음"
-                desc="특별한 불편함 없이 활력 넘침"
+                title={t("condition.body.good")}
+                desc={t("condition.body.good.desc")}
                 delay={0.2}
               />
             </div>
