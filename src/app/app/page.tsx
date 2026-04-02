@@ -21,6 +21,7 @@ import { PlanLoadingOverlay } from "@/components/PlanLoadingOverlay";
 import { FitnessReading } from "@/components/FitnessReading";
 import { HomeScreen } from "@/components/HomeScreen";
 import { loadUserProfile, getPlanCount, incrementPlanCount, loadPlanCount } from "@/utils/userProfile";
+import { syncExpFromFirestore } from "@/utils/questSystem";
 import { useSafeArea } from "@/hooks/useSafeArea";
 import { trackEvent } from "@/utils/analytics";
 
@@ -104,10 +105,11 @@ export default function Home() {
           }).catch(() => setSubStatus("free"));
         }
 
-        // Load user profile + plan count from Firestore → localStorage, then go to home
+        // Load user profile + plan count + EXP from Firestore → localStorage, then go to home
         Promise.all([
           loadUserProfile().catch((e) => console.error("Failed to load profile", e)),
           loadPlanCount().catch((e) => console.error("Failed to load plan count", e)),
+          syncExpFromFirestore().catch((e) => console.error("Failed to sync EXP", e)),
         ]).finally(() => {
           setView("home");
         });

@@ -5,6 +5,14 @@
 
 import { WorkoutHistory } from "@/constants/workout";
 import { classifySessionIntensity, getWeeklyIntensityTarget, type IntensityLevel, type WeeklyIntensityTarget } from "@/utils/workoutMetrics";
+import { db, auth } from "@/lib/firebase";
+import { doc, setDoc, getDoc, Timestamp } from "firebase/firestore";
+
+function getUserDocRef() {
+  const uid = auth.currentUser?.uid;
+  if (!uid) return null;
+  return doc(db, "users", uid);
+}
 
 // ─── Types ───────────────────────────────────────────────────────
 
@@ -408,6 +416,12 @@ export function loadWeeklyQuestState(): WeeklyQuestState | null {
 export function saveWeeklyQuestState(state: WeeklyQuestState): void {
   if (typeof window === "undefined") return;
   localStorage.setItem(STORAGE_KEY_QUEST, JSON.stringify(state));
+
+  // Firestore 동기화
+  const ref = getUserDocRef();
+  if (ref) {
+    setDoc(ref, { questProgress: state, updatedAt: Timestamp.now() }, { merge: true }).catch(() => {});
+  }
 }
 
 export function loadSeasonExp(seasonKey?: string): SeasonExpState {
@@ -426,6 +440,45 @@ export function loadSeasonExp(seasonKey?: string): SeasonExpState {
 export function saveSeasonExp(state: SeasonExpState): void {
   if (typeof window === "undefined") return;
   localStorage.setItem(STORAGE_KEY_EXP, JSON.stringify(state));
+
+  // Firestore 동기화
+  const ref = getUserDocRef();
+  if (ref) {
+    setDoc(ref, { seasonExp: state, updatedAt: Timestamp.now() }, { merge: true }).catch(() => {});
+  }
+}
+
+/** 로그인 시 Firestore → localStorage 동기화 (1회 호출) */
+export async function syncExpFromFirestore(): Promise<void> {
+  const ref = getUserDocRef();
+  if (!ref) return;
+
+  try {
+    const snap = await getDoc(ref);
+    if (!snap.exists()) return;
+    const data = snap.data();
+
+    // SeasonExp 동기화: expLog 길이가 더 큰 쪽을 신뢰
+    if (data.seasonExp) {
+      const firestoreExp: SeasonExpState = data.seasonExp;
+      const localExp = loadSeasonExp(firestoreExp.seasonKey);
+      if (firestoreExp.expLog.length >= localExp.expLog.length) {
+        localStorage.setItem(STORAGE_KEY_EXP, JSON.stringify(firestoreExp));
+      }
+    }
+
+    // QuestProgress 동기화
+    if (data.questProgress) {
+      const firestoreQuest: WeeklyQuestState = data.questProgress;
+      const localQuest = loadWeeklyQuestState();
+      // Firestore의 weekStart가 같거나 더 최신이면 Firestore 신뢰
+      if (!localQuest || firestoreQuest.weekStart >= localQuest.weekStart) {
+        localStorage.setItem(STORAGE_KEY_QUEST, JSON.stringify(firestoreQuest));
+      }
+    }
+  } catch (e) {
+    console.error("Failed to sync EXP from Firestore", e);
+  }
 }
 
 // ─── Rebuild from History (recovery) ─────────────────────────────
