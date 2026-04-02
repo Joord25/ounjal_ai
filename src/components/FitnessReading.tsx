@@ -1612,8 +1612,8 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
                               showResult ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
                             } ${!isOtherGoal ? "border-[#2D6A4F]/20" : "border-gray-100"} ${!canAccess ? "blur-md" : ""}`}
                           >
-                            <div className="flex items-center justify-between mb-3">
-                              <div className="flex items-center gap-2">
+                            <div className="flex flex-wrap items-center justify-between gap-y-1 mb-3">
+                              <div className="flex items-center gap-2 flex-wrap">
                                 <div className={`w-2 h-2 rounded-full ${!isOtherGoal ? "bg-[#2D6A4F]" : "bg-[#059669]"}`} />
                                 <span className="text-[#1B4332] text-sm font-bold">{!isOtherGoal ? t("growth.myGoal") : ""}: {t(`growth.goal.${activeGoalKey}`)}</span>
                                 <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-[#2D6A4F]/10 text-[#2D6A4F]">{levelLabel}</span>
@@ -1652,8 +1652,22 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
                             .replace("맞춤 운동 추천", "Personalized recommendations")
                             : item.label;
                           const easyLabel = rawLabel.replace(/e1RM/g, locale === "en" ? "est. 1RM" : "최대 중량").replace(/1RM/g, locale === "en" ? "1RM" : "최대 중량");
-                          const easyValue = pred?.value?.toString().replace(/e1RM/g, "최대 중량").replace(/Best e1RM/g, "최고 기록");
-                          const easySub = pred?.sub?.replace(/e1RM/g, "최대 중량").replace(/Best e1RM/g, "최고 기록").replace(/R²=\d+%/g, "").replace(/\s+,\s*/g, ", ").trim();
+                          const rawValue = pred?.value?.toString() || "";
+                          const rawSub = pred?.sub || "";
+                          const easyValue = locale === "en" ? rawValue
+                            .replace(/주 ([\d.]+)~([\d.]+)kg 권장/, "$1-$2 kg/week recommended")
+                            .replace(/(\d+)개월 후 예상: ([\d.]+)kg/, "Projected in $1 mo: $2kg")
+                            .replace("현재 칼로리 소모가 부족해요", "Not enough calorie burn")
+                            .replace(/(\d+)% 달성/, "$1% achieved")
+                            .replace(/e1RM/g, "est. 1RM")
+                            : rawValue.replace(/e1RM/g, "최대 중량").replace(/Best e1RM/g, "최고 기록");
+                          const easySub = locale === "en" ? rawSub
+                            .replace(/운동만으로 주 약 ([\d.]+)kg 소모/, "Exercise alone burns ~$1kg/week")
+                            .replace(/누적 ([+-][\d.]+)kg \(칼로리 밸런스 기준\)/, "Cumulative $1kg (calorie balance)")
+                            .replace("운동 빈도를 늘리거나 식단 조절이 필요해요", "Increase frequency or adjust diet")
+                            .replace(/주 (\d+)분 운동 중 \/ 권장 (.+)/, "$1 min/week — recommended $2")
+                            .replace(/e1RM/g, "est. 1RM").replace(/R²=\d+%/g, "").trim()
+                            : rawSub.replace(/e1RM/g, "최대 중량").replace(/Best e1RM/g, "최고 기록").replace(/R²=\d+%/g, "").replace(/\s+,\s*/g, ", ").trim();
                           return (
                             <div key={i}>
                               {isOpen ? (
