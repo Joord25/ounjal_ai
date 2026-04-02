@@ -32,7 +32,8 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const t = useCallback((key: string, vars?: Record<string, string>) => {
-    let text = translations[locale]?.[key] || translations.ko[key] || key;
+    const localeVal = translations[locale]?.[key];
+    let text = localeVal !== undefined ? localeVal : (translations.ko[key] ?? key);
     if (vars) {
       Object.entries(vars).forEach(([k, v]) => {
         text = text.replace(new RegExp(`\\{${k}\\}`, "g"), v);
