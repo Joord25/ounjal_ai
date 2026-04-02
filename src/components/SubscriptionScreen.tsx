@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { trackEvent } from "@/utils/analytics";
+import { useTranslation } from "@/hooks/useTranslation";
 
 interface SubscriptionScreenProps {
   user: User;
@@ -19,32 +20,14 @@ async function getIdToken(): Promise<string> {
   return user.getIdToken();
 }
 
-const FAQ_ITEMS: { q: string; a: string | null; key?: string }[] = [
-  {
-    q: "무료 플랜과 프리미엄의 차이는?",
-    a: "무료 플랜은 AI 운동 플랜 생성이 4회로 제한되며, 성장 예측 리포트는 내 목표 1개만 열람 가능합니다. 프리미엄 구독 시 AI 맞춤 운동 플랜 무제한 생성, 전체 목표 성장 예측 리포트, 레벨별 상세 분석, 세션별 AI 분석 리포트 등 모든 기능을 이용하실 수 있습니다.",
-  },
-  {
-    q: "결제는 어떻게 처리되나요?",
-    a: "카카오페이를 통해 안전하게 결제됩니다. 결제 정보는 암호화되어 보호되며, 매월 자동으로 갱신됩니다.",
-  },
-  {
-    q: "카카오페이 외 다른 결제수단은 없나요?",
-    a: "현재는 카카오페이를 통한 결제만 가능합니다. 더 다양한 결제 옵션을 제공하기 위해 토스페이, 네이버 페이 등 추가 결제수단을 준비 중입니다.",
-  },
-  {
-    q: "구독 취소는 어떻게 하나요?",
-    a: "프로필 탭에서 구독 관리로 이동하시면 구독 취소 버튼이 있습니다. 취소 후에도 결제 주기가 끝날 때까지 프리미엄 기능을 계속 이용하실 수 있습니다.",
-  },
-  {
-    q: "결제 후 환불도 가능한가요?",
-    a: null,
-    key: "refund",
-  },
-  {
-    q: "앱 다운로드는 어떻게 하나요?",
-    a: "크롬 브라우저에서 홈 화면에 추가하여 앱처럼 사용할 수 있습니다.\n\n[Android]\n1. 크롬에서 오운잘 AI 접속\n2. 우측 상단 ⋮ 메뉴 탭\n3. '홈 화면에 추가' 선택\n4. '추가' 확인\n\n[iPhone/iPad]\n1. Safari에서 오운잘 AI 접속\n2. 하단 공유 버튼(□↑) 탭\n3. '홈 화면에 추가' 선택\n4. '추가' 확인\n\n홈 화면에 추가하면 앱처럼 전체 화면으로 실행됩니다.\n\n※ 앱스토어/플레이스토어 모바일 앱은 추후 출시 예정입니다.",
-  },
+// FAQ keys — actual text loaded via t() at render time
+const FAQ_KEYS = [
+  { qKey: "sub.faq.q1", aKey: "sub.faq.a1" },
+  { qKey: "sub.faq.q2", aKey: "sub.faq.a2" },
+  { qKey: "sub.faq.q3", aKey: "sub.faq.a3" },
+  { qKey: "sub.faq.q4", aKey: "sub.faq.a4" },
+  { qKey: "sub.faq.q5", aKey: null, key: "refund" },
+  { qKey: "sub.faq.q6", aKey: "sub.faq.a6" },
 ];
 
 export const TERMS_TEXT = `제1조(목적)
@@ -354,6 +337,7 @@ export const REFUND_TEXT = `제1조(목적)
 본 환불정책은 2026년 3월 1일부터 시행합니다.`;
 
 export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ user, onClose, initialStatus }) => {
+  const { t } = useTranslation();
   const [status, setStatus] = useState<"loading" | "free" | "active" | "cancelled">(initialStatus || "loading");
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
@@ -409,7 +393,7 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ user, on
 
   const handleSubscribe = async () => {
     if (!window.PortOne) {
-      setError("결제 모듈을 불러오는 중입니다. 잠시 후 다시 시도해주세요.");
+      setError(t("sub.error.loading"));
       return;
     }
 
@@ -434,9 +418,9 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ user, on
       if (response.code) {
         // User cancelled or error
         if (response.code === "FAILURE_TYPE_PG") {
-          setError("결제가 취소되었습니다.");
+          setError(t("sub.error.cancelled"));
         } else {
-          setError("일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
+          setError(t("sub.error.generic"));
           console.error("[PortOne]", response.code, response.message);
         }
         return;
@@ -462,7 +446,7 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ user, on
 
       if (!serverRes.ok) {
         const err = await serverRes.json().catch(() => ({}));
-        throw new Error(err.error || "구독 처리에 실패했습니다.");
+        throw new Error(err.error || t("sub.error.failed"));
       }
 
       // Success
@@ -478,11 +462,11 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ user, on
   };
 
   const CANCEL_REASONS = [
-    "가격이 부담돼요",
-    "기능이 기대에 못 미쳐요",
-    "다른 앱을 사용하고 있어요",
-    "운동을 쉬게 되었어요",
-    "기타",
+    t("sub.cancel.reason.price"),
+    t("sub.cancel.reason.feature"),
+    t("sub.cancel.reason.other"),
+    t("sub.cancel.reason.rest"),
+    t("sub.cancel.reason.etc"),
   ];
 
   const openCancelFlow = () => {
@@ -720,7 +704,7 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ user, on
                   처리 중...
                 </span>
               ) : (
-                "카카오페이로 구독하기"
+                t("sub.kakaoPay")
               )}
             </button>
 
@@ -740,30 +724,30 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ user, on
         {/* FAQ */}
         {status !== "loading" && (
           <div className="mt-8">
-            <h2 className="text-lg font-black text-gray-900 text-center mb-4">자주 묻는 질문</h2>
+            <h2 className="text-lg font-black text-gray-900 text-center mb-4">{t("sub.faq.title")}</h2>
             <div className="flex flex-col gap-2.5">
-              {FAQ_ITEMS.map((item, i) => (
+              {FAQ_KEYS.map((faq, i) => (
                 <div key={i} className="bg-gray-50 rounded-2xl overflow-hidden">
                   <button
                     onClick={() => setOpenFaqIndex(openFaqIndex === i ? null : i)}
                     className="w-full flex items-center justify-between p-4 active:opacity-60"
                   >
-                    <span className="text-sm font-bold text-gray-900 text-left">{item.q}</span>
+                    <span className="text-sm font-bold text-gray-900 text-left">{t(faq.qKey)}</span>
                     <span className="text-[#2D6A4F] text-lg font-bold shrink-0 ml-3">
                       {openFaqIndex === i ? "−" : "+"}
                     </span>
                   </button>
                   {openFaqIndex === i && (
                     <div className="px-4 pb-4">
-                      {item.key === "refund" ? (
+                      {faq.key === "refund" ? (
                         <p className="text-sm text-gray-600 leading-relaxed">
-                          결제 후 7일 이내, 프리미엄 기능을 사용하지 않은 경우에 한해 환불이 가능합니다. 자세한 내용은 하단의{" "}
-                          <button type="button" onClick={() => setShowRefund(true)} className="text-[#2D6A4F] font-bold underline underline-offset-2">환불정책</button>
-                          에 따라 진행됩니다. 환불 관련 문의는 고객센터로 연락해 주세요.
+                          {t("sub.faq.a5.prefix")}{" "}
+                          <button type="button" onClick={() => setShowRefund(true)} className="text-[#2D6A4F] font-bold underline underline-offset-2">{t("my.refund")}</button>
+                          {t("sub.faq.a5.suffix")}
                         </p>
-                      ) : (
-                        <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">{item.a}</p>
-                      )}
+                      ) : faq.aKey ? (
+                        <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">{t(faq.aKey)}</p>
+                      ) : null}
                     </div>
                   )}
                 </div>
