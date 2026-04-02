@@ -1578,7 +1578,7 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
                     <div className={`flex gap-1 bg-gray-100 rounded-2xl p-1 mb-4 transition-all duration-700 delay-300 ${
                       showResult ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
                     }`}>
-                      {Object.entries(PREDICTIONS_BY_GOAL).map(([key, gd]) => {
+                      {Object.entries(PREDICTIONS_BY_GOAL).map(([key]) => {
                         const isMyGoal = key === fp.goal;
                         const isActive = selectedGoalKey === key || (selectedGoalKey === null && isMyGoal);
                         return (
@@ -1592,7 +1592,7 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
                               isActive ? "bg-white text-[#1B4332] shadow-sm" : "text-gray-400"
                             }`}
                           >
-                            {gd.title}
+                            {t(`growth.goal.${key}`)}
                           </button>
                         );
                       })}
@@ -1652,6 +1652,8 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
                             .replace("건강 지표 현황", "Health metrics status")
                             .replace("주간 균형 분석", "Weekly balance analysis")
                             .replace("맞춤 운동 추천", "Personalized recommendations")
+                            .replace("현재 근력 수준 평가", "Current strength level")
+                            .replace("WHO 권장 운동량 달성률", "WHO exercise target %")
                             : item.label;
                           const easyLabel = rawLabel.replace(/e1RM/g, locale === "en" ? "est. 1RM" : "최대 중량").replace(/1RM/g, locale === "en" ? "1RM" : "최대 중량");
                           const rawValue = pred?.value?.toString() || "";
@@ -1661,6 +1663,12 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
                             .replace(/(\d+)개월 후 예상: ([\d.]+)kg/, "Projected in $1 mo: $2kg")
                             .replace("현재 칼로리 소모가 부족해요", "Not enough calorie burn")
                             .replace(/(\d+)% 달성/, "$1% achieved")
+                            .replace("최대 중량 입력 후 평가 가능", "Enter 1RM to evaluate")
+                            .replace(/(\d+)회 운동 후 해금/, "$1 more workouts to unlock")
+                            .replace(/벤치/g, "Bench").replace(/스쿼트/g, "Squat").replace(/데드/g, "Dead")
+                            .replace(/초급/g, "Beginner").replace(/중급/g, "Intermediate").replace(/상급/g, "Advanced").replace(/엘리트/g, "Elite")
+                            .replace(/달성/g, "Achieved")
+                            .replace(/(\d+)주/g, "$1 wks")
                             .replace(/e1RM/g, "est. 1RM")
                             : rawValue.replace(/e1RM/g, "최대 중량").replace(/Best e1RM/g, "최고 기록");
                           const easySub = locale === "en" ? rawSub
@@ -1668,6 +1676,9 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
                             .replace(/누적 ([+-][\d.]+)kg \(칼로리 밸런스 기준\)/, "Cumulative $1kg (calorie balance)")
                             .replace("운동 빈도를 늘리거나 식단 조절이 필요해요", "Increase frequency or adjust diet")
                             .replace(/주 (\d+)분 운동 중 \/ 권장 (.+)/, "$1 min/week — recommended $2")
+                            .replace(/체중 (\d+)kg 기준/, "Based on $1kg body weight")
+                            .replace("각 종목별 성장률 기준", "Based on per-exercise growth rate")
+                            .replace(/현재 (\d+)회 완료/, "$1 completed so far")
                             .replace(/e1RM/g, "est. 1RM").replace(/R²=\d+%/g, "").trim()
                             : rawSub.replace(/e1RM/g, "최대 중량").replace(/Best e1RM/g, "최고 기록").replace(/R²=\d+%/g, "").replace(/\s+,\s*/g, ", ").trim();
                           return (
