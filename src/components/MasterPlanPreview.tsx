@@ -5,6 +5,7 @@ import { THEME } from "@/constants/theme";
 import { WorkoutSessionData, ExerciseStep, getAlternativeExercises, LABELED_EXERCISE_POOLS, WorkoutGoal } from "@/constants/workout";
 import { PlanShareCard } from "./PlanShareCard";
 import { trackEvent } from "@/utils/analytics";
+import { useTranslation } from "@/hooks/useTranslation";
 
 interface MasterPlanPreviewProps {
   sessionData: WorkoutSessionData;
@@ -55,6 +56,7 @@ export const MasterPlanPreview: React.FC<MasterPlanPreviewProps> = ({
   recommendedIntensity,
   goal
 }) => {
+  const { t } = useTranslation();
   // Local mutable copy of exercises (for set count adjustments)
   const [localExercises, setLocalExercises] = useState<ExerciseStep[]>(() =>
     sessionData.exercises.map(ex => ({ ...ex, count: rebuildCount(ex) }))
@@ -318,15 +320,13 @@ export const MasterPlanPreview: React.FC<MasterPlanPreviewProps> = ({
           <p className="text-sm text-gray-500 leading-relaxed line-clamp-2 mb-2">
             {sessionData.description}
           </p>
-          {/* 경험 메시지 — 목표 × 부위 매트릭스 */}
+          {/* 경험 메시지 — 목표 × 부위 매트릭스 (i18n) */}
           <p className="text-[13px] font-bold text-[#2D6A4F] leading-relaxed">
             {(() => {
               const desc = (sessionData.description || "").toLowerCase();
               const g = goal || "general_fitness";
 
-              // 부위 감지
-              type BodyPart = "chest" | "back" | "lower" | "core" | "cardio" | "mobility" | "default";
-              let part: BodyPart = "default";
+              let part = "default";
               if (/가슴|푸시|chest|push|벤치/.test(desc)) part = "chest";
               else if (/등|풀|back|pull|로우|랫/.test(desc)) part = "back";
               else if (/하체|레그|스쿼트|leg|squat|런지|데드/.test(desc)) part = "lower";
@@ -334,46 +334,7 @@ export const MasterPlanPreview: React.FC<MasterPlanPreviewProps> = ({
               else if (/러닝|유산소|cardio|run|hiit|서킷/.test(desc)) part = "cardio";
               else if (/모빌리티|회복|스트레칭/.test(desc)) part = "mobility";
 
-              const messages: Record<string, Record<BodyPart, string>> = {
-                fat_loss: {
-                  chest: "꾸준히 하면 상체 라인이 슬림해져요",
-                  back: "등 라인이 잡히면서 옷 핏이 달라져요",
-                  lower: "꾸준히 하면 바지 핏이 달라져요",
-                  core: "뱃살이 줄면서 라인이 보이기 시작해요",
-                  cardio: "달리면 칼로리가 빠르게 빠져요",
-                  mobility: "유연해지면 운동 효율이 올라가요",
-                  default: "오늘 운동이 내일의 가벼운 몸을 만들어요",
-                },
-                muscle_gain: {
-                  chest: "거울 앞 가슴 라인이 달라져요",
-                  back: "자세가 펴지고 등이 단단해져요",
-                  lower: "하체 라인이 탄탄해질 거예요",
-                  core: "코어가 단단해지면 모든 운동이 달라져요",
-                  cardio: "심폐가 올라가면 근육 회복도 빨라져요",
-                  mobility: "가동 범위가 넓어지면 근육 자극이 달라져요",
-                  default: "오늘보다 더 강해진 내가 될 거예요",
-                },
-                strength: {
-                  chest: "무거운 짐도 거뜬히 들 수 있게 돼요",
-                  back: "오래 서 있어도 안 지치는 등이 돼요",
-                  lower: "한 층 더 올라가도 숨이 안 차요",
-                  core: "하루 종일 서 있어도 허리가 안 아파요",
-                  cardio: "숨이 차지 않는 일상이 기다려요",
-                  mobility: "몸이 가벼워지고 움직임이 편해져요",
-                  default: "일상에서 체력이 달라지는 걸 느낄 거예요",
-                },
-                general_fitness: {
-                  chest: "상체가 한결 가뿐해질 거예요",
-                  back: "오래 앉아도 허리가 편해져요",
-                  lower: "계단이 가뿐해질 거예요",
-                  core: "오래 앉아도 허리가 편해져요",
-                  cardio: "일상이 가벼워질 거예요",
-                  mobility: "몸이 한결 풀릴 거예요",
-                  default: "오늘도 운동한 나, 잘했어요",
-                },
-              };
-
-              return (messages[g]?.[part] || messages.general_fitness[part] || messages.general_fitness.default);
+              return t(`exp.${g}.${part}`) !== `exp.${g}.${part}` ? t(`exp.${g}.${part}`) : t(`exp.general_fitness.${part}`);
             })()}
           </p>
         </div>
