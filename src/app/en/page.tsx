@@ -144,11 +144,10 @@ export default function EnLandingPage() {
             </div>
             <div className="flex items-center gap-3">
               <select
-                onChange={(e) => { if (e.target.value) window.location.href = e.target.value; }}
-                defaultValue=""
-                className="bg-transparent text-white/50 text-sm font-medium border border-white/20 rounded-lg px-2 py-1.5 cursor-pointer focus:outline-none"
+                onChange={(e) => { if (e.target.value !== "/en") window.location.href = e.target.value; }}
+                defaultValue="/en"
+                className="bg-transparent text-white/70 text-sm font-medium border border-white/20 rounded-lg px-2 py-1.5 cursor-pointer focus:outline-none"
               >
-                <option value="" disabled className="text-gray-800">🌐 Lang</option>
                 <option value="/" className="text-gray-800">🇰🇷 한국어</option>
                 <option value="/en" className="text-gray-800">🇺🇸 English</option>
                 <option value="/ja" className="text-gray-800">🇯🇵 日本語</option>
