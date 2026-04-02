@@ -193,19 +193,23 @@ export default function AdminPage() {
         {/* User Info */}
         {searchResult && (
           <div className="bg-white rounded-2xl border border-gray-200 p-5 mb-4">
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center justify-between mb-4">
               <div>
-                <p className="font-bold text-[#1B4332]">{searchResult.displayName || "이름 없음"}</p>
-                <p className="text-xs text-gray-400">{searchResult.email}</p>
+                <p className="font-bold text-[#1B4332] text-lg">{searchResult.email}</p>
+                {searchResult.displayName && (
+                  <p className="text-xs text-gray-400 mt-0.5">이름: {searchResult.displayName}</p>
+                )}
               </div>
-              <span className={`px-3 py-1 rounded-full text-xs font-bold ${statusColor(searchResult.status)}`}>
-                {searchResult.status}
+              <span className={`px-3 py-1.5 rounded-full text-xs font-bold ${statusColor(searchResult.status)}`}>
+                {searchResult.status === "active" ? "구독중" : searchResult.status === "free" ? "무료" : searchResult.status === "cancelled" ? "해지됨" : searchResult.status === "expired" ? "만료됨" : searchResult.status}
               </span>
             </div>
-            <div className="text-xs text-gray-500 space-y-1">
-              <p>UID: {searchResult.uid}</p>
-              {searchResult.expiresAt && <p>만료일: {new Date(searchResult.expiresAt).toLocaleDateString("ko-KR")}</p>}
-              {searchResult.billingKey && <p>결제 방식: {searchResult.billingKey}</p>}
+            <div className="bg-gray-50 rounded-xl p-4 text-sm text-gray-600 space-y-2">
+              <div className="flex justify-between"><span className="text-gray-400">UID</span><span className="font-mono text-xs">{searchResult.uid}</span></div>
+              {searchResult.expiresAt && <div className="flex justify-between"><span className="text-gray-400">만료일</span><span className="font-bold">{new Date(searchResult.expiresAt).toLocaleDateString("ko-KR")}</span></div>}
+              {searchResult.lastPaymentAt && <div className="flex justify-between"><span className="text-gray-400">마지막 결제</span><span>{new Date(searchResult.lastPaymentAt).toLocaleDateString("ko-KR")}</span></div>}
+              {searchResult.billingKey && <div className="flex justify-between"><span className="text-gray-400">결제 방식</span><span>{searchResult.billingKey}</span></div>}
+              {searchResult.amount !== null && <div className="flex justify-between"><span className="text-gray-400">금액</span><span>{searchResult.amount === 0 ? "수동 (무료)" : `₩${searchResult.amount?.toLocaleString()}`}</span></div>}
             </div>
 
             {/* Activate */}
