@@ -54,10 +54,16 @@ Article 8 (AI Model Integration and Limitations)
 Article 9 (Security Measures)
 The Company implements technical and organizational measures to protect personal information, including encrypted transmission (HTTPS), access controls, and regular security reviews.
 
-Article 10 (Contact)
+Article 10 (Cookies)
+The Service may use cookies to enhance user experience, remember preferences, and analyze usage patterns. Members may disable cookies through their browser settings, but some features may not function properly without them.
+
+Article 11 (Privacy Officer)
 Privacy Officer: Jooyong Lim (CEO)
 Email: ounjal.ai.app@gmail.com
 Phone: 010-4824-2869
+Address: 40-6, Euncheon-ro 35-gil, Gwanak-gu, Seoul, Republic of Korea
+
+Members may contact the Privacy Officer at any time to exercise their rights regarding personal information.
 
 Supplementary Provisions
 This Policy shall be effective from March 1, 2026.`;
