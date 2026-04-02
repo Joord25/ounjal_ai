@@ -7,6 +7,7 @@ import { ShareCard } from "./ShareCard";
 import { loadRecentHistory as loadRecentHistoryFromStore } from "@/utils/workoutHistory";
 import { getTierFromExp, type ExpLogEntry, sumExp, TIERS, processWorkoutCompletion, getOrRebuildSeasonExp } from "@/utils/questSystem";
 import { trackEvent } from "@/utils/analytics";
+import { useTranslation } from "@/hooks/useTranslation";
 
 /* === RPG 리절트 카드 === */
 interface RpgInsight {
@@ -24,6 +25,7 @@ function RpgResultCard({ totalDurationSec, totalVolume, successRate, isStrengthS
   formatDuration: (s: number) => string; onHelpPress: () => void; onShowPrediction?: () => void; skipAnimation?: boolean;
   insight?: RpgInsight; sessionDesc?: string;
 }) {
+  const { t } = useTranslation();
   const [visibleChars, setVisibleChars] = useState<number[]>([]);
   const [currentLine, setCurrentLine] = useState(skipAnimation ? 999 : -1);
   const current = getTierFromExp(seasonExp);
@@ -31,12 +33,12 @@ function RpgResultCard({ totalDurationSec, totalVolume, successRate, isStrengthS
   const tierUp = current.tierIdx > prev.tierIdx;
   const totalExpGained = sumExp(expGained);
 
-  const intensityLabel = intensityLevel === "high" ? "고강도" : intensityLevel === "moderate" ? "중강도" : "저강도";
-  const gradeMsg = successRate >= 95 ? "고생했어요! 쉽지 않았는데 완벽히 소화했네요!"
-    : successRate >= 80 ? "고생했어요! 오늘 멋지게 해냈어요!"
-    : successRate >= 60 ? "고생했어요! 꾸준함이 실력이에요"
-    : successRate >= 40 ? "고생했어요! 힘든 날이었지만 끝까지 버텼네요!"
-    : "고생했어요! 나온 것만으로 이미 성공입니다!";
+  const intensityLabel = t(`report.intensity.${intensityLevel}`);
+  const gradeMsg = successRate >= 95 ? t("report.grade.perfect")
+    : successRate >= 80 ? t("report.grade.great")
+    : successRate >= 60 ? t("report.grade.good")
+    : successRate >= 40 ? t("report.grade.tough")
+    : t("report.grade.showed");
 
   // 볼륨 경험 번역
   const volumeExpMsg = (() => {
@@ -248,7 +250,7 @@ function RpgResultCard({ totalDurationSec, totalVolume, successRate, isStrengthS
               <div className="flex items-center justify-between mb-1">
                 <span className="text-[11px] font-bold" style={{ color: current.tier.color }}>{current.tier.name} {seasonExp} EXP</span>
                 <span className="text-[11px] text-gray-400">
-                  {current.nextTier ? `${current.nextTier.name}까지 ${current.remaining}` : "최고 티어!"}
+                  {current.nextTier ? t("report.tierRemaining", { next: current.nextTier.name, remaining: String(current.remaining) }) : t("report.maxTier")}
                 </span>
               </div>
               <div className="w-full h-1.5 bg-gray-200 rounded-full overflow-hidden">
@@ -342,6 +344,7 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
   const [e1rmIndex, setE1rmIndex] = useState(0);
   const [recentHistory, setRecentHistory] = useState<WorkoutHistory[]>(getRecentHistorySync);
 
+  const { t } = useTranslation();
   useEffect(() => { trackEvent("report_view"); }, []);
 
   const metrics = buildWorkoutMetrics(sessionData.exercises, logs, bodyWeightKg, savedDurationSec);
@@ -438,7 +441,7 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
               </svg>
             </button>
             {onDelete && (
-              <button onClick={() => { if (confirm("이 운동 기록을 삭제할까요?")) onDelete(); }} className="p-2 active:scale-95 transition-all">
+              <button onClick={() => { if (confirm(t("delete.confirm"))) onDelete(); }} className="p-2 active:scale-95 transition-all">
                 <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                 </svg>
