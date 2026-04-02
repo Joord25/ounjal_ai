@@ -296,7 +296,7 @@ export const ConditionCheck: React.FC<ConditionCheckProps> = ({ onComplete, onBa
                   className="w-full bg-white rounded-2xl border-2 border-gray-100 p-6 animate-card-enter active:scale-[0.98] transition-all text-center"
                   style={{ animationDelay: "0.05s", animationFillMode: "forwards" }}
                 >
-                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] mb-2">이전 체중</p>
+                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] mb-2">{t("condition.prevWeight")}</p>
                   <p className="text-4xl font-black text-[#1B4332]">{bodyWeight || "—"}<span className="text-lg font-bold text-gray-400 ml-1">kg</span></p>
                   {(() => {
                     const prevWeight = recentHistory.length > 0 && recentHistory[recentHistory.length - 1].stats
@@ -308,14 +308,14 @@ export const ConditionCheck: React.FC<ConditionCheckProps> = ({ onComplete, onBa
                     }
                     return null;
                   })()}
-                  <p className="text-sm font-bold text-[#2D6A4F] mt-3">어제랑 같아요</p>
+                  <p className="text-sm font-bold text-[#2D6A4F] mt-3">{t("condition.weight.same")}</p>
                 </button>
               )
             )}
 
             <p className="text-[11px] text-gray-500 text-center font-medium">
               {hasProfile ? (
-                showWeightEdit ? "변경된 체중으로 기록합니다" : <button onClick={() => setShowWeightEdit(true)} className="underline underline-offset-2">체중이 바뀌었어요</button>
+                showWeightEdit ? t("condition.weight.recording") : <button onClick={() => setShowWeightEdit(true)} className="underline underline-offset-2">{t("condition.weight.changed")}</button>
               ) : "성별·연령·체중 기반 백분위 비교 및 AI 코칭에 활용됩니다"}
             </p>
 
