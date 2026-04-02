@@ -165,7 +165,7 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout, auto
   };
 
   const handleLogoutClick = () => {
-    if (confirm("로그아웃 하시겠습니까?")) {
+    if (confirm(t("my.logoutConfirm"))) {
       onLogout();
     }
   };
@@ -184,7 +184,7 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout, auto
       setDisplayPhoto(downloadURL);
     } catch (err) {
       console.error("Photo upload failed:", err);
-      alert("사진 업로드에 실패했습니다.");
+      alert(t("my.photoFail"));
     } finally {
       setIsUploading(false);
     }
@@ -199,7 +199,7 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout, auto
       setIsEditingName(false);
     } catch (err) {
       console.error("Name update failed:", err);
-      alert("이름 변경에 실패했습니다.");
+      alert(t("my.nameFail"));
     }
   };
 
@@ -287,7 +287,7 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout, auto
               className="flex items-center gap-1.5 active:opacity-60"
             >
               <h1 className="text-2xl font-black text-[#1B4332]">
-                {displayName || "프로필"}
+                {displayName || t("my.defaultProfile")}
               </h1>
               <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
@@ -321,7 +321,7 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout, auto
                 className="flex items-center gap-2 active:opacity-60"
               >
                 <span className={`text-sm font-medium ${subStatus === "active" ? "text-[#2D6A4F]" : "text-gray-900"}`}>
-                  {subStatus === "active" ? "프리미엄" : subStatus === "cancelled" ? "취소됨" : "무료"}
+                  {subStatus === "active" ? t("my.sub.premium") : subStatus === "cancelled" ? t("my.sub.cancelled") : t("my.sub.free")}
                 </span>
                 <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
@@ -365,7 +365,7 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout, auto
               className="flex items-center gap-2 active:opacity-60"
             >
               <span className="text-sm font-medium text-gray-900">
-                {gender === "male" ? "남성" : gender === "female" ? "여성" : "미설정"}
+                {gender === "male" ? t("my.gender.male") : gender === "female" ? t("my.gender.female") : t("my.notSet")}
               </span>
               <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
@@ -403,7 +403,7 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout, auto
                 onClick={() => { setBirthYearInput(birthYear); setIsEditingBirthYear(true); }}
                 className="flex items-center gap-2 active:opacity-60"
               >
-                <span className="text-sm font-medium text-gray-900">{birthYear || "미설정"}</span>
+                <span className="text-sm font-medium text-gray-900">{birthYear || t("my.notSet")}</span>
                 <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                 </svg>
@@ -437,7 +437,7 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout, auto
                 onClick={() => { setHeightInput(height); setIsEditingHeight(true); }}
                 className="flex items-center gap-2 active:opacity-60"
               >
-                <span className="text-sm font-medium text-gray-900">{height ? `${height}cm` : "미설정"}</span>
+                <span className="text-sm font-medium text-gray-900">{height ? `${height}cm` : t("my.notSet")}</span>
                 <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                 </svg>
@@ -456,7 +456,7 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout, auto
                 <span className="text-sm font-medium text-gray-900">
                   {bench1RM || squat1RM || deadlift1RM
                     ? [bench1RM && `B${bench1RM}`, squat1RM && `S${squat1RM}`, deadlift1RM && `D${deadlift1RM}`].filter(Boolean).join(" / ")
-                    : "미설정"}
+                    : t("my.notSet")}
                 </span>
                 <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
@@ -467,9 +467,9 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout, auto
           {editing1RM && (
             <div className="flex gap-2">
               {[
-                { label: "벤치", value: bench1RM, setter: setBench1RM },
-                { label: "스쿼트", value: squat1RM, setter: setSquat1RM },
-                { label: "데드", value: deadlift1RM, setter: setDeadlift1RM },
+                { label: t("my.1rm.bench"), value: bench1RM, setter: setBench1RM },
+                { label: t("my.1rm.squat"), value: squat1RM, setter: setSquat1RM },
+                { label: t("my.1rm.deadlift"), value: deadlift1RM, setter: setDeadlift1RM },
               ].map((lift) => (
                 <div key={lift.label} className="flex-1">
                   <p className="text-[9px] font-bold text-gray-400 mb-1">{lift.label}</p>
@@ -555,9 +555,9 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout, auto
         {/* Business Registration Footer */}
         <div className="mt-6 pt-6 border-t border-gray-100">
           <div className="flex items-center justify-center gap-3 mb-4">
-            <button type="button" onClick={() => setShowTerms(true)} className="text-[10px] text-gray-500 underline underline-offset-2 hover:text-gray-700 transition-colors">이용약관</button>
+            <button type="button" onClick={() => setShowTerms(true)} className="text-[10px] text-gray-500 underline underline-offset-2 hover:text-gray-700 transition-colors">{t("my.terms")}</button>
             <span className="text-gray-300">|</span>
-            <button type="button" onClick={() => setShowPrivacy(true)} className="text-[10px] text-gray-500 underline underline-offset-2 hover:text-gray-700 transition-colors">개인정보 처리방침</button>
+            <button type="button" onClick={() => setShowPrivacy(true)} className="text-[10px] text-gray-500 underline underline-offset-2 hover:text-gray-700 transition-colors">{t("my.privacy")}</button>
             <span className="text-gray-300">|</span>
             <button type="button" onClick={() => setShowRefund(true)} className="text-[10px] text-gray-500 underline underline-offset-2 hover:text-gray-700 transition-colors">{t("my.refund")}</button>
           </div>
@@ -578,7 +578,7 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout, auto
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50" onClick={() => setShowTerms(false)}>
           <div className="bg-white rounded-2xl mx-4 w-full max-h-[70vh] flex flex-col shadow-xl mb-24" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-              <h2 className="text-base font-bold text-[#1B4332]">{locale === "en" ? "Terms of Service" : "이용약관"}</h2>
+              <h2 className="text-base font-bold text-[#1B4332]">{t("my.terms")}</h2>
               <button type="button" onClick={() => setShowTerms(false)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors">
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M12 4L4 12M4 4l8 8" stroke="#666" strokeWidth="2" strokeLinecap="round"/></svg>
               </button>
@@ -598,7 +598,7 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout, auto
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50" onClick={() => setShowPrivacy(false)}>
           <div className="bg-white rounded-2xl mx-4 w-full max-h-[70vh] flex flex-col shadow-xl mb-24" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-              <h2 className="text-base font-bold text-[#1B4332]">{locale === "en" ? "Privacy Policy" : "개인정보 처리방침"}</h2>
+              <h2 className="text-base font-bold text-[#1B4332]">{t("my.privacy")}</h2>
               <button type="button" onClick={() => setShowPrivacy(false)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors">
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M12 4L4 12M4 4l8 8" stroke="#666" strokeWidth="2" strokeLinecap="round"/></svg>
               </button>
@@ -618,7 +618,7 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout, auto
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50" onClick={() => setShowRefund(false)}>
           <div className="bg-white rounded-2xl mx-4 w-full max-h-[70vh] flex flex-col shadow-xl mb-24" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-              <h2 className="text-base font-bold text-[#1B4332]">{locale === "en" ? "Refund Policy" : "환불정책"}</h2>
+              <h2 className="text-base font-bold text-[#1B4332]">{t("my.refund")}</h2>
               <button type="button" onClick={() => setShowRefund(false)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors">
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M12 4L4 12M4 4l8 8" stroke="#666" strokeWidth="2" strokeLinecap="round"/></svg>
               </button>
