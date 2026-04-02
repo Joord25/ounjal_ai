@@ -138,6 +138,52 @@ export async function updateBirthYear(birthYear: number): Promise<void> {
   await saveUserProfile({ birthYear });
 }
 
+/** Get plan count from localStorage (fast, for UI) */
+export function getPlanCount(): number {
+  return parseInt(localStorage.getItem("alpha_plan_count") || "0", 10);
+}
+
+/** Increment plan count and sync to Firestore */
+export async function incrementPlanCount(): Promise<void> {
+  const count = getPlanCount() + 1;
+  localStorage.setItem("alpha_plan_count", count.toString());
+
+  const ref = getUserDocRef();
+  if (!ref) return;
+  try {
+    await setDoc(ref, { planCount: count, updatedAt: Timestamp.now() }, { merge: true });
+  } catch (e) {
+    console.error("Failed to sync planCount to Firestore", e);
+  }
+}
+
+/** Load plan count from Firestore and sync to localStorage */
+export async function loadPlanCount(): Promise<number> {
+  const ref = getUserDocRef();
+  if (!ref) return getPlanCount();
+
+  try {
+    const snap = await getDoc(ref);
+    if (snap.exists() && snap.data().planCount !== undefined) {
+      const firestoreCount = snap.data().planCount as number;
+      const localCount = getPlanCount();
+      // 둘 중 큰 값을 신뢰 (보안: 유저가 localStorage를 낮출 수 없게)
+      const count = Math.max(firestoreCount, localCount);
+      localStorage.setItem("alpha_plan_count", count.toString());
+      return count;
+    }
+    // Firestore에 없으면 localStorage 값 마이그레이션
+    const localCount = getPlanCount();
+    if (localCount > 0) {
+      await setDoc(ref, { planCount: localCount }, { merge: true });
+    }
+    return localCount;
+  } catch (e) {
+    console.error("Failed to load planCount from Firestore", e);
+    return getPlanCount();
+  }
+}
+
 function loadProfileFromLocalStorage(): UserProfile {
   const gender = (localStorage.getItem("alpha_gender") as "male" | "female") || null;
   const birthYearStr = localStorage.getItem("alpha_birth_year");

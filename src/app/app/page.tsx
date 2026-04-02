@@ -20,7 +20,7 @@ import { SubscriptionScreen } from "@/components/SubscriptionScreen";
 import { PlanLoadingOverlay } from "@/components/PlanLoadingOverlay";
 import { FitnessReading } from "@/components/FitnessReading";
 import { HomeScreen } from "@/components/HomeScreen";
-import { loadUserProfile } from "@/utils/userProfile";
+import { loadUserProfile, getPlanCount, incrementPlanCount, loadPlanCount } from "@/utils/userProfile";
 import { useSafeArea } from "@/hooks/useSafeArea";
 import { trackEvent } from "@/utils/analytics";
 
@@ -104,10 +104,11 @@ export default function Home() {
           }).catch(() => setSubStatus("free"));
         }
 
-        // Load user profile from Firestore → localStorage, then go to home
-        loadUserProfile().catch((e) => {
-          console.error("Failed to load profile", e);
-        }).finally(() => {
+        // Load user profile + plan count from Firestore → localStorage, then go to home
+        Promise.all([
+          loadUserProfile().catch((e) => console.error("Failed to load profile", e)),
+          loadPlanCount().catch((e) => console.error("Failed to load plan count", e)),
+        ]).finally(() => {
           setView("home");
         });
 
@@ -282,11 +283,7 @@ export default function Home() {
     }
   };
 
-  const getPlanCount = () => parseInt(localStorage.getItem("alpha_plan_count") || "0", 10);
-  const incrementPlanCount = () => {
-    const count = getPlanCount() + 1;
-    localStorage.setItem("alpha_plan_count", count.toString());
-  };
+  // getPlanCount, incrementPlanCount는 @/utils/userProfile에서 import
 
   const handleConditionComplete = async (condition: UserCondition, goal: WorkoutGoal, session?: SessionSelection) => {
     // 비로그인 게스트 체험 제한
@@ -344,7 +341,7 @@ export default function Home() {
     } catch { /* ignore */ }
 
     await generatePlan(condition, goal, undefined, intensityCtx, resolvedIntensity, session);
-    incrementPlanCount();
+    await incrementPlanCount();
     // sessionMode path: view transition handled by onComplete callback
     if (!session?.sessionMode) {
       setView("master_plan_preview");
