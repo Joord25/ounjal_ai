@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { saveUserProfile, updateGender, updateBirthYear, updateWeight } from "@/utils/userProfile";
 import { WorkoutHistory } from "@/constants/workout";
 import { FitnessTest } from "./FitnessTest";
+import { useTranslation } from "@/hooks/useTranslation";
 import {
   calcConsistencyScore,
   calcCaloriesTrend,
@@ -303,12 +304,12 @@ function computeReading(
 
   const message =
     p.weeklyFrequency === 0
-      ? "처음이라면 지금이 가장 좋은 시작입니다\n초보자일수록 성장 속도가 빠릅니다"
+      ? "growth.coach.beginner"
       : acsmPct >= 150
-        ? "당신의 조건은\n빠른 변화를 만들기에 충분합니다"
+        ? "growth.coach.fast"
         : acsmPct >= 100
-          ? "당신의 조건은\n변화를 만들기에 충분합니다"
-          : "작은 시작이\n가장 큰 변화를 만듭니다";
+          ? "growth.coach.good"
+          : "growth.coach.start";
 
   // 항목 선택
   const isBeginner = p.weeklyFrequency <= 2;
@@ -975,6 +976,7 @@ type Step = "welcome" | "profile" | "frequency" | "time" | "goal" | "onerm" | "a
 const UNLOCK_THRESHOLDS = [0, 5, 10, 20];
 
 export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremium, isPremium, resultOnly, onBack, workoutCount = 0, workoutHistory, weightLog, onEdit1RM }) => {
+  const { t, locale } = useTranslation();
   // Load saved profile
   const savedProfile = React.useMemo<FitnessProfile | null>(() => {
     try {
@@ -1404,7 +1406,7 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
           <div className="w-full space-y-3">
             {GOAL_OPTIONS.map((o) =>
               optionButton(profile.goal === o.value, () => handleGoal(o.value), (
-                <span className="font-semibold text-center w-full block">{o.label}</span>
+                <span className="font-semibold text-center w-full block">{t(`growth.goal.${o.value}`)}</span>
               ), o.value)
             )}
           </div>
@@ -1520,7 +1522,7 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
                   </svg>
                 </button>
-                <span className="text-[11px] tracking-[0.3em] uppercase font-serif font-medium text-[#2D6A4F]">성장 예측</span>
+                <span className="text-[11px] tracking-[0.3em] uppercase font-serif font-medium text-[#2D6A4F]">{t("growth.title")}</span>
                 <div className="w-9" />
               </div>
             )}
@@ -1530,16 +1532,18 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
                   showResult ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
                 }`}
               >
-                {displayName}님의 성장 예측
+                {locale === "en" ? `${displayName}'s Growth Prediction` : `${displayName}님의 성장 예측`}
               </h1>
               <p
                 className={`text-[#6B7280] text-sm transition-all duration-700 delay-100 ${
                   showResult ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
                 }`}
               >
-                {fp.weeklyFrequency >= 3
-                  ? `주 ${fp.weeklyFrequency}회, ${fp.sessionMinutes}분씩 꾸준히 하고 계시네요`
-                  : `주 ${fp.weeklyFrequency}회, ${fp.sessionMinutes}분씩 운동 중이에요`}
+                {locale === "en"
+                  ? `${fp.weeklyFrequency}x per week, ${fp.sessionMinutes} min each — ${fp.weeklyFrequency >= 3 ? "great consistency!" : "keep it up!"}`
+                  : fp.weeklyFrequency >= 3
+                    ? `주 ${fp.weeklyFrequency}회, ${fp.sessionMinutes}분씩 꾸준히 하고 계시네요`
+                    : `주 ${fp.weeklyFrequency}회, ${fp.sessionMinutes}분씩 운동 중이에요`}
               </p>
             </div>
             <div className="flex-1 overflow-y-auto px-6 pb-6">
@@ -1552,10 +1556,10 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
               >
                 <div className="flex items-center gap-2 mb-3">
                   <img src="/favicon_backup.png" alt="AI" className="w-5 h-5 rounded-full shrink-0" />
-                  <span className="text-[11px] font-bold text-gray-400">오운잘 AI 코치</span>
+                  <span className="text-[11px] font-bold text-gray-400">{t("home.coachTitle")}</span>
                 </div>
                 <p className="text-[#1B4332] text-sm font-bold leading-relaxed whitespace-pre-line">
-                  {reading.message}
+                  {t(reading.message)}
                 </p>
               </div>
 
@@ -1611,7 +1615,7 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
                             <div className="flex items-center justify-between mb-3">
                               <div className="flex items-center gap-2">
                                 <div className={`w-2 h-2 rounded-full ${!isOtherGoal ? "bg-[#2D6A4F]" : "bg-[#059669]"}`} />
-                                <span className="text-[#1B4332] text-sm font-bold">{!isOtherGoal ? "내 목표" : ""}: {activeGoalData?.title}</span>
+                                <span className="text-[#1B4332] text-sm font-bold">{!isOtherGoal ? t("growth.myGoal") : ""}: {t(`growth.goal.${activeGoalKey}`)}</span>
                                 <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-[#2D6A4F]/10 text-[#2D6A4F]">{levelLabel}</span>
                               </div>
                               <span className="text-[#6B7280] text-[11px]">{activeReading.condition}</span>

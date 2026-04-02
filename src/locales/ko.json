@@ -351,6 +351,17 @@
   "my.footer.address": "서울특별시 관악구 은천로35길 40-6, 404호",
 
   "delete.confirm": "이 기록을 삭제할까요?",
+  "growth.title": "성장 예측",
+  "growth.myGoal": "내 목표",
+  "growth.goal.fat_loss": "체지방 감량",
+  "growth.goal.muscle_gain": "근력 증가",
+  "growth.goal.endurance": "기초 체력",
+  "growth.goal.health": "건강 유지",
+  "growth.coach.beginner": "처음이라면 지금이 가장 좋은 시작입니다\n초보자일수록 성장 속도가 빠릅니다",
+  "growth.coach.fast": "당신의 조건은\n빠른 변화를 만들기에 충분합니다",
+  "growth.coach.good": "당신의 조건은\n변화를 만들기에 충분합니다",
+  "growth.coach.start": "작은 시작이\n가장 큰 변화를 만듭니다",
+
   "exit.confirm": "앱을 나가시겠습니까?",
   "exit.confirm.desc": "운동 중인 세션이 있으면 기록이 사라질 수 있어요"
 }

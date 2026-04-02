@@ -351,6 +351,17 @@
   "my.footer.address": "40-6, Euncheon-ro 35-gil, Gwanak-gu, Seoul, Korea",
 
   "delete.confirm": "Delete this record?",
+  "growth.title": "Growth Prediction",
+  "growth.myGoal": "My Goal",
+  "growth.goal.fat_loss": "Weight Loss",
+  "growth.goal.muscle_gain": "Strength",
+  "growth.goal.endurance": "Endurance",
+  "growth.goal.health": "Wellness",
+  "growth.coach.beginner": "If you're just starting,\nnow is the perfect time — beginners grow fastest",
+  "growth.coach.fast": "Your profile is ready\nfor rapid progress",
+  "growth.coach.good": "Your profile is ready\nto make real changes",
+  "growth.coach.start": "Small starts\ncreate the biggest changes",
+
   "exit.confirm": "Leave the app?",
   "exit.confirm.desc": "Your current workout session data may be lost"
 }
