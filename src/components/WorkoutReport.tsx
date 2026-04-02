@@ -553,9 +553,16 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
             }
           }
 
-          // 4. vs 지난 세션 볼륨 비교
+          // 4. vs 지난 세션 볼륨 비교 (현재 세션 제외)
           if (isStrengthSession && totalVolume > 0 && recentHistory.length > 0) {
-            const lastSession = recentHistory[recentHistory.length - 1];
+            // 현재 세션과 볼륨이 동일한 마지막 항목은 자기 자신일 수 있으므로,
+            // 현재 세션 날짜/볼륨과 다른 가장 최근 세션을 찾음
+            const currentId = sessionData.exercises.map(e => e.name).join(",");
+            const prevSessions = recentHistory.filter(h => {
+              const hId = h.sessionData.exercises.map((e: { name: string }) => e.name).join(",");
+              return hId !== currentId || h.stats.totalVolume !== totalVolume;
+            });
+            const lastSession = prevSessions[prevSessions.length - 1];
             const lastVol = lastSession?.stats?.totalVolume || 0;
             if (lastVol > 0) {
               const diff = Math.round(((totalVolume - lastVol) / lastVol) * 100);
