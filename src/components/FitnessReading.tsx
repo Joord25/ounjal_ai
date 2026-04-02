@@ -912,7 +912,7 @@ function Big3RegressionChart({ history, profile }: { history: WorkoutHistory[]; 
       {/* 종목 탭 */}
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-1.5">
-          <p className="text-xs font-bold text-[#1B4332]">{locale === "en" ? ex.label.replace(/.*\(([^)]+)\).*/, "$1") : ex.label} {locale === "en" ? "e1RM Prediction" : "e1RM 예측"}</p>
+          <p className="text-xs font-bold text-[#1B4332]">{locale === "en" ? ex.label.replace("벤치프레스", "Bench Press").replace("스쿼트", "Squat").replace("데드리프트", "Deadlift") : ex.label} {locale === "en" ? "e1RM Prediction" : "e1RM 예측"}</p>
         </div>
         <p className="text-[9px] text-gray-400">R² = {Math.round(reg.r2 * 100)}% ({r2Explain})</p>
       </div>
@@ -926,7 +926,7 @@ function Big3RegressionChart({ history, profile }: { history: WorkoutHistory[]; 
                 i === activeIdx % byEx.length ? "bg-[#1B4332] text-white" : "bg-gray-100 text-gray-500"
               }`}
             >
-              {locale === "en" ? ex.label.replace(/.*\(([^)]+)\).*/, "$1") : ex.label}
+              {locale === "en" ? ex.label.replace("벤치프레스", "Bench Press").replace("스쿼트", "Squat").replace("데드리프트", "Deadlift") : ex.label}
             </button>
           ))}
         </div>
