@@ -650,6 +650,7 @@ function RegressionChart({ goal, history, weightLog, profile }: {
   weightLog: { date: string; weight: number }[];
   profile: FitnessProfile;
 }) {
+  const { locale } = useTranslation();
   // 목표별 데이터 포인트 + 회귀선 + 예측 구간 생성
   const chartData = React.useMemo(() => {
     const sorted = [...history].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
@@ -669,7 +670,7 @@ function RegressionChart({ goal, history, weightLog, profile }: {
       const balanceTrend = calcCalorieBalanceTrend(sorted, profile.gender, profile.bodyWeight, h, age);
       if (balanceTrend && balanceTrend.points.length >= 2) {
         points = balanceTrend.points;
-        yLabel = "누적 칼로리 밸런스 (kcal)";
+        yLabel = locale === "en" ? "Cumulative calorie balance (kcal)" : "누적 칼로리 밸런스 (kcal)";
         // 7700kcal 적자 = -1kg, 목표 -5kg = -38500kcal
         targetLine = -38500;
         targetLabel = "-5kg 감량 라인";
@@ -755,13 +756,13 @@ function RegressionChart({ goal, history, weightLog, profile }: {
     health: "주차별 운동 횟수를 집계하여 운동 습관 추세를 보여줍니다. 점선은 WHO 권장 기준 대비 현재 추세의 4주 후 예측입니다.",
   };
 
-  const r2Explain = reg.r2 >= 0.7 ? "높은 신뢰도" : reg.r2 >= 0.4 ? "보통 신뢰도" : "낮은 신뢰도 (데이터 변동 큼)";
+  const r2Explain = reg.r2 >= 0.7 ? (locale === "en" ? "High confidence" : "높은 신뢰도") : reg.r2 >= 0.4 ? (locale === "en" ? "Moderate confidence" : "보통 신뢰도") : (locale === "en" ? "Low confidence (high variance)" : "낮은 신뢰도 (데이터 변동 큼)");
 
   return (
     <div className="bg-[#FAFBF9] rounded-xl p-3">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-1.5">
-          <p className="text-xs font-bold text-[#1B4332]">회귀분석 예측</p>
+          <p className="text-xs font-bold text-[#1B4332]">{locale === "en" ? "Regression Prediction" : "회귀분석 예측"}</p>
           <button onClick={() => setShowHelp(!showHelp)} className="w-4 h-4 rounded-full bg-[#2D6A4F]/10 flex items-center justify-center">
             <span className="text-[9px] font-black text-[#2D6A4F]">?</span>
           </button>
@@ -842,7 +843,7 @@ function RegressionChart({ goal, history, weightLog, profile }: {
         {/* 예측 포인트 */}
         <circle cx={predLineEnd.x} cy={predLineEnd.y} r="4" fill="none" stroke="#2D6A4F" strokeWidth="1.5" strokeDasharray="2 2" />
         <text x={predLineEnd.x} y={predLineEnd.y - 8} textAnchor="middle" className="fill-emerald-700" fontSize="8" fontWeight="bold">{Math.round(predY * 10) / 10}</text>
-        <text x={predLineEnd.x} y={H - 5} textAnchor="middle" className="fill-gray-400" fontSize="7">4주 후</text>
+        <text x={predLineEnd.x} y={H - 5} textAnchor="middle" className="fill-gray-400" fontSize="7">{locale === "en" ? "4 wks" : "4주 후"}</text>
 
         {/* 데이터 점 */}
         {dotPositions.map((d, i) => (
@@ -856,8 +857,8 @@ function RegressionChart({ goal, history, weightLog, profile }: {
         ))}
 
         {/* X축: 시작/끝 날짜 */}
-        <text x={PAD.left} y={H - 5} textAnchor="start" className="fill-gray-400" fontSize="7">시작</text>
-        <text x={toSvgX(lastX)} y={H - 5} textAnchor="middle" className="fill-gray-400" fontSize="7">현재</text>
+        <text x={PAD.left} y={H - 5} textAnchor="start" className="fill-gray-400" fontSize="7">{locale === "en" ? "Start" : "시작"}</text>
+        <text x={toSvgX(lastX)} y={H - 5} textAnchor="middle" className="fill-gray-400" fontSize="7">{locale === "en" ? "Now" : "현재"}</text>
       </svg>
       <p className="text-[9px] text-gray-400 mt-1 text-right">
         {reg.slope > 0 ? "▲" : reg.slope < 0 ? "▼" : "—"} 주간 {goal === "muscle_gain" ? "+" : ""}{Math.round(reg.slope * 7 * 10) / 10}{goal === "fat_loss" ? "kg" : goal === "muscle_gain" ? "kg" : "회"}/주
@@ -868,6 +869,7 @@ function RegressionChart({ goal, history, weightLog, profile }: {
 
 /* ─── 3대 운동별 회귀분석 그래프 (스와이프) ─── */
 function Big3RegressionChart({ history, profile }: { history: WorkoutHistory[]; profile: FitnessProfile }) {
+  const { locale } = useTranslation();
   const byEx = calcE1RMTrendByExercise(history);
   const [activeIdx, setActiveIdx] = React.useState(0);
 
@@ -903,7 +905,7 @@ function Big3RegressionChart({ history, profile }: { history: WorkoutHistory[]; 
   const regLineStart = { x: toSvgX(minX), y: toSvgY(reg.predict(minX)) };
   const regLineEnd = { x: toSvgX(lastX), y: toSvgY(reg.predict(lastX)) };
   const predLineEnd = { x: toSvgX(predX), y: toSvgY(predY) };
-  const r2Explain = reg.r2 >= 0.7 ? "높은 신뢰도" : reg.r2 >= 0.4 ? "보통 신뢰도" : "낮은 신뢰도 (데이터 변동 큼)";
+  const r2Explain = reg.r2 >= 0.7 ? (locale === "en" ? "High confidence" : "높은 신뢰도") : reg.r2 >= 0.4 ? (locale === "en" ? "Moderate confidence" : "보통 신뢰도") : (locale === "en" ? "Low confidence (high variance)" : "낮은 신뢰도 (데이터 변동 큼)");
 
   return (
     <div className="bg-[#FAFBF9] rounded-xl p-3" onClick={(e) => e.stopPropagation()}>
@@ -950,7 +952,7 @@ function Big3RegressionChart({ history, profile }: { history: WorkoutHistory[]; 
         <line x1={regLineEnd.x} y1={regLineEnd.y} x2={predLineEnd.x} y2={predLineEnd.y} stroke="#2D6A4F" strokeWidth="1.5" strokeDasharray="4 3" opacity="0.4" />
         <circle cx={predLineEnd.x} cy={predLineEnd.y} r="4" fill="none" stroke="#2D6A4F" strokeWidth="1.5" strokeDasharray="2 2" />
         <text x={predLineEnd.x} y={predLineEnd.y - 8} textAnchor="middle" className="fill-emerald-700" fontSize="8" fontWeight="bold">{predY}</text>
-        <text x={predLineEnd.x} y={H - 5} textAnchor="middle" className="fill-gray-400" fontSize="7">4주 후</text>
+        <text x={predLineEnd.x} y={H - 5} textAnchor="middle" className="fill-gray-400" fontSize="7">{locale === "en" ? "4 wks" : "4주 후"}</text>
         {dotPositions.map((d, i) => (
           <g key={i}>
             <circle cx={d.cx} cy={d.cy} r="3" fill="#2D6A4F" />
@@ -959,11 +961,11 @@ function Big3RegressionChart({ history, profile }: { history: WorkoutHistory[]; 
             )}
           </g>
         ))}
-        <text x={PAD.left} y={H - 5} textAnchor="start" className="fill-gray-400" fontSize="7">시작</text>
-        <text x={toSvgX(lastX)} y={H - 5} textAnchor="middle" className="fill-gray-400" fontSize="7">현재</text>
+        <text x={PAD.left} y={H - 5} textAnchor="start" className="fill-gray-400" fontSize="7">{locale === "en" ? "Start" : "시작"}</text>
+        <text x={toSvgX(lastX)} y={H - 5} textAnchor="middle" className="fill-gray-400" fontSize="7">{locale === "en" ? "Now" : "현재"}</text>
       </svg>
       <p className="text-[9px] text-gray-400 mt-1 text-right">
-        {ex.growthPerWeek > 0 ? "▲" : ex.growthPerWeek < 0 ? "▼" : "—"} 주간 +{ex.growthPerWeek}kg/주
+        {ex.growthPerWeek > 0 ? "▲" : ex.growthPerWeek < 0 ? "▼" : "—"} {locale === "en" ? `+${ex.growthPerWeek}kg/wk` : `주간 +${ex.growthPerWeek}kg/주`}
       </p>
     </div>
   );
@@ -1722,7 +1724,7 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
                                     <span className="text-[#1B4332] text-sm font-medium">{easyLabel}</span>
                                     <div className="flex items-center gap-1.5">
                                       {!isUnlocked ? (
-                                        <span className="text-[10px] text-[#2D6A4F] font-bold">{Math.max(0, threshold - workoutCount)}회 더 하면 열려요</span>
+                                        <span className="text-[10px] text-[#2D6A4F] font-bold">{locale === "en" ? `${Math.max(0, threshold - workoutCount)} more to unlock` : `${Math.max(0, threshold - workoutCount)}회 더 하면 열려요`}</span>
                                       ) : (
                                         <span className="text-[10px] text-amber-600 font-bold">프리미엄</span>
                                       )}
@@ -1735,7 +1737,7 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
                                       if (/1rm|중량|근력/.test(label)) return "해금되면: 근력 성장 추이를 예측해드려요";
                                       if (/칼로리/.test(label)) return "해금되면: 칼로리 밸런스를 분석해드려요";
                                       if (/체력|who/.test(label)) return "해금되면: 체력 변화를 추적해드려요";
-                                      return "해금되면: 상세 예측을 확인할 수 있어요";
+                                      return locale === "en" ? "Unlock for detailed predictions" : "해금되면: 상세 예측을 확인할 수 있어요";
                                     })()}
                                   </p>
                                 </div>
@@ -1752,7 +1754,7 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
                             onClick={() => setShowChart(!showChart)}
                             className="w-full flex items-center justify-center gap-1.5 mt-3 py-2 rounded-xl bg-[#2D6A4F]/5 active:bg-[#2D6A4F]/10 transition-all"
                           >
-                            <span className="text-[11px] font-bold text-[#2D6A4F]">{showChart ? "그래프 접기" : "데이터 분석 그래프 보기"}</span>
+                            <span className="text-[11px] font-bold text-[#2D6A4F]">{showChart ? (locale === "en" ? "Hide graph" : "그래프 접기") : (locale === "en" ? "View analysis graph" : "데이터 분석 그래프 보기")}</span>
                             <span className={`text-[10px] text-[#2D6A4F] transition-transform ${showChart ? "rotate-180" : ""}`}>▼</span>
                           </button>
                           {showChart && (
