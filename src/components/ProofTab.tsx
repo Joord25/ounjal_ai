@@ -6,6 +6,7 @@ import { WorkoutHistory as WorkoutHistoryType } from "@/constants/workout";
 import { loadWorkoutHistory, deleteWorkoutHistory } from "@/utils/workoutHistory";
 import { updateWeightLog } from "@/utils/userProfile";
 import { estimateTrainingLevelDetailed, getOptimalLoadBand } from "@/utils/workoutMetrics";
+import { SwipeToDelete } from "./SwipeToDelete";
 import { getCurrentSeason, getTierFromExp, getOrRebuildSeasonExp, getOrCreateWeeklyQuests, TIERS, type QuestDefinition, type QuestProgress } from "@/utils/questSystem";
 import { WorkoutReport } from "./WorkoutReport";
 import { WorkoutHistory } from "./WorkoutHistory";
@@ -17,41 +18,15 @@ interface ProofTabProps {
 
 type ViewState = "dashboard" | "list" | "report" | "weight_detail";
 
-/* 롱프레스 삭제 지원 세션 아이템 */
+/* 스와이프 삭제 지원 세션 아이템 */
 function DaySessionItem({ session, timeStr, onTap, onDelete }: {
   session: WorkoutHistoryType; timeStr: string;
   onTap: () => void; onDelete: () => void;
 }) {
-  const [showDelete, setShowDelete] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState(false);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const startPress = () => {
-    timerRef.current = setTimeout(() => setShowDelete(true), 500);
-  };
-  const endPress = () => {
-    if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
-  };
-
-  if (confirmDelete) {
-    return (
-      <div className="w-full flex items-center justify-between p-4 rounded-2xl bg-red-50 border border-red-200">
-        <p className="text-sm font-bold text-red-600">이 기록을 삭제할까요?</p>
-        <div className="flex gap-2">
-          <button onClick={() => setConfirmDelete(false)} className="text-xs font-bold text-gray-500 px-3 py-1.5 rounded-lg bg-gray-100">취소</button>
-          <button onClick={onDelete} className="text-xs font-bold text-white px-3 py-1.5 rounded-lg bg-red-500">삭제</button>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="relative">
+    <SwipeToDelete onDelete={onDelete}>
       <button
-        onClick={showDelete ? () => setShowDelete(false) : onTap}
-        onPointerDown={startPress}
-        onPointerUp={endPress}
-        onPointerLeave={endPress}
+        onClick={onTap}
         className="w-full flex items-center justify-between p-4 rounded-2xl bg-[#FAFBF9] border border-gray-100 active:scale-[0.98] transition-all"
       >
         <div className="text-left">
@@ -62,15 +37,7 @@ function DaySessionItem({ session, timeStr, onTap, onDelete }: {
         </div>
         <span className="text-xs font-medium text-[#6B7280]">{timeStr}</span>
       </button>
-      {showDelete && (
-        <button
-          onClick={(e) => { e.stopPropagation(); setConfirmDelete(true); }}
-          className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-red-500 flex items-center justify-center shadow-md animate-fade-in"
-        >
-          <span className="text-white text-xs font-black leading-none">✕</span>
-        </button>
-      )}
-    </div>
+    </SwipeToDelete>
   );
 }
 

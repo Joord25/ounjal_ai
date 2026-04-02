@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo } from "react";
 import { WorkoutHistory as WorkoutHistoryType } from "@/constants/workout";
+import { SwipeToDelete } from "./SwipeToDelete";
 
 interface WorkoutHistoryProps {
   history: WorkoutHistoryType[];
@@ -193,27 +194,29 @@ export const WorkoutHistory: React.FC<WorkoutHistoryProps> = ({
                 </button>
               )}
 
-              <button
-                onClick={() => isEditing ? toggleSelect(session.id) : onSelectSession(session)}
-                className="flex-1 bg-gray-50 p-5 rounded-2xl border border-gray-100 flex items-center justify-between hover:bg-gray-100 transition-colors text-left"
-              >
-                <div className="flex-1 min-w-0 mr-3">
-                  <p className="text-xs font-bold text-gray-400 mb-1">
-                    {new Date(session.date).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-                  </p>
-                  <h3 className="text-lg font-black text-[#1B4332] mb-1">{session.sessionData.title}</h3>
-                  <p className="text-sm text-gray-500 line-clamp-1">{session.sessionData.description}</p>
-                </div>
-                <div className="flex flex-col items-end gap-1 shrink-0">
-                   <span className="text-lg font-black text-[#2D6A4F]">
-                     {session.stats?.totalVolume?.toLocaleString() || 0} <span className="text-xs text-gray-400">kg</span>
-                   </span>
-                   <span className="text-xs font-bold text-gray-400">
-                     {session.stats?.totalSets || 0} Sets
-                     {session.stats?.totalDurationSec ? ` · ${session.stats.totalDurationSec >= 3600 ? `${Math.floor(session.stats.totalDurationSec / 3600)}h${Math.floor((session.stats.totalDurationSec % 3600) / 60)}m` : `${Math.floor(session.stats.totalDurationSec / 60)}m`}` : ""}
-                   </span>
-                </div>
-              </button>
+              <SwipeToDelete onDelete={() => onDelete([session.id])}>
+                <button
+                  onClick={() => isEditing ? toggleSelect(session.id) : onSelectSession(session)}
+                  className="w-full bg-gray-50 p-5 rounded-2xl border border-gray-100 flex items-center justify-between hover:bg-gray-100 transition-colors text-left"
+                >
+                  <div className="flex-1 min-w-0 mr-3">
+                    <p className="text-xs font-bold text-gray-400 mb-1">
+                      {new Date(session.date).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                    </p>
+                    <h3 className="text-lg font-black text-[#1B4332] mb-1">{session.sessionData.title}</h3>
+                    <p className="text-sm text-gray-500 line-clamp-1">{session.sessionData.description}</p>
+                  </div>
+                  <div className="flex flex-col items-end gap-1 shrink-0">
+                     <span className="text-lg font-black text-[#2D6A4F]">
+                       {session.stats?.totalVolume?.toLocaleString() || 0} <span className="text-xs text-gray-400">kg</span>
+                     </span>
+                     <span className="text-xs font-bold text-gray-400">
+                       {session.stats?.totalSets || 0} Sets
+                       {session.stats?.totalDurationSec ? ` · ${session.stats.totalDurationSec >= 3600 ? `${Math.floor(session.stats.totalDurationSec / 3600)}h${Math.floor((session.stats.totalDurationSec % 3600) / 60)}m` : `${Math.floor(session.stats.totalDurationSec / 60)}m`}` : ""}
+                     </span>
+                  </div>
+                </button>
+              </SwipeToDelete>
 
             </div>
           ))}
