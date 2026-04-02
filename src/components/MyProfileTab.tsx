@@ -744,7 +744,12 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout, auto
               </button>
             </div>
             <div className="flex-1 overflow-y-auto px-5 py-4">
-              <pre className="text-xs text-gray-600 leading-relaxed whitespace-pre-wrap font-sans">{locale === "en" ? TERMS_EN : TERMS_TEXT}</pre>
+              {locale === "en" && (
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4">
+                  <p className="text-[11px] text-amber-800 font-medium leading-relaxed">This English translation is provided for reference only. The legally binding version is the Korean original.</p>
+                </div>
+              )}
+              <pre className="text-xs text-gray-600 leading-relaxed whitespace-pre-wrap font-sans">{locale === "en" ? TERMS_EN.replace(/^NOTICE:.*?\n\n---\n\n/, "") : TERMS_TEXT}</pre>
             </div>
             <div className="px-5 py-3 border-t border-gray-100">
               <button type="button" onClick={() => setShowTerms(false)} className="w-full py-3 rounded-xl bg-[#1B4332] text-white text-sm font-bold hover:bg-[#143728] transition-colors">{t("common.confirm")}</button>
@@ -764,7 +769,12 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout, auto
               </button>
             </div>
             <div className="flex-1 overflow-y-auto px-5 py-4">
-              <pre className="text-xs text-gray-600 leading-relaxed whitespace-pre-wrap font-sans">{locale === "en" ? PRIVACY_EN : PRIVACY_TEXT}</pre>
+              {locale === "en" && (
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4">
+                  <p className="text-[11px] text-amber-800 font-medium leading-relaxed">This English translation is provided for reference only. The legally binding version is the Korean original.</p>
+                </div>
+              )}
+              <pre className="text-xs text-gray-600 leading-relaxed whitespace-pre-wrap font-sans">{locale === "en" ? PRIVACY_EN.replace(/^NOTICE:.*?\n\n---\n\n/, "") : PRIVACY_TEXT}</pre>
             </div>
             <div className="px-5 py-3 border-t border-gray-100">
               <button type="button" onClick={() => setShowPrivacy(false)} className="w-full py-3 rounded-xl bg-[#1B4332] text-white text-sm font-bold hover:bg-[#143728] transition-colors">{t("common.confirm")}</button>
@@ -784,7 +794,12 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout, auto
               </button>
             </div>
             <div className="flex-1 overflow-y-auto px-5 py-4">
-              <pre className="text-xs text-gray-600 leading-relaxed whitespace-pre-wrap font-sans">{locale === "en" ? REFUND_EN : REFUND_TEXT}</pre>
+              {locale === "en" && (
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4">
+                  <p className="text-[11px] text-amber-800 font-medium leading-relaxed">This English translation is provided for reference only. The legally binding version is the Korean original.</p>
+                </div>
+              )}
+              <pre className="text-xs text-gray-600 leading-relaxed whitespace-pre-wrap font-sans">{locale === "en" ? REFUND_EN.replace(/^NOTICE:.*?\n\n---\n\n/, "") : REFUND_TEXT}</pre>
             </div>
             <div className="px-5 py-3 border-t border-gray-100">
               <button type="button" onClick={() => setShowRefund(false)} className="w-full py-3 rounded-xl bg-[#1B4332] text-white text-sm font-bold hover:bg-[#143728] transition-colors">{t("common.confirm")}</button>
