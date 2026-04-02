@@ -1658,6 +1658,9 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
                             .replace("2단계 상위 등급 도달 예상 기간", "2nd tier grade timeline")
                             .replace("최고 등급 도달 예상 기간", "Top grade timeline")
                             .replace("WHO 권장 운동량 달성률", "WHO exercise target %")
+                            .replace("운동 빈도 분석", "Workout frequency analysis")
+                            .replace("운동 일관성 분석", "Workout consistency analysis")
+                            .replace("근육군 밸런스 분석", "Muscle group balance")
                             : item.label;
                           const easyLabel = rawLabel.replace(/e1RM/g, locale === "en" ? "est. 1RM" : "최대 중량").replace(/1RM/g, locale === "en" ? "1RM" : "최대 중량");
                           const rawValue = pred?.value?.toString() || "";
@@ -1670,6 +1673,11 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
                             .replace("최대 중량 입력 후 평가 가능", "Enter 1RM to evaluate")
                             .replace("체력 테스트를 완료하면 등급이 표시됩니다", "Complete fitness test to see grade")
                             .replace("체력 테스트 2회 이상 필요", "2+ fitness tests required")
+                            .replace(/주 평균 ([\d.]+)회 ✅ 충분한 빈도/, "$1x/week avg ✅ Great frequency")
+                            .replace(/주 평균 ([\d.]+)회 ⚠️ 권장 기준 충족/, "$1x/week avg ⚠️ Meets minimum")
+                            .replace(/주 평균 ([\d.]+)회 ❌ 빈도를 늘려보세요/, "$1x/week avg ❌ Increase frequency")
+                            .replace("4주 이상 기록이 필요합니다", "4+ weeks of data needed")
+                            .replace(/충족/, "Met").replace(/우수/, "Excellent").replace(/미달/, "Below")
                             .replace(/(\d+)회 운동 후 해금/, "$1 more workouts to unlock")
                             .replace(/벤치/g, "Bench").replace(/스쿼트/g, "Squat").replace(/데드/g, "Dead")
                             .replace(/초급/g, "Beginner").replace(/중급/g, "Intermediate").replace(/상급/g, "Advanced").replace(/엘리트/g, "Elite")
@@ -1687,6 +1695,8 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
                             .replace("푸쉬업 · 크런치 · 맨몸 스쿼트 (각 2분)", "Push-ups · Crunches · Squats (2 min each)")
                             .replace("테스트를 반복하면 성장 추세를 예측합니다", "Repeated tests predict growth trends")
                             .replace(/푸쉬업/g, "Push-ups").replace(/크런치/g, "Crunches").replace(/스쿼트/g, "Squats")
+                            .replace(/보건복지부 권장: 주 2회 이상 근력운동/, "Recommended: 2+ strength sessions/week")
+                            .replace(/150~300분/, "150-300 min")
                             .replace(/현재 (\d+)회 완료/, "$1 completed so far")
                             .replace(/e1RM/g, "est. 1RM").replace(/R²=\d+%/g, "").trim()
                             : rawSub.replace(/e1RM/g, "최대 중량").replace(/Best e1RM/g, "최고 기록").replace(/R²=\d+%/g, "").replace(/\s+,\s*/g, ", ").trim();
