@@ -908,6 +908,64 @@ export const adminCheckUser = onRequest(
 );
 
 /**
+ * POST /adminDeactivate
+ * Body: { email }
+ * Admin only: 유저 구독 비활성화 (free로 전환)
+ */
+export const adminDeactivate = onRequest(
+  { cors: true },
+  async (req, res) => {
+    if (req.method !== "POST") { res.status(405).json({ error: "Method not allowed" }); return; }
+
+    let adminUid: string;
+    try { adminUid = await verifyAdmin(req.headers.authorization); } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Unauthorized";
+      res.status(msg.includes("Forbidden") ? 403 : 401).json({ error: msg });
+      return;
+    }
+
+    const { email } = req.body;
+    if (!email) { res.status(400).json({ error: "Missing email" }); return; }
+
+    try {
+      const userRecord = await getAuth().getUserByEmail(email);
+      const uid = userRecord.uid;
+
+      const subRef = db.collection("subscriptions").doc(uid);
+      const doc = await subRef.get();
+
+      if (!doc.exists || doc.data()?.status === "free") {
+        res.status(400).json({ error: "이미 무료 상태입니다." });
+        return;
+      }
+
+      await subRef.update({
+        status: "free",
+        billingKey: "",
+        expiresAt: null,
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+
+      await db.collection("admin_logs").add({
+        action: "deactivate",
+        adminUid,
+        targetEmail: email,
+        targetUid: uid,
+        timestamp: FieldValue.serverTimestamp(),
+      });
+
+      res.status(200).json({ status: "deactivated", email, uid });
+    } catch (error: unknown) {
+      console.error("adminDeactivate error:", error);
+      const msg = error instanceof Error && error.message.includes("no user record")
+        ? "해당 이메일의 유저를 찾을 수 없습니다."
+        : "비활성화에 실패했습니다.";
+      res.status(error instanceof Error && error.message.includes("no user record") ? 404 : 500).json({ error: msg });
+    }
+  }
+);
+
+/**
  * POST /adminLogs
  * Admin only: 최근 활성화 이력 조회
  */

@@ -37,9 +37,10 @@ export default function AdminPage() {
   const [searchError, setSearchError] = useState("");
   const [searching, setSearching] = useState(false);
 
-  // Activate
+  // Activate / Deactivate
   const [months, setMonths] = useState(1);
   const [activating, setActivating] = useState(false);
+  const [deactivating, setDeactivating] = useState(false);
   const [activateResult, setActivateResult] = useState("");
 
   // Logs
@@ -107,6 +108,30 @@ export default function AdminPage() {
       setActivateResult(e instanceof Error ? e.message : "활성화 실패");
     } finally {
       setActivating(false);
+    }
+  };
+
+  const handleDeactivate = async () => {
+    if (!searchResult) return;
+    if (!confirm(`${searchResult.email} 구독을 비활성화하시겠습니까?`)) return;
+    setDeactivating(true);
+    setActivateResult("");
+    try {
+      const token = await getToken();
+      const res = await fetch("/api/adminDeactivate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+        body: JSON.stringify({ email: searchResult.email }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setActivateResult(`${data.email} → 비활성화 완료`);
+      handleSearch();
+      loadLogs();
+    } catch (e: unknown) {
+      setActivateResult(e instanceof Error ? e.message : "비활성화 실패");
+    } finally {
+      setDeactivating(false);
     }
   };
 
@@ -233,6 +258,15 @@ export default function AdminPage() {
                   {activating ? "처리 중..." : "구독 활성화"}
                 </button>
               </div>
+              {searchResult.status !== "free" && (
+                <button
+                  onClick={handleDeactivate}
+                  disabled={deactivating}
+                  className="w-full mt-2 py-2.5 bg-red-50 text-red-500 text-sm font-bold rounded-xl hover:bg-red-100 transition-colors disabled:opacity-50"
+                >
+                  {deactivating ? "처리 중..." : "구독 비활성화"}
+                </button>
+              )}
               {activateResult && (
                 <p className={`text-xs mt-2 ${activateResult.includes("완료") ? "text-emerald-600" : "text-red-500"}`}>
                   {activateResult}
