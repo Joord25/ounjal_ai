@@ -312,7 +312,7 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout, auto
         <div className="bg-gray-50 rounded-2xl p-5 flex flex-col gap-3">
           {/* Subscription status */}
           <div className="flex justify-between items-center">
-            <span className="text-sm font-bold text-gray-500">구독</span>
+            <span className="text-sm font-bold text-gray-500">{t("Subscription")}</span>
             {subStatus === "loading" ? (
               <div className="w-4 h-4 border-2 border-gray-300 border-t-transparent rounded-full animate-spin" />
             ) : (
@@ -359,7 +359,7 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout, auto
         <div className="bg-gray-50 rounded-2xl p-5 flex flex-col gap-3">
           {/* Gender */}
           <div className="flex justify-between items-center min-h-[32px]">
-            <span className="text-sm font-bold text-gray-500">성별</span>
+            <span className="text-sm font-bold text-gray-500">{t("my.gender")}</span>
             <button
               onClick={handleGenderToggle}
               className="flex items-center gap-2 active:opacity-60"
@@ -376,7 +376,7 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout, auto
 
           {/* Birth Year */}
           <div className="flex justify-between items-center min-h-[32px]">
-            <span className="text-sm font-bold text-gray-500">출생연도</span>
+            <span className="text-sm font-bold text-gray-500">{t("my.birthYear")}</span>
             {isEditingBirthYear ? (
               <div className="flex items-center gap-2">
                 <input
@@ -414,7 +414,7 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout, auto
 
           {/* Height */}
           <div className="flex justify-between items-center min-h-[32px]">
-            <span className="text-sm font-bold text-gray-500">키</span>
+            <span className="text-sm font-bold text-gray-500">{t("my.height")}</span>
             {isEditingHeight ? (
               <div className="flex items-center gap-2">
                 <input
@@ -494,13 +494,13 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout, auto
           className="w-full bg-gradient-to-r from-[#1B4332] to-[#2D6A4F] rounded-2xl p-6 flex items-center justify-between transition-all active:scale-[0.98] shadow-lg shadow-[#1B4332]/20"
         >
           <div className="flex flex-col items-start gap-1">
-            <span className="text-lg font-bold text-white">프리미엄 구독</span>
-            <span className="text-xs text-emerald-300/60">AI 맞춤 운동 무제한</span>
+            <span className="text-lg font-bold text-white">{t("my.premium")}</span>
+            <span className="text-xs text-emerald-300/60">{t("my.premium.desc")}</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="text-xs text-emerald-300/50 line-through">9,900원</span>
+            <span className="text-xs text-emerald-300/50 line-through">{t("my.premium.originalPrice")}</span>
             <div className="bg-[#FEE500] rounded-full px-3 py-1">
-              <span className="text-xs font-black text-[#3C1E1E]">6,900원/월</span>
+              <span className="text-xs font-black text-[#3C1E1E]">{t("my.premium.price")}</span>
             </div>
           </div>
         </button>
@@ -512,8 +512,8 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout, auto
           className="w-full bg-[#1B4332] hover:bg-[#2D6A4F] rounded-2xl p-6 flex items-center justify-between transition-all active:scale-[0.98]"
         >
           <div className="flex flex-col items-start gap-1">
-            <span className="text-lg font-bold text-white">버그 / 개선사항 제안</span>
-            <span className="text-xs text-emerald-300/60">여기로 남겨주세요</span>
+            <span className="text-lg font-bold text-white">{t("my.bugReport")}</span>
+            <span className="text-xs text-emerald-300/60">{t("my.bugReport.desc")}</span>
           </div>
           <svg className="w-6 h-6 text-emerald-400/50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
