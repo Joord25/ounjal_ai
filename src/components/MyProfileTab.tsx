@@ -458,7 +458,7 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout, auto
             {user?.email || ""}
           </p>
           <p className="text-[10px] font-bold mt-1" style={{ color: tierInfo.tier.color }}>
-            {seasonLabel} - {tierInfo.tier.name}
+            {locale === "en" ? seasonLabel.replace("시즌", "Season") : seasonLabel} - {tierInfo.tier.name}
           </p>
         </div>
       </div>
