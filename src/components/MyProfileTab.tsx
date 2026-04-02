@@ -22,7 +22,7 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout, auto
   const [nameInput, setNameInput] = useState(user?.displayName || "");
   const [isUploading, setIsUploading] = useState(false);
   const [displayPhoto, setDisplayPhoto] = useState(user?.photoURL || "");
-  const [displayName, setDisplayName] = useState(user?.displayName || "");
+  const [displayName, setDisplayName] = useState((user?.displayName || "").slice(0, 10));
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [gender, setGender] = useState<"male" | "female" | null>(() => {
@@ -158,8 +158,9 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout, auto
   const handleNameSave = async () => {
     if (!user || !nameInput.trim()) return;
     try {
-      await updateProfile(user, { displayName: nameInput.trim() });
-      setDisplayName(nameInput.trim());
+      const trimmed = nameInput.trim().slice(0, 10);
+      await updateProfile(user, { displayName: trimmed });
+      setDisplayName(trimmed);
       setIsEditingName(false);
     } catch (err) {
       console.error("Name update failed:", err);
@@ -229,6 +230,7 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout, auto
               <input
                 type="text"
                 value={nameInput}
+                maxLength={10}
                 onChange={(e) => setNameInput(e.target.value)}
                 autoFocus
                 className="text-2xl font-black text-[#1B4332] bg-white border border-gray-200 rounded-lg px-3 py-1 w-[180px] outline-none focus:border-[#2D6A4F] transition-colors text-center"
