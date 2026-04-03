@@ -8,7 +8,7 @@
  * 괄호 없는 경우: 원본 그대로 반환
  */
 export function getExerciseName(name: string, locale: string): string {
-  if (locale === "ko") return name;
+  if (locale === "ko") return name.split("(")[0].trim();
 
   // 괄호 안 영어 추출: "한글 (English Name)" → "English Name"
   const match = name.match(/\(([^)]+)\)/);
