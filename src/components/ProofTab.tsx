@@ -183,6 +183,7 @@ export const ProofTab: React.FC<ProofTabProps> = ({ onShowPrediction }) => {
         sessionDate={selectedHistory.date}
         savedDurationSec={selectedHistory.stats?.totalDurationSec}
         initialAnalysis={selectedHistory.analysis}
+        savedCoachMessages={selectedHistory.coachMessages}
         onClose={() => setView(reportReturnView)}
         onDelete={() => {
           const updated = history.filter(h => h.id !== selectedHistory.id);

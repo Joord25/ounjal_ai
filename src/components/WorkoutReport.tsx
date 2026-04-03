@@ -476,6 +476,7 @@ interface WorkoutReportProps {
   onAnalysisComplete?: (analysis: WorkoutAnalysis) => void;
   precomputedExpGained?: ExpLogEntry[];
   precomputedPrevExp?: number;
+  savedCoachMessages?: string[];
 }
 
 // Sync load of recent history from localStorage (initial render), then async update from Firestore
@@ -514,6 +515,7 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
   onAnalysisComplete,
   precomputedExpGained,
   precomputedPrevExp,
+  savedCoachMessages: propCoachMessages,
 }) => {
   const analysis = initialAnalysis;
   const [showLogs, setShowLogs] = useState(false);
@@ -848,11 +850,11 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
               logs={logs}
               exercises={sessionData.exercises}
               condition={(() => { try { const fp = JSON.parse(localStorage.getItem("alpha_fitness_profile") || "{}"); return fp.lastCondition; } catch { return undefined; } })()}
-              savedCoachMessages={(() => {
-                // 히스토리에서 저장된 코치 멘트 찾기
+              savedCoachMessages={propCoachMessages || (() => {
+                // prop으로 전달 안 됐으면 히스토리에서 찾기
                 const match = recentHistory.find(h =>
-                  h.sessionData.exercises.map(e => e.name).join(",") === sessionData.exercises.map(e => e.name).join(",")
-                  && h.coachMessages && h.coachMessages.length > 0
+                  h.id && h.coachMessages && h.coachMessages.length > 0
+                  && h.sessionData.exercises.map(e => e.name).join(",") === sessionData.exercises.map(e => e.name).join(",")
                 );
                 return match?.coachMessages;
               })()}

@@ -562,6 +562,10 @@ export default function Home() {
             precomputedExpGained={lastExpGained}
             precomputedPrevExp={lastPrevExp}
             onClose={() => {
+              // 운동 완료 상태 해제 → HOME 복귀 시 리포트 재표시 방지
+              const newCompleted = completedRitualIds.filter(id => id !== "workout");
+              setCompletedRitualIds(newCompleted);
+              localStorage.setItem("alpha_completed_rituals", JSON.stringify(newCompleted));
               setCurrentWorkoutSession(null);
               setView("home");
               setActiveTab("proof");
