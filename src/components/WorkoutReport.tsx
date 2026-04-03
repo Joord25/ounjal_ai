@@ -245,7 +245,9 @@ function RpgResultCard({ totalDurationSec, totalVolume, isStrengthSession, seaso
   const [coachMessages, setCoachMessages] = useState<string[]>(hasSaved ? savedCoachMessages : []);
   const [isThinking, setIsThinking] = useState(!skipAnimation && !hasSaved);
   const [visibleBubbles, setVisibleBubbles] = useState(skipAnimation || hasSaved ? 999 : 0);
-  const [typedCharsPerBubble, setTypedCharsPerBubble] = useState<number[]>([]);
+  const [typedCharsPerBubble, setTypedCharsPerBubble] = useState<number[]>(
+    hasSaved ? savedCoachMessages.map(m => m.length) : []
+  );
   const [showRichCard, setShowRichCard] = useState(skipAnimation || hasSaved);
 
   useEffect(() => {
