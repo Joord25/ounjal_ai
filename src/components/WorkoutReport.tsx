@@ -313,12 +313,14 @@ function RpgResultCard({ totalDurationSec, totalVolume, isStrengthSession, seaso
           <div className="flex items-start gap-2.5 mb-2">
             <img src="/favicon_backup.png" alt="" className="w-7 h-7 rounded-full shrink-0 mt-0.5" />
             <div className="bg-[#2D6A4F]/5 rounded-2xl rounded-tl-sm px-4 py-3">
-              <p className="text-[13px] font-medium text-[#2D6A4F]/60">
-                {locale === "ko" ? "생각 중" : "Thinking"}
-                <span className="inline-flex w-[18px] overflow-hidden align-baseline">
-                  <span className="animate-[thinkingDots_1.4s_steps(4,end)_infinite]">...</span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[13px] font-medium text-[#2D6A4F]/60">
+                  {locale === "ko" ? "생각 중" : "Thinking"}
                 </span>
-              </p>
+                <span className="w-1.5 h-1.5 rounded-full bg-[#2D6A4F]/40 animate-bounce" style={{ animationDelay: "0ms", animationDuration: "1s" }} />
+                <span className="w-1.5 h-1.5 rounded-full bg-[#2D6A4F]/40 animate-bounce" style={{ animationDelay: "200ms", animationDuration: "1s" }} />
+                <span className="w-1.5 h-1.5 rounded-full bg-[#2D6A4F]/40 animate-bounce" style={{ animationDelay: "400ms", animationDuration: "1s" }} />
+              </div>
             </div>
           </div>
         )}
