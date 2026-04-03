@@ -66,6 +66,7 @@ export interface WorkoutHistory {
   };
   exerciseTimings?: ExerciseTiming[];
   analysis?: WorkoutAnalysis;
+  coachMessages?: string[];
 }
 
 export interface UserCondition {

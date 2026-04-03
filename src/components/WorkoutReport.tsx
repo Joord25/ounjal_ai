@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { WorkoutSessionData, ExerciseLog, WorkoutAnalysis, WorkoutHistory } from "@/constants/workout";
 import { buildWorkoutMetrics, estimateTrainingLevel, getOptimalLoadBand, getBig4FromHistory, classifySessionIntensity, getIntensityRecommendation } from "@/utils/workoutMetrics";
 import { ShareCard } from "./ShareCard";
-import { loadRecentHistory as loadRecentHistoryFromStore } from "@/utils/workoutHistory";
+import { loadRecentHistory as loadRecentHistoryFromStore, updateCoachMessages } from "@/utils/workoutHistory";
 import { getTierFromExp, type ExpLogEntry, sumExp, TIERS, getOrRebuildSeasonExp } from "@/utils/questSystem";
 import { trackEvent } from "@/utils/analytics";
 import { useTranslation } from "@/hooks/useTranslation";
@@ -220,7 +220,7 @@ interface RpgInsight {
   volumeCompare?: string;  // 4. vs 지난 세션 비교
 }
 
-function RpgResultCard({ totalDurationSec, totalVolume, isStrengthSession, seasonExp, prevSeasonExp, expGained, intensityLevel, formatDuration, onHelpPress, onShowPrediction, skipAnimation, insight, sessionDesc, hero, timeContext, streak, nextWorkoutName, logs, exercises, condition }: {
+function RpgResultCard({ totalDurationSec, totalVolume, isStrengthSession, seasonExp, prevSeasonExp, expGained, intensityLevel, formatDuration, onHelpPress, onShowPrediction, skipAnimation, insight, sessionDesc, hero, timeContext, streak, nextWorkoutName, logs, exercises, condition, savedCoachMessages, onCoachMessagesLoaded }: {
   totalDurationSec: number; totalSets?: number; totalVolume: number; successRate: number;
   isStrengthSession: boolean; seasonExp: number; prevSeasonExp: number; expGained: ExpLogEntry[];
   intensityLevel: "high" | "moderate" | "low";
@@ -229,6 +229,7 @@ function RpgResultCard({ totalDurationSec, totalVolume, isStrengthSession, seaso
   hero: HeroData; timeContext: string; streak: number; nextWorkoutName?: string;
   logs: Record<number, ExerciseLog[]>; exercises: WorkoutSessionData["exercises"];
   condition?: { bodyPart: string; energyLevel: number };
+  savedCoachMessages?: string[]; onCoachMessagesLoaded?: (msgs: string[]) => void;
 }) {
   const { t, locale } = useTranslation();
   const current = getTierFromExp(seasonExp);
@@ -239,22 +240,26 @@ function RpgResultCard({ totalDurationSec, totalVolume, isStrengthSession, seaso
   const intensityLabel = t(`report.intensity.${intensityLevel}`);
   const sessionInfo = `${translateDesc(sessionDesc || "", locale)} · ${intensityLabel} · ${formatDuration(totalDurationSec)}`;
 
-  // 코치 3버블: 서버(Gemini)에서 비동기 로드
-  const [coachMessages, setCoachMessages] = useState<string[]>(skipAnimation ? (hero.coachLine ? [hero.coachLine] : []) : []);
-  const [isThinking, setIsThinking] = useState(!skipAnimation);
-  const [visibleBubbles, setVisibleBubbles] = useState(skipAnimation ? 999 : 0);
+  // 코치 3버블: 저장된 멘트 우선, 없으면 서버(Gemini)에서 로드
+  const hasSaved = savedCoachMessages && savedCoachMessages.length > 0;
+  const [coachMessages, setCoachMessages] = useState<string[]>(hasSaved ? savedCoachMessages : []);
+  const [isThinking, setIsThinking] = useState(!skipAnimation && !hasSaved);
+  const [visibleBubbles, setVisibleBubbles] = useState(skipAnimation || hasSaved ? 999 : 0);
   const [typedCharsPerBubble, setTypedCharsPerBubble] = useState<number[]>([]);
-  const [showRichCard, setShowRichCard] = useState(skipAnimation);
+  const [showRichCard, setShowRichCard] = useState(skipAnimation || hasSaved);
 
-  // 서버에서 코치 3버블 가져오기
   useEffect(() => {
-    if (skipAnimation) {
+    // 저장된 멘트가 있으면 즉시 표시 (Gemini 호출 X)
+    if (hasSaved || skipAnimation) {
       setIsThinking(false);
       return;
     }
+    // 서버에서 Gemini 3버블 가져오기
     fetchCoachMessages(hero, locale, logs, exercises, condition, sessionDesc, streak).then(msgs => {
       setCoachMessages(msgs);
       setIsThinking(false);
+      // 저장 콜백 — 히스토리에 기록
+      if (onCoachMessagesLoaded) onCoachMessagesLoaded(msgs);
     });
   }, []);
 
@@ -840,6 +845,22 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
               logs={logs}
               exercises={sessionData.exercises}
               condition={(() => { try { const fp = JSON.parse(localStorage.getItem("alpha_fitness_profile") || "{}"); return fp.lastCondition; } catch { return undefined; } })()}
+              savedCoachMessages={(() => {
+                // 히스토리에서 저장된 코치 멘트 찾기
+                const match = recentHistory.find(h =>
+                  h.sessionData.exercises.map(e => e.name).join(",") === sessionData.exercises.map(e => e.name).join(",")
+                  && h.coachMessages && h.coachMessages.length > 0
+                );
+                return match?.coachMessages;
+              })()}
+              onCoachMessagesLoaded={(msgs) => {
+                // 최신 히스토리 항목에 코치 멘트 저장
+                try {
+                  const history = JSON.parse(localStorage.getItem("alpha_workout_history") || "[]") as WorkoutHistory[];
+                  const latest = history[history.length - 1];
+                  if (latest) updateCoachMessages(latest.id, msgs);
+                } catch {}
+              }}
             />
           );
         })()}

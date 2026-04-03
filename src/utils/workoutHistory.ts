@@ -86,6 +86,33 @@ export async function updateWorkoutAnalysis(
   }
 }
 
+/** Save coach messages to workout history (localStorage + Firestore) */
+export async function updateCoachMessages(
+  historyId: string,
+  coachMessages: string[]
+): Promise<void> {
+  try {
+    const history = JSON.parse(localStorage.getItem("alpha_workout_history") || "[]");
+    const entry = history.find((h: WorkoutHistory) => h.id === historyId);
+    if (entry) {
+      entry.coachMessages = coachMessages;
+      localStorage.setItem("alpha_workout_history", JSON.stringify(history));
+    }
+  } catch (e) {
+    console.error("Failed to update coachMessages in localStorage", e);
+  }
+
+  const col = getUserCollection();
+  if (!col) return;
+
+  try {
+    const docRef = doc(col, historyId);
+    await updateDoc(docRef, { coachMessages });
+  } catch (e) {
+    console.error("Failed to update coachMessages in Firestore", e);
+  }
+}
+
 /** Load all workout history from Firestore, falling back to localStorage */
 export async function loadWorkoutHistory(): Promise<WorkoutHistory[]> {
   const col = getUserCollection();
