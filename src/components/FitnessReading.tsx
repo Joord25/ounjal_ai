@@ -312,10 +312,12 @@ function computeReading(
     if (p.goal === "fat_loss") {
       const weeklyLossKg = Math.round((weeklyCalBurn / 7700) * 100) / 100;
       const pred4w = Math.round((p.bodyWeight - weeklyLossKg * 4) * 10) / 10;
-      return `growth.coach.fatLoss:${pred4w}:${weeklyCalBurn}`;
+      const pred8w = Math.round((p.bodyWeight - weeklyLossKg * 8) * 10) / 10;
+      // 주간 감량 속도 기반 기간 예측
+      const weeksTo1kg = weeklyLossKg > 0 ? Math.ceil(1 / weeklyLossKg) : 0;
+      return `growth.coach.fatLoss:${pred4w}:${pred8w}:${weeksTo1kg}`;
     }
     if (p.goal === "muscle_gain") {
-      // 3대 합계 추정 (히스토리에서 best e1RM 합산)
       let total1RM = 0;
       if (history && history.length > 0) {
         const best1RMs: Record<string, number> = {};
@@ -335,13 +337,17 @@ function computeReading(
       }
       if (total1RM > 0) {
         const levelLabel = total1RM >= 500 ? "엘리트" : total1RM >= 400 ? "상급" : total1RM >= 300 ? "중급" : "입문";
-        return `growth.coach.muscleGain:${total1RM}:${levelLabel}`;
+        const nextTarget = total1RM >= 500 ? 0 : total1RM >= 400 ? 500 : total1RM >= 300 ? 400 : 300;
+        const remaining = nextTarget > 0 ? nextTarget - total1RM : 0;
+        return `growth.coach.muscleGain:${total1RM}:${levelLabel}:${nextTarget}:${remaining}`;
       }
       return "growth.coach.muscleGainStart";
     }
     if (p.goal === "endurance") {
       const grade = acsmPct >= 200 ? "특급" : acsmPct >= 150 ? "상급" : acsmPct >= 100 ? "우수" : "성장중";
-      return `growth.coach.endurance:${acsmPct}:${grade}`;
+      const nextGradePct = acsmPct >= 200 ? 0 : acsmPct >= 150 ? 200 : acsmPct >= 100 ? 150 : 100;
+      const pctRemaining = nextGradePct > 0 ? nextGradePct - acsmPct : 0;
+      return `growth.coach.endurance:${acsmPct}:${grade}:${pctRemaining}`;
     }
     // health
     return `growth.coach.health:${p.weeklyFrequency}:${acsmPct}`;
@@ -1612,36 +1618,37 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
                     if (msg === "growth.coach.beginner") return t(msg);
 
                     if (msg.startsWith("growth.coach.fatLoss:")) {
-                      const [, weight] = msg.split(":");
+                      const [, w4, w8, weeksTo1kg] = msg.split(":");
                       return pick(isEn ? [
-                        `At this pace, about ${weight}kg in 4 weeks!\nI've got the workouts — you handle the diet!`,
-                        `${weight}kg in 4 weeks is totally doable!\nWe're burning it together, keep going!`,
-                        `Your body is changing — ${weight}kg target by next month!\nI can already see the difference!`,
-                        `Imagine stepping on the scale and seeing ${weight}kg!\nThat's where we're headed together!`,
-                        `${weight}kg in sight! Every workout counts!\nYou eat clean, I'll make you sweat!`,
+                        `About ${w4}kg in 4 weeks at this pace!\nI've got the workouts — you handle the diet!`,
+                        `4 weeks → ${w4}kg, 8 weeks → ${w8}kg!\nWe're on track, keep going together!`,
+                        `About ${weeksTo1kg} weeks per 1kg — ${w4}kg by next month!\nI can already see the change!`,
+                        `${w8}kg in 2 months is within reach!\nEvery session is burning it away!`,
+                        `4 weeks to ${w4}kg! You eat clean, I'll make you sweat!`,
                       ] : [
-                        `이 기세면 4주 뒤 약 ${weight}kg!\n운동은 제가 책임질게요, 식단만 더 신경쓰자!ㅎㅎ`,
-                        `${weight}kg까지 같이 가봅시다!\n저도 옆에서 같이 땀 흘리고 있을게요!`,
-                        `몸이 바뀌고 있어요! 4주 뒤 ${weight}kg 목표!\n거울 앞에서 달라진 거 느끼실 거예요!`,
-                        `체중계에 ${weight}kg 뜨는 날 곧 와요!\n같이 만들어가는 중이에요 우리!ㅎㅎ`,
-                        `${weight}kg 향해 질주 중!\n운동은 저한테 맡기고 맛있는 거 좀만 참자!ㅎㅎ`,
+                        `이 기세면 4주 뒤 약 ${w4}kg!\n운동은 제가 책임질게요, 식단만 더 신경쓰자!ㅎㅎ`,
+                        `4주 뒤 ${w4}kg, 8주 뒤 ${w8}kg!\n같이 달려가는 중이에요 우리!ㅎㅎ`,
+                        `약 ${weeksTo1kg}주에 1kg씩! 4주 뒤 ${w4}kg 목표!\n거울 앞에서 달라진 거 느끼실 거예요!`,
+                        `2달 뒤 ${w8}kg도 충분해요!\n매 운동이 지방을 태우고 있어요!`,
+                        `4주 뒤 ${w4}kg 향해 질주 중!\n맛있는 거 좀만 참으면 체중계가 웃어요!ㅎㅎ`,
                       ]);
                     }
 
                     if (msg.startsWith("growth.coach.muscleGain:")) {
-                      const [, total, level] = msg.split(":");
+                      const [, total, level, nextTarget, remaining] = msg.split(":");
+                      const hasNext = parseInt(nextTarget) > 0;
                       return pick(isEn ? [
-                        `Estimated Big 3 total: ${total}kg!\n${level} level is so close — let's get it!`,
-                        `${total}kg Big 3! That's seriously impressive!\nWe're building something special together!`,
-                        `Big 3 at ${total}kg and climbing!\n${level} class here we come!`,
-                        `${total}kg total lift! Remember when we started?\nLook how far we've come together!`,
-                        `${total}kg! Each session is adding plates!\n${level} is just the beginning!`,
+                        `Big 3 total: ${total}kg! ${hasNext ? `${remaining}kg to ${level} level!` : `${level} level achieved!`}`,
+                        `${total}kg and climbing! ${hasNext ? `${nextTarget}kg is the next milestone!` : `You're at the top!`}`,
+                        `${total}kg total lift! ${hasNext ? `Just ${remaining}kg more to ${nextTarget}kg!` : `Elite status!`}\nWe're building this together!`,
+                        `Remember when we started? Now it's ${total}kg!\n${hasNext ? `${nextTarget}kg, here we come!` : `What a journey!`}`,
+                        `${total}kg! Every session adds plates!\n${hasNext ? `${level} → next level in sight!` : `${level} — legendary!`}`,
                       ] : [
-                        `3대 합계 추정 ${total}kg!\n${level} 코앞이에요! 같이 가즈아!`,
-                        `${total}kg이라니! 진짜 대단해요!\n같이 만들어가는 기록이라 더 뿌듯!ㅎㅎ`,
-                        `3대 ${total}kg 돌파 중!\n${level}급 진입 카운트다운이에요!`,
-                        `${total}kg! 처음 시작할 때 생각하면 진짜 많이 왔어요 우리!\n이 기세 절대 놓치지 말자!`,
-                        `${total}kg 찍는 중! 매 세션이 무게를 쌓고 있어요!\n${level}은 시작일 뿐!ㅎㅎ`,
+                        `3대 합계 추정 ${total}kg! ${hasNext ? `${level}까지 ${remaining}kg 남았어요!` : `${level} 달성!`}\n같이 가즈아!`,
+                        `${total}kg 돌파 중! ${hasNext ? `${nextTarget}kg이 다음 목표에요!` : `정상에 섰어요!`}\n같이 만든 기록이라 더 뿌듯!ㅎㅎ`,
+                        `${total}kg! ${hasNext ? `${nextTarget}kg까지 딱 ${remaining}kg!` : `엘리트 달성!`}\n이 기세 절대 놓치지 말자!`,
+                        `처음 시작할 때 생각하면 ${total}kg이 진짜 많이 온 거예요!\n${hasNext ? `${nextTarget}kg 향해 같이 달려요!` : `전설이에요 우리!`}`,
+                        `${total}kg 찍는 중! 매 세션이 무게를 쌓고 있어요!\n${hasNext ? `${level} 넘고 ${nextTarget}kg 가자!` : `${level}, 최고예요!`}ㅎㅎ`,
                       ]);
                     }
 
@@ -1658,19 +1665,21 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
                     }
 
                     if (msg.startsWith("growth.coach.endurance:")) {
-                      const [, pct, grade] = msg.split(":");
+                      const [, pct, grade, pctRemaining] = msg.split(":");
+                      const hasNext = parseInt(pctRemaining) > 0;
+                      const nextGrade = grade === "성장중" ? "우수" : grade === "우수" ? "상급" : grade === "상급" ? "특급" : "";
                       return pick(isEn ? [
-                        `WHO recommendation ${pct}% achieved!\nEndurance grade: ${grade}! Amazing!`,
-                        `${pct}% of WHO standards — you're crushing it!\n${grade} grade stamina, wow!`,
-                        `Your endurance is at ${grade} level!\n${pct}% WHO achievement — that's elite!`,
-                        `${grade} grade fitness! WHO ${pct}% done!\nYour stamina is seriously impressive!`,
-                        `WHO says ${pct}% — your body says ${grade}!\nKeep this up and nothing can stop you!`,
+                        `WHO recommendation ${pct}% achieved!\nEndurance: ${grade}! ${hasNext ? `${pctRemaining}% more to next level!` : `Top grade!`}`,
+                        `${pct}% of WHO standards! ${grade} grade stamina!\n${hasNext ? `Next level is within reach!` : `Nothing can stop you!`}`,
+                        `${grade} grade fitness! WHO ${pct}%!\n${hasNext ? `Keep going — next tier is close!` : `You're at the peak!`}`,
+                        `Your stamina is ${grade} level! ${pct}% WHO!\n${hasNext ? `Just a bit more to level up!` : `Legendary endurance!`}`,
+                        `WHO ${pct}% — body says ${grade}!\n${hasNext ? `Level up is coming soon!` : `Maximum grade achieved!`}`,
                       ] : [
-                        `WHO 권장량 ${pct}% 달성!\n기초체력 ${grade}이라니! 대단해요!`,
-                        `${pct}% 달성이면 완전 잘하고 있는 거예요!\n${grade}급 체력, 몸이 달라졌을 거예요!`,
-                        `기초체력 ${grade}! WHO ${pct}% 달성!\n이 정도면 체력 걱정 없어요!ㅎㅎ`,
-                        `${grade}급 체력 보유자!\nWHO 기준 ${pct}%라니 진짜 대단해요!`,
-                        `WHO가 ${pct}%라고 하지만, 제 눈엔 ${grade}급!\n이대로 가면 무적이에요!ㅎㅎ`,
+                        `WHO 권장량 ${pct}% 달성! 기초체력 ${grade}!\n${hasNext ? `${nextGrade}까지 ${pctRemaining}% 남았어요!` : `최고 등급 달성!`}`,
+                        `${pct}% 달성! ${grade}급 체력!\n${hasNext ? `조금만 더 하면 ${nextGrade}이에요!` : `무적이에요!`}ㅎㅎ`,
+                        `기초체력 ${grade}! WHO ${pct}% 달성!\n${hasNext ? `${nextGrade} 진입 카운트다운!` : `정상에 섰어요!`}`,
+                        `${grade}급 체력 보유자! WHO ${pct}%!\n${hasNext ? `${nextGrade}까지 같이 가요!` : `이 이상은 없어요! 대단해요!`}`,
+                        `WHO가 ${pct}%라 하지만, 제 눈엔 ${grade}급!\n${hasNext ? `${nextGrade}도 곧 넘어요!` : `레전드에요 우리!`}ㅎㅎ`,
                       ]);
                     }
 
