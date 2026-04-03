@@ -308,8 +308,8 @@ function RpgResultCard({ totalDurationSec, totalVolume, isStrengthSession, seaso
           <span className="text-[11px] font-bold text-gray-400">{t("report.aiCoach")}</span>
         </div>
 
-        {/* 코치 3버블 — thinking dots → 순차 타이핑 */}
-        {isThinking && (
+        {/* 코치 3버블 — thinking dots → 순차 타이핑 (멘트 없는 히스토리 뷰에서는 숨김) */}
+        {isThinking && !skipAnimation && (
           <div className="flex items-start gap-2.5 mb-2">
             <img src="/favicon_backup.png" alt="" className="w-7 h-7 rounded-full shrink-0 mt-0.5" />
             <div className="bg-[#2D6A4F]/5 rounded-2xl rounded-tl-sm px-4 py-3">

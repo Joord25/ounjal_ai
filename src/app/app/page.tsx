@@ -13,7 +13,7 @@ import { MyProfileTab } from "@/components/MyProfileTab";
 import type { WorkoutSessionData, UserCondition, WorkoutGoal, ExerciseLog, WorkoutHistory } from "@/constants/workout";
 import { generateAIWorkoutPlan } from "@/utils/gemini";
 import { buildWorkoutMetrics, getIntensityRecommendation } from "@/utils/workoutMetrics";
-import { saveWorkoutHistory, updateWorkoutAnalysis, loadWorkoutHistory } from "@/utils/workoutHistory";
+import { saveWorkoutHistory, updateWorkoutAnalysis } from "@/utils/workoutHistory";
 import { auth, googleProvider } from "@/lib/firebase";
 import { onAuthStateChanged, signOut, signInWithPopup, User } from "firebase/auth";
 import { SubscriptionScreen } from "@/components/SubscriptionScreen";
@@ -176,19 +176,8 @@ export default function Home() {
           const doneIds = JSON.parse(rDone);
           setCompletedRitualIds(doneIds);
 
-          if (doneIds.includes("workout")) {
-            // Load from Firestore (falls back to localStorage)
-            loadWorkoutHistory().then((history) => {
-              const todayStr = new Date().toDateString();
-              const todayEntry = history.find((h) => new Date(h.date).toDateString() === todayStr);
-              if (todayEntry) {
-                setCurrentWorkoutSession(todayEntry.sessionData);
-                setWorkoutLogs(todayEntry.logs);
-              }
-            }).catch((e) => {
-              console.error("Failed to load today's history", e);
-            });
-          }
+          // 오늘 운동 완료 상태면 세션 데이터를 복원하지 않음
+          // 리포트는 PROOF 탭 히스토리에서만 접근 가능
         }
       } else {
         setIsLoggedIn(false);
