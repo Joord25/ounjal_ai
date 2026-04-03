@@ -644,6 +644,17 @@ export const ProofTab: React.FC<ProofTabProps> = ({ onShowPrediction }) => {
               );
             })}
           </div>
+
+          {/* 잔디 색상 범례 */}
+          <div className="flex items-center justify-center gap-2 mt-3 mb-1">
+            <span className="text-[10px] text-gray-400 font-medium">{locale === "ko" ? "적음" : "Less"}</span>
+            <div className="w-3 h-3 rounded-sm bg-[#D1FAE5]" />
+            <div className="w-3 h-3 rounded-sm bg-[#6EE7B7]" />
+            <div className="w-3 h-3 rounded-sm bg-[#2D6A4F]" />
+            <div className="w-3 h-3 rounded-sm bg-[#1B4332]" />
+            <span className="text-[10px] text-gray-400 font-medium">{locale === "ko" ? "많음" : "More"}</span>
+            <span className="text-[9px] text-gray-300 ml-1">{locale === "ko" ? "· 운동시간 기준" : "· by duration"}</span>
+          </div>
         </div>
         ) : (
           /* === Weekly Quest Card (toggle view) === */
