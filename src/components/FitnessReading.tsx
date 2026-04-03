@@ -344,13 +344,17 @@ function computeReading(
       return "growth.coach.muscleGainStart";
     }
     if (p.goal === "endurance") {
-      const grade = acsmPct >= 200 ? "특급" : acsmPct >= 150 ? "상급" : acsmPct >= 100 ? "우수" : "성장중";
-      const nextGradePct = acsmPct >= 200 ? 0 : acsmPct >= 150 ? 200 : acsmPct >= 100 ? 150 : 100;
-      const pctRemaining = nextGradePct > 0 ? nextGradePct - acsmPct : 0;
-      return `growth.coach.endurance:${acsmPct}:${grade}:${pctRemaining}`;
+      // 기초체력: 주당 운동 시간 기반 체력 등급
+      const totalWeeklyMin = p.weeklyFrequency * p.sessionMinutes;
+      const grade = totalWeeklyMin >= 300 ? "특급" : totalWeeklyMin >= 225 ? "상급" : totalWeeklyMin >= 150 ? "우수" : "성장중";
+      const nextMin = totalWeeklyMin >= 300 ? 0 : totalWeeklyMin >= 225 ? 300 : totalWeeklyMin >= 150 ? 225 : 150;
+      const minRemaining = nextMin > 0 ? nextMin - totalWeeklyMin : 0;
+      return `growth.coach.endurance:${totalWeeklyMin}:${grade}:${minRemaining}:${nextMin}`;
     }
-    // health
-    return `growth.coach.health:${p.weeklyFrequency}:${acsmPct}`;
+    // health: 꾸준함 + 습관 중심
+    const totalWorkouts = history?.length || 0;
+    const weeksActive = totalWorkouts > 0 ? Math.max(1, Math.ceil(totalWorkouts / p.weeklyFrequency)) : 0;
+    return `growth.coach.health:${p.weeklyFrequency}:${totalWorkouts}:${weeksActive}`;
   })();
 
   // 항목 선택
@@ -1665,38 +1669,38 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
                     }
 
                     if (msg.startsWith("growth.coach.endurance:")) {
-                      const [, pct, grade, pctRemaining] = msg.split(":");
-                      const hasNext = parseInt(pctRemaining) > 0;
+                      const [, weeklyMin, grade, minRemaining, nextMin] = msg.split(":");
+                      const hasNext = parseInt(minRemaining) > 0;
                       const nextGrade = grade === "성장중" ? "우수" : grade === "우수" ? "상급" : grade === "상급" ? "특급" : "";
                       return pick(isEn ? [
-                        `WHO recommendation ${pct}% achieved!\nEndurance: ${grade}! ${hasNext ? `${pctRemaining}% more to next level!` : `Top grade!`}`,
-                        `${pct}% of WHO standards! ${grade} grade stamina!\n${hasNext ? `Next level is within reach!` : `Nothing can stop you!`}`,
-                        `${grade} grade fitness! WHO ${pct}%!\n${hasNext ? `Keep going — next tier is close!` : `You're at the peak!`}`,
-                        `Your stamina is ${grade} level! ${pct}% WHO!\n${hasNext ? `Just a bit more to level up!` : `Legendary endurance!`}`,
-                        `WHO ${pct}% — body says ${grade}!\n${hasNext ? `Level up is coming soon!` : `Maximum grade achieved!`}`,
+                        `${weeklyMin} min/week! Fitness grade: ${grade}!\n${hasNext ? `${minRemaining} more min to ${nextGrade}!` : `Top grade achieved!`}`,
+                        `${grade} grade stamina with ${weeklyMin} min weekly!\n${hasNext ? `${nextMin} min/week unlocks ${nextGrade}!` : `You're unstoppable!`}`,
+                        `Weekly ${weeklyMin} min! That's ${grade} level!\n${hasNext ? `Push to ${nextMin} min for ${nextGrade}!` : `Peak fitness!`}`,
+                        `${grade} endurance! ${weeklyMin} min every week!\n${hasNext ? `${nextGrade} is just ${minRemaining} min away!` : `Legend status!`}`,
+                        `${weeklyMin} min of weekly training = ${grade}!\n${hasNext ? `Level up at ${nextMin} min!` : `Maximum tier reached!`}`,
                       ] : [
-                        `WHO 권장량 ${pct}% 달성! 기초체력 ${grade}!\n${hasNext ? `${nextGrade}까지 ${pctRemaining}% 남았어요!` : `최고 등급 달성!`}`,
-                        `${pct}% 달성! ${grade}급 체력!\n${hasNext ? `조금만 더 하면 ${nextGrade}이에요!` : `무적이에요!`}ㅎㅎ`,
-                        `기초체력 ${grade}! WHO ${pct}% 달성!\n${hasNext ? `${nextGrade} 진입 카운트다운!` : `정상에 섰어요!`}`,
-                        `${grade}급 체력 보유자! WHO ${pct}%!\n${hasNext ? `${nextGrade}까지 같이 가요!` : `이 이상은 없어요! 대단해요!`}`,
-                        `WHO가 ${pct}%라 하지만, 제 눈엔 ${grade}급!\n${hasNext ? `${nextGrade}도 곧 넘어요!` : `레전드에요 우리!`}ㅎㅎ`,
+                        `주 ${weeklyMin}분 운동! 기초체력 ${grade}!\n${hasNext ? `${nextGrade}까지 주 ${minRemaining}분만 더!` : `최고 등급 달성!`}`,
+                        `${grade}급 체력! 주 ${weeklyMin}분 투자 중!\n${hasNext ? `주 ${nextMin}분 달성하면 ${nextGrade}에요!` : `무적 체력!`}ㅎㅎ`,
+                        `매주 ${weeklyMin}분씩! 체력 등급 ${grade}!\n${hasNext ? `${nextGrade} 진입까지 ${minRemaining}분!` : `정상에 섰어요!`}`,
+                        `${grade}급 체력 보유자! 주 ${weeklyMin}분!\n${hasNext ? `${nextGrade}까지 같이 가요! 얼마 안 남았어요!` : `대단해요 진짜!`}`,
+                        `주 ${weeklyMin}분이면 ${grade}! 꾸준함의 결과예요!\n${hasNext ? `${nextMin}분 넘기면 ${nextGrade} 확정!` : `레전드에요 우리!`}ㅎㅎ`,
                       ]);
                     }
 
                     if (msg.startsWith("growth.coach.health:")) {
-                      const [, freq, pct] = msg.split(":");
+                      const [, freq, totalWk, weeks] = msg.split(":");
                       return pick(isEn ? [
-                        `${freq}x per week — your health is golden!\nWHO ${pct}% achieved, keep going!`,
-                        `Consistency is king! ${freq}x weekly, ${pct}% WHO!\nYour future self will thank you!`,
-                        `${freq} sessions a week — health on autopilot!\nWHO ${pct}% and counting!`,
-                        `Steady ${freq}x per week! That's the real superpower!\n${pct}% WHO standard — you're winning!`,
-                        `${freq}x weekly warrior! WHO says ${pct}%!\nHealthiest version of you, loading...!`,
+                        `${freq}x per week for ${weeks} weeks! That's real commitment!\nYour body is thanking you every day!`,
+                        `${totalWk} total workouts! ${freq}x weekly consistency!\nHealthiest version of you is here!`,
+                        `${weeks} weeks of ${freq}x training! Incredible discipline!\nThis habit is your superpower!`,
+                        `${totalWk} sessions done! ${freq}x every week!\nYour future self is already grateful!`,
+                        `${freq}x weekly warrior! ${totalWk} total sessions!\nConsistency is the real strength!`,
                       ] : [
-                        `주 ${freq}회 꾸준히 하시니 건강은 걱정 없어요!\nWHO 권장 ${pct}% 달성, 이대로 쭉!`,
-                        `꾸준함이 진짜 실력! 주 ${freq}회, WHO ${pct}%!\n미래의 내가 감사할 거예요!ㅎㅎ`,
-                        `주 ${freq}회면 건강 자동 관리 모드!\nWHO ${pct}% 달성 중, 멋져요!`,
-                        `주 ${freq}회 운동하는 거 자체가 초능력이에요!\nWHO ${pct}% 달성, 이기고 있어요!ㅎㅎ`,
-                        `주 ${freq}회 전사! WHO 기준 ${pct}%!\n가장 건강한 버전의 나, 로딩 중...!`,
+                        `주 ${freq}회씩 ${weeks}주째! 진짜 대단한 꾸준함이에요!\n몸이 매일 감사하고 있을 거예요!`,
+                        `총 ${totalWk}회 운동! 주 ${freq}회 습관 완성!\n가장 건강한 버전의 나, 완성 중!ㅎㅎ`,
+                        `${weeks}주 동안 주 ${freq}회! 이 습관이 진짜 초능력이에요!\n같이 만든 결과라 더 뿌듯해요!`,
+                        `${totalWk}회 달성! 주 ${freq}회 빠짐없이!\n미래의 내가 지금의 나한테 감사할 거예요!ㅎㅎ`,
+                        `주 ${freq}회 전사! 총 ${totalWk}회!\n꾸준함이 진짜 실력이에요 우리!`,
                       ]);
                     }
 
