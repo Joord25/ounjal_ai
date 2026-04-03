@@ -356,9 +356,10 @@ export function calculateSessionExp(
   questsBefore: WeeklyQuestState,
   questsAfter: WeeklyQuestState,
   questDefs: QuestDefinition[],
+  dateOverride?: string,
 ): ExpLogEntry[] {
   const entries: ExpLogEntry[] = [];
-  const now = new Date().toISOString();
+  const now = dateOverride || new Date().toISOString();
 
   // Base workout EXP
   entries.push({
@@ -534,7 +535,7 @@ export function rebuildFromHistory(
     for (let i = 0; i < sorted.length; i++) {
       const sessionsUpToNow = sorted.slice(0, i + 1);
       const afterState = evaluateQuestProgress(questDefs, sessionsUpToNow, history, weekStart);
-      const entries = calculateSessionExp(prevState, afterState, questDefs);
+      const entries = calculateSessionExp(prevState, afterState, questDefs, sorted[i].date);
       allExpLog.push(...entries);
       prevState = afterState;
     }
