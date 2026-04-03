@@ -1600,36 +1600,92 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
                   {(() => {
                     const msg = reading.message;
                     const isEn = locale === "en";
+                    // 날짜 기반 시드 (같은 날 = 같은 멘트)
+                    const daySeed = new Date().getDate();
+                    const pick = <T,>(arr: T[]): T => arr[daySeed % arr.length];
+
                     if (msg === "growth.coach.beginner") return t(msg);
+
                     if (msg.startsWith("growth.coach.fatLoss:")) {
                       const [, weight] = msg.split(":");
-                      return isEn
-                        ? `At this pace, you could be ${weight}kg in 4 weeks!\nJust focus on your diet — I've got the workouts covered!`
-                        : `이 기세면 4주 뒤 약 ${weight}kg!\n운동은 제가 책임질게요, 식단만 더 신경쓰자!ㅎㅎ`;
+                      return pick(isEn ? [
+                        `At this pace, about ${weight}kg in 4 weeks!\nI've got the workouts — you handle the diet!`,
+                        `${weight}kg in 4 weeks is totally doable!\nWe're burning it together, keep going!`,
+                        `Your body is changing — ${weight}kg target by next month!\nI can already see the difference!`,
+                        `Imagine stepping on the scale and seeing ${weight}kg!\nThat's where we're headed together!`,
+                        `${weight}kg in sight! Every workout counts!\nYou eat clean, I'll make you sweat!`,
+                      ] : [
+                        `이 기세면 4주 뒤 약 ${weight}kg!\n운동은 제가 책임질게요, 식단만 더 신경쓰자!ㅎㅎ`,
+                        `${weight}kg까지 같이 가봅시다!\n저도 옆에서 같이 땀 흘리고 있을게요!`,
+                        `몸이 바뀌고 있어요! 4주 뒤 ${weight}kg 목표!\n거울 앞에서 달라진 거 느끼실 거예요!`,
+                        `체중계에 ${weight}kg 뜨는 날 곧 와요!\n같이 만들어가는 중이에요 우리!ㅎㅎ`,
+                        `${weight}kg 향해 질주 중!\n운동은 저한테 맡기고 맛있는 거 좀만 참자!ㅎㅎ`,
+                      ]);
                     }
+
                     if (msg.startsWith("growth.coach.muscleGain:")) {
                       const [, total, level] = msg.split(":");
-                      return isEn
-                        ? `Estimated Big 3 total: ${total}kg!\n${level} level is right around the corner!`
-                        : `3대 합계 추정 ${total}kg!\n${level} 코앞이에요! 같이 가즈아!`;
+                      return pick(isEn ? [
+                        `Estimated Big 3 total: ${total}kg!\n${level} level is so close — let's get it!`,
+                        `${total}kg Big 3! That's seriously impressive!\nWe're building something special together!`,
+                        `Big 3 at ${total}kg and climbing!\n${level} class here we come!`,
+                        `${total}kg total lift! Remember when we started?\nLook how far we've come together!`,
+                        `${total}kg! Each session is adding plates!\n${level} is just the beginning!`,
+                      ] : [
+                        `3대 합계 추정 ${total}kg!\n${level} 코앞이에요! 같이 가즈아!`,
+                        `${total}kg이라니! 진짜 대단해요!\n같이 만들어가는 기록이라 더 뿌듯!ㅎㅎ`,
+                        `3대 ${total}kg 돌파 중!\n${level}급 진입 카운트다운이에요!`,
+                        `${total}kg! 처음 시작할 때 생각하면 진짜 많이 왔어요 우리!\n이 기세 절대 놓치지 말자!`,
+                        `${total}kg 찍는 중! 매 세션이 무게를 쌓고 있어요!\n${level}은 시작일 뿐!ㅎㅎ`,
+                      ]);
                     }
+
                     if (msg === "growth.coach.muscleGainStart") {
-                      return isEn
-                        ? `Let's build your strength records together!\nEvery session is laying the foundation!`
-                        : `같이 기록을 만들어가요!\n매 세션이 근력의 기반이 됩니다!`;
+                      return pick(isEn ? [
+                        `Let's build your records together!\nEvery session is laying the foundation!`,
+                        `We're just getting started!\nYour strength journey begins now — I'm excited!`,
+                        `First records are the most special!\nLet's see those numbers grow together!`,
+                      ] : [
+                        `같이 기록을 만들어가요!\n매 세션이 근력의 기반이 됩니다!`,
+                        `이제 시작이에요! 여기서부터 올라가는 거예요!\n같이 해서 저도 두근두근!ㅎㅎ`,
+                        `첫 기록이 제일 특별해요!\n숫자가 올라가는 거 같이 지켜봐요!`,
+                      ]);
                     }
+
                     if (msg.startsWith("growth.coach.endurance:")) {
                       const [, pct, grade] = msg.split(":");
-                      return isEn
-                        ? `WHO recommendation ${pct}% achieved!\nEndurance grade: ${grade}!`
-                        : `WHO 권장량 ${pct}% 달성!\n기초체력 ${grade}이라니! 대단해요!`;
+                      return pick(isEn ? [
+                        `WHO recommendation ${pct}% achieved!\nEndurance grade: ${grade}! Amazing!`,
+                        `${pct}% of WHO standards — you're crushing it!\n${grade} grade stamina, wow!`,
+                        `Your endurance is at ${grade} level!\n${pct}% WHO achievement — that's elite!`,
+                        `${grade} grade fitness! WHO ${pct}% done!\nYour stamina is seriously impressive!`,
+                        `WHO says ${pct}% — your body says ${grade}!\nKeep this up and nothing can stop you!`,
+                      ] : [
+                        `WHO 권장량 ${pct}% 달성!\n기초체력 ${grade}이라니! 대단해요!`,
+                        `${pct}% 달성이면 완전 잘하고 있는 거예요!\n${grade}급 체력, 몸이 달라졌을 거예요!`,
+                        `기초체력 ${grade}! WHO ${pct}% 달성!\n이 정도면 체력 걱정 없어요!ㅎㅎ`,
+                        `${grade}급 체력 보유자!\nWHO 기준 ${pct}%라니 진짜 대단해요!`,
+                        `WHO가 ${pct}%라고 하지만, 제 눈엔 ${grade}급!\n이대로 가면 무적이에요!ㅎㅎ`,
+                      ]);
                     }
+
                     if (msg.startsWith("growth.coach.health:")) {
                       const [, freq, pct] = msg.split(":");
-                      return isEn
-                        ? `${freq}x per week — your health is in great shape!\nWHO standard ${pct}% — keep it up!`
-                        : `주 ${freq}회 꾸준히 하시니 건강은 걱정 없어요!\nWHO 권장 ${pct}% 달성, 이대로 쭉!`;
+                      return pick(isEn ? [
+                        `${freq}x per week — your health is golden!\nWHO ${pct}% achieved, keep going!`,
+                        `Consistency is king! ${freq}x weekly, ${pct}% WHO!\nYour future self will thank you!`,
+                        `${freq} sessions a week — health on autopilot!\nWHO ${pct}% and counting!`,
+                        `Steady ${freq}x per week! That's the real superpower!\n${pct}% WHO standard — you're winning!`,
+                        `${freq}x weekly warrior! WHO says ${pct}%!\nHealthiest version of you, loading...!`,
+                      ] : [
+                        `주 ${freq}회 꾸준히 하시니 건강은 걱정 없어요!\nWHO 권장 ${pct}% 달성, 이대로 쭉!`,
+                        `꾸준함이 진짜 실력! 주 ${freq}회, WHO ${pct}%!\n미래의 내가 감사할 거예요!ㅎㅎ`,
+                        `주 ${freq}회면 건강 자동 관리 모드!\nWHO ${pct}% 달성 중, 멋져요!`,
+                        `주 ${freq}회 운동하는 거 자체가 초능력이에요!\nWHO ${pct}% 달성, 이기고 있어요!ㅎㅎ`,
+                        `주 ${freq}회 전사! WHO 기준 ${pct}%!\n가장 건강한 버전의 나, 로딩 중...!`,
+                      ]);
                     }
+
                     return t(msg);
                   })()}
                 </p>
