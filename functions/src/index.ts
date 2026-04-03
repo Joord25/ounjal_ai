@@ -4,7 +4,7 @@ import { initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import { GoogleGenAI } from "@google/genai";
-import { getEquipmentType, getTimeBand, getRepBand, pickMessage, WEIGHT_PR, REPS_PR, PERFECT_SESSION, VOLUME_DEFAULT, FIRST_WORKOUT, RUNNING, VOLUME_PR, STREAK } from "./coachMessages";
+// coachMessages는 더 이상 사용하지 않음 — Gemini API가 직접 생성
 import { generateAdaptiveWorkout } from "./workoutEngine";
 
 const app = initializeApp();
@@ -1126,7 +1126,7 @@ export const adminLogs = onRequest(
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 export const getCoachMessage = onRequest(
-  { cors: true },
+  { cors: true, secrets: ["GEMINI_API_KEY"] },
   async (req, res) => {
     if (req.method !== "POST") {
       res.status(405).json({ error: "Method not allowed" });
@@ -1143,86 +1143,113 @@ export const getCoachMessage = onRequest(
     const {
       heroType,
       exerciseName,
-      exerciseType,
-      dateSeed,
-      historyCount,
-      locale,
       vars,
+      locale,
+      sessionLogs,
+      condition,
+      sessionDesc,
+      streak,
     } = req.body as {
       heroType: string;
       exerciseName?: string;
-      exerciseType?: string;
-      dateSeed: string;
-      historyCount: number;
-      locale: string;
       vars?: Record<string, string>;
+      locale: string;
+      sessionLogs?: { exerciseName: string; sets: { setNumber: number; reps: number; weight?: string; feedback: string }[] }[];
+      condition?: { bodyPart: string; energyLevel: number };
+      sessionDesc?: string;
+      streak?: number;
     };
 
-    if (!heroType || !dateSeed) {
-      res.status(400).json({ error: "Missing heroType or dateSeed" });
+    if (!heroType) {
+      res.status(400).json({ error: "Missing heroType" });
       return;
     }
 
     try {
-      // 메시지 풀 선택
-      let pool;
-      switch (heroType) {
-        case "weightPR": {
-          const equip = exerciseName ? getEquipmentType(exerciseName, exerciseType) : "general";
-          pool = WEIGHT_PR[equip]?.length > 0 ? WEIGHT_PR[equip] : WEIGHT_PR.general;
-          break;
-        }
-        case "repsPR": {
-          const equip = exerciseName ? getEquipmentType(exerciseName, exerciseType) : "general";
-          const reps = vars?.current ? parseInt(vars.current) : 10;
-          const band = equip === "bodyweight" ? "bodyweight" as const : getRepBand(reps);
-          pool = REPS_PR[band];
-          break;
-        }
-        case "volumePR":
-          pool = VOLUME_PR;
-          break;
-        case "perfect":
-          pool = PERFECT_SESSION;
-          break;
-        case "streak":
-          pool = STREAK;
-          break;
-        case "running":
-          pool = RUNNING;
-          break;
-        case "first":
-          pool = FIRST_WORKOUT;
-          break;
-        case "volume":
-        default: {
-          const hour = new Date().getHours();
-          const band = getTimeBand(hour);
-          pool = VOLUME_DEFAULT[band]?.length > 0 ? VOLUME_DEFAULT[band] : VOLUME_DEFAULT.general;
-          break;
-        }
+      const ai = getGemini();
+      const isKo = locale !== "en";
+
+      // 세션 로그 요약 생성
+      const logSummary = sessionLogs?.map(ex => {
+        const sets = ex.sets.map(s =>
+          `${s.setNumber}세트: ${s.reps}회${s.weight ? ` ${s.weight}kg` : ""} → ${s.feedback === "fail" ? "실패" : s.feedback === "easy" ? "쉬움" : s.feedback === "too_easy" ? "너무쉬움" : "적정"}`
+        ).join(", ");
+        return `${ex.exerciseName}: [${sets}]`;
+      }).join("\n") || "로그 없음";
+
+      // 컨디션 텍스트
+      const conditionText = condition
+        ? `컨디션: ${condition.bodyPart === "upper_stiff" ? "상체 뻣뻣" : condition.bodyPart === "lower_heavy" ? "하체 무거움" : condition.bodyPart === "full_fatigue" ? "전신 피로" : "좋음"} / 에너지 ${condition.energyLevel}/5`
+        : "";
+
+      const prompt = `당신은 "오운잘"이라는 운동 앱의 AI 코치입니다. 방금 운동을 끝낸 유저에게 친한 트레이너가 카톡하듯 피드백합니다.
+
+## 톤 규칙
+- 편한 존댓말 (해요체), 느낌표 자주 사용!
+- 가끔 "ㅎㅎ", "완전 굿!", "진짜" 같은 구어체 OK
+- 절대 금지: 이모지, 영어 단어, 의학/운동과학 용어, "화이팅"
+- 운동명은 반드시 한글만 사용 (괄호 영문 제거)
+- 각 메시지는 1~2문장, 자연스럽게 이어지는 대화
+
+## 메시지 구조 (반드시 3개)
+1번째: 오늘 운동에 대한 감정 공감. 운동명 구체적 언급. 조마조마/소름/뿌듯/걱정 등 감정 표현!
+2번째: "아! 그리고~" 또는 "그리고~" 로 자연스럽게 연결. 세션 중 특이사항 구체적 언급 (몇 세트에서 실패/성공, 무게 변화, 렙수 변화 등)
+3번째: 오늘 컨디션 + 운동 부위 연결해서 내일 조언. "내일 좀 뻐근할 수 있으니~", "가볍게 유산소~", "스트레칭~" 등 실제 트레이너 조언
+
+## 좋은 예시
+1번째: "오늘 덤벨 숄더프레스 무게 올리고 시행 할때 진짜 조마조마했는데, 올리는 거 보고 소름 돋았어요!"
+2번째: "아! 그리고 케이블 레터럴 레이즈 3세트에서 한번 실패했지만 4세트에서 다시 잡은거 완전 굿! 그게 진짜 성장이에요!ㅎㅎ"
+3번째: "오늘 하체 피로였는데 어깨만 5가지 운동으로 꽉 채워서 내일 좀 뻐근할 수 있으니 가볍게 유산소 해주세요!"
+
+## 세션 데이터
+- 히어로 타입: ${heroType}${exerciseName ? `\n- 주요 운동: ${exerciseName}` : ""}${vars ? `\n- PR 데이터: ${JSON.stringify(vars)}` : ""}
+- ${conditionText}
+- 운동 요약: ${sessionDesc || "정보 없음"}${streak && streak >= 2 ? `\n- 연속 ${streak}일째` : ""}
+- 세션 로그:
+${logSummary}
+
+${isKo ? "" : "IMPORTANT: Respond in English. Use casual-polite tone, exclamation marks, natural conversation flow."}
+
+반드시 아래 JSON 형식으로만 응답하세요:
+{"messages":["1번째 메시지","2번째 메시지","3번째 메시지"]}`;
+
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json",
+          temperature: 0.9,
+        },
+      });
+
+      const text = response.text || "";
+      let messages: string[];
+
+      try {
+        const parsed = JSON.parse(text);
+        messages = parsed.messages;
+        if (!Array.isArray(messages) || messages.length < 1) throw new Error("Invalid format");
+      } catch {
+        // JSON 파싱 실패 시 텍스트를 1개 메시지로
+        messages = [text.replace(/[{}"[\]]/g, "").trim() || (isKo ? "오늘도 같이 해서 좋았어요!" : "Glad we trained together today!")];
       }
-
-      const msg = pickMessage(pool, dateSeed, historyCount || 0);
-      let text = locale === "en" ? msg.en : msg.ko;
-
-      // 변수 치환
-      if (vars) {
-        for (const [k, v] of Object.entries(vars)) {
-          text = text.replace(new RegExp(`\\{${k}\\}`, "g"), v);
-        }
-      }
-
-      // AI 응답처럼 보이는 랜덤 딜레이 (150~400ms)
-      await new Promise(r => setTimeout(r, 150 + Math.random() * 250));
 
       res.status(200).json({
-        result: { text },
-        model: "coach-v1",
+        result: { messages },
+        model: "gemini-2.5-flash",
       });
     } catch (error) {
       console.error("getCoachMessage error:", error);
-      res.status(500).json({ error: "Failed to generate coach message" });
+      // 폴백: 기본 메시지
+      const isKo = locale !== "en";
+      res.status(200).json({
+        result: {
+          messages: isKo
+            ? ["오늘도 같이 운동해서 좋았어요!", "끝까지 잘 해냈어요!", "내일도 기다리고 있을게요!"]
+            : ["Great training together today!", "You finished strong!", "I'll be waiting for you tomorrow!"],
+        },
+        model: "fallback",
+      });
     }
   }
 );

@@ -155,30 +155,59 @@ function detectMicroPR(
 }
 
 /** 서버에서 코치 멘트 가져오기 */
-async function fetchCoachMessage(hero: HeroData, dateSeed: string, historyCount: number, locale: string): Promise<string> {
+/** 서버에서 코치 3버블 멘트 가져오기 (Gemini 생성) */
+async function fetchCoachMessages(
+  hero: HeroData,
+  locale: string,
+  logs: Record<number, ExerciseLog[]>,
+  exercises: WorkoutSessionData["exercises"],
+  condition?: { bodyPart: string; energyLevel: number },
+  sessionDesc?: string,
+  streak?: number,
+): Promise<string[]> {
   try {
     const user = auth.currentUser;
     if (!user) throw new Error("No user");
     const token = await user.getIdToken();
+
+    // 세션 로그 요약 (서버에 전달)
+    const sessionLogs = exercises.map((ex, i) => {
+      const exLogs = logs[i];
+      if (!exLogs || exLogs.length === 0) return null;
+      return {
+        exerciseName: ex.name.split("(")[0].trim(),
+        sets: exLogs.map(l => ({
+          setNumber: l.setNumber,
+          reps: l.repsCompleted,
+          weight: l.weightUsed,
+          feedback: l.feedback,
+        })),
+      };
+    }).filter(Boolean);
+
     const res = await fetch("/api/getCoachMessage", {
       method: "POST",
       headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
       body: JSON.stringify({
         heroType: hero.type,
-        exerciseName: hero.exerciseName,
-        exerciseType: hero.exerciseType,
-        dateSeed,
-        historyCount,
-        locale,
+        exerciseName: hero.exerciseName ? hero.exerciseName.split("(")[0].trim() : undefined,
         vars: hero.vars,
+        locale,
+        sessionLogs,
+        condition,
+        sessionDesc,
+        streak,
       }),
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
-    return data.result?.text || "";
+    const messages = data.result?.messages;
+    if (Array.isArray(messages) && messages.length > 0) return messages;
+    return [data.result?.text || (locale === "ko" ? "오늘도 같이 해서 좋았어요!" : "Great training together!")];
   } catch {
-    // 오프라인 폴백
-    return locale === "ko" ? "오늘도 같이 해서 좋았어요" : "Glad we trained together today";
+    return locale === "ko"
+      ? ["오늘도 같이 운동해서 좋았어요!", "끝까지 잘 해냈어요!", "내일도 기다리고 있을게요!"]
+      : ["Great training together today!", "You finished strong!", "I'll be waiting tomorrow!"];
   }
 }
 
@@ -191,14 +220,15 @@ interface RpgInsight {
   volumeCompare?: string;  // 4. vs 지난 세션 비교
 }
 
-function RpgResultCard({ totalDurationSec, totalVolume, isStrengthSession, seasonExp, prevSeasonExp, expGained, intensityLevel, formatDuration, onHelpPress, onShowPrediction, skipAnimation, insight, sessionDesc, hero, timeContext, streak, nextWorkoutName, dateSeed, historyCount }: {
+function RpgResultCard({ totalDurationSec, totalVolume, isStrengthSession, seasonExp, prevSeasonExp, expGained, intensityLevel, formatDuration, onHelpPress, onShowPrediction, skipAnimation, insight, sessionDesc, hero, timeContext, streak, nextWorkoutName, logs, exercises, condition }: {
   totalDurationSec: number; totalSets?: number; totalVolume: number; successRate: number;
   isStrengthSession: boolean; seasonExp: number; prevSeasonExp: number; expGained: ExpLogEntry[];
   intensityLevel: "high" | "moderate" | "low";
   formatDuration: (s: number) => string; onHelpPress: () => void; onShowPrediction?: () => void; skipAnimation?: boolean;
   insight?: RpgInsight; sessionDesc?: string;
   hero: HeroData; timeContext: string; streak: number; nextWorkoutName?: string;
-  dateSeed: string; historyCount: number;
+  logs: Record<number, ExerciseLog[]>; exercises: WorkoutSessionData["exercises"];
+  condition?: { bodyPart: string; energyLevel: number };
 }) {
   const { t, locale } = useTranslation();
   const current = getTierFromExp(seasonExp);
@@ -209,37 +239,54 @@ function RpgResultCard({ totalDurationSec, totalVolume, isStrengthSession, seaso
   const intensityLabel = t(`report.intensity.${intensityLevel}`);
   const sessionInfo = `${translateDesc(sessionDesc || "", locale)} · ${intensityLabel} · ${formatDuration(totalDurationSec)}`;
 
-  // 코치 멘트: 서버에서 비동기 로드
-  const [coachText, setCoachText] = useState<string | null>(skipAnimation ? (hero.coachLine || null) : null);
+  // 코치 3버블: 서버(Gemini)에서 비동기 로드
+  const [coachMessages, setCoachMessages] = useState<string[]>(skipAnimation ? (hero.coachLine ? [hero.coachLine] : []) : []);
   const [isThinking, setIsThinking] = useState(!skipAnimation);
-  const [typedChars, setTypedChars] = useState(0);
+  const [visibleBubbles, setVisibleBubbles] = useState(skipAnimation ? 999 : 0);
+  const [typedCharsPerBubble, setTypedCharsPerBubble] = useState<number[]>([]);
   const [showRichCard, setShowRichCard] = useState(skipAnimation);
 
-  // 서버에서 코치 멘트 가져오기
+  // 서버에서 코치 3버블 가져오기
   useEffect(() => {
-    if (skipAnimation && hero.coachLine) {
-      setCoachText(hero.coachLine);
+    if (skipAnimation) {
       setIsThinking(false);
-      setTypedChars(hero.coachLine.length);
       return;
     }
-    fetchCoachMessage(hero, dateSeed, historyCount, locale).then(text => {
-      setCoachText(text);
+    fetchCoachMessages(hero, locale, logs, exercises, condition, sessionDesc, streak).then(msgs => {
+      setCoachMessages(msgs);
       setIsThinking(false);
     });
   }, []);
 
-  // 멘트 도착 후 타이핑 애니메이션
+  // 3버블 순차 타이핑 애니메이션
   useEffect(() => {
-    if (!coachText || skipAnimation || isThinking) return;
+    if (coachMessages.length === 0 || skipAnimation || isThinking) return;
     const timers: ReturnType<typeof setTimeout>[] = [];
-    const charSpeed = 22;
-    for (let c = 0; c <= coachText.length; c++) {
-      timers.push(setTimeout(() => setTypedChars(c), c * charSpeed));
-    }
-    timers.push(setTimeout(() => setShowRichCard(true), coachText.length * charSpeed + 300));
+    const charSpeed = 18;
+    const bubblePause = 500;
+    let baseDelay = 0;
+
+    coachMessages.forEach((msg, bubbleIdx) => {
+      // 버블 등장
+      timers.push(setTimeout(() => setVisibleBubbles(bubbleIdx + 1), baseDelay));
+      // 글자별 타이핑
+      for (let c = 0; c <= msg.length; c++) {
+        timers.push(setTimeout(() => {
+          setTypedCharsPerBubble(prev => {
+            const next = [...prev];
+            next[bubbleIdx] = c;
+            return next;
+          });
+        }, baseDelay + c * charSpeed));
+      }
+      baseDelay += msg.length * charSpeed + bubblePause;
+    });
+
+    // 마지막 버블 타이핑 완료 후 리치카드
+    timers.push(setTimeout(() => setShowRichCard(true), baseDelay + 300));
+
     return () => timers.forEach(clearTimeout);
-  }, [coachText, isThinking]);
+  }, [coachMessages, isThinking]);
 
   // EXP 요약
   const expSummary = totalExpGained > 0
@@ -256,27 +303,42 @@ function RpgResultCard({ totalDurationSec, totalVolume, isStrengthSession, seaso
           <span className="text-[11px] font-bold text-gray-400">{t("report.aiCoach")}</span>
         </div>
 
-        {/* 감정 버블 — thinking dots → 타이핑 */}
-        <div className="flex items-start gap-2.5 mb-3">
-          <img src="/favicon_backup.png" alt="" className="w-7 h-7 rounded-full shrink-0 mt-0.5" />
-          <div className="max-w-[85%] bg-[#2D6A4F]/5 rounded-2xl rounded-tl-sm px-4 py-3">
-            {isThinking ? (
-              /* Thinking dots — Claude Code 스타일 */
+        {/* 코치 3버블 — thinking dots → 순차 타이핑 */}
+        {isThinking && (
+          <div className="flex items-start gap-2.5 mb-2">
+            <img src="/favicon_backup.png" alt="" className="w-7 h-7 rounded-full shrink-0 mt-0.5" />
+            <div className="bg-[#2D6A4F]/5 rounded-2xl rounded-tl-sm px-4 py-3">
               <div className="flex items-center gap-1.5 py-0.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#2D6A4F]/40 animate-bounce" style={{ animationDelay: "0ms", animationDuration: "1s" }} />
                 <span className="w-1.5 h-1.5 rounded-full bg-[#2D6A4F]/40 animate-bounce" style={{ animationDelay: "150ms", animationDuration: "1s" }} />
                 <span className="w-1.5 h-1.5 rounded-full bg-[#2D6A4F]/40 animate-bounce" style={{ animationDelay: "300ms", animationDuration: "1s" }} />
               </div>
-            ) : coachText ? (
-              <p className="text-[14px] font-medium text-[#1B4332] leading-relaxed">
-                {coachText.slice(0, typedChars)}
-                {typedChars < coachText.length && (
-                  <span className="inline-block w-0.5 h-3.5 bg-[#2D6A4F] ml-0.5 animate-pulse align-middle" />
-                )}
-              </p>
-            ) : null}
+            </div>
           </div>
-        </div>
+        )}
+        {!isThinking && coachMessages.map((msg, idx) => {
+          if (idx >= visibleBubbles) return null;
+          const chars = typedCharsPerBubble[idx] ?? 0;
+          const isTyping = chars < msg.length;
+          return (
+            <div key={idx} className="flex items-start gap-2.5 mb-2">
+              {idx === 0 ? (
+                <img src="/favicon_backup.png" alt="" className="w-7 h-7 rounded-full shrink-0 mt-0.5" />
+              ) : (
+                <div className="w-7 shrink-0" />
+              )}
+              <div className="max-w-[85%] bg-[#2D6A4F]/5 rounded-2xl rounded-tl-sm px-4 py-3">
+                <p className="text-[14px] font-medium text-[#1B4332] leading-relaxed">
+                  {msg.slice(0, chars)}
+                  {isTyping && (
+                    <span className="inline-block w-0.5 h-3.5 bg-[#2D6A4F] ml-0.5 animate-pulse align-middle" />
+                  )}
+                </p>
+              </div>
+            </div>
+          );
+        })}
+        {!isThinking && coachMessages.length > 0 && <div className="mb-3" />}
 
         {/* 결과 리치 카드 (감정 버블 타이핑 후 등장) */}
         {showRichCard && (
@@ -686,8 +748,7 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
             }
           }
 
-          // ── 히어로 데이터 계산 (coachLine 없이 — 서버에서 받음) ──
-          const dateSeed = sessionDate || new Date().toISOString().slice(0, 10);
+          // ── 히어로 데이터 계산 (coachLine 없이 — Gemini에서 생성) ──
           const microPR = detectMicroPR(sessionData.exercises, logs, recentHistory, t, locale);
 
           // 스트릭 계산
@@ -776,8 +837,9 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
               timeContext={heroTimeContext}
               streak={heroStreak}
               nextWorkoutName={nextWorkout}
-              dateSeed={dateSeed}
-              historyCount={recentHistory.length}
+              logs={logs}
+              exercises={sessionData.exercises}
+              condition={(() => { try { const fp = JSON.parse(localStorage.getItem("alpha_fitness_profile") || "{}"); return fp.lastCondition; } catch { return undefined; } })()}
             />
           );
         })()}
