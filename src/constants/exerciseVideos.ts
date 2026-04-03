@@ -299,7 +299,7 @@ export const EXERCISE_VIDEOS: Record<string, string> = {
   "변속주": "pI_GfaLDEWA",
   "장거리 러닝": "eS-1btTU9oQ",
   "LSD 러닝: 페이스 유지": "eS-1btTU9oQ",
-  "회복 러닝: 존 2 유지": "P9baLtlyieg",
+  "회복 러닝: 존 2 유지": "Gn5t6izrn5Y",
   "마무리 조깅": "Gn5t6izrn5Y",
   "걷기 또는 가벼운 조깅": "Gn5t6izrn5Y",
 };

@@ -62,7 +62,7 @@ export const generateWorkout = onRequest(
         fat_loss: `LOW INTENSITY SESSION (저강도 · 근지구력/체지방 연소)
          - Load: 40-60% of 1RM
          - Reps: ${isFemaleUser ? "15-25" : "15-20+"} per set
-         - Sets: 2-3 per exercise
+         - Sets: 3-4 per exercise
          - Rest: ${isFemaleUser ? "20-45 sec" : "30-60 sec"} between sets
          - Focus: Circuit-style, high rep compound movements, minimize rest`,
         general_fitness: `MODERATE-LOW INTENSITY (중-저강도 · 기초체력)
