@@ -345,7 +345,7 @@ export const WorkoutSession: React.FC<WorkoutSessionProps> = ({
                 value={addSearch}
                 onChange={(e) => setAddSearch(e.target.value)}
                 placeholder={t("fit.searchExercise")}
-                className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-[13px] text-[#1B4332] font-medium placeholder-gray-300 outline-none focus:border-[#2D6A4F] transition-colors mb-3 sticky top-0 z-10"
+                className="w-full px-4 py-3 rounded-xl bg-white border border-gray-200 text-[13px] text-[#1B4332] font-medium placeholder-gray-300 outline-none focus:border-[#2D6A4F] transition-colors mb-3 sticky top-0 z-10 shadow-sm"
               />
               {isSearching ? (
                 LABELED_EXERCISE_POOLS
@@ -386,7 +386,7 @@ export const WorkoutSession: React.FC<WorkoutSessionProps> = ({
               )}
             </div>
 
-            <div className="shrink-0 px-6" style={{ paddingTop: "16px", paddingBottom: "calc(var(--safe-area-bottom, 0px) + 8px)" }}>
+            <div className="shrink-0 px-6" style={{ paddingTop: "24px", paddingBottom: "calc(var(--safe-area-bottom, 0px) + 24px)" }}>
               <button
                 onClick={handleFinishWorkout}
                 className="w-full py-4 rounded-2xl bg-[#1B4332] text-white font-bold text-lg shadow-xl active:scale-[0.98] transition-all"
