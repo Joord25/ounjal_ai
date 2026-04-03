@@ -781,7 +781,7 @@ function generateBalancedWorkout(
   lastUpperTypeParam?: "push" | "pull",
 ): WorkoutSessionData {
   const baseSets = adjustVolume(3, condition, goal);
-  const sets = intensityOverride === "high" ? Math.min(baseSets + 1, 5) : intensityOverride === "low" ? Math.max(baseSets - 1, 2) : baseSets;
+  const sets = intensityOverride === "high" ? Math.min(baseSets + 1, 5) : intensityOverride === "low" ? Math.max(baseSets, 3) : baseSets;
   const repsKo = getRepsForGoalKo(goal, intensityOverride);
   const repsVal = parseInt(repsKo) || 12;
   const isoRepsKo = intensityOverride === "high" ? "8-10회" : intensityOverride === "low" ? "20회" : "12-15회";
@@ -864,7 +864,7 @@ function generateSplitWorkout(
   intensityOverride?: "high" | "moderate" | "low",
 ): WorkoutSessionData {
   const baseSets = adjustVolume(3, condition, goal);
-  const sets = intensityOverride === "high" ? Math.min(baseSets + 1, 5) : intensityOverride === "low" ? Math.max(baseSets - 1, 2) : baseSets;
+  const sets = intensityOverride === "high" ? Math.min(baseSets + 1, 5) : intensityOverride === "low" ? Math.max(baseSets, 3) : baseSets;
   const repsKo = getRepsForGoalKo(goal, intensityOverride);
   const repsVal = parseInt(repsKo) || 12;
   const isoRepsKo = intensityOverride === "high" ? "8-10회" : intensityOverride === "low" ? "20회" : "12-15회";
@@ -1001,7 +1001,7 @@ function generateHomeWorkout(
   intensityOverride?: "high" | "moderate" | "low",
 ): WorkoutSessionData {
   const baseSets = adjustVolume(3, condition, goal);
-  const sets = intensityOverride === "high" ? Math.min(baseSets + 1, 5) : intensityOverride === "low" ? Math.max(baseSets - 1, 2) : baseSets;
+  const sets = intensityOverride === "high" ? Math.min(baseSets + 1, 5) : intensityOverride === "low" ? Math.max(baseSets, 3) : baseSets;
   const repsKo = getRepsForGoalKo(goal, intensityOverride);
   const repsVal = parseInt(repsKo) || 12;
   const isoRepsKo = intensityOverride === "high" ? "8-10회" : intensityOverride === "low" ? "20회" : "12-15회";
@@ -1084,7 +1084,7 @@ export const generateAdaptiveWorkout = (
   const exercises: ExerciseStep[] = [];
   const baseSets = adjustVolume(3, condition, goal);
   // Intensity override adjusts sets: high → +1, low → -1
-  const sets = intensityOverride === "high" ? Math.min(baseSets + 1, 5) : intensityOverride === "low" ? Math.max(baseSets - 1, 2) : baseSets;
+  const sets = intensityOverride === "high" ? Math.min(baseSets + 1, 5) : intensityOverride === "low" ? Math.max(baseSets, 3) : baseSets;
   const repsKo = getRepsForGoalKo(goal, intensityOverride || undefined);
   const repsVal = parseInt(repsKo) || 12;
   // Isolation/accessory reps also scale with intensity
