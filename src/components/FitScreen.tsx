@@ -561,13 +561,13 @@ export const FitScreen: React.FC<FitScreenProps> = ({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Dynamic Font Size for Long Titles
-  const mainTitleForSize = getExerciseName(exercise.name, locale).split('(')[0].trim();
-  const titleSizeClass = mainTitleForSize.length <= 5
+  // Dynamic Font Size for Long Titles (한글만 기준)
+  const mainTitleForSize = getExerciseName(exercise.name, locale);
+  const titleSizeClass = mainTitleForSize.length <= 6
     ? "text-5xl"
-    : mainTitleForSize.length <= 8
+    : mainTitleForSize.length <= 9
       ? "text-4xl"
-      : mainTitleForSize.length <= 10
+      : mainTitleForSize.length <= 12
         ? "text-3xl"
         : "text-2xl";
 
@@ -719,7 +719,7 @@ export const FitScreen: React.FC<FitScreenProps> = ({
           {/* 운동명 */}
           <div className="flex flex-col items-center pt-2 pb-4 shrink-0">
             <div className="flex items-center gap-2 justify-center">
-              <h1 className={`font-black text-[#1B4332] tracking-tight leading-tight break-keep text-center ${mainTitle.length <= 5 ? "text-4xl" : mainTitle.length <= 8 ? "text-3xl" : mainTitle.length <= 10 ? "text-2xl" : "text-xl"}`}>{mainTitle}</h1>
+              <h1 className={`font-black text-[#1B4332] tracking-tight leading-tight break-keep text-center ${mainTitle.length <= 6 ? "text-4xl" : mainTitle.length <= 9 ? "text-3xl" : mainTitle.length <= 12 ? "text-2xl" : "text-xl"}`}>{mainTitle}</h1>
               {alternatives.length > 0 && (
                 <button
                   onClick={() => setShowSwapMenu(true)}
