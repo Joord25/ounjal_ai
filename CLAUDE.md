@@ -127,7 +127,9 @@ Post-workout report uses a **3-bubble chat interface** powered by Gemini:
 
 **Fallback:** If Gemini fails (timeout 5s, API error), server-side rule-based fallback generates 3 messages using session log analysis (fail recovery, weight increase, all-easy detection).
 
-**Prompt rules:** No duplicate exercise names across 3 bubbles. No emoji, no English words, no medical terms. Exercise names in Korean only.
+**Prompt rules:** No duplicate exercise names across 3 bubbles. No emoji (한글 이모티콘 ㅎㅎ ㅠㅠ OK), no English words, no medical terms, no "화이팅", no formal speech, no negative feedback, no body/weight comments. Exercise names in Korean only. Korean trend references (food, culture) encouraged.
+
+**Prompt versioning:** `functions/src/ai/PROMPT_HISTORY.md` tracks all prompt versions (v1~v5). Roll back by copying previous version's prompt into `coach.ts`.
 
 ### Intensity System
 
