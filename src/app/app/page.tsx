@@ -286,7 +286,7 @@ export default function Home() {
   };
 
   const handleTabChange = (id: TabId) => {
-    const workoutFlow = ["condition_check", "master_plan_preview", "workout_session"];
+    const workoutFlow = ["master_plan_preview", "workout_session"];
     // 운동 플로우 중에는 탭 변경 무시
     if (workoutFlow.includes(view)) return;
     setActiveTab(id);
