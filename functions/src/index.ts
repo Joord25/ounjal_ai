@@ -1165,11 +1165,96 @@ export const getCoachMessage = onRequest(
       return;
     }
 
+    const isKo = locale !== "en";
+
+    // ── 세션 데이터 분석 (Gemini + 폴백 공용) ──
+    const mainExName = exerciseName?.split("(")[0].trim() || "";
+    const conditionLabel = condition
+      ? (condition.bodyPart === "upper_stiff" ? (isKo ? "상체 뻣뻣" : "upper stiffness")
+        : condition.bodyPart === "lower_heavy" ? (isKo ? "하체 무거움" : "lower heaviness")
+        : condition.bodyPart === "full_fatigue" ? (isKo ? "전신 피로" : "full fatigue")
+        : (isKo ? "좋음" : "good"))
+      : "";
+
+    // 로그에서 실패/성공 패턴 감지
+    const logAnalysis = (() => {
+      if (!sessionLogs || sessionLogs.length === 0) return { failRecovery: null, allEasy: false, allTarget: false, mainExercise: mainExName };
+      // 실패 후 회복 감지
+      for (const ex of sessionLogs) {
+        const failIdx = ex.sets.findIndex(s => s.feedback === "fail");
+        if (failIdx >= 0) {
+          const recoveryIdx = ex.sets.findIndex((s, i) => i > failIdx && s.feedback !== "fail");
+          if (recoveryIdx >= 0) {
+            return { failRecovery: { exercise: ex.exerciseName, failSet: failIdx + 1, recoverySet: recoveryIdx + 1 }, allEasy: false, allTarget: false, mainExercise: mainExName };
+          }
+          return { failRecovery: { exercise: ex.exerciseName, failSet: failIdx + 1, recoverySet: null }, allEasy: false, allTarget: false, mainExercise: mainExName };
+        }
+      }
+      const allSets = sessionLogs.flatMap(ex => ex.sets);
+      const allEasy = allSets.length > 0 && allSets.every(s => s.feedback === "easy" || s.feedback === "too_easy");
+      const allTarget = allSets.length > 0 && allSets.every(s => s.feedback === "target");
+      return { failRecovery: null, allEasy, allTarget, mainExercise: mainExName };
+    })();
+
+    // ── 룰베이스 폴백 생성 (Gemini 실패 시 사용) ──
+    function buildFallbackMessages(): string[] {
+      const name = logAnalysis.mainExercise || (isKo ? "운동" : "workout");
+      const desc = sessionDesc || "";
+
+      // 1번째 버블: 감정 공감
+      const bubble1Options = isKo ? [
+        `오늘 ${name} 하는 거 옆에서 보면서 진짜 조마조마했는데, 끝까지 해내는 거 보고 소름 돋았어요!`,
+        `오늘 ${name} 진짜 잘했어요! 옆에서 보면서 저도 뿌듯했어요!`,
+        `${name} 할 때 집중하는 거 다 봤어요! 진짜 대단해요!`,
+      ] : [
+        `Watching you do ${name} today was intense! You pushed through and that was amazing!`,
+        `You crushed ${name} today! I was watching and felt so proud!`,
+        `Your focus on ${name} was incredible! Really impressive!`,
+      ];
+
+      // 2번째 버블: 세션 디테일
+      let bubble2: string;
+      if (logAnalysis.failRecovery?.recoverySet) {
+        bubble2 = isKo
+          ? `아! 그리고 ${logAnalysis.failRecovery.exercise} ${logAnalysis.failRecovery.failSet}세트에서 한번 무너졌지만 ${logAnalysis.failRecovery.recoverySet}세트에서 다시 잡은 거 완전 굿! 그게 진짜 성장이에요!ㅎㅎ`
+          : `And ${logAnalysis.failRecovery.exercise} - you dropped on set ${logAnalysis.failRecovery.failSet} but came back on set ${logAnalysis.failRecovery.recoverySet}! That recovery is real growth!`;
+      } else if (logAnalysis.failRecovery) {
+        bubble2 = isKo
+          ? `아! 그리고 ${logAnalysis.failRecovery.exercise} ${logAnalysis.failRecovery.failSet}세트에서 힘들었을 텐데, 거기까지 간 것 자체가 대단해요! 다음엔 꼭 넘을 수 있을 거예요!`
+          : `And ${logAnalysis.failRecovery.exercise} was tough at set ${logAnalysis.failRecovery.failSet}, but getting there is what matters! You'll crush it next time!`;
+      } else if (logAnalysis.allEasy) {
+        bubble2 = isKo
+          ? `그리고 전 세트 여유 있었죠?ㅎㅎ 다음에 무게 올려봐도 될 것 같아요! 성장할 준비 된 거예요!`
+          : `And every set felt easy right? Time to level up the weight next time! You're ready to grow!`;
+      } else if (logAnalysis.allTarget) {
+        bubble2 = isKo
+          ? `그리고 전 세트 딱 맞는 강도로 깔끔하게 끝냈네요! 이 페이스가 제일 좋아요!`
+          : `And you finished every set at the perfect intensity! This pace is exactly right!`;
+      } else {
+        bubble2 = isKo
+          ? `그리고 오늘 전체적으로 집중력 좋았어요! 세트마다 꾸준하게 해낸 거 다 봤어요!`
+          : `And your focus was great throughout! I saw you stay consistent every set!`;
+      }
+
+      // 3번째 버블: 컨디션 + 내일 조언
+      const bubble3Options = isKo ? [
+        `오늘 ${conditionLabel ? conditionLabel + "인 날이었는데 " : ""}${desc ? desc.split("·")[0].trim() + "으로 꽉 채워서 " : ""}내일 좀 뻐근할 수 있으니 가볍게 스트레칭 해주세요!`,
+        `${conditionLabel ? conditionLabel + " 컨디션에서 " : ""}끝까지 잘 해냈으니 오늘은 푹 쉬고, 내일 가볍게 걸어주세요!`,
+        `오늘 운동 자극 확실히 갔을 거예요! 충분히 쉬고 내일 가볍게 유산소 해주시면 딱이에요!`,
+      ] : [
+        `${conditionLabel ? "Even with " + conditionLabel + ", " : ""}you got a solid session in! Rest up and do some light stretching tomorrow!`,
+        `Great work today! Get some good rest and a light walk tomorrow will help recovery!`,
+        `Your muscles got a solid stimulus today! Rest well and some light cardio tomorrow would be perfect!`,
+      ];
+
+      const pick = <T,>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
+      return [pick(bubble1Options), bubble2, pick(bubble3Options)];
+    }
+
+    // ── Gemini 호출 (5초 타임아웃) ──
     try {
       const ai = getGemini();
-      const isKo = locale !== "en";
 
-      // 세션 로그 요약 생성
       const logSummary = sessionLogs?.map(ex => {
         const sets = ex.sets.map(s =>
           `${s.setNumber}세트: ${s.reps}회${s.weight ? ` ${s.weight}kg` : ""} → ${s.feedback === "fail" ? "실패" : s.feedback === "easy" ? "쉬움" : s.feedback === "too_easy" ? "너무쉬움" : "적정"}`
@@ -1177,9 +1262,8 @@ export const getCoachMessage = onRequest(
         return `${ex.exerciseName}: [${sets}]`;
       }).join("\n") || "로그 없음";
 
-      // 컨디션 텍스트
       const conditionText = condition
-        ? `컨디션: ${condition.bodyPart === "upper_stiff" ? "상체 뻣뻣" : condition.bodyPart === "lower_heavy" ? "하체 무거움" : condition.bodyPart === "full_fatigue" ? "전신 피로" : "좋음"} / 에너지 ${condition.energyLevel}/5`
+        ? `컨디션: ${conditionLabel} / 에너지 ${condition.energyLevel}/5`
         : "";
 
       const prompt = `당신은 "오운잘"이라는 운동 앱의 AI 코치입니다. 방금 운동을 끝낸 유저에게 친한 트레이너가 카톡하듯 피드백합니다.
@@ -1189,7 +1273,7 @@ export const getCoachMessage = onRequest(
 - 가끔 "ㅎㅎ", "완전 굿!", "진짜" 같은 구어체 OK
 - 절대 금지: 이모지, 영어 단어, 의학/운동과학 용어, "화이팅"
 - 운동명은 반드시 한글만 사용 (괄호 영문 제거)
-- 각 메시지는 1~2문장, 자연스럽게 이어지는 대화
+- 각 메시지는 1~3문장, 자연스럽게 이어지는 대화
 
 ## 메시지 구조 (반드시 3개)
 1번째: 오늘 운동에 대한 감정 공감. 운동명 구체적 언급. 조마조마/소름/뿌듯/걱정 등 감정 표현!
@@ -1202,7 +1286,7 @@ export const getCoachMessage = onRequest(
 3번째: "오늘 하체 피로였는데 어깨만 5가지 운동으로 꽉 채워서 내일 좀 뻐근할 수 있으니 가볍게 유산소 해주세요!"
 
 ## 세션 데이터
-- 히어로 타입: ${heroType}${exerciseName ? `\n- 주요 운동: ${exerciseName}` : ""}${vars ? `\n- PR 데이터: ${JSON.stringify(vars)}` : ""}
+- 히어로 타입: ${heroType}${exerciseName ? `\n- 주요 운동: ${mainExName}` : ""}${vars ? `\n- PR 데이터: ${JSON.stringify(vars)}` : ""}
 - ${conditionText}
 - 운동 요약: ${sessionDesc || "정보 없음"}${streak && streak >= 2 ? `\n- 연속 ${streak}일째` : ""}
 - 세션 로그:
@@ -1213,6 +1297,10 @@ ${isKo ? "" : "IMPORTANT: Respond in English. Use casual-polite tone, exclamatio
 반드시 아래 JSON 형식으로만 응답하세요:
 {"messages":["1번째 메시지","2번째 메시지","3번째 메시지"]}`;
 
+      // 5초 타임아웃
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 5000);
+
       const response = await ai.models.generateContent({
         model: "gemini-2.5-flash",
         contents: prompt,
@@ -1222,6 +1310,7 @@ ${isKo ? "" : "IMPORTANT: Respond in English. Use casual-polite tone, exclamatio
         },
       });
 
+      clearTimeout(timeout);
       const text = response.text || "";
       let messages: string[];
 
@@ -1230,8 +1319,7 @@ ${isKo ? "" : "IMPORTANT: Respond in English. Use casual-polite tone, exclamatio
         messages = parsed.messages;
         if (!Array.isArray(messages) || messages.length < 1) throw new Error("Invalid format");
       } catch {
-        // JSON 파싱 실패 시 텍스트를 1개 메시지로
-        messages = [text.replace(/[{}"[\]]/g, "").trim() || (isKo ? "오늘도 같이 해서 좋았어요!" : "Glad we trained together today!")];
+        messages = buildFallbackMessages();
       }
 
       res.status(200).json({
@@ -1239,15 +1327,9 @@ ${isKo ? "" : "IMPORTANT: Respond in English. Use casual-polite tone, exclamatio
         model: "gemini-2.5-flash",
       });
     } catch (error) {
-      console.error("getCoachMessage error:", error);
-      // 폴백: 기본 메시지
-      const isKo = locale !== "en";
+      console.error("getCoachMessage error (fallback used):", error);
       res.status(200).json({
-        result: {
-          messages: isKo
-            ? ["오늘도 같이 운동해서 좋았어요!", "끝까지 잘 해냈어요!", "내일도 기다리고 있을게요!"]
-            : ["Great training together today!", "You finished strong!", "I'll be waiting for you tomorrow!"],
-        },
+        result: { messages: buildFallbackMessages() },
         model: "fallback",
       });
     }
