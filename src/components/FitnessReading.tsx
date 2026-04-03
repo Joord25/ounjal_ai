@@ -1673,17 +1673,17 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
                       const hasNext = parseInt(minRemaining) > 0;
                       const nextGrade = grade === "성장중" ? "우수" : grade === "우수" ? "상급" : grade === "상급" ? "특급" : "";
                       return pick(isEn ? [
-                        `${weeklyMin} min/week! Fitness grade: ${grade}!\n${hasNext ? `${minRemaining} more min to ${nextGrade}!` : `Top grade achieved!`}`,
-                        `${grade} grade stamina with ${weeklyMin} min weekly!\n${hasNext ? `${nextMin} min/week unlocks ${nextGrade}!` : `You're unstoppable!`}`,
-                        `Weekly ${weeklyMin} min! That's ${grade} level!\n${hasNext ? `Push to ${nextMin} min for ${nextGrade}!` : `Peak fitness!`}`,
-                        `${grade} endurance! ${weeklyMin} min every week!\n${hasNext ? `${nextGrade} is just ${minRemaining} min away!` : `Legend status!`}`,
-                        `${weeklyMin} min of weekly training = ${grade}!\n${hasNext ? `Level up at ${nextMin} min!` : `Maximum tier reached!`}`,
+                        `${weeklyMin} min/week! Grade: ${grade}!\n${hasNext ? `${minRemaining} more min to ${nextGrade}!` : `Top grade! National team level!`}`,
+                        `${grade} grade with ${weeklyMin} min weekly!\n${hasNext ? `${nextMin} min/week unlocks ${nextGrade}!` : `Elite athlete vibes!`}`,
+                        `Weekly ${weeklyMin} min = ${grade} level!\n${hasNext ? `${nextGrade} is ${minRemaining} min away!` : `Peak human performance!`}`,
+                        `${grade} stamina! ${weeklyMin} min every week!\n${hasNext ? `Level up at ${nextMin} min!` : `Olympic spirit right here!`}`,
+                        `${weeklyMin} min weekly = ${grade}!\n${hasNext ? `${nextGrade} promotion incoming!` : `Special forces level!`}`,
                       ] : [
-                        `주 ${weeklyMin}분 운동! 기초체력 ${grade}!\n${hasNext ? `${nextGrade}까지 주 ${minRemaining}분만 더!` : `최고 등급 달성!`}`,
-                        `${grade}급 체력! 주 ${weeklyMin}분 투자 중!\n${hasNext ? `주 ${nextMin}분 달성하면 ${nextGrade}에요!` : `무적 체력!`}ㅎㅎ`,
-                        `매주 ${weeklyMin}분씩! 체력 등급 ${grade}!\n${hasNext ? `${nextGrade} 진입까지 ${minRemaining}분!` : `정상에 섰어요!`}`,
-                        `${grade}급 체력 보유자! 주 ${weeklyMin}분!\n${hasNext ? `${nextGrade}까지 같이 가요! 얼마 안 남았어요!` : `대단해요 진짜!`}`,
-                        `주 ${weeklyMin}분이면 ${grade}! 꾸준함의 결과예요!\n${hasNext ? `${nextMin}분 넘기면 ${nextGrade} 확정!` : `레전드에요 우리!`}ㅎㅎ`,
+                        `주 ${weeklyMin}분 운동! 체력 ${grade}!\n${hasNext ? `${nextGrade}까지 주 ${minRemaining}분만 더!` : `이 정도면 국대급이에요!`}`,
+                        `${grade}급 체력! 주 ${weeklyMin}분 투자 중!\n${hasNext ? `주 ${nextMin}분 넘기면 ${nextGrade} 진급!` : `특급 전사에요 진짜!`}ㅎㅎ`,
+                        `매주 ${weeklyMin}분씩! 체력 ${grade}!\n${hasNext ? `${nextGrade} 진급까지 ${minRemaining}분!` : `체력으로는 못 말려요!`}`,
+                        `${grade}급 체력! 주 ${weeklyMin}분!\n${hasNext ? `${nextGrade}까지 얼마 안 남았어요! 가즈아!` : `군에서도 특급 감이에요!`}ㅎㅎ`,
+                        `주 ${weeklyMin}분이면 ${grade}! 대단해요!\n${hasNext ? `${nextMin}분 넘기면 ${nextGrade} 확정!` : `올림픽 정신 그 자체!`}ㅎㅎ`,
                       ]);
                     }
 
