@@ -593,6 +593,23 @@ export const ProofTab: React.FC<ProofTabProps> = ({ onShowPrediction }) => {
               const isCompleted = daySessions.length > 0;
               const isToday = isCurrentMonth && day === today.getDate();
 
+              // Grass intensity: total minutes across all sessions
+              const totalMin = daySessions.reduce((s, h) => s + (h.stats?.totalDurationSec || 0), 0) / 60;
+              const grassLevel = !isCompleted ? 0
+                : totalMin <= 0 ? 2 // fallback: duration unknown → mid level
+                : totalMin < 15 ? 1
+                : totalMin < 30 ? 2
+                : totalMin < 50 ? 3
+                : 4;
+
+              const grassColors = [
+                { bg: "bg-gray-50", text: "text-gray-300", shadow: "" },
+                { bg: "bg-[#D1FAE5]", text: "text-gray-700", shadow: "shadow-sm shadow-[#D1FAE5]/40" },
+                { bg: "bg-[#6EE7B7]", text: "text-gray-800", shadow: "shadow-sm shadow-[#6EE7B7]/40" },
+                { bg: "bg-[#2D6A4F]", text: "text-white", shadow: "shadow-md shadow-[#2D6A4F]/20" },
+                { bg: "bg-[#1B4332]", text: "text-white", shadow: "shadow-md shadow-[#1B4332]/30" },
+              ];
+              const g = grassColors[grassLevel];
 
               return (
                 <div
@@ -606,9 +623,8 @@ export const ProofTab: React.FC<ProofTabProps> = ({ onShowPrediction }) => {
                     }
                   }}
                   className={`aspect-square rounded-xl flex items-center justify-center text-xs font-bold relative transition-all ${
-                    isCompleted
-                      ? 'bg-[#2D6A4F] text-white shadow-md shadow-[#2D6A4F]/20 cursor-pointer active:scale-90'
-                      : 'bg-gray-50 text-gray-300'
+                    g.bg} ${g.text} ${g.shadow} ${
+                    isCompleted ? 'cursor-pointer active:scale-90' : ''
                   } ${isToday ? 'ring-2 ring-emerald-400 ring-offset-2' : ''}`}
                 >
                   {day}
