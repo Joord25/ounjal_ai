@@ -540,7 +540,7 @@
   "my.footer.salesNum": "Online Sales 2026-Seoul Gwanak-0647",
   "my.footer.address": "40-6, Euncheon-ro 35-gil, Gwanak-gu, Seoul, Korea",
 
-  "delete.confirm": "Delete this record?",
+  "delete.confirm": "Delete this record? EXP will be recalculated.",
   "growth.title": "Growth Prediction",
   "growth.myGoal": "My Goal",
   "growth.goal.fat_loss": "Weight Loss",

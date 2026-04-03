@@ -8,7 +8,7 @@ import { updateWeightLog } from "@/utils/userProfile";
 import { estimateTrainingLevelDetailed, getOptimalLoadBand } from "@/utils/workoutMetrics";
 import { SwipeToDelete } from "./SwipeToDelete";
 import { useTranslation } from "@/hooks/useTranslation";
-import { getCurrentSeason, getTierFromExp, getOrRebuildSeasonExp, getOrCreateWeeklyQuests, TIERS, type QuestDefinition, type QuestProgress } from "@/utils/questSystem";
+import { getCurrentSeason, getTierFromExp, getOrRebuildSeasonExp, getOrCreateWeeklyQuests, TIERS, rebuildFromHistory, saveSeasonExp, type QuestDefinition, type QuestProgress } from "@/utils/questSystem";
 import { WorkoutReport } from "./WorkoutReport";
 import { WorkoutHistory } from "./WorkoutHistory";
 
@@ -157,18 +157,20 @@ export const ProofTab: React.FC<ProofTabProps> = ({ onShowPrediction }) => {
     setView("report");
   };
 
-  const handleDeleteSession = (sessionIds: string[]) => {
-    const idSet = new Set(sessionIds);
-    const updatedHistory = history.filter(h => !idSet.has(h.id));
-    setHistory(updatedHistory);
-    // Sync deletion to Firestore + localStorage
-    deleteWorkoutHistory(sessionIds);
-  };
-
   // Load user profile from localStorage for consistent report rendering
   const savedBodyWeight = typeof window !== "undefined" ? parseFloat(localStorage.getItem("alpha_body_weight") || "") : NaN;
   const savedGender = typeof window !== "undefined" ? (localStorage.getItem("alpha_gender") as "male" | "female") || undefined : undefined;
   const savedBirthYear = typeof window !== "undefined" ? parseInt(localStorage.getItem("alpha_birth_year") || "") : NaN;
+
+  const handleDeleteSession = (sessionIds: string[]) => {
+    const idSet = new Set(sessionIds);
+    const updatedHistory = history.filter(h => !idSet.has(h.id));
+    setHistory(updatedHistory);
+    deleteWorkoutHistory(sessionIds);
+    // Rebuild EXP from remaining history
+    const rebuilt = rebuildFromHistory(updatedHistory, !isNaN(savedBirthYear) ? savedBirthYear : undefined, savedGender);
+    saveSeasonExp(rebuilt);
+  };
 
   if (view === "report" && selectedHistory) {
     return (
@@ -187,6 +189,9 @@ export const ProofTab: React.FC<ProofTabProps> = ({ onShowPrediction }) => {
           setHistory(updated);
           localStorage.setItem("alpha_workout_history", JSON.stringify(updated));
           deleteWorkoutHistory([selectedHistory.id]).catch(() => {});
+          // Rebuild EXP from remaining history
+          const rebuilt = rebuildFromHistory(updated, !isNaN(savedBirthYear) ? savedBirthYear : undefined, savedGender);
+          saveSeasonExp(rebuilt);
           setView(reportReturnView);
         }}
         onAnalysisComplete={(analysis) => {

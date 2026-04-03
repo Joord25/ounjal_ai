@@ -269,8 +269,8 @@ export const WorkoutHistory: React.FC<WorkoutHistoryProps> = ({
             <h3 className="text-lg font-black text-[#1B4332] mb-2">{locale === "ko" ? "기록 삭제" : "Delete Records"}</h3>
             <p className="text-sm text-gray-500 mb-6">
               {locale === "ko"
-                ? <>{selected.size}개의 운동 기록을 삭제하시겠습니까?<br/>삭제된 기록은 복구할 수 없습니다.</>
-                : <>Delete {selected.size} workout record{selected.size > 1 ? "s" : ""}?<br/>This cannot be undone.</>}
+                ? <>{selected.size}개의 운동 기록을 삭제하시겠습니까?<br/>삭제된 기록은 복구할 수 없으며, EXP가 재계산됩니다.</>
+                : <>Delete {selected.size} workout record{selected.size > 1 ? "s" : ""}?<br/>This cannot be undone. EXP will be recalculated.</>}
             </p>
             <div className="flex gap-3">
               <button

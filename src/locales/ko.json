@@ -540,7 +540,7 @@
   "my.footer.salesNum": "통신판매 2026-서울관악-0647",
   "my.footer.address": "서울특별시 관악구 은천로35길 40-6, 404호",
 
-  "delete.confirm": "이 기록을 삭제할까요?",
+  "delete.confirm": "이 기록을 삭제할까요? EXP가 재계산됩니다.",
   "growth.title": "성장 예측",
   "growth.myGoal": "내 목표",
   "growth.goal.fat_loss": "체지방 감량",
