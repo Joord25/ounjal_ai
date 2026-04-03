@@ -314,14 +314,14 @@ function RpgResultCard({ totalDurationSec, totalVolume, isStrengthSession, seaso
             <img src="/favicon_backup.png" alt="" className="w-7 h-7 rounded-full shrink-0 mt-0.5" />
             <div className="bg-[#2D6A4F]/5 rounded-2xl rounded-tl-sm px-4 py-3">
               <div className="flex items-center gap-2">
+                <span className="text-[12px] font-medium text-[#2D6A4F]/50 animate-pulse">
+                  {locale === "ko" ? "생각 중" : "Thinking"}
+                </span>
                 <div className="flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#2D6A4F]/40 animate-bounce" style={{ animationDelay: "0ms", animationDuration: "1s" }} />
                   <span className="w-1.5 h-1.5 rounded-full bg-[#2D6A4F]/40 animate-bounce" style={{ animationDelay: "150ms", animationDuration: "1s" }} />
                   <span className="w-1.5 h-1.5 rounded-full bg-[#2D6A4F]/40 animate-bounce" style={{ animationDelay: "300ms", animationDuration: "1s" }} />
                 </div>
-                <span className="text-[12px] font-medium text-[#2D6A4F]/50 animate-pulse">
-                  {locale === "ko" ? "생각 중..." : "Thinking..."}
-                </span>
               </div>
             </div>
           </div>
