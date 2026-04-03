@@ -1479,7 +1479,8 @@ export const FitScreen: React.FC<FitScreenProps> = ({
             </div>
             <div className="flex gap-2 flex-wrap justify-center mb-6">
               {(() => {
-                const pool = exercise.type === "core" || setInfo.targetReps >= 15
+                const isHighRep = exercise.type === "core" || setInfo.targetReps >= 15 || !hasWeight;
+                const pool = isHighRep
                   ? [5, 8, 10, 15, 20, 30, 40, 50, 60, 80, 100]
                   : [3, 5, 8, 10, 12, 15, 20];
                 const target = adjustedReps;
