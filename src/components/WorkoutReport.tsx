@@ -320,7 +320,7 @@ function RpgResultCard({ totalDurationSec, totalVolume, isStrengthSession, seaso
                   <span className="w-1.5 h-1.5 rounded-full bg-[#2D6A4F]/40 animate-bounce" style={{ animationDelay: "300ms", animationDuration: "1s" }} />
                 </div>
                 <span className="text-[12px] font-medium text-[#2D6A4F]/50 animate-pulse">
-                  {locale === "ko" ? "세션 분석 중..." : "Analyzing session..."}
+                  {locale === "ko" ? "생각 중..." : "Thinking..."}
                 </span>
               </div>
             </div>
