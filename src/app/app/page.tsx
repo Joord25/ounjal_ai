@@ -49,24 +49,21 @@ const lazyGenerateWorkout = async (
   // Push/Pull 교대 상태를 localStorage에서 읽어서 서버에 전달
   const lastUpperType = (typeof window !== "undefined" ? localStorage.getItem("alpha_last_upper_type") as "push" | "pull" : null) || undefined;
 
-  const res = await fetch("/api/planSession", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-    body: JSON.stringify({
-      dayIndex,
-      condition,
-      goal,
-      selectedSessionType,
-      intensityOverride,
-      sessionMode,
-      targetMuscle,
-      runType,
-      lastUpperType,
-    }),
+  const body = JSON.stringify({
+    dayIndex, condition, goal, selectedSessionType,
+    intensityOverride, sessionMode, targetMuscle, runType, lastUpperType,
   });
+  const headers = { "Content-Type": "application/json", "Authorization": `Bearer ${token}` };
 
+  // 콜드스타트 대비: 실패 시 1회 자동 재시도 (서버가 깨어난 후 성공)
+  let res = await fetch("/api/planSession", { method: "POST", headers, body });
   if (!res.ok) {
-    throw new Error(`planSession failed: ${res.status}. Run "cd functions && npm run serve" for local development.`);
+    console.warn(`planSession 1st attempt failed (${res.status}), retrying...`);
+    await new Promise(r => setTimeout(r, 1500));
+    res = await fetch("/api/planSession", { method: "POST", headers, body });
+  }
+  if (!res.ok) {
+    throw new Error(`planSession failed: ${res.status}`);
   }
   const session = await res.json();
 
