@@ -483,9 +483,10 @@ export default function Home() {
         );
 
       case "master_plan_preview":
+        if (!currentWorkoutSession) { setView("home"); return null; }
         return (
           <MasterPlanPreview
-            sessionData={currentWorkoutSession!}
+            sessionData={currentWorkoutSession}
             onStart={(modifiedData) => { trackEvent("plan_preview_start"); setCurrentWorkoutSession(modifiedData); setView("workout_session"); }}
             onBack={() => setView("condition_check")}
             onRegenerate={handleRegenerate}
@@ -497,9 +498,10 @@ export default function Home() {
         );
 
       case "workout_session":
+        if (!currentWorkoutSession) { setView("home"); return null; }
         return (
           <WorkoutSession
-            sessionData={currentWorkoutSession!}
+            sessionData={currentWorkoutSession}
             onComplete={(completedData, logs, timing) => {
               trackEvent("workout_complete", { session_number: getPlanCount(), duration_min: Math.round(timing.totalDurationSec / 60) });
               setCurrentWorkoutSession(completedData);
@@ -547,9 +549,10 @@ export default function Home() {
         );
 
       case "workout_report":
+        if (!currentWorkoutSession) { setView("home"); return null; }
         return (
           <WorkoutReport
-            sessionData={currentWorkoutSession!}
+            sessionData={currentWorkoutSession}
             logs={workoutLogs}
             bodyWeightKg={currentCondition?.bodyWeightKg}
             gender={currentCondition?.gender}
