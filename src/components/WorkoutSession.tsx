@@ -339,14 +339,16 @@ export const WorkoutSession: React.FC<WorkoutSessionProps> = ({
         ) : (
           /* Exercise search list */
           <>
-            <div className="flex-1 overflow-y-auto px-6 pb-4">
+            <div className="shrink-0 px-6 pb-3">
               <input
                 type="text"
                 value={addSearch}
                 onChange={(e) => setAddSearch(e.target.value)}
                 placeholder={t("fit.searchExercise")}
-                className="w-full px-4 py-3 rounded-xl bg-white border border-gray-200 text-[13px] text-[#1B4332] font-medium placeholder-gray-300 outline-none focus:border-[#2D6A4F] transition-colors mb-3 sticky top-0 z-10 shadow-sm"
+                className="w-full px-4 py-3 rounded-xl bg-white border border-gray-200 text-[13px] text-[#1B4332] font-medium placeholder-gray-300 outline-none focus:border-[#2D6A4F] transition-colors"
               />
+            </div>
+            <div className="flex-1 overflow-y-auto px-6 pb-4">
               {isSearching ? (
                 LABELED_EXERCISE_POOLS
                   .map((group) => {
