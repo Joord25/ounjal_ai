@@ -55,15 +55,20 @@ const lazyGenerateWorkout = async (
   });
   const headers = { "Content-Type": "application/json", "Authorization": `Bearer ${token}` };
 
-  // 콜드스타트 대비: 실패 시 1회 자동 재시도 (서버가 깨어난 후 성공)
-  let res = await fetch("/api/planSession", { method: "POST", headers, body });
-  if (!res.ok) {
-    console.warn(`planSession 1st attempt failed (${res.status}), retrying...`);
-    await new Promise(r => setTimeout(r, 1500));
-    res = await fetch("/api/planSession", { method: "POST", headers, body });
+  // 콜드스타트 대비: 최대 3회 재시도 (로딩 화면 뒤에서 조용히)
+  let res: Response | null = null;
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      res = await fetch("/api/planSession", { method: "POST", headers, body });
+      if (res.ok) break;
+      console.warn(`planSession attempt ${attempt} failed (${res.status})`);
+    } catch (e) {
+      console.warn(`planSession attempt ${attempt} network error:`, e);
+    }
+    if (attempt < 3) await new Promise(r => setTimeout(r, 2000)); // 2초 대기 후 재시도
   }
-  if (!res.ok) {
-    throw new Error(`planSession failed: ${res.status}`);
+  if (!res || !res.ok) {
+    throw new Error("planSession failed after 3 attempts");
   }
   const session = await res.json();
 
@@ -327,8 +332,10 @@ export default function Home() {
         }
     } catch (e) {
         console.error("Error generating workout:", e);
-        // 에러 시 사용자에게 알림 (재시도 유도)
-        alert(typeof e === "object" && e && "message" in e ? (e as Error).message : "운동 플랜 생성에 실패했습니다. 다시 시도해주세요.");
+        // 실패 시 로딩 종료 + 컨디션 체크로 복귀 (alert 없이)
+        pendingSessionRef.current = null;
+        setIsLoading(false);
+        setView("condition_check");
     } finally {
         // sessionMode path: onComplete callback handles isLoading
         if (!pendingSessionRef.current) {
@@ -688,12 +695,22 @@ export default function Home() {
             sessionMode={currentSession?.sessionMode}
             targetMuscle={currentSession?.targetMuscle}
             onComplete={() => {
-              if (pendingSessionRef.current) {
-                setCurrentWorkoutSession(pendingSessionRef.current);
-                pendingSessionRef.current = null;
-              }
-              setIsLoading(false);
-              setView("master_plan_preview");
+              // 서버 응답 대기: pendingSession이 있을 때까지 폴링
+              const checkReady = () => {
+                if (pendingSessionRef.current) {
+                  setCurrentWorkoutSession(pendingSessionRef.current);
+                  pendingSessionRef.current = null;
+                  setIsLoading(false);
+                  setView("master_plan_preview");
+                } else if (isLoading) {
+                  // 아직 서버 응답 대기 중 — 500ms 후 재확인
+                  setTimeout(checkReady, 500);
+                } else {
+                  // generatePlan이 실패로 끝남 — 로딩만 종료
+                  setIsLoading(false);
+                }
+              };
+              checkReady();
             }}
           />
         )}
