@@ -238,6 +238,9 @@ const PUSH_EXERCISES = {
     "웨이티드 푸쉬업 (Weighted Push-ups)",
     "케틀벨 플로어 프레스 (Kettlebell Floor Press)",
     "체스트 프레스 머신 (Chest Press Machine)",
+    "클로즈그립 벤치 프레스 (Close-Grip Bench Press)",
+    "인클라인 바벨 프레스 (Incline Barbell Press)",
+    "스미스 머신 벤치 프레스 (Smith Machine Bench Press)",
   ],
   verticalPress: [
     "오버헤드 프레스 (Overhead Press)",
@@ -301,6 +304,8 @@ const PULL_EXERCISES = {
     "하이로우 머신 (High Row Machine)",
     "케틀벨 로우 (Kettlebell Row)",
     "TRX 로우 (TRX Row)",
+    "랙 풀 (Rack Pull)",
+    "바벨 슈러그 (Barbell Shrug)",
   ],
   unilateral: [
     "싱글 암 덤벨 로우 (Single Arm Dumbbell Row)",
@@ -337,6 +342,7 @@ const LEG_EXERCISES = {
     "고블렛 스쿼트 (Goblet Squat)",
     "더블 케틀벨 프론트 스쿼트 (Double Kettlebell Front Squat)",
     "케틀벨 고블릿 스쿼트 (Kettlebell Goblet Squat)",
+    "핵 스쿼트 (Hack Squat)",
   ],
   hinge: [
     "루마니안 데드리프트 (Romanian Deadlift)",
@@ -344,6 +350,8 @@ const LEG_EXERCISES = {
     "케틀벨 스윙 (Kettlebell Swing)",
     "싱글 레그 케틀벨 RDL (Single-Leg Kettlebell RDL)",
     "케틀벨 데드리프트 (Kettlebell Deadlift)",
+    "스모 데드리프트 (Sumo Deadlift)",
+    "트랩바 데드리프트 (Trap Bar Deadlift)",
   ],
   unilateral: [
     "워킹 런지 (Walking Lunges)",
@@ -356,6 +364,7 @@ const LEG_EXERCISES = {
     "레그 익스텐션 (Leg Extension)",
     "덤벨 힙 쓰러스트 (Dumbbell Hip Thrust)",
     "힙 쓰러스트 (Hip Thrust)",
+    "바벨 힙 쓰러스트 (Barbell Hip Thrust)",
     "케이블 풀 스루 (Cable Pull-Through)",
     "레그 컬 (Leg Curl)",
     "힙 어덕션 머신 (Hip Abduction Machine)",
@@ -397,13 +406,16 @@ const CORE_EXERCISES = {
     "플랭크 (Plank)",
     "사이드 플랭크 (Side Plank)",
     "플랭크 숄더 탭 (Plank Shoulder Tap)",
+    "웨이티드 플랭크 (Weighted Plank)",
   ],
   dynamic: [
     "러시안 트위스트 (Russian Twist)",
     "데드버그 (Deadbug)",
     "버드 독 (Bird Dog)",
     "행잉 레그 레이즈 (Hanging Leg Raise)",
+    "행잉 니 레이즈 (Hanging Knee Raise)",
     "Ab 휠 롤아웃 (Ab Wheel Rollout)",
+    "바벨 롤아웃 (Barbell Rollout)",
     "크런치 (Crunch)",
     "바이시클 크런치 (Bicycle Crunch)",
     "오블리크 크런치 (Oblique Crunch)",
@@ -492,6 +504,17 @@ const CORE_EXERCISES = {
     "동적 발목 펌핑 (Active Ankle Pumps)",
   ],
 };
+
+// ====== 고강도 전용 풀 (바벨/고중량만 — ACSM/NSCA 최대근력 기준) ======
+const HEAVY_LEG_SQUAT = ["바벨 백 스쿼트 (Barbell Back Squat)", "프론트 스쿼트 (Front Squat)", "핵 스쿼트 (Hack Squat)"];
+const HEAVY_LEG_HINGE = ["컨벤셔널 데드리프트 (Conventional Deadlift)", "루마니안 데드리프트 (Romanian Deadlift)", "스모 데드리프트 (Sumo Deadlift)", "트랩바 데드리프트 (Trap Bar Deadlift)"];
+const HEAVY_LEG_COMPOUND = ["레그 프레스 (Leg Press)", "바벨 힙 쓰러스트 (Barbell Hip Thrust)", "불가리안 스플릿 스쿼트 (Bulgarian Split Squat)"];
+const HEAVY_PUSH_COMPOUND = ["바벨 벤치 프레스 (Barbell Bench Press)", "디클라인 벤치 프레스 (Decline Bench Press)", "헤머 벤치 프레스 (Hammer Bench Press)", "인클라인 바벨 프레스 (Incline Barbell Press)", "클로즈그립 벤치 프레스 (Close-Grip Bench Press)", "스미스 머신 벤치 프레스 (Smith Machine Bench Press)"];
+// Split 모드 고강도에서 사용 예정
+// const HEAVY_PUSH_PRESS = ["오버헤드 프레스 (Overhead Press)", "밀리터리 프레스 (Military Press)"];
+const HEAVY_PUSH_ACCESSORY = ["중량 딥스 (Weighted Dips)", "랜드마인 프레스 (Landmine Press)", "인클라인 덤벨 프레스 (Incline Dumbbell Press)"];
+const HEAVY_PULL_COMPOUND = ["바벨 로우 (Barbell Row)", "펜들레이 로우 (Pendlay Row)", "티바 로우 (T-Bar Row)", "중량 풀업 (Weighted Pull-ups)", "랙 풀 (Rack Pull)"];
+const HEAVY_PULL_ACCESSORY = ["중량 친업 (Weighted Chin-ups)", "시티드 케이블 로우 (Seated Cable Row)", "바벨 슈러그 (Barbell Shrug)", "체스트 서포티드 로우 (Chest Supported Row)"];
 
 // UI 전용 (ALL_EXERCISE_POOLS, LABELED_EXERCISE_POOLS, getAlternativeExercises)은 클라이언트에만 존재
 
@@ -794,41 +817,74 @@ function generateBalancedWorkout(
   const upperType: "push" | "pull" = lastUpperType === "push" ? "pull" : "push";
 
   const exercises: ExerciseStep[] = [];
+  const isHigh = intensityOverride === "high" || goal === "strength";
 
   // 1. Warmup
   exercises.push(...buildWarmup(condition));
 
-  // 2. Main: 하체 2종
-  const legCompound = isFatigued
-    ? pick(["고블렛 스쿼트 (Goblet Squat)", "케틀벨 고블릿 스쿼트 (Kettlebell Goblet Squat)"])
-    : pick(LEG_EXERCISES.squat);
-  const legHinge = isFatigued
-    ? pick(["케틀벨 스윙 (Kettlebell Swing)", "케틀벨 데드리프트 (Kettlebell Deadlift)"])
-    : pick([...LEG_EXERCISES.hinge, ...LEG_EXERCISES.unilateral]);
-  exercises.push(
-    { type: "strength", phase: "main", name: legCompound, count: formatCountKo(sets, repsKo), weight: isFatigued ? "적당한 무게" : wg("compound"), sets, reps: repsVal },
-    { type: "strength", phase: "main", name: legHinge, count: formatCountKo(sets, repsKo), weight: isFatigued ? "적당한 무게" : wg("compound"), sets, reps: repsVal },
-  );
+  // 2. Main — 고강도: 피라미드 (주력 3-5회 + 보조 6-8회 + 고립 8-10회, 바벨 전용)
+  //         일반: 기존 로직 유지
+  if (isHigh && !isFatigued) {
+    // ── 고강도 피라미드 구조 (E+D 합체안) ──
+    const primarySets = 5;
+    const primaryReps = "3-5회";
+    const primaryRepsVal = 4;
+    const secondarySets = 4;
+    const secondaryReps = "6-8회";
+    const secondaryRepsVal = 7;
 
-  // 2. Main: 상체 3종 (push 또는 pull)
-  if (upperType === "push") {
-    const pushCompound = isFatigued
-      ? pick(["덤벨 벤치 프레스 (Dumbbell Bench Press)", "푸쉬업 (Push-up)"])
-      : pick(PUSH_EXERCISES.mainCompound);
-    exercises.push(
-      { type: "strength", phase: "main", name: pushCompound, count: formatCountKo(sets, repsKo), weight: isFatigued ? "적당한 무게" : wg("compound"), sets, reps: repsVal },
-      { type: "strength", phase: "main", name: pick(PUSH_EXERCISES.accessory), count: formatCountKo(sets, repsKo), weight: wg("accessory"), sets, reps: repsVal },
-      { type: "strength", phase: "main", name: pick([...PUSH_EXERCISES.isoShoulder, ...PUSH_EXERCISES.isoTricep]), count: formatCountKo(sets, isoRepsKo), weight: wg("isolation"), sets, reps: isoRepsVal },
-    );
+    if (upperType === "push") {
+      // Push일: 하체 주력(스쿼트) + 하체 보조 + 상체 주력(벤치) + 상체 보조 + 고립
+      exercises.push(
+        { type: "strength", phase: "main", name: pick(HEAVY_LEG_SQUAT), count: formatCountKo(primarySets, primaryReps), weight: "점진적 증량", sets: primarySets, reps: primaryRepsVal },
+        { type: "strength", phase: "main", name: pick(HEAVY_LEG_COMPOUND), count: formatCountKo(secondarySets, secondaryReps), weight: "도전적인 무게", sets: secondarySets, reps: secondaryRepsVal },
+        { type: "strength", phase: "main", name: pick(HEAVY_PUSH_COMPOUND), count: formatCountKo(primarySets, primaryReps), weight: "점진적 증량", sets: primarySets, reps: primaryRepsVal },
+        { type: "strength", phase: "main", name: pick(HEAVY_PUSH_ACCESSORY), count: formatCountKo(secondarySets, secondaryReps), weight: "도전적인 무게", sets: secondarySets, reps: secondaryRepsVal },
+        { type: "strength", phase: "main", name: pick([...PUSH_EXERCISES.isoShoulder, ...PUSH_EXERCISES.isoTricep]), count: formatCountKo(3, isoRepsKo), weight: "적당한 무게", sets: 3, reps: isoRepsVal },
+      );
+    } else {
+      // Pull일: 하체 주력(데드) + 하체 보조 + 상체 주력(로우) + 상체 보조 + 고립
+      // 안전 규칙: 데드리프트가 주력이면 스쿼트는 보조로 안 넣음 (척추 압박 누적 방지)
+      exercises.push(
+        { type: "strength", phase: "main", name: pick(HEAVY_LEG_HINGE), count: formatCountKo(primarySets, primaryReps), weight: "점진적 증량", sets: primarySets, reps: primaryRepsVal },
+        { type: "strength", phase: "main", name: pick(HEAVY_LEG_COMPOUND), count: formatCountKo(secondarySets, secondaryReps), weight: "도전적인 무게", sets: secondarySets, reps: secondaryRepsVal },
+        { type: "strength", phase: "main", name: pick(HEAVY_PULL_COMPOUND), count: formatCountKo(primarySets, primaryReps), weight: "점진적 증량", sets: primarySets, reps: primaryRepsVal },
+        { type: "strength", phase: "main", name: pick(HEAVY_PULL_ACCESSORY), count: formatCountKo(secondarySets, secondaryReps), weight: "도전적인 무게", sets: secondarySets, reps: secondaryRepsVal },
+        { type: "strength", phase: "main", name: pick([...PULL_EXERCISES.rearDelt, ...PULL_EXERCISES.bicep]), count: formatCountKo(3, isoRepsKo), weight: "적당한 무게", sets: 3, reps: isoRepsVal },
+      );
+    }
   } else {
-    const pullCompound = isFatigued
-      ? pick(["랫 풀다운 (Lat Pulldown)", "케이블 로우 (Cable Row)"])
-      : pick(PULL_EXERCISES.verticalPull);
+    // ── 일반 강도 (기존 로직) ──
+    const legCompound = isFatigued
+      ? pick(["고블렛 스쿼트 (Goblet Squat)", "케틀벨 고블릿 스쿼트 (Kettlebell Goblet Squat)"])
+      : pick(LEG_EXERCISES.squat);
+    const legHinge = isFatigued
+      ? pick(["케틀벨 스윙 (Kettlebell Swing)", "케틀벨 데드리프트 (Kettlebell Deadlift)"])
+      : pick([...LEG_EXERCISES.hinge, ...LEG_EXERCISES.unilateral]);
     exercises.push(
-      { type: "strength", phase: "main", name: pullCompound, count: formatCountKo(sets, repsKo), weight: isFatigued ? "적당한 무게" : wg("compound"), sets, reps: repsVal },
-      { type: "strength", phase: "main", name: pick([...PULL_EXERCISES.horizontalPull, ...PULL_EXERCISES.unilateral]), count: formatCountKo(sets, repsKo), weight: wg("accessory"), sets, reps: repsVal },
-      { type: "strength", phase: "main", name: pick([...PULL_EXERCISES.rearDelt, ...PULL_EXERCISES.bicep]), count: formatCountKo(sets, isoRepsKo), weight: wg("isolation"), sets, reps: isoRepsVal },
+      { type: "strength", phase: "main", name: legCompound, count: formatCountKo(sets, repsKo), weight: isFatigued ? "적당한 무게" : wg("compound"), sets, reps: repsVal },
+      { type: "strength", phase: "main", name: legHinge, count: formatCountKo(sets, repsKo), weight: isFatigued ? "적당한 무게" : wg("compound"), sets, reps: repsVal },
     );
+
+    if (upperType === "push") {
+      const pushCompound = isFatigued
+        ? pick(["덤벨 벤치 프레스 (Dumbbell Bench Press)", "푸쉬업 (Push-up)"])
+        : pick(PUSH_EXERCISES.mainCompound);
+      exercises.push(
+        { type: "strength", phase: "main", name: pushCompound, count: formatCountKo(sets, repsKo), weight: isFatigued ? "적당한 무게" : wg("compound"), sets, reps: repsVal },
+        { type: "strength", phase: "main", name: pick(PUSH_EXERCISES.accessory), count: formatCountKo(sets, repsKo), weight: wg("accessory"), sets, reps: repsVal },
+        { type: "strength", phase: "main", name: pick([...PUSH_EXERCISES.isoShoulder, ...PUSH_EXERCISES.isoTricep]), count: formatCountKo(sets, isoRepsKo), weight: wg("isolation"), sets, reps: isoRepsVal },
+      );
+    } else {
+      const pullCompound = isFatigued
+        ? pick(["랫 풀다운 (Lat Pulldown)", "케이블 로우 (Cable Row)"])
+        : pick(PULL_EXERCISES.verticalPull);
+      exercises.push(
+        { type: "strength", phase: "main", name: pullCompound, count: formatCountKo(sets, repsKo), weight: isFatigued ? "적당한 무게" : wg("compound"), sets, reps: repsVal },
+        { type: "strength", phase: "main", name: pick([...PULL_EXERCISES.horizontalPull, ...PULL_EXERCISES.unilateral]), count: formatCountKo(sets, repsKo), weight: wg("accessory"), sets, reps: repsVal },
+        { type: "strength", phase: "main", name: pick([...PULL_EXERCISES.rearDelt, ...PULL_EXERCISES.bicep]), count: formatCountKo(sets, isoRepsKo), weight: wg("isolation"), sets, reps: isoRepsVal },
+      );
+    }
   }
 
   // Save rotation — 서버에서는 결과에 upperType을 포함하여 클라이언트가 저장하도록 함
