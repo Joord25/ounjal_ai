@@ -20,6 +20,7 @@ export const EXERCISE_VIDEOS: Record<string, string> = {
   "체스트 프레스 머신": "2awX3rTGa1k",
   "인클라인 바벨 프레스": "",
   "스미스 머신 벤치 프레스": "",
+  "덤벨 플로어 프레스": "",
 
   // ── 가슴 (PUSH - Accessory) ──
   "인클라인 덤벨 프레스": "98HWfiRonkE",
@@ -148,6 +149,8 @@ export const EXERCISE_VIDEOS: Record<string, string> = {
   "스모 데드리프트": "",
   "트랩바 데드리프트": "",
   "바벨 힙 쓰러스트": "",
+  "스텝업": "",
+  "덤벨 루마니안 데드리프트": "",
 
   // ── 하체 (LEG - Calf) ──
   "스탠딩 카프 레이즈": "SjypFUbZBCA",
@@ -189,6 +192,7 @@ export const EXERCISE_VIDEOS: Record<string, string> = {
   "바벨 롤아웃": "",
   "웨이티드 플랭크": "",
   "행잉 니 레이즈": "",
+  "케이블 우드찹": "",
 
   // ══════════════════════════════════
   // ── 모빌리티/스트레칭 (코어) ──
