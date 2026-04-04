@@ -488,16 +488,21 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onStartWorkout
       </div>
 
       <div className="flex-1 overflow-y-auto px-6 pt-4 pb-6">
-        {/* AI 코치 카드 (슬림) */}
-        <div className="rounded-2xl bg-white border border-gray-100 shadow-sm p-5 mb-4">
+        {/* AI 코치 카드 — 채팅 버블 */}
+        <div className="rounded-3xl bg-white border border-gray-100 shadow-sm px-4 pt-4 pb-4 mb-4">
           <div className="flex items-center gap-2 mb-3">
             <img src="/favicon_backup.png" alt="AI" className="w-6 h-6 rounded-full shrink-0" />
             <span className="text-[11px] font-bold text-gray-400">{t("home.coachTitle")}</span>
           </div>
-          <p className="text-[15px] font-bold text-[#1B4332] leading-relaxed mb-4 min-h-[2.5em]">
-            {typedText}
-            {!typingDone && <span className="inline-block w-[2px] h-[14px] bg-[#2D6A4F] ml-0.5 animate-pulse align-middle" />}
-          </p>
+          <div className="flex items-start gap-2.5 mb-4">
+            <img src="/favicon_backup.png" alt="" className="w-7 h-7 rounded-full shrink-0 mt-0.5" />
+            <div className="max-w-[85%] bg-[#2D6A4F]/5 rounded-2xl rounded-tl-sm px-4 py-3">
+              <p className="text-[14px] font-medium text-[#1B4332] leading-relaxed">
+                {typedText}
+                {!typingDone && <span className="inline-block w-0.5 h-3.5 bg-[#2D6A4F] ml-0.5 animate-pulse align-middle" />}
+              </p>
+            </div>
+          </div>
           <button
             onClick={onStartWorkout}
             className="w-full py-3.5 rounded-xl bg-[#1B4332] text-white font-bold text-[15px] flex items-center justify-center gap-2 active:scale-[0.98] transition-all shadow-lg"
