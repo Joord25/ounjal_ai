@@ -543,40 +543,40 @@ const ADDITIONAL_CARDIO = {
 const getWeightGuide = (role: "compound" | "accessory" | "isolation" | "light" | "bodyweight", goal: WorkoutGoal, intensityOverride?: "high" | "moderate" | "low"): string => {
   if (role === "bodyweight") return "맨몸";
   if (role === "light") {
-    if (intensityOverride === "high") return "적당한 무게";
-    return "가벼운 무게";
+    if (intensityOverride === "high") return "12-15회 가능한 무게";
+    return "가볍게 반복 가능한 무게";
   }
 
   // Intensity override takes precedence over goal
   if (intensityOverride) {
     switch (intensityOverride) {
       case "high":
-        if (role === "compound") return "점진적 증량";
-        if (role === "accessory") return "도전적인 무게";
-        return "적당한 무게";
+        if (role === "compound") return "점진적 증량 (매 세트 무게 UP)";
+        if (role === "accessory") return "8회가 힘든 무게";
+        return "12-15회 가능한 무게";
       case "moderate":
-        if (role === "compound") return "가능한 최대 무게";
-        return "적당한 무게";
+        if (role === "compound") return "10회가 힘든 무게";
+        return "12-15회 가능한 무게";
       case "low":
-        if (role === "compound") return "중간 무게";
-        return "가벼운~중간 무게";
+        if (role === "compound") return "15회 이상 가능한 무게";
+        return "20회 이상 가능한 무게";
     }
   }
 
   switch (goal) {
     case "strength":
-      if (role === "compound") return "점진적 증량";
-      if (role === "accessory") return "도전적인 무게";
-      return "적당한 무게";
+      if (role === "compound") return "점진적 증량 (매 세트 무게 UP)";
+      if (role === "accessory") return "8회가 힘든 무게";
+      return "12-15회 가능한 무게";
     case "muscle_gain":
-      if (role === "compound") return "가능한 최대 무게";
-      if (role === "accessory") return "적당한 무게";
-      return "적당한 무게";
+      if (role === "compound") return "10회가 힘든 무게";
+      if (role === "accessory") return "12-15회 가능한 무게";
+      return "12-15회 가능한 무게";
     case "fat_loss":
-      if (role === "compound") return "중간 무게";
-      return "가벼운~중간 무게";
+      if (role === "compound") return "15회 이상 가능한 무게";
+      return "20회 이상 가능한 무게";
     case "general_fitness":
-      return "중간 무게";
+      return "15회 이상 가능한 무게";
   }
 };
 
@@ -786,10 +786,13 @@ function buildRunnerCore(): ExerciseStep[] {
   }));
 }
 
-function buildAdditionalCardio(condition: UserCondition): ExerciseStep[] {
+function buildAdditionalCardio(condition: UserCondition, intensityOverride?: "high" | "moderate" | "low", goal?: WorkoutGoal): ExerciseStep[] {
   const isFatigued = condition.bodyPart === "full_fatigue" || condition.energyLevel <= 2;
+  const isLowIntensity = intensityOverride === "low" || goal === "fat_loss";
   const name = isFatigued ? pick(ADDITIONAL_CARDIO.light) : pick(ADDITIONAL_CARDIO.moderate);
-  return [{ type: "cardio", phase: "cardio", name, count: "15-20분", sets: 1, reps: 1 }];
+  // 저강도/체지방 감량: 유산소 20분 (쿨다운 아닌 중강도)
+  const duration = isLowIntensity ? "20분" : "15-20분";
+  return [{ type: "cardio", phase: "cardio", name, count: duration, sets: 1, reps: 1 }];
 }
 
 function buildCooldown(): ExerciseStep[] {
@@ -900,7 +903,7 @@ function generateBalancedWorkout(
   exercises.push(...buildCore(isoRepsKo, isoRepsVal));
 
   // 4. Additional Cardio
-  exercises.push(...buildAdditionalCardio(condition));
+  exercises.push(...buildAdditionalCardio(condition, intensityOverride, goal));
 
   const goalLabel = goal === "fat_loss" ? "살 빼기" : goal === "muscle_gain" ? "근육 키우기" : goal === "strength" ? "힘 세지기" : "기초체력";
   const upperLabel = upperType === "push" ? "밀기" : "당기기";
@@ -990,7 +993,7 @@ function generateSplitWorkout(
   }
 
   exercises.push(...buildCore(isoRepsKo, isoRepsVal));
-  exercises.push(...buildAdditionalCardio(condition));
+  exercises.push(...buildAdditionalCardio(condition, intensityOverride, goal));
 
   const targetLabels: Record<TargetMuscle, string> = { chest: "가슴", back: "등", shoulders: "어깨", arms: "팔", legs: "하체" };
   return {
