@@ -87,7 +87,7 @@ body {
 
 @keyframes cta-breathe {
   0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.03); }
+  50% { transform: scale(1.05); }
 }
 .animate-cta-breathe {
   animation: cta-breathe 2s ease-in-out infinite;
