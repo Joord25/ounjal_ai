@@ -716,7 +716,7 @@ function RegressionChart({ goal, history, weightLog, profile }: {
       const balanceTrend = calcCalorieBalanceTrend(sorted, profile.gender, profile.bodyWeight, h, age);
       if (balanceTrend && balanceTrend.points.length >= 2) {
         points = balanceTrend.points;
-        yLabel = locale === "en" ? "Cumulative calorie balance (kcal)" : "누적 칼로리 밸런스 (kcal)";
+        yLabel = locale === "en" ? "Calorie balance (kcal)" : "칼로리 밸런스 (kcal)";
         // 7700kcal 적자 = -1kg, 목표 -5kg = -38500kcal
         targetLine = -38500;
         targetLabel = "-5kg 감량 라인";
@@ -772,16 +772,29 @@ function RegressionChart({ goal, history, weightLog, profile }: {
   const chartW = W - PAD.left - PAD.right;
   const chartH = H - PAD.top - PAD.bottom;
 
+  const isFatLoss = goal === "fat_loss";
   const allY = [...points.map(p => p.y), predY, ...(targetLine ? [targetLine] : [])];
-  const minY = Math.max(0, Math.min(...allY) * 0.9);
-  const maxY = Math.max(...allY) * 1.1;
+
+  let minY: number, maxY: number;
+  if (isFatLoss) {
+    // fat_loss: 0을 중앙에 배치, 양쪽 대칭
+    const absMax = Math.max(Math.abs(Math.min(...allY)), Math.abs(Math.max(...allY)), 1000) * 1.1;
+    minY = -absMax;
+    maxY = absMax;
+  } else {
+    minY = Math.max(0, Math.min(...allY) * 0.9);
+    maxY = Math.max(...allY) * 1.1;
+  }
   const rangeY = maxY - minY || 1;
 
   const minX = points[0].x;
   const rangeX = predX - minX || 1;
 
   const toSvgX = (x: number) => PAD.left + ((x - minX) / rangeX) * chartW;
-  const toSvgY = (y: number) => PAD.top + (1 - (y - minY) / rangeY) * chartH;
+  // fat_loss: Y축 반전 (적자가 아래로)
+  const toSvgY = isFatLoss
+    ? (y: number) => PAD.top + ((y - minY) / rangeY) * chartH  // 반전: 음수가 아래
+    : (y: number) => PAD.top + (1 - (y - minY) / rangeY) * chartH;
 
   // 실제 데이터 점
   const dotPositions = points.map(p => ({ cx: toSvgX(p.x), cy: toSvgY(p.y), label: p.label }));
@@ -857,13 +870,34 @@ function RegressionChart({ goal, history, weightLog, profile }: {
       )}
 
       <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ maxHeight: 180 }}>
+        {/* fat_loss: 0 기준선 배경 영역 */}
+        {isFatLoss && (
+          <>
+            {/* 위쪽 (과잉): 연한 빨강 */}
+            <rect x={PAD.left} y={PAD.top} width={chartW} height={toSvgY(0) - PAD.top} fill="#FEE2E2" opacity="0.3" />
+            {/* 아래쪽 (적자): 연한 초록 */}
+            <rect x={PAD.left} y={toSvgY(0)} width={chartW} height={PAD.top + chartH - toSvgY(0)} fill="#D1FAE5" opacity="0.3" />
+            {/* 0 기준선 */}
+            <line x1={PAD.left} y1={toSvgY(0)} x2={W - PAD.right} y2={toSvgY(0)} stroke="#6B7280" strokeWidth="1" strokeDasharray="4 2" opacity="0.6" />
+            <text x={PAD.left - 4} y={toSvgY(0) + 3} textAnchor="end" className="fill-gray-500" fontSize="8" fontWeight="bold">0</text>
+          </>
+        )}
+
         {/* Y축 레이블 */}
-        <text x={PAD.left - 5} y={PAD.top - 6} textAnchor="end" className="fill-gray-400" fontSize="8">{yLabel}</text>
+        <text x={PAD.left - 5} y={PAD.top - 6} textAnchor="end" className="fill-gray-400" fontSize="8">
+          {isFatLoss ? (locale === "en" ? "Surplus ↑" : "과잉 ↑") : yLabel}
+        </text>
+        {isFatLoss && (
+          <text x={PAD.left - 5} y={PAD.top + chartH + 10} textAnchor="end" className="fill-gray-400" fontSize="8">
+            {locale === "en" ? "Deficit ↓" : "적자 ↓"}
+          </text>
+        )}
 
         {/* Y축 눈금 */}
         {[0, 0.25, 0.5, 0.75, 1].map((pct, i) => {
-          const y = PAD.top + (1 - pct) * chartH;
+          const y = PAD.top + (isFatLoss ? pct : (1 - pct)) * chartH;
           const val = minY + pct * rangeY;
+          if (isFatLoss && Math.abs(val) < rangeY * 0.05) return null; // 0 근처 눈금 생략 (기준선과 겹침)
           return (
             <g key={i}>
               <line x1={PAD.left} y1={y} x2={W - PAD.right} y2={y} stroke="#e5e7eb" strokeWidth="0.5" />
