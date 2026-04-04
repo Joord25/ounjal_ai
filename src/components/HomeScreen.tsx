@@ -488,7 +488,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onStartWorkout
           </div>
           <button
             onClick={() => { setCtaPulse(false); onStartWorkout(); }}
-            className={`w-full py-3.5 rounded-2xl bg-[#1B4332] border-2 border-black shadow-[2px_2px_0px_0px_#000000] text-white font-bold text-[15px] flex items-center justify-center gap-2 active:scale-[0.98] transition-all ${ctaPulse ? "animate-cta-breathe" : ""}`}
+            className={`w-full py-4 rounded-2xl bg-[#1B4332] border-2 border-black shadow-[4px_4px_0px_0px_#000000] text-white font-bold text-[16px] flex items-center justify-center gap-2 active:shadow-[1px_1px_0px_0px_#000000] active:translate-x-[3px] active:translate-y-[3px] transition-all ${ctaPulse ? "animate-cta-breathe" : ""}`}
           >
             {didWorkoutToday ? t("home.coach.oneMore") : t("home.coach.startToday")}
           </button>
