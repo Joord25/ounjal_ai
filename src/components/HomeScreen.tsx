@@ -469,18 +469,16 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onStartWorkout
             <span className="text-[11px] font-bold text-gray-400">{t("home.coachTitle")}</span>
           </div>
           {/* 버블 1: 인사/감정 */}
-          <div className="flex items-start gap-2.5 mb-2">
-            <img src="/favicon_backup.png" alt="" className="w-7 h-7 rounded-full shrink-0 mt-0.5" />
-            <div className="max-w-[85%] bg-[#2D6A4F]/5 rounded-2xl rounded-tl-sm px-4 py-3">
+          <div className="mb-2">
+            <div className="bg-[#2D6A4F]/5 rounded-2xl px-4 py-3">
               <p className="text-[14px] font-medium text-[#1B4332] leading-relaxed">
                 {coachBubbles[0]}
               </p>
             </div>
           </div>
           {/* 버블 2: 추천/행동 */}
-          <div className="flex items-start gap-2.5 mb-4">
-            <div className="w-7 shrink-0" />
-            <div className="max-w-[85%] bg-[#2D6A4F]/5 rounded-2xl rounded-tl-sm px-4 py-3">
+          <div className="mb-4">
+            <div className="bg-[#2D6A4F]/5 rounded-2xl px-4 py-3">
               <p className="text-[14px] font-medium text-[#1B4332] leading-relaxed">
                 {coachBubbles[1]}
               </p>
