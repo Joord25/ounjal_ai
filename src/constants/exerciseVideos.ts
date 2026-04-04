@@ -18,9 +18,9 @@ export const EXERCISE_VIDEOS: Record<string, string> = {
   "웨이티드 푸쉬업": "z4oz6W1X10w",
   "케틀벨 플로어 프레스": "hwm_fcTRf2g",
   "체스트 프레스 머신": "2awX3rTGa1k",
-  "인클라인 바벨 프레스": "",
-  "스미스 머신 벤치 프레스": "",
-  "덤벨 플로어 프레스": "",
+  "인클라인 바벨 프레스": "3bBng_VzwMA",
+  "스미스 머신 벤치 프레스": "56DglbJlcI4",
+  "덤벨 플로어 프레스": "O1x7AoUf5Vs",
 
   // ── 가슴 (PUSH - Accessory) ──
   "인클라인 덤벨 프레스": "98HWfiRonkE",
@@ -61,7 +61,7 @@ export const EXERCISE_VIDEOS: Record<string, string> = {
   "케이블 오버헤드 트라이셉 익스텐션": "pmcUemVUnP4",
   "트라이셉스 킥백": "WhBxKbe1-NU",
   "트라이셉스 딥스": "XX1_7MN1fEM",
-  "클로즈그립 벤치 프레스": "",
+  "클로즈그립 벤치 프레스": "43rg7fBNP2w",
 
   // ══════════════════════════════════
   // ── 등 (PULL - Vertical) ──
