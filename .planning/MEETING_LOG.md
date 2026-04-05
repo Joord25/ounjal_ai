@@ -2,6 +2,68 @@
 
 ---
 
+### 회의 16: 고강도 퀘스트 미반영 버그 + intendedIntensity 도입
+**참석:** 대표, 프론트엔드 개발자, 기획자, 평가자, 백엔드 개발자(필요 시)
+**일자:** 2026-04-05
+**증상:** 고강도 운동 완료해도 intensity_high 퀘스트에 카운트 안 됨
+
+**근본 원인 (프엔 진단):**
+`classifySessionIntensity` ([workoutMetrics.ts:750](src/utils/workoutMetrics.ts#L750))가 세션 로그 데이터에서 best1RM을 **자기참조**로 추정한 뒤 각 세트 %1RM을 계산. 워밍업·램프업 세트가 평균을 끌어내려 80% 임계값 미달 → "moderate"로 오분류.
+
+**세션 모드별 현재 분류 (기획자 검증):**
+- 부위별/밸런스: 램프업 시 moderate로 떨어짐
+- 홈트(home_training): 맨몸 위주 → percentages skip → rep 폴백 → 대부분 low
+- **러닝: 모든 운동이 cardio 타입 → strength/core 필터에서 전부 skip → 무조건 "low"** ❌
+- 결과: 고강도 인터벌 스프린트, 플라이오메트릭 HIIT도 평생 intensity_high 못 깸
+
+**기획자 의도-구현 갭:**
+원래는 "유저가 선택한 강도 = 수행한 강도"로 인정해야 함. 현재는 데이터 역분석 → 감시 시스템이지 퀘스트 시스템이 아님. 트레이너 상식상 램프업은 당연한데 램프업 유저를 패널티 주는 구조.
+
+**평가자 체크리스트 (각 역할 이해도 검증):**
+- 프엔: 버그 재현 + 데이터 흐름 4단계 추적 ✓
+- 기획자: 의도-구현 갭 구체 지목 + 해결방향 ✓
+- 평가자: 양측 답변 교차 검증 + 자기편향 체크 ✓
+
+**3개 옵션 검토:**
+- A. 의도 기반 전환: 서버가 플랜 생성 시 `intendedIntensity` 필드에 값 찍어 저장, classify는 이 필드 우선
+- B. 데이터 로직 수정: 워킹셋 필터, true 1RM 참조, 임계값 완화
+- C. A+B 혼합
+
+**대표 결정:** **Option A 채택**. 이유:
+- 러닝은 애초에 %1RM 개념이 없어 데이터 추리 불가
+- 홈트 맨몸 운동도 %1RM 계산 불가
+- 서버는 이미 플랜 생성 시 강도를 알고 있음 (intensityOverride + runType + intervalType)
+- 코드 변경 최소
+
+**구현 요약:**
+1. 백엔드 `WorkoutSessionData`에 `intendedIntensity?: "high"|"moderate"|"low"` 필드 추가
+2. 4개 generator + legacy 경로 전부 return에 값 세팅
+   - balanced/split/home/legacy: `deriveStrengthIntensity(intensityOverride, goal)` 헬퍼
+   - running: runType + intervalType 기반
+     - sprint/fartlek → high
+     - tempo → moderate
+     - walkrun → low
+     - easy → low
+     - long → moderate
+3. 프론트엔드 동일 타입에 필드 추가
+4. `WorkoutSession.tsx`의 `{ ...sessionData, exercises }` spread가 자동으로 intendedIntensity 보존
+5. `classifySession`이 `h.sessionData.intendedIntensity` 우선 참조, 없으면 기존 로직 폴백 (과거 세션)
+
+**평가자 훅 통과 항목:**
+- 데이터 흐름 자동 보존 (WorkoutSession onComplete spread) ✓
+- 과거 세션 하위 호환 (폴백 로직) ✓
+- 타입 빌드 양쪽 통과 (functions + next) ✓
+
+**배포:**
+- Hosting: git push 자동 배포
+- **Functions: `firebase deploy --only functions:planSession` 수동 배포 필수** (대표 직접)
+
+**재발 방지:**
+- 퀘스트 집계 로직 변경 시 반드시 러닝/홈트/부위별 3개 모드 전부 시뮬레이션
+- 데이터 기반 분류는 "보조 신호"로만 사용, 판단의 primary source는 플랜 생성 시점 의도
+
+---
+
 ### 회의 15: 랜딩 메타 description 재설계 (3차 자기편향 극복)
 **참석:** 대표, SEO 전문가, 콘텐츠 MD, 카피라이터, 기획자, 평가자
 **일자:** 2026-04-05

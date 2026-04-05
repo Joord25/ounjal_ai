@@ -35,6 +35,12 @@ export interface WorkoutSessionData {
   title: string;
   description: string;
   exercises: ExerciseStep[];
+  /**
+   * 세션 생성 시점에 서버가 결정한 의도 강도.
+   * 퀘스트 집계(intensity_high/moderate/low)의 신뢰 소스.
+   * 회의 16: 램프업/워밍업 기반 오분류 방지.
+   */
+  intendedIntensity?: "high" | "moderate" | "low";
 }
 
 export interface BriefingStructured {

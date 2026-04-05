@@ -36,6 +36,12 @@ export interface WorkoutSessionData {
   title: string;
   description: string;
   exercises: ExerciseStep[];
+  /**
+   * 세션 생성 시점에 결정된 의도 강도. 퀘스트 집계(intensity_high/moderate/low)의
+   * 신뢰 가능 소스. 램프업/워밍업으로 인한 데이터 기반 오분류 문제를 피하기 위해
+   * 서버가 플랜 생성 단계에서 직접 할당한다. (회의 16)
+   */
+  intendedIntensity?: "high" | "moderate" | "low";
 }
 
 export interface BriefingStructured {
@@ -545,6 +551,22 @@ const ADDITIONAL_CARDIO = {
 };
 
 // --- Weight Guidance (Korean) ---
+/**
+ * 세션의 "의도 강도" 결정.
+ * 웨이트(balanced/split/home/legacy): intensityOverride > goal=strength > moderate
+ * 러닝(running): runType과 intervalType은 호출부에서 직접 결정 (회의 14 기준)
+ * 회의 16에서 정의 — 퀘스트 집계 신뢰 소스.
+ */
+const deriveStrengthIntensity = (
+  intensityOverride: "high" | "moderate" | "low" | null | undefined,
+  goal: WorkoutGoal,
+): "high" | "moderate" | "low" => {
+  if (intensityOverride) return intensityOverride;
+  if (goal === "strength") return "high";
+  if (goal === "fat_loss") return "moderate";
+  return "moderate";
+};
+
 const getWeightGuide = (role: "compound" | "accessory" | "isolation" | "light" | "bodyweight", goal: WorkoutGoal, intensityOverride?: "high" | "moderate" | "low"): string => {
   if (role === "bodyweight") return "맨몸";
   if (role === "light") {
@@ -918,6 +940,7 @@ function generateBalancedWorkout(
     title: `${goalLabel} · 하체 + ${upperLabel}`,
     description: `하체 2종 + 상체(${upperLabel}) 3종 · ${sets}세트`,
     exercises,
+    intendedIntensity: deriveStrengthIntensity(intensityOverride, goal),
   };
 }
 
@@ -1006,6 +1029,7 @@ function generateSplitWorkout(
     title: `${targetLabels[target]} 집중 운동`,
     description: `${targetLabels[target]} 5종 · ${sets}세트`,
     exercises,
+    intendedIntensity: deriveStrengthIntensity(intensityOverride, goal),
   };
 }
 
@@ -1013,7 +1037,7 @@ function generateSplitWorkout(
 function generateRunningWorkout(
   condition: UserCondition,
   runType: RunType,
-  intensityOverride?: "high" | "moderate" | "low",
+  _intensityOverride?: "high" | "moderate" | "low",
 ): WorkoutSessionData {
   const exercises: ExerciseStep[] = [];
   exercises.push(...buildWarmup(condition, true));
@@ -1025,10 +1049,18 @@ function generateRunningWorkout(
     );
   }
 
+  // 의도 강도 결정 — runType + intervalType 기반 (회의 14/16)
+  // sprint/fartlek = high, tempo = moderate, walkrun = low
+  // easy = low, long = moderate
+  let intendedIntensity: "high" | "moderate" | "low" = "moderate";
+
   switch (runType) {
     case "interval":
       // 랜덤으로 인터벌/변속주/템포런 중 선택
       const intervalType = pick(["sprint", "fartlek", "tempo", "walkrun"] as const);
+      intendedIntensity = intervalType === "sprint" || intervalType === "fartlek" ? "high"
+        : intervalType === "tempo" ? "moderate"
+        : "low"; // walkrun
       if (intervalType === "tempo") {
         // 템포런: 단순 타이머 (인터벌 모드 아님)
         exercises.push(
@@ -1054,6 +1086,7 @@ function generateRunningWorkout(
       }
       break;
     case "easy":
+      intendedIntensity = "low";
       exercises.push(
         { type: "cardio", phase: "main", name: pick([
           "이지 런: 대화 가능 속도 (Conversational Pace Run)",
@@ -1062,6 +1095,7 @@ function generateRunningWorkout(
       );
       break;
     case "long":
+      intendedIntensity = "moderate";
       exercises.push(
         { type: "cardio", phase: "main", name: pick([
           "장거리 러닝 (Long Slow Distance Run)",
@@ -1080,6 +1114,7 @@ function generateRunningWorkout(
     title: `러닝 · ${runLabels[runType]}`,
     description: `${runLabels[runType]} + 러너 코어 3종`,
     exercises,
+    intendedIntensity,
   };
 }
 
@@ -1126,6 +1161,7 @@ function generateHomeWorkout(
     title: "기초체력강화 · 홈트레이닝",
     description: `맨몸 + 덤벨 전신 서킷 5종 · ${sets}세트`,
     exercises,
+    intendedIntensity: deriveStrengthIntensity(intensityOverride, goal),
   };
 }
 
@@ -1434,9 +1470,15 @@ export const generateAdaptiveWorkout = (
   const titleBase = SESSION_TITLES[workoutType]?.[goal] || SESSION_TITLES["mobility"][goal];
   const isGoalFirst = selectedSessionType && selectedSessionType !== "Recommended";
 
+  // Legacy 경로 의도 강도 — 러닝 타입이면 runType 기반, 아니면 strength 헬퍼
+  const legacyIntendedIntensity: "high" | "moderate" | "low" = isRunType
+    ? (workoutType === "run_easy" ? "low" : workoutType === "run_long" ? "moderate" : "high") // run_speed = high
+    : deriveStrengthIntensity(intensityOverride, goal);
+
   return {
     title: isGoalFirst ? titleBase : `${dayName}: ${titleBase}`,
     description: getSessionDescription(workoutType, goal, sets, condition),
     exercises,
+    intendedIntensity: legacyIntendedIntensity,
   };
 };

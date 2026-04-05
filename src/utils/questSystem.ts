@@ -246,6 +246,11 @@ function getWeekSessions(history: WorkoutHistory[], weekStart: Date): WorkoutHis
 }
 
 function classifySession(h: WorkoutHistory): IntensityLevel {
+  // 1순위: 서버가 플랜 생성 시 찍은 의도 강도 (회의 16)
+  //   - 러닝/홈트/부위별 전부 이 필드로 정확히 분류
+  //   - 램프업/워밍업 기록 영향 받지 않음
+  if (h.sessionData.intendedIntensity) return h.sessionData.intendedIntensity;
+  // 2순위: 의도 필드가 없는 과거 세션 → 기존 데이터 기반 분류 (폴백)
   return classifySessionIntensity(h.sessionData.exercises, h.logs).level;
 }
 
