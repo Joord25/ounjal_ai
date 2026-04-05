@@ -4,6 +4,8 @@ import React, { useRef, useState, useCallback, useEffect } from "react";
 
 const THRESHOLD = 80;
 const MAX_PULL = 120;
+// 회의 34 v2: deadzone — 최소 이 정도 내려야 pull로 인식 (살짝만 스크롤할 때 예민하게 반응하는 문제 해결)
+const PULL_DEADZONE = 40;
 
 export const PullToRefresh: React.FC<{ children: React.ReactNode; enabled?: boolean }> = ({ children, enabled = true }) => {
   const [pullDistance, setPullDistance] = useState(0);
@@ -51,11 +53,13 @@ export const PullToRefresh: React.FC<{ children: React.ReactNode; enabled?: bool
   const handleTouchMove = useCallback((e: TouchEvent) => {
     if (!pullingRef.current || isRefreshing) return;
     const dy = e.touches[0].clientY - startYRef.current;
-    if (dy > 0) {
-      const dampened = Math.min(dy * 0.4, MAX_PULL);
+    // 회의 34 v2: deadzone 이전엔 pull 인식 안 함 — 살짝 내리는 제스처와 의도된 pull 구분
+    if (dy > PULL_DEADZONE) {
+      const adjusted = dy - PULL_DEADZONE;
+      const dampened = Math.min(adjusted * 0.4, MAX_PULL);
       setPullDistance(dampened);
-      if (dampened > 10) e.preventDefault();
-    } else {
+      if (dampened > 20) e.preventDefault();
+    } else if (dy <= 0) {
       pullingRef.current = false;
       setPullDistance(0);
     }

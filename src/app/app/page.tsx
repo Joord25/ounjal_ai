@@ -159,32 +159,64 @@ export default function Home() {
     }
   }, [autoEdit1RM, activeTab]);
 
-  // 회의 34: 스크롤 방향 감지 탭바 자동 숨김 (인스타/유튜브 스타일)
-  // - capture phase로 모든 중첩 스크롤 컨테이너 감지
-  // - 30px 이상 내려가면 숨김, 위로 스크롤하면 즉시 노출, 맨 위면 항상 노출
+  // 회의 34 v2: 스크롤 방향 감지 탭바 자동 숨김
+  // 개선: 각 화면의 실제 스크롤 컨테이너를 찾아 직접 바인딩 (capture phase 불안정 문제 해결)
+  // - HomeScreen, ProofTab, MyProfileTab 각자 다른 위치의 overflow-y-auto 사용
+  // - MutationObserver로 뷰 전환 시에도 자동 재탐색
   useEffect(() => {
-    const lastYByEl = new WeakMap<EventTarget, number>();
     const HIDE_THRESHOLD = 30;
-    const DELTA_THRESHOLD = 5;
+    const DELTA_THRESHOLD = 8;
+    const lastYByEl = new WeakMap<Element, number>();
+    const boundEls = new Set<Element>();
 
     const handleScroll = (e: Event) => {
-      const el = e.target;
-      if (!el || !(el instanceof HTMLElement)) return;
-      const currentY = el.scrollTop;
+      const el = e.currentTarget as Element;
+      if (!el) return;
+      const currentY = (el as HTMLElement).scrollTop;
       const lastY = lastYByEl.get(el) ?? 0;
 
       if (currentY < HIDE_THRESHOLD) {
-        setTabsVisible(true); // 맨 위 근처 → 항상 노출
+        setTabsVisible(true);
       } else if (currentY > lastY + DELTA_THRESHOLD) {
-        setTabsVisible(false); // 아래로 스크롤 → 숨김
+        setTabsVisible(false);
       } else if (currentY < lastY - DELTA_THRESHOLD) {
-        setTabsVisible(true); // 위로 스크롤 → 노출
+        setTabsVisible(true);
       }
       lastYByEl.set(el, currentY);
     };
 
-    document.addEventListener("scroll", handleScroll, true); // capture
-    return () => document.removeEventListener("scroll", handleScroll, true);
+    const bindScrollableDescendants = () => {
+      // overflow-y-auto 또는 overflow-y-scroll 인 모든 요소 찾기
+      const candidates = document.querySelectorAll<HTMLElement>(
+        "[data-scroll-container], .overflow-y-auto"
+      );
+      candidates.forEach((el) => {
+        if (boundEls.has(el)) return;
+        // 실제로 스크롤 가능한지 검증 (scrollHeight > clientHeight)
+        if (el.scrollHeight <= el.clientHeight) return;
+        el.addEventListener("scroll", handleScroll, { passive: true });
+        boundEls.add(el);
+      });
+    };
+
+    // 초기 바인딩 + 지연 재바인딩 (초기 렌더 후 추가로 나타나는 컨테이너 대비)
+    bindScrollableDescendants();
+    const t1 = setTimeout(bindScrollableDescendants, 100);
+    const t2 = setTimeout(bindScrollableDescendants, 500);
+    const t3 = setTimeout(bindScrollableDescendants, 1500);
+
+    // DOM 변화 감지 — 뷰 전환/탭 변경 시 새 스크롤 컨테이너 자동 발견
+    const observer = new MutationObserver(() => {
+      bindScrollableDescendants();
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    return () => {
+      clearTimeout(t1); clearTimeout(t2); clearTimeout(t3);
+      observer.disconnect();
+      boundEls.forEach((el) => el.removeEventListener("scroll", handleScroll));
+      boundEls.clear();
+    };
   }, []);
 
   // 뷰 전환 시 탭바 항상 노출 리셋 (새 화면에서 숨겨진 상태로 시작 방지)
