@@ -726,10 +726,12 @@ function RegressionChart({ goal, history, weightLog, profile }: {
       });
       const weeks = Array.from(weekMap.entries()).sort((a, b) => a[0] - b[0]);
       if (weeks.length < 2) return null;
-      points = weeks.map(([w, freq]) => ({ x: w, y: freq, label: `${freq}회` }));
-      yLabel = "주간 운동 횟수";
+      // 회의 22: 차트 라벨 locale 반영
+      const isEnLoc = locale === "en";
+      points = weeks.map(([w, freq]) => ({ x: w, y: freq, label: isEnLoc ? `${freq}x` : `${freq}회` }));
+      yLabel = isEnLoc ? "Weekly workouts" : "주간 운동 횟수";
       targetLine = Math.ceil(150 / profile.sessionMinutes);
-      targetLabel = `WHO 권장 ${targetLine}회/주`;
+      targetLabel = isEnLoc ? `WHO target ${targetLine}x/wk` : `WHO 권장 ${targetLine}회/주`;
     }
 
     if (points.length < 2) return null;
@@ -934,7 +936,15 @@ function RegressionChart({ goal, history, weightLog, profile }: {
         <text x={toSvgX(lastX)} y={H - 5} textAnchor="middle" className="fill-gray-400" fontSize="7">{locale === "en" ? "Now" : "현재"}</text>
       </svg>
       <p className="text-[9px] text-gray-400 mt-1 text-right">
-        {reg.slope > 0 ? "▲" : reg.slope < 0 ? "▼" : "—"} 주간 {goal === "muscle_gain" ? "+" : ""}{Math.round(reg.slope * 7 * 10) / 10}{goal === "fat_loss" ? "kg" : goal === "muscle_gain" ? "kg" : "회"}/주
+        {(() => {
+          const arrow = reg.slope > 0 ? "▲" : reg.slope < 0 ? "▼" : "—";
+          const val = (goal === "muscle_gain" ? "+" : "") + (Math.round(reg.slope * 7 * 10) / 10);
+          const unit = goal === "fat_loss" || goal === "muscle_gain" ? "kg" : (locale === "en" ? "x" : "회");
+          // 회의 22: trend 라벨 locale 반영
+          return locale === "en"
+            ? `${arrow} ${val}${unit}/wk`
+            : `${arrow} 주간 ${val}${unit}/주`;
+        })()}
       </p>
     </div>
   );
@@ -1678,8 +1688,11 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
                     }
 
                     if (msg.startsWith("growth.coach.muscleGain:")) {
-                      const [, total, level, nextTarget, remaining] = msg.split(":");
+                      const [, total, levelKo, nextTarget, remaining] = msg.split(":");
                       const hasNext = parseInt(nextTarget) > 0;
+                      // 회의 22: EN 모드에서 strength level 한글 라벨 영문 변환
+                      const toEnStrengthLevel = (g: string) => g === "입문" ? "Novice" : g === "초급" ? "Beginner" : g === "중급" ? "Intermediate" : g === "상급" ? "Advanced" : g === "엘리트" ? "Elite" : g;
+                      const level = isEn ? toEnStrengthLevel(levelKo) : levelKo;
                       return pick(isEn ? [
                         `Big 3 total: ${total}kg! ${hasNext ? `${remaining}kg to ${level} level!` : `${level} level achieved!`}`,
                         `${total}kg and climbing! ${hasNext ? `${nextTarget}kg is the next milestone!` : `You're at the top!`}`,
@@ -1831,6 +1844,8 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
                             .replace("2개월 후 예상 체중", "Projected weight in 2 months")
                             .replace("4개월 후 예상 체중", "Projected weight in 4 months")
                             .replace(/-(\d+)kg 감량 예상 기간/, "-$1kg loss timeline")
+                            // 회의 22: 더 긴 문구부터 먼저 치환 (순서 의존)
+                            .replace("현재 근력 수준 평가", "Current strength assessment")
                             .replace("현재 근력 수준", "Current strength level")
                             .replace("강점·약점 분석", "Strength & weakness analysis")
                             .replace(/(\d+)kg 증량 예상 기간/, "$1kg gain timeline")
@@ -1841,7 +1856,6 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
                             .replace("건강 지표 현황", "Health metrics status")
                             .replace("주간 균형 분석", "Weekly balance analysis")
                             .replace("맞춤 운동 추천", "Personalized recommendations")
-                            .replace("현재 근력 수준 평가", "Current strength assessment")
                             .replace("현재 기초체력 등급", "Current fitness grade")
                             .replace("다음 등급 도달 예상 기간", "Next grade timeline")
                             .replace("2단계 상위 등급 도달 예상 기간", "2nd tier grade timeline")

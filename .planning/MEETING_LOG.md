@@ -2,6 +2,57 @@
 
 ---
 
+### 회의 22: Growth Prediction EN 마무리 + Exercise Science Data 라벨 축약
+**참석:** 대표, 기획자, 프론트엔드 개발자, 평가자, 현지화 전문가, 카피라이터
+**일자:** 2026-04-05
+
+**증상 (대표 스샷 4건):**
+1. Growth Prediction 근력 코치 멘트 — "Big 3 total: 101kg! 199kg to **입문** level!" (입문/초급/중급/상급/엘리트 한글 잔존)
+2. Strength 탭 헤더 — "Current strength level **평가**" ("평가" 단어만 한글)
+3. Regression chart 하단 trend 라벨 — "▲ **주간 425.8kg/주**", "▼ **주간 -3.5회/주**"
+4. Endurance/Health 차트 축 & 참조선 — "**주 운동 횟수**" (Y축), "**WHO 권장 3회/주**" (점선), "**5회**/4회" (데이터 라벨)
+5. (대표 추가 지시) WorkoutReport + ProofTab의 "Exercise Science Data" 카드 헤더가 EN에서 너무 길어 2줄로 wrap — 축약 필요
+
+**프엔 진단:**
+1. `FitnessReading.tsx:1680` `growth.coach.muscleGain:` 템플릿이 Korean `level` 변수를 EN 템플릿에 그대로 interpolate (회의 21의 endurance 수정과 동일 패턴)
+2. `FitnessReading.tsx:1837` `.replace("현재 근력 수준", "Current strength level")`이 `.replace("현재 근력 수준 평가", ...)` 보다 먼저 실행되어 긴 매칭 실패 → **순서 의존 regex 버그**
+3. `FitnessReading.tsx:721-732` endurance/health 차트 `yLabel`, `targetLabel`, `points[].label`이 Korean 하드코딩 (locale 분기 없음)
+4. `FitnessReading.tsx:939` trend label도 inline JSX에 Korean 하드코딩
+5. `report.scienceData` / `proof.scienceData` EN 값 "Exercise Science Data" (20자) → 작은 카드 헤더에 2줄 wrap
+
+**카피 회의 (기획자 + 현지화 + 카피라이터 합의):**
+
+Exercise Science Data 축약 3안:
+| 안 | EN | 자수 | 장점 | 단점 |
+|---|---|---|---|---|
+| ⓐ | Analytics | 9 | 짧고 중립 | deep insight 뉘앙스 약함 |
+| ⓑ | **Training Science** | 15 | 브랜드 톤 유지 + 의미 명확 | 여전히 긴 편 |
+| ⓒ | Science | 7 | 최단 | 뭐에 대한 과학인지 모호 |
+
+**결정:** ⓑ **"Training Science"**
+- 피트니스 앱 업계 표준(Strong/Hevy/JEFIT)과 근접
+- 서브 라벨 "1RM · Load · Intensity · Fatigue"가 내용 설명해주므로 헤더는 의도만 전달
+- KO 라벨("운동 과학 데이터")은 변경 안 함 — 대표 지시 (공간 문제는 EN에만 해당)
+
+**수정 (5건):**
+1. `FitnessReading.tsx` `growth.coach.muscleGain:` 핸들러에 `toEnStrengthLevel` 헬퍼 추가 — 입문/초급/중급/상급/엘리트 → Novice/Beginner/Intermediate/Advanced/Elite
+2. `.replace` 체인에서 `"현재 근력 수준 평가"`를 `"현재 근력 수준"`보다 **먼저** 배치 (순서 고정)
+3. endurance/health 차트 `yLabel`, `targetLabel`, `points[].label`에 `locale === "en"` 분기 추가 — "Weekly workouts" / "WHO target Nx/wk" / "5x" 형태
+4. trend 라벨 JSX 블록에도 locale 분기 — "▲ +425.8kg/wk" / "▼ -3.5x/wk"
+5. `en.json` `report.scienceData` + `proof.scienceData` 값 "Training Science"로 축약
+
+**현지화 전문가 QA:**
+- "Novice" vs "Beginner": Novice는 "입문 단계"로 완전 초보, Beginner는 "초급"으로 약간 경험. 스포츠 과학 표준 Matveyev 레벨 분류 따라 Novice(입문) / Beginner(초급) 분리 유지
+- "Weekly workouts" vs "Workouts/week": 짧고 명료한 "Weekly workouts" 채택
+- "WHO target 3x/wk": 국제 기관(WHO)은 번역하지 않음, "target" + 숫자로 간결
+
+**재발 방지:**
+- `.replace` 체인에서 긴 패턴을 **항상 먼저** 배치하는 원칙 명시 — MasterPlanPreview/WorkoutReport/FitnessReading 모두 동일 패턴
+- 차트 라벨/단위/참조선은 **렌더 시점**에 locale 분기 (useMemo 안에서도 locale 참조 필수)
+- UI 텍스트 길이는 **가장 좁은 디바이스**(phone frame 384px) 기준으로 wrap 체크
+
+---
+
 ### 회의 21: EN 모드 한글 대규모 정리 (Subscription / Quest / Description / Big3 / Grade / Add Exercise)
 **참석:** 대표, 기획자, 프론트엔드 개발자, 평가자, 현지화 전문가
 **일자:** 2026-04-05
