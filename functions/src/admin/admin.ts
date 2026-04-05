@@ -271,38 +271,67 @@ export const adminListUsers = onRequest(
     const { status, page = 1, limit = 20 } = req.body;
 
     try {
-      let query: FirebaseFirestore.Query = db.collection("subscriptions").orderBy("updatedAt", "desc");
-      if (status && status !== "all") {
-        query = query.where("status", "==", status);
-      }
+      // 1. Firebase Auth 전체 유저 수집 (미구독자 포함)
+      const authUsers: Array<{ uid: string; email: string; displayName: string; createdAtMs: number }> = [];
+      let nextPageToken: string | undefined;
+      do {
+        const result = await getAuth().listUsers(1000, nextPageToken);
+        for (const u of result.users) {
+          authUsers.push({
+            uid: u.uid,
+            email: u.email || "",
+            displayName: u.displayName || "",
+            createdAtMs: u.metadata.creationTime ? new Date(u.metadata.creationTime).getTime() : 0,
+          });
+        }
+        nextPageToken = result.pageToken;
+      } while (nextPageToken);
 
-      const allDocs = await query.get();
-      const total = allDocs.size;
-      const startIdx = (page - 1) * limit;
-      const pageDocs = allDocs.docs.slice(startIdx, startIdx + limit);
+      // 2. 전체 구독 데이터 Map 생성
+      const subsSnap = await db.collection("subscriptions").get();
+      const subsMap = new Map<string, FirebaseFirestore.DocumentData>();
+      subsSnap.forEach(doc => subsMap.set(doc.id, doc.data()));
 
-      const users = await Promise.all(pageDocs.map(async (doc) => {
-        const d = doc.data();
-        let email = "", displayName = "";
-        try {
-          const userRecord = await getAuth().getUser(doc.id);
-          email = userRecord.email || "";
-          displayName = userRecord.displayName || "";
-        } catch { email = doc.id; }
-
+      // 3. Auth 유저 기준으로 머지 — 구독 문서 없으면 free
+      const merged = authUsers.map(u => {
+        const sub = subsMap.get(u.uid);
+        const updatedAtMs = sub?.updatedAt?.toMillis?.() ?? 0;
         return {
-          uid: doc.id,
-          email,
-          displayName,
-          status: d.status || "free",
-          expiresAt: d.expiresAt || null,
-          lastPaymentAt: d.lastPaymentAt || null,
-          amount: d.amount || 0,
-          billingKey: d.billingKey === "manual_admin" ? "수동" : d.billingKey ? "카카오페이" : "-",
+          uid: u.uid,
+          email: u.email,
+          displayName: u.displayName,
+          status: (sub?.status as string) || "free",
+          expiresAt: sub?.expiresAt || null,
+          lastPaymentAt: sub?.lastPaymentAt || null,
+          amount: sub?.amount || 0,
+          billingKey: sub?.billingKey === "manual_admin" ? "수동" : sub?.billingKey ? "카카오페이" : "-",
+          sortKey: updatedAtMs || u.createdAtMs,
         };
+      });
+
+      // 4. 상태 필터
+      const filtered = status && status !== "all"
+        ? merged.filter(u => u.status === status)
+        : merged;
+
+      // 5. 최근순 정렬
+      filtered.sort((a, b) => b.sortKey - a.sortKey);
+
+      // 6. 페이지네이션
+      const total = filtered.length;
+      const startIdx = (page - 1) * limit;
+      const pageUsers = filtered.slice(startIdx, startIdx + limit).map(u => ({
+        uid: u.uid,
+        email: u.email,
+        displayName: u.displayName,
+        status: u.status,
+        expiresAt: u.expiresAt,
+        lastPaymentAt: u.lastPaymentAt,
+        amount: u.amount,
+        billingKey: u.billingKey,
       }));
 
-      res.status(200).json({ users, total, page, limit, totalPages: Math.ceil(total / limit) });
+      res.status(200).json({ users: pageUsers, total, page, limit, totalPages: Math.ceil(total / limit) });
     } catch (error) {
       console.error("adminListUsers error:", error);
       res.status(500).json({ error: "유저 목록 조회 실패" });

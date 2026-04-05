@@ -94,8 +94,8 @@ export const EXERCISE_VIDEOS: Record<string, string> = {
   "원 암 시티드 로우 머신": "1Cfjgf2FBqc",
   "백익스텐션 머신": "9V2BlUDBn1s",
   "슈퍼맨 동작": "ZH0FS5Gp_eg",
-  "랙 풀": "",
-  "바벨 슈러그": "",
+  "랙 풀": "iBX3CV3jYMY",
+  "바벨 슈러그": "CCndK7zNnVQ",
   "T-W 레이즈": "HvdLRWBprws",
 
   // ── 후면 어깨 (PULL - Rear Delt) ──
@@ -145,12 +145,12 @@ export const EXERCISE_VIDEOS: Record<string, string> = {
   "케이블 풀 스루": "cRszAB1yK0c",
   "레그 컬": "7F6VF0tcgwo",
   "힙 어덕션 머신": "tKMx0CVnECk",
-  "핵 스쿼트": "",
-  "스모 데드리프트": "",
-  "트랩바 데드리프트": "",
-  "바벨 힙 쓰러스트": "",
-  "스텝업": "",
-  "덤벨 루마니안 데드리프트": "",
+  "핵 스쿼트": "vaU2FSmUhNc",
+  "스모 데드리프트": "k_jHUVBU-T0",
+  "트랩바 데드리프트": "1bhCdJYGi1M",
+  "바벨 힙 쓰러스트": "_i6qpcI1Nw4",
+  "스텝업": "vhrNQLH1GwI",
+  "덤벨 루마니안 데드리프트": "CBOhr6H7BEY",
 
   // ── 하체 (LEG - Calf) ──
   "스탠딩 카프 레이즈": "SjypFUbZBCA",
@@ -189,10 +189,10 @@ export const EXERCISE_VIDEOS: Record<string, string> = {
   "덤벨 사이드 벤드": "44DazvtgpGE",
   "브이 업": "saHkR_MvIdA",
   "Ab 슬라이드": "3d-19YON2nQ",
-  "바벨 롤아웃": "",
-  "웨이티드 플랭크": "",
-  "행잉 니 레이즈": "",
-  "케이블 우드찹": "",
+  "바벨 롤아웃": "lpXOnRMBp5A",
+  "웨이티드 플랭크": "LXDpf7hHpQ8",
+  "행잉 니 레이즈": "MeTo-pwrl-4",
+  "케이블 우드찹": "3kdgcyMruV8",
 
   // ══════════════════════════════════
   // ── 모빌리티/스트레칭 (코어) ──
@@ -316,11 +316,11 @@ export const EXERCISE_VIDEOS: Record<string, string> = {
   "장거리 러닝": "eS-1btTU9oQ",
   "LSD 러닝: 페이스 유지": "eS-1btTU9oQ",
   "회복 러닝: 존 2 유지": "Gn5t6izrn5Y",
-  "템포런": "",
-  "워크-런 인터벌": "",
-  "A스킵": "",
-  "B스킵": "",
-  "싱글 레그 밸런스": "",
+  "템포런": "FEAH8-fo-4g",
+  "워크-런 인터벌": "Ph1fmsFkCkw",
+  "A스킵": "xu9UqoKugSI",
+  "B스킵": "-VFqhJVD2x0",
+  "싱글 레그 밸런스": "mjzu4CEkTLE",
   "마무리 조깅": "Gn5t6izrn5Y",
   "걷기 또는 가벼운 조깅": "Gn5t6izrn5Y",
 };

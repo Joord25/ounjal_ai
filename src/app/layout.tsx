@@ -22,7 +22,7 @@ export const metadata: Metadata = {
   },
   manifest: "/manifest.json",
   title: "오운잘 AI — 체중감량부터 러닝까지 맞춤 운동 루틴",
-  description: "헬린이라 뭘 해야 할지 모르겠다면, PT 없이도 오운잘 AI가 맞춤 운동 루틴을 짜드릴게요.",
+  description: "헬린이도 PT 없이, 오운잘 AI가 컨디션에 맞춰 헬스 홈트 러닝 루틴을 짜드려요.",
   keywords: [
     "체중감량", "살빼는 운동", "PT 없이 운동", "혼자 헬스", "홈트", "홈트레이닝",
     "러닝", "러닝 루틴", "유산소 운동", "운동 루틴", "운동 루틴 추천", "헬스 루틴",
@@ -32,7 +32,7 @@ export const metadata: Metadata = {
   ],
   openGraph: {
     title: "오운잘 AI — 체중감량부터 러닝까지 맞춤 운동 루틴",
-    description: "헬린이라 뭘 해야 할지 모르겠다면, PT 없이도 오운잘 AI가 맞춤 운동 루틴을 짜드릴게요.",
+    description: "헬린이도 PT 없이, 오운잘 AI가 컨디션에 맞춰 헬스 홈트 러닝 루틴을 짜드려요.",
     type: "website",
     locale: "ko_KR",
     siteName: "오운잘 AI",
@@ -48,7 +48,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "오운잘 AI — 체중감량부터 러닝까지 맞춤 운동 루틴",
-    description: "헬린이라 뭘 해야 할지 모르겠다면, PT 없이도 오운잘 AI가 맞춤 운동 루틴을 짜드릴게요.",
+    description: "헬린이도 PT 없이, 오운잘 AI가 컨디션에 맞춰 헬스 홈트 러닝 루틴을 짜드려요.",
     images: ["https://ohunjal.com/og-image.png"],
   },
   robots: {
@@ -111,7 +111,7 @@ export default function RootLayout({
               "name": "오운잘 AI",
               "applicationCategory": "HealthApplication",
               "operatingSystem": "Web",
-              "description": "헬린이라 뭘 해야 할지 모르겠다면, PT 없이도 오운잘 AI가 맞춤 운동 루틴을 짜드릴게요.",
+              "description": "헬린이도 PT 없이, 오운잘 AI가 컨디션에 맞춰 헬스 홈트 러닝 루틴을 짜드려요.",
               "featureList": "체중감량 루틴, 홈트레이닝, 러닝 프로그램, 분할운동, AI 맞춤 추천, 운동 기록, 성장 분석",
               "offers": {
                 "@type": "Offer",
