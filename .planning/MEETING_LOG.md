@@ -2,6 +2,30 @@
 
 ---
 
+### 회의 24: Help modal 5개 citation lines EN 번역
+**일자:** 2026-04-05
+
+**증상:** WorkoutReport 2x2 과학 데이터 카드의 ? 버튼 도움말 모달 5종 모두 하단 "근거:" 출처 인용 라인이 한글 하드코딩. 모달 본문은 이미 locale 분기 돼 있지만 citation만 누락.
+
+**위치 (WorkoutReport.tsx):**
+- L1368 topLift (EST. 1RM): "근거: NSCA Essentials of S&C (4th ed.), Epley (1985)"
+- L1408 loadStatus (LOAD STATUS): "근거: ACSM (2009), Israetel RP Strength, NSCA Volume Load"
+- L1455 intensity (INTENSITY): "근거: ACSM Resistance Exercise Guidelines (2025), WHO..., Schoenfeld..."
+- L1491 loadTimeline (4-Week Load Timeline): "근거: ACSM 점진적 과부하 원칙, ..."
+- L1510 fatigueDrop (FATIGUE SIGNAL): "근거: Morán-Navarro et al. (2017), NSCA 세트간 피로 가이드라인, ACSM 회복 권장"
+
+**수정:**
+각 라인을 `locale === "ko" ? "근거: ..." : "Source: ..."` 인라인 ternary로 교체.
+한글 혼재 부분 번역:
+- "ACSM 점진적 과부하 원칙" → "ACSM progressive overload principle"
+- "NSCA 세트간 피로 가이드라인" → "NSCA inter-set fatigue guidelines"
+- "ACSM 회복 권장" → "ACSM recovery recommendations"
+- "근거:" → "Source:"
+
+KO 원본 그대로 유지, EN만 추가.
+
+---
+
 ### 회의 23: Science Data 2x2 카드 UI 깨짐 — EN 배지/팁 라벨 축약
 **참석:** 대표, 기획자, 프론트엔드 개발자, UX 디자이너, 현지화 전문가, 평가자
 **일자:** 2026-04-05

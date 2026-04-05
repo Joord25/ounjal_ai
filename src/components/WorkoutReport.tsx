@@ -1365,7 +1365,7 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
                     )}
                   </div>
                   <p>{locale === "ko" ? <><span className="font-bold">1RM</span>은 오늘 세트 기록(무게 × 횟수)에서 Epley 공식으로 추정한 값이에요. 실제 1회 최대 시도 없이도 내 근력 수준을 알 수 있어요.</> : <><span className="font-bold">1RM</span> is estimated from today&apos;s sets (weight x reps) using the Epley formula. You can gauge your strength level without actually attempting a max lift.</>}</p>
-                  <p className="text-[10px] text-gray-400 mt-2 pt-2 border-t border-gray-100">근거: NSCA Essentials of S&C (4th ed.), Epley (1985)</p>
+                  <p className="text-[10px] text-gray-400 mt-2 pt-2 border-t border-gray-100">{locale === "ko" ? "근거: NSCA Essentials of S&C (4th ed.), Epley (1985)" : "Source: NSCA Essentials of S&C (4th ed.), Epley (1985)"}</p>
                 </div>
               </>
             )}
@@ -1405,7 +1405,7 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
                     </div>
                   </div>
                   <p>{locale === "ko" ? <><span className="font-bold text-[#2D6A4F]">성장 구간</span>을 꾸준히 유지하면 가장 효과적이에요. 기록이 쌓이면 내 데이터에 맞게 조정돼요.</> : <>Staying consistently in the <span className="font-bold text-[#2D6A4F]">Growth Zone</span> is most effective. As your history builds up, the targets adjust to your data.</>}</p>
-                  <p className="text-[10px] text-gray-400 mt-2 pt-2 border-t border-gray-100">근거: ACSM (2009), Israetel RP Strength, NSCA Volume Load</p>
+                  <p className="text-[10px] text-gray-400 mt-2 pt-2 border-t border-gray-100">{locale === "ko" ? "근거: ACSM (2009), Israetel RP Strength, NSCA Volume Load" : "Source: ACSM (2009), Israetel RP Strength, NSCA Volume Load"}</p>
                 </div>
               </>
             )}
@@ -1452,7 +1452,7 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
                     <p className="text-[11px] text-gray-500">{locale === "ko" ? <><span className="font-bold text-[#2D6A4F]">여성 참고</span>: 에스트로겐의 항염증 효과로 회복이 ~15% 빠르며, 40대 이후 골밀도 유지를 위해 고강도 비중을 유지하는 것이 권장돼요 (ACSM 폐경 후 가이드라인).</> : <><span className="font-bold text-[#2D6A4F]">Note for women</span>: Estrogen&apos;s anti-inflammatory effect speeds recovery by ~15%. After 40, maintaining high-intensity sessions is recommended to preserve bone density (ACSM postmenopausal guidelines).</>}</p>
                   )}
                   <p>{locale === "ko" ? <>고·중·저를 <span className="font-bold text-[#2D6A4F]">골고루 배분</span>하면 과훈련을 방지하고 성장 효율이 가장 높아요. 이번 주 배분을 확인하고 다음 세션 강도를 조절해보세요.</> : <><span className="font-bold text-[#2D6A4F]">Balancing</span> high, moderate, and low intensity prevents overtraining and maximizes growth. Check this week&apos;s distribution and adjust your next session accordingly.</>}</p>
-                  <p className="text-[10px] text-gray-400 mt-2 pt-2 border-t border-gray-100">근거: ACSM Resistance Exercise Guidelines (2025), WHO Physical Activity Guidelines (2020, PMC 7719906), Schoenfeld et al. (2019, PMC 6303131)</p>
+                  <p className="text-[10px] text-gray-400 mt-2 pt-2 border-t border-gray-100">{locale === "ko" ? "근거: ACSM Resistance Exercise Guidelines (2025), WHO Physical Activity Guidelines (2020, PMC 7719906), Schoenfeld et al. (2019, PMC 6303131)" : "Source: ACSM Resistance Exercise Guidelines (2025), WHO Physical Activity Guidelines (2020, PMC 7719906), Schoenfeld et al. (2019, PMC 6303131)"}</p>
                 </div>
               </>
             )}
@@ -1488,7 +1488,7 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
                     <p className="text-[10px] text-gray-400 mt-1">{locale === "ko" ? "예: 체중 70kg, 총 볼륨 4,200kg → Load Score = 60" : "e.g. BW 70kg, total volume 4,200kg → Load Score = 60"}</p>
                   </div>
                   <p>{locale === "ko" ? <>꾸준히 초록 영역 안에 점이 찍히면 <span className="font-bold text-[#2D6A4F]">잘 관리되고 있는 거예요</span>. 노란 영역 위로 자주 벗어나면 볼륨 조절이 필요해요.</> : <>If your dots consistently land in the green zone, <span className="font-bold text-[#2D6A4F]">you&apos;re managing well</span>. Frequently going above the yellow zone means it&apos;s time to adjust your volume.</>}</p>
-                  <p className="text-[10px] text-gray-400 mt-2 pt-2 border-t border-gray-100">근거: ACSM 점진적 과부하 원칙, Schoenfeld et al. (2017), Israetel RP Strength, NSCA</p>
+                  <p className="text-[10px] text-gray-400 mt-2 pt-2 border-t border-gray-100">{locale === "ko" ? "근거: ACSM 점진적 과부하 원칙, Schoenfeld et al. (2017), Israetel RP Strength, NSCA" : "Source: ACSM progressive overload principle, Schoenfeld et al. (2017), Israetel RP Strength, NSCA"}</p>
                 </div>
               </>
             )}
@@ -1507,7 +1507,7 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
                     </div>
                   </div>
                   <p>{locale === "ko" ? "피로가 크면 다음 세션에서 볼륨을 줄이거나 휴식을 더 가져야 해요. 꾸준히 안정 구간이면 잘 관리되고 있는 거예요." : "If fatigue is high, reduce volume or take more rest next session. Staying consistently in the stable zone means you're managing well."}</p>
-                  <p className="text-[10px] text-gray-400 mt-2 pt-2 border-t border-gray-100">근거: Morán-Navarro et al. (2017), NSCA 세트간 피로 가이드라인, ACSM 회복 권장</p>
+                  <p className="text-[10px] text-gray-400 mt-2 pt-2 border-t border-gray-100">{locale === "ko" ? "근거: Morán-Navarro et al. (2017), NSCA 세트간 피로 가이드라인, ACSM 회복 권장" : "Source: Morán-Navarro et al. (2017), NSCA inter-set fatigue guidelines, ACSM recovery recommendations"}</p>
                 </div>
               </>
             )}
