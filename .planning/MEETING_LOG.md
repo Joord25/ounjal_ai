@@ -2,6 +2,29 @@
 
 ---
 
+### 회의 26: ProofTab 캘린더 날짜 상세 시트 세션 타이틀 EN 번역
+**일자:** 2026-04-05
+
+**증상:** EN 모드에서 PROOF 탭 → 캘린더 → 날짜 탭 → 바텀시트 "4/5 Workout Records"에 **세션 타이틀이 한글 원본**으로 표시:
+- "기초체력강화 · 홈트레이닝"
+- "살 빼기 · 하체 + 당기기"
+
+**원인:** `ProofTab.tsx:43` `DaySessionItem`이 `session.sessionData.title`을 **번역 없이 직접 렌더**. WorkoutReport/MasterPlanPreview에는 `translateDesc`/`translateDescription` 체인이 있지만 ProofTab에는 없었음.
+
+**수정:**
+- `translateSessionTitle(title, locale)` 함수 신설 (ProofTab 로컬) — WorkoutReport `translateDesc`와 동일 규칙
+- 복합 패턴 우선 매칭 ("상체(당기기)" → "Upper (Pull)")
+- 목표 라벨 (살 빼기/근육 키우기/힘 세지기/기초체력/기초체력강화)
+- 카테고리 (홈트레이닝/러닝/집중 운동)
+- 수량 단위 (N종/N세트)
+- `DaySessionItem` 렌더에 `translateSessionTitle(session.sessionData.title, locale)` 적용
+
+**재발 방지:**
+- 서버 세션 타이틀/설명을 렌더하는 모든 위치는 **translateDesc 체인 통과 필수** (WorkoutReport/MasterPlanPreview/ProofTab 3곳 확인)
+- 공통 헬퍼로 추출 검토 (다음 리팩토링 시)
+
+---
+
 ### 회의 25: Gemini 코치 멘트 EN 응답 실패 — 프롬프트 전체 분기
 **일자:** 2026-04-05
 

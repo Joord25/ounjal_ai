@@ -27,12 +27,36 @@ interface ProofTabProps {
 
 type ViewState = "dashboard" | "list" | "report" | "weight_detail";
 
+/**
+ * 회의 26: 서버 세션 타이틀 한글 → EN 렌더 번역
+ * WorkoutReport/MasterPlanPreview의 translateDesc 체인과 동일 규칙.
+ * 복합 패턴(상체(당기기))을 먼저 치환해야 단일 "상체" 치환이 괄호 내용을 망치지 않음.
+ */
+function translateSessionTitle(title: string, locale: string): string {
+  if (locale === "ko") return title;
+  return title
+    .replace(/상체\(밀기\)/g, "Upper (Push)").replace(/상체\(당기기\)/g, "Upper (Pull)")
+    .replace(/상체 \+ 밀기/g, "Upper + Push").replace(/상체 \+ 당기기/g, "Upper + Pull")
+    .replace(/하체/g, "Lower").replace(/상체/g, "Upper").replace(/가슴/g, "Chest").replace(/등/g, "Back")
+    .replace(/어깨/g, "Shoulders").replace(/팔/g, "Arms")
+    .replace(/밀기/g, "Push").replace(/당기기/g, "Pull")
+    .replace(/(\d+)종/g, "$1 exercises").replace(/(\d+)세트/g, "$1 sets")
+    .replace(/집중 운동/g, "Focus")
+    .replace(/인터벌 러닝/g, "Interval Running").replace(/이지 런/g, "Easy Run").replace(/장거리 러닝/g, "Long Distance Run")
+    .replace(/러너 코어/g, "Runner Core")
+    .replace(/근비대/g, "Hypertrophy").replace(/근력 강화/g, "Strength")
+    .replace(/살 빼기/g, "Fat Loss").replace(/근육 키우기/g, "Muscle Gain").replace(/힘 세지기/g, "Strength")
+    .replace(/체지방 감량/g, "Fat Loss").replace(/전반적 체력 향상/g, "General Fitness")
+    .replace(/기초체력강화/g, "Fitness").replace(/기초체력/g, "Fitness")
+    .replace(/홈트레이닝/g, "Home Training").replace(/러닝/g, "Running");
+}
+
 /* 스와이프 삭제 지원 세션 아이템 */
 function DaySessionItem({ session, timeStr, onTap, onDelete }: {
   session: WorkoutHistoryType; timeStr: string;
   onTap: () => void; onDelete: () => void;
 }) {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   return (
     <SwipeToDelete onDelete={onDelete}>
       <button
@@ -40,7 +64,7 @@ function DaySessionItem({ session, timeStr, onTap, onDelete }: {
         className="w-full flex items-center justify-between p-4 rounded-2xl bg-[#FAFBF9] border border-gray-100 active:scale-[0.98] transition-all"
       >
         <div className="text-left">
-          <p className="text-sm font-bold text-[#1B4332]">{session.sessionData.title}</p>
+          <p className="text-sm font-bold text-[#1B4332]">{translateSessionTitle(session.sessionData.title, locale)}</p>
           <p className="text-xs text-[#6B7280] mt-0.5">
             {t("proof.setsVolume", { sets: String(session.stats.totalSets), volume: session.stats.totalVolume.toLocaleString() })}
           </p>
