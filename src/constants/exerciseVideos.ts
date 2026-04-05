@@ -272,7 +272,7 @@ export const EXERCISE_VIDEOS: Record<string, string> = {
   "동적 팔 스윙": "iA6Xb4tjHS4",
   "팔 흔들기": "XTbPqeswd-Y",
   "스파이더맨 런지": "cNkYSkeyONY",
-  "폼롤러 흉추 스트레칭": "NS73eSohTbc",
+  "폼롤러 흉추 스트레칭": "eJahpkJQib4",
   "폼롤러 등 마사지": "DachgMecNe0",
   "폼롤러 둔근 및 햄스트링 이완": "KibUgcGXMTY",
   "폼롤러 둔근 이완": "KibUgcGXMTY",
