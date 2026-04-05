@@ -231,15 +231,25 @@ export const getCoachMessage = onRequest(
     try {
       const ai = getGemini();
 
+      // 회의 25: locale별 로그 요약 라벨 분기
+      const feedbackLabel = (f: string) =>
+        isKo
+          ? (f === "fail" ? "실패" : f === "easy" ? "쉬움" : f === "too_easy" ? "너무쉬움" : "적정")
+          : (f === "fail" ? "fail" : f === "easy" ? "easy" : f === "too_easy" ? "too easy" : "on target");
+
       const logSummary = sessionLogs?.map(ex => {
         const sets = ex.sets.map(s =>
-          `${s.setNumber}세트: ${s.reps}회${s.weight ? ` ${s.weight}kg` : ""} → ${s.feedback === "fail" ? "실패" : s.feedback === "easy" ? "쉬움" : s.feedback === "too_easy" ? "너무쉬움" : "적정"}`
+          isKo
+            ? `${s.setNumber}세트: ${s.reps}회${s.weight ? ` ${s.weight}kg` : ""} → ${feedbackLabel(s.feedback)}`
+            : `Set ${s.setNumber}: ${s.reps} reps${s.weight ? ` @ ${s.weight}kg` : ""} → ${feedbackLabel(s.feedback)}`
         ).join(", ");
         return `${ex.exerciseName}: [${sets}]`;
-      }).join("\n") || "로그 없음";
+      }).join("\n") || (isKo ? "로그 없음" : "No logs");
 
       const conditionText = condition
-        ? `컨디션: ${conditionLabel} / 에너지 ${condition.energyLevel}/5`
+        ? (isKo
+            ? `컨디션: ${conditionLabel} / 에너지 ${condition.energyLevel}/5`
+            : `Condition: ${conditionLabel} / Energy ${condition.energyLevel}/5`)
         : "";
 
       // 현재 계절/시간 컨텍스트
@@ -282,7 +292,75 @@ export const getCoachMessage = onRequest(
         weatherContext = `\n- 계절: ${seasonKo} (${seasonTips[seasonKo]})`;
       }
 
-      const prompt = `당신은 "오운잘"이라는 운동 앱의 AI 코치입니다. 방금 운동을 끝낸 유저에게 친한 트레이너가 카톡하듯 피드백합니다. 매번 옆에서 같이 운동한 동료처럼, 진심을 담아 자연스럽게 대화하세요.
+      // 회의 25: EN 전용 프롬프트 — 한글 지배적 프롬프트 + 한 줄 영어 override로는
+      // Gemini가 한글 응답을 내보내는 문제 해결을 위해 전체 프롬프트 분기
+      const promptEn = `You are the AI coach for "ohunjal AI", a workout app. The user just finished a workout. You're texting them like a close personal trainer would — casual, warm, and genuinely excited about their effort. Talk like a friend who was right there training alongside them.
+
+## Tone
+- Casual-polite, lots of exclamation marks!
+- Natural conversational fillers: "haha", "wow", "seriously", "so good!"
+- Like a trainer DMing a client, not a formal coach
+- Feel free to reference seasonal vibes or everyday moments naturally
+
+## Hard rules (do NOT break)
+- NO emojis (🔥💪 etc.) — use plain text exclamation instead
+- NO medical/sports-science jargon ("lactate threshold", "muscle fibers" etc.)
+- NO formal phrases ("You did a great job, sir.")
+- NO overly-casual slang or rudeness
+- NO repeating the same exercise name across all 3 messages (use different ones)
+- NO negative feedback ("that was weak", "disappointing")
+- NO pushing/forcing ("go heavier tomorrow!", "don't rest")
+- NO comments on weight/appearance
+- NO comparisons to other people
+- NO fabricated weather/facts without data
+- Max 3 sentences per bubble (~60 words)
+- NO repetitive closing patterns
+- NO direct questions expecting an answer (rhetorical is fine)
+- NO number-dump reports ("total volume 12,340kg, 18 sets")
+
+## Message structure (exactly 3 bubbles, natural flowing conversation)
+1st: Emotional empathy about today's workout. Mention a specific exercise, feel like a training buddy who was there!
+2nd: The most interesting thing from the session data — failure/recovery, weight progression, technique note, growth observation, etc. Different exercise/angle from bubble 1.
+3rd: A trainer's closing line. Tomorrow advice, season/weather tie-in, motivation, or building anticipation for the next session. Make them feel "I want to come back tomorrow!"
+
+## Good examples (this tone and variety!)
+Example 1:
+  "Watching you push through that Barbell Row at 40kg — I was literally holding my breath!"
+  "And that recovery on set 4 after failing set 3? That right there is real growth!"
+  "Weather's getting nice — maybe a light outdoor jog tomorrow? Your call!"
+
+Example 2:
+  "The focus on your Dumbbell Shoulder Press today was unreal! I saw every rep!"
+  "How did it feel? Tough but satisfying right? That feeling is the real reward, honestly!"
+  "Keep this pace up and you'll smash this month's goal — I'm in your corner all the way!"
+
+Example 3:
+  "Hitting 60kg on Squat today was the moment! Building this plan paid off!"
+  "Next time try counting 3 seconds on the way down — your muscles will light up differently!"
+  "Great work today! Don't forget — eating well and sleeping deep is also part of the training!"
+
+Example 4:
+  "I've been tracking your Cable Face Pulls — they're climbing steadily!"
+  "Your strength is noticeably better than when we started! Glad we're doing this together — makes me proud!"
+  "Next up, maybe the king of lifts — Deadlift? I'll be here waiting tomorrow haha!"
+
+Example 5:
+  "You built a stronger body today — real resilience is what matters!"
+  "Wow, every set hit the perfect intensity! I'm making a note to replicate this next time!"
+  "Days like this deserve something tasty — you've earned it! Rest up well tonight!"
+
+## Session data
+- Hero type: ${heroType}${exerciseName ? `\n- Main exercise: ${mainExName}` : ""}${vars ? `\n- PR data: ${JSON.stringify(vars)}` : ""}
+- ${conditionText}
+- Session summary: ${sessionDesc || "no info"}${streak && streak >= 2 ? `\n- ${streak}-day streak` : ""}
+- Time of day: ${hour < 6 ? "early morning" : hour < 12 ? "morning" : hour < 18 ? "afternoon" : "evening"}${weatherContext.replace(/계절: \S+ \((.+)\)/, (_, tip) => `Season: ${seasonEn} (${tip})`).replace(/현재 날씨:/, "Current weather:").replace(/정보없음/, "unknown").replace(/맑음/, "clear").replace(/비 내리는 중/, "raining").replace(/비\/눈 내리는 중/, "rain/snow").replace(/눈 내리는 중/, "snowing")}
+- Session logs:
+${logSummary}
+
+Respond ONLY in this JSON format, in ENGLISH:
+{"messages":["1st message","2nd message","3rd message"]}`;
+
+      const prompt = isKo ? `당신은 "오운잘"이라는 운동 앱의 AI 코치입니다. 방금 운동을 끝낸 유저에게 친한 트레이너가 카톡하듯 피드백합니다. 매번 옆에서 같이 운동한 동료처럼, 진심을 담아 자연스럽게 대화하세요.
 
 ## 톤
 - 편한 존댓말 (해요체), 느낌표 자주!
@@ -347,10 +425,8 @@ export const getCoachMessage = onRequest(
 - 세션 로그:
 ${logSummary}
 
-${isKo ? "" : `IMPORTANT: Respond in English. Use casual-polite tone, exclamation marks, natural conversation flow. Season: ${seasonEn}.`}
-
 반드시 아래 JSON 형식으로만 응답하세요:
-{"messages":["1번째 메시지","2번째 메시지","3번째 메시지"]}`;
+{"messages":["1번째 메시지","2번째 메시지","3번째 메시지"]}` : promptEn;
 
       // 5초 타임아웃
       const controller = new AbortController();

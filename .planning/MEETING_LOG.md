@@ -2,6 +2,42 @@
 
 ---
 
+### 회의 25: Gemini 코치 멘트 EN 응답 실패 — 프롬프트 전체 분기
+**일자:** 2026-04-05
+
+**증상:** EN 모드에서 앱을 사용 중인데 WorkoutReport AI 코치 3버블이 **한글로 생성됨**. (스샷: 푸쉬업 15회 3세트 한글 코멘트)
+
+**프엔 진단:**
+`functions/src/ai/coach.ts`의 Gemini 프롬프트가 **전부 한글**로 작성돼 있고, EN 모드일 때 프롬프트 끝에 `IMPORTANT: Respond in English` 한 줄만 추가됨. Gemini 2.5 Flash는 **프롬프트 언어 지배**에 따라 한글로 응답 — 짧은 영어 override 무시하는 경향.
+
+**원인:**
+- L285-L353 프롬프트 전체가 Korean (지침 + 울타리 + 예시 5개)
+- L350 `${isKo ? "" : "IMPORTANT: Respond in English..."}` 한 줄 override로는 부족
+- logSummary도 Korean 하드코딩 (`N세트`, `실패`, `쉬움`)
+- `conditionText`, `timeOfDay` 등 변수도 Korean
+
+**수정:**
+1. **전체 영문 프롬프트** `promptEn` 상수 신설 — 한국 버전과 동일 구조로 Tone / Hard rules / Message structure / 5 examples 전부 영어로 재작성
+2. `const prompt = isKo ? koreanPrompt : promptEn` 로 완전 분기
+3. `logSummary` locale 분기 — EN은 "Set N: X reps @ Wkg → on target" 형태
+4. `feedbackLabel(f)` 헬퍼 — fail/easy/too_easy/target 영문 라벨
+5. `conditionText` locale 분기 — "Condition: upper stiffness / Energy 3/5"
+6. `weatherContext` EN 변환 — "Season: spring (weather is nice...)", "Current weather: 18°C, clear"
+7. `timeOfDay` EN 분기 — "early morning / morning / afternoon / evening"
+
+**현지화 전문가 QA:**
+- 톤: "casual-polite with lots of exclamation" — 한국어 해요체의 친근함을 영문 personal trainer DM 스타일로 매핑
+- 예시 5개 영문 리라이트: barbell row / shoulder press / squat / cable face pull 등 같은 운동명 유지, 감정 표현은 한국 ㅎㅎ/ㅠㅠ 대신 "haha", "wow", "seriously" 사용
+- "화이팅" → "you got this" 같은 직역 대신 자연스러운 motivational phrase 사용
+
+**배포 필수:** Functions 수동 배포 — `firebase deploy --only functions:getCoachMessage`
+
+**재발 방지:**
+- LLM 프롬프트에 언어 override 한 줄만 추가하는 패턴 금지 — 프롬프트 전체 언어를 target locale로 작성해야 안정적
+- 새 언어(JA/ZH) 추가 시 promptJa/promptZh 분기 동일 원칙
+
+---
+
 ### 회의 24: Help modal 5개 citation lines EN 번역
 **일자:** 2026-04-05
 
