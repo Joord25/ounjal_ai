@@ -8,7 +8,7 @@ import { getVideoEmbedUrl, getYoutubeSearchUrl } from "@/constants/exerciseVideo
 import { useTranslation } from "@/hooks/useTranslation";
 import { getExerciseName, translateWeightGuide } from "@/utils/exerciseName";
 import { useGpsTracker } from "@/hooks/useGpsTracker";
-import { formatPace, formatRunDistanceKm } from "@/utils/runningFormat";
+import { formatPace, formatRunDistanceKm, detectRunExerciseMode, detectExerciseRunningType, getRunningTypeShareLabel } from "@/utils/runningFormat";
 import { GpsPermissionDialog } from "@/components/running/GpsPermissionDialog";
 import { computeRunningStats } from "@/utils/runningStats";
 
@@ -477,14 +477,22 @@ export const FitScreen: React.FC<FitScreenProps> = ({
   }, [exercise.count]);
   const isIntervalMode = intervalConfig !== null;
 
+  // 회의 43: 연속 러닝(템포/이지/LSD) 감지 — 인터벌은 아니지만 GPS + 3분할 UI 필요
+  const runExerciseMode = useMemo(() => detectRunExerciseMode(exercise), [exercise]);
+  const isContinuousRun = runExerciseMode === "continuous";
+  const isRunningExercise = isIntervalMode || isContinuousRun;
+  // 연속 러닝의 세부 타입 (runningStats.runningType 결정용)
+  const continuousRunType = useMemo(() => detectExerciseRunningType(exercise), [exercise]);
+
   // 회의 41: GPS 권한 팝업 & 실내 모드 (M-G에서 외부 토글 도입 예정, 현재 기본 실외)
   const [permissionDialogOpen, setPermissionDialogOpen] = useState(false);
   const [gpsPermissionAsked, setGpsPermissionAsked] = useState(false);
   const [isIndoor] = useState(false);
 
-  // 인터벌 모드 첫 진입 시 권한 미결정이면 팝업 표시 (세션 1회)
+  // 러닝 운동 첫 진입 시 권한 미결정이면 팝업 표시 (세션 1회)
+  // 회의 43: 인터벌/연속 러닝 모두 포함
   useEffect(() => {
-    if (!isIntervalMode) return;
+    if (!isRunningExercise) return;
     if (gpsPermissionAsked) return;
     if (isIndoor) return;
     const asked = typeof window !== "undefined" && window.localStorage?.getItem("ohunjal_gps_asked");
@@ -493,7 +501,7 @@ export const FitScreen: React.FC<FitScreenProps> = ({
       return;
     }
     setPermissionDialogOpen(true);
-  }, [isIntervalMode, gpsPermissionAsked, isIndoor]);
+  }, [isRunningExercise, gpsPermissionAsked, isIndoor]);
 
   const handleGpsAllow = () => {
     try { window.localStorage?.setItem("ohunjal_gps_asked", "1"); } catch {}
@@ -506,9 +514,9 @@ export const FitScreen: React.FC<FitScreenProps> = ({
     setPermissionDialogOpen(false);
   };
 
-  // 회의 41: GPS 추적 훅 — 인터벌 러닝 실행 중에만 활성
+  // 회의 41/43: GPS 추적 훅 — 모든 러닝 운동(인터벌 + 연속) 실행 중 활성
   // gpsPermissionAsked=false일 때는 enabled=false로 대기 (권한 다이얼로그 해제 전까지 watchPosition 호출 방지)
-  const gpsTrackerEnabled = isIntervalMode && !isIndoor && gpsPermissionAsked;
+  const gpsTrackerEnabled = isRunningExercise && !isIndoor && gpsPermissionAsked;
   const {
     status: gpsStatus,
     distance: gpsDistance,
@@ -682,10 +690,35 @@ export const FitScreen: React.FC<FitScreenProps> = ({
     };
   }, [isPlaying, isIntervalMode, intervalConfig, gpsMarkPhase, gpsGetSnapshot, gpsIsAvailable, isIndoor, onRunningStatsComputed]);
 
-  // Normal Timer Logic
+  // 회의 43: 연속 러닝(템포/이지/LSD) wall-clock 경과시간 — 카운트업 + GPS 동기화
+  useEffect(() => {
+    if (!isPlaying || !isContinuousRun) return;
+    const now = Date.now();
+    if (sessionStartMsRef.current === 0) {
+      sessionStartMsRef.current = now;
+    } else if (pausedAtMsRef.current > 0) {
+      const pauseDelta = now - pausedAtMsRef.current;
+      sessionStartMsRef.current += pauseDelta;
+      pausedAtMsRef.current = 0;
+    }
+    const iv = setInterval(() => {
+      const nowTick = Date.now();
+      if (sessionStartMsRef.current > 0) {
+        setIntervalElapsedSec(Math.max(0, Math.floor((nowTick - sessionStartMsRef.current) / 1000)));
+      }
+    }, 250);
+    return () => {
+      clearInterval(iv);
+      if (!pausedAtMsRef.current) {
+        pausedAtMsRef.current = Date.now();
+      }
+    };
+  }, [isPlaying, isContinuousRun]);
+
+  // Normal Timer Logic — 회의 43: 연속 러닝은 별도 wall-clock 사용하므로 제외
   useEffect(() => {
     let interval: NodeJS.Timeout;
-    if (isPlaying && isTimerMode && !isIntervalMode) {
+    if (isPlaying && isTimerMode && !isIntervalMode && !isContinuousRun) {
       interval = setInterval(() => {
         setElapsedTime((prev) => {
             // If Distance Mode: Count UP
@@ -760,6 +793,14 @@ export const FitScreen: React.FC<FitScreenProps> = ({
         pausedAtMsRef.current = 0;
         midpointFiredRef.current = false;
         lastTickSecondRef.current = -1;
+        sessionStartMsRef.current = 0;
+        setIntervalElapsedSec(0);
+        setElapsedTime(0);
+    } else if (isContinuousRun) {
+        // 회의 43: 연속 러닝 리셋
+        sessionStartMsRef.current = 0;
+        pausedAtMsRef.current = 0;
+        setIntervalElapsedSec(0);
         setElapsedTime(0);
     } else if (isTimerMode) {
         if (isDistanceMode) {
@@ -855,13 +896,25 @@ export const FitScreen: React.FC<FitScreenProps> = ({
 
   const handleDoneClick = () => {
     if (exercise.type !== "strength" && exercise.type !== "core") {
-      // 회의 41: 인터벌 러닝 조기 종료 시 부분 runningStats 산출
-      if (isIntervalMode && intervalConfig && onRunningStatsComputed) {
+      // 회의 41/43: 러닝 운동 완료 시 runningStats 산출 (인터벌 + 연속 공용)
+      if (isRunningExercise && onRunningStatsComputed) {
         const snap = gpsGetSnapshot();
-        const runType: RunningType =
-          intervalConfig.type === "walkrun" ? "walkrun"
-          : intervalConfig.type === "fartlek" ? "fartlek"
-          : "sprint";
+        let runType: RunningType;
+        let completedRounds = 0;
+        let totalRounds = 0;
+        if (isIntervalMode && intervalConfig) {
+          runType =
+            intervalConfig.type === "walkrun" ? "walkrun"
+            : intervalConfig.type === "fartlek" ? "fartlek"
+            : "sprint";
+          completedRounds = Math.max(0, intervalRound - 1);
+          totalRounds = intervalConfig.rounds;
+        } else {
+          // 연속 러닝: 라운드 개념 없음, 1회성 세션으로 처리
+          runType = continuousRunType ?? "easy";
+          completedRounds = 1;
+          totalRounds = 1;
+        }
         const stats = computeRunningStats({
           runningType: runType,
           isIndoor,
@@ -870,8 +923,8 @@ export const FitScreen: React.FC<FitScreenProps> = ({
           phaseMarks: snap.phaseMarks,
           sessionStartMs: snap.sessionStartMs || Date.now(),
           sessionEndMs: Date.now(),
-          completedRounds: Math.max(0, intervalRound - 1),
-          totalRounds: intervalConfig.rounds,
+          completedRounds,
+          totalRounds,
         });
         onRunningStatsComputed(stats);
       }
@@ -1302,8 +1355,8 @@ export const FitScreen: React.FC<FitScreenProps> = ({
                     {subTitle}
                   </p>
                 )}
-                {/* 자세 가이드 미리보기 — 회의 41: 인터벌 러닝 모드에선 숨김 (공간 확보 + 뛰면서 안 봄) */}
-                {!isIntervalMode && (() => {
+                {/* 자세 가이드 미리보기 — 회의 41/43: 모든 러닝 운동(인터벌+연속)에선 숨김 */}
+                {!isRunningExercise && (() => {
                   const embedUrl = getVideoEmbedUrl(exercise.name);
                   if (embedUrl) {
                     return (
@@ -1460,6 +1513,68 @@ export const FitScreen: React.FC<FitScreenProps> = ({
                       </p>
                     )}
                   </div>
+                ) : isContinuousRun && continuousRunType ? (
+                  <div className="flex flex-col items-center w-full">
+                    {/* 회의 43: 연속 러닝(템포/이지/LSD) — 인터벌과 3분할 스탯 통일 */}
+                    <p className="text-xs font-black text-gray-400 uppercase tracking-[0.15em] mb-3">
+                      {getRunningTypeShareLabel(continuousRunType, locale)}
+                    </p>
+                    {/* 키 짰 경과 타이머 (히어로) */}
+                    <p className="text-6xl font-black tracking-tighter tabular-nums text-[#1B4332]">
+                      {formatTime(intervalElapsedSec)}
+                    </p>
+                    {/* 목표 시간 힌트 */}
+                    <p className="text-[11px] font-medium text-gray-500 mt-2">
+                      {exercise.count}
+                    </p>
+
+                    {/* 3분할 실시간 스탯 (DIST/PACE/TIME) */}
+                    {!isIndoor && gpsPermissionAsked && (
+                      <div className="flex items-start justify-center gap-5 mt-5 w-full">
+                        <div className="flex flex-col items-center min-w-[60px]">
+                          <p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.15em] mb-0.5">
+                            {t("running.stats.distance")}
+                          </p>
+                          <p className="text-xl font-black text-[#1B4332] leading-none tabular-nums">
+                            {formatRunDistanceKm(gpsDistance)}
+                          </p>
+                          <p className="text-[9px] font-bold text-gray-400 mt-0.5">km</p>
+                        </div>
+                        <div className="w-px h-10 bg-gray-200 mt-2" />
+                        <div className="flex flex-col items-center min-w-[60px]">
+                          <p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.15em] mb-0.5">
+                            {t("running.stats.pace")}
+                          </p>
+                          <p className="text-xl font-black text-[#1B4332] leading-none tabular-nums">
+                            {formatPace(gpsPace)}
+                          </p>
+                          <p className="text-[9px] font-bold text-gray-400 mt-0.5">/km</p>
+                        </div>
+                        <div className="w-px h-10 bg-gray-200 mt-2" />
+                        <div className="flex flex-col items-center min-w-[60px]">
+                          <p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.15em] mb-0.5">
+                            {t("running.stats.time")}
+                          </p>
+                          <p className="text-xl font-black text-[#1B4332] leading-none tabular-nums">
+                            {formatTime(intervalElapsedSec)}
+                          </p>
+                          <p className="text-[9px] font-bold text-gray-400 mt-0.5">elapsed</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* GPS 상태 표시 */}
+                    {!isIndoor && gpsPermissionAsked && gpsStatus === "searching" && (
+                      <p className="text-[10px] font-bold text-gray-400 mt-2">
+                        {t("running.gps.searching")}
+                      </p>
+                    )}
+                    {!isIndoor && gpsPermissionAsked && gpsStatus === "denied" && (
+                      <p className="text-[10px] font-bold text-gray-400 mt-2">
+                        {t("running.gps.denied")}
+                      </p>
+                    )}
+                  </div>
                 ) : (
                   <>
                     <p className={`${timerSize} font-black tracking-tighter tabular-nums`} style={{ color: timerColor }}>
@@ -1541,8 +1656,8 @@ export const FitScreen: React.FC<FitScreenProps> = ({
                     </svg>
                     <span className="font-black text-base tracking-wider">{t("fit.done")}</span>
                   </button>
-                ) : isIntervalMode ? (
-                  // 회의 41: 인터벌 러닝 모드는 재생/일시정지 상태와 무관하게 재생 + 완료 2버튼 고정
+                ) : isRunningExercise ? (
+                  // 회의 41/43: 러닝 운동(인터벌+연속)은 재생/일시정지 상태와 무관하게 재생 + 완료 2버튼 고정
                   <div className="flex items-center gap-6">
                     <button
                       onClick={() => {

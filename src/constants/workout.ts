@@ -59,7 +59,7 @@ export interface WorkoutAnalysis {
 // Running Session Stats (회의 41: GPS 기반 러닝, 지도 없이 숫자만 저장)
 // ====================================================================
 
-export type RunningType = "walkrun" | "tempo" | "fartlek" | "sprint";
+export type RunningType = "walkrun" | "tempo" | "fartlek" | "sprint" | "easy" | "long";
 
 export interface IntervalRoundRecord {
   round: number;

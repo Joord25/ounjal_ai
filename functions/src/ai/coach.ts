@@ -40,9 +40,9 @@ export const getCoachMessage = onRequest(
       condition?: { bodyPart: string; energyLevel: number };
       sessionDesc?: string;
       streak?: number;
-      // 회의 41: 러닝 세션 전용 분기 데이터
+      // 회의 41/43: 러닝 세션 전용 분기 데이터
       runningStats?: {
-        runningType: "walkrun" | "tempo" | "fartlek" | "sprint";
+        runningType: "walkrun" | "tempo" | "fartlek" | "sprint" | "easy" | "long";
         isIndoor: boolean;
         gpsAvailable: boolean;
         distance: number;          // meters
@@ -154,9 +154,11 @@ export const getCoachMessage = onRequest(
       if (!runningStats) return [];
       const typeLabelKo: Record<string, string> = {
         walkrun: "워크런", tempo: "템포런", fartlek: "변속주", sprint: "스프린트 인터벌",
+        easy: "이지 런", long: "LSD 장거리",
       };
       const typeLabelEn: Record<string, string> = {
         walkrun: "walk-run", tempo: "tempo run", fartlek: "fartlek", sprint: "sprint interval",
+        easy: "easy run", long: "LSD long run",
       };
       const typeLabel = isKo ? typeLabelKo[runningStats.runningType] : typeLabelEn[runningStats.runningType];
       const rounds = runningStats.intervalRounds.length;
@@ -523,9 +525,11 @@ ${logSummary}
       if (isRunning && runningStats) {
         const typeLabelKo: Record<string, string> = {
           walkrun: "워크런", tempo: "템포런", fartlek: "변속주(파틀렉)", sprint: "스프린트 인터벌",
+          easy: "이지 런", long: "LSD 장거리",
         };
         const typeLabelEn: Record<string, string> = {
           walkrun: "walk-run", tempo: "tempo run", fartlek: "fartlek", sprint: "sprint interval",
+          easy: "easy run", long: "LSD long run",
         };
         const runTypeLabel = isKo ? typeLabelKo[runningStats.runningType] : typeLabelEn[runningStats.runningType];
         const isHighIntensity = runningStats.runningType === "sprint" || runningStats.runningType === "fartlek";
