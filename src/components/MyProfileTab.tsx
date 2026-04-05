@@ -706,7 +706,7 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout, auto
           className="w-full bg-gray-50 hover:bg-gray-100 text-gray-600 rounded-2xl p-6 flex items-center justify-between transition-all active:scale-[0.98]"
         >
           <div className="flex flex-col items-start gap-1">
-            <span className="text-lg font-bold text-red-500">Log Out</span>
+            <span className="text-lg font-bold text-red-500">{t("my.logout")}</span>
             <span className="text-xs text-gray-400">{t("my.logout.desc")}</span>
           </div>
           <svg className="w-6 h-6 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">

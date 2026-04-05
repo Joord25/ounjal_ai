@@ -428,15 +428,34 @@ export default function Home() {
     setCurrentWorkoutSession(session);
   };
 
+  // 회의 31: 로그아웃 시 삭제할 localStorage 키 — 유저별 데이터만.
+  // 유지: alpha_language(기기 언어), alpha_tip_*(튜토리얼 dismiss), alpha_guest_trial_count(비로그인 악용 방지)
+  const LOGOUT_CLEAR_KEYS = [
+    "auth_logged_in",
+    "alpha_birth_year",
+    "alpha_body_weight",
+    "alpha_prev_weight",
+    "alpha_gender",
+    "alpha_weight_log",
+    "alpha_workout_history",
+    "alpha_fitness_profile",
+    "alpha_fitness_reading_done",
+    "alpha_fitness_test_history",
+    "alpha_completed_rituals",
+    "alpha_quest_progress",
+    "alpha_season_exp",
+    "alpha_plan_count",
+    "alpha_last_upper_type",
+  ];
+
   const handleLogout = async () => {
     try {
       await signOut(auth);
     } catch (e) {
       console.error("Logout failed:", e);
     }
-    localStorage.removeItem("auth_logged_in");
-    localStorage.removeItem("alpha_completed_rituals");
-    localStorage.removeItem("alpha_workout_history");
+    // 회의 31: 유저 데이터 완전 정리 (프라이버시) — 다른 유저가 같은 기기 로그인 시 데이터 잔여 방지
+    LOGOUT_CLEAR_KEYS.forEach(k => localStorage.removeItem(k));
     setIsLoggedIn(false);
     setUser(null);
     setView("login");
