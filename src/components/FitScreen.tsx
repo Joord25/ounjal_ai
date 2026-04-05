@@ -493,47 +493,66 @@ export const FitScreen: React.FC<FitScreenProps> = ({
   const [intervalPhase, setIntervalPhase] = useState<"sprint" | "recovery">("sprint");
   const [intervalTime, setIntervalTime] = useState(intervalConfig?.phase1Sec ?? 0);
 
-  // Interval Timer Logic
+  // 회의 36 v2: 인터벌 타이머 refs 기반 (nested state update 제거)
+  // 이전 버전: setIntervalTime 안에서 setIntervalPhase, 그 안에서 다시 setIntervalTime 호출
+  //           → React 19 Strict Mode 이중 invocation으로 페이즈 1초 플립 버그
+  // 신버전: refs로 실제 상태 관리, state는 렌더링 용도만 동기화
+  const phaseRef = useRef<"sprint" | "recovery">("sprint");
+  const timeRef = useRef(0);
+  const roundRef = useRef(1);
+
+  // state 초기화 시 refs도 함께 세팅
+  useEffect(() => {
+    phaseRef.current = "sprint";
+    timeRef.current = intervalConfig?.phase1Sec ?? 0;
+    roundRef.current = 1;
+  }, [intervalConfig?.phase1Sec, intervalConfig?.rounds]);
+
   useEffect(() => {
     if (!isPlaying || !isIntervalMode || !intervalConfig) return;
+    const cfg = intervalConfig; // 클로저에 안정적으로 캡처
     const iv = setInterval(() => {
-      setIntervalTime((prev: number) => {
-        const next = prev - 1;
-        if (next > 0 && next <= 3) playAlarmSound("tick");
-        if (next <= 0) {
-          // Phase transition
-          setIntervalPhase(curPhase => {
-            if (curPhase === "sprint") {
-              playAlarmSound("half");
-              if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
-              setIntervalTime(intervalConfig.phase2Sec);
-              return "recovery";
-            } else {
-              // End of recovery → next round or done
-              setIntervalRound(curRound => {
-                if (curRound >= intervalConfig.rounds) {
-                  clearInterval(iv);
-                  setIsPlaying(false);
-                  setTimerCompleted(true);
-                  playAlarmSound("end");
-                  if (navigator.vibrate) navigator.vibrate([300, 100, 300, 100, 300]);
-                  return curRound;
-                }
-                playAlarmSound("start");
-                if (navigator.vibrate) navigator.vibrate(100);
-                setIntervalTime(intervalConfig.phase1Sec);
-                return curRound + 1;
-              });
-              return "sprint";
-            }
-          });
-          return prev; // will be overwritten by setIntervalTime above
+      timeRef.current -= 1;
+      const t = timeRef.current;
+
+      if (t > 0 && t <= 3) playAlarmSound("tick");
+
+      if (t <= 0) {
+        // 페이즈 전환
+        if (phaseRef.current === "sprint") {
+          // sprint → recovery
+          phaseRef.current = "recovery";
+          timeRef.current = cfg.phase2Sec;
+          playAlarmSound("half");
+          if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+          setIntervalPhase("recovery");
+          setIntervalTime(cfg.phase2Sec);
+        } else {
+          // recovery 완료 → 다음 라운드 또는 종료
+          if (roundRef.current >= cfg.rounds) {
+            clearInterval(iv);
+            setIsPlaying(false);
+            setTimerCompleted(true);
+            playAlarmSound("end");
+            if (navigator.vibrate) navigator.vibrate([300, 100, 300, 100, 300]);
+            return;
+          }
+          roundRef.current += 1;
+          phaseRef.current = "sprint";
+          timeRef.current = cfg.phase1Sec;
+          playAlarmSound("start");
+          if (navigator.vibrate) navigator.vibrate(100);
+          setIntervalRound(roundRef.current);
+          setIntervalPhase("sprint");
+          setIntervalTime(cfg.phase1Sec);
         }
-        return next;
-      });
+      } else {
+        // 정상 카운트다운 — state 동기화
+        setIntervalTime(t);
+      }
     }, 1000);
     return () => clearInterval(iv);
-  }, [isPlaying, isIntervalMode]);
+  }, [isPlaying, isIntervalMode, intervalConfig]);
 
   // Normal Timer Logic
   useEffect(() => {
@@ -603,9 +622,13 @@ export const FitScreen: React.FC<FitScreenProps> = ({
     setTimerCompleted(false);
     halfAlarmFired.current = false;
     if (isIntervalMode && intervalConfig) {
+        // 회의 36 v2: state + refs 동시 초기화
         setIntervalRound(1);
         setIntervalPhase("sprint");
         setIntervalTime(intervalConfig.phase1Sec);
+        phaseRef.current = "sprint";
+        timeRef.current = intervalConfig.phase1Sec;
+        roundRef.current = 1;
         setElapsedTime(0);
     } else if (isTimerMode) {
         if (isDistanceMode) {
