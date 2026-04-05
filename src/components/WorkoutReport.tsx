@@ -225,6 +225,100 @@ async function fetchCoachMessages(
   }
 }
 
+/* === 회의 42 후속: EXP 티어 카드 — RpgResultCard 내부 + 러닝 모드 독립 렌더 공용 === */
+function ExpTierCard({ seasonExp, prevSeasonExp, expGained, insight, streak, nextWorkoutName, onHelpPress, onShowPrediction }: {
+  seasonExp: number;
+  prevSeasonExp: number;
+  expGained: ExpLogEntry[];
+  insight?: RpgInsight;
+  streak: number;
+  nextWorkoutName?: string;
+  onHelpPress: () => void;
+  onShowPrediction?: () => void;
+}) {
+  const { t } = useTranslation();
+  const current = getTierFromExp(seasonExp);
+  const prev = getTierFromExp(prevSeasonExp);
+  const tierUp = current.tierIdx > prev.tierIdx;
+  const totalExpGained = sumExp(expGained);
+  const expSummary = totalExpGained > 0
+    ? `+${totalExpGained} EXP${tierUp ? t("report.tierUpShort", { tier: current.tier.name }) : ""}`
+    : current.tier.name;
+
+  return (
+    <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden mb-5">
+      <div className="px-5 py-4">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <div className="w-5 h-5 rounded-full flex items-center justify-center" style={{ backgroundColor: current.tier.color }}>
+              <span className="text-[8px] font-black text-white">&#9876;</span>
+            </div>
+            <span className="text-[13px] font-bold text-[#1B4332]">{expSummary}</span>
+          </div>
+          <button
+            onClick={onHelpPress}
+            className="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center"
+          >
+            <span className="text-[9px] font-black text-gray-400">?</span>
+          </button>
+        </div>
+
+        <div className="flex items-center justify-between mb-1.5">
+          <span className="text-[11px] font-bold" style={{ color: current.tier.color }}>{current.tier.name} {seasonExp} EXP</span>
+          <span className="text-[11px] text-gray-400">
+            {current.nextTier ? t("report.tierRemaining", { next: current.nextTier.name, remaining: String(current.remaining) }) : t("report.maxTier")}
+          </span>
+        </div>
+        <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+          <div
+            className="h-full rounded-full transition-all duration-1000"
+            style={{ width: `${current.progress * 100}%`, backgroundColor: current.tier.color }}
+          />
+        </div>
+
+        <div className="mt-3 flex items-center justify-between">
+          {streak >= 2 && (
+            <div className="flex items-center gap-1.5">
+              <div className="flex">
+                {Array.from({ length: Math.min(streak, 7) }).map((_, i) => (
+                  <div key={i} className="w-2 h-2 rounded-full bg-[#2D6A4F] mr-0.5" style={{ opacity: 0.4 + (i / Math.min(streak, 7)) * 0.6 }} />
+                ))}
+              </div>
+              <span className="text-[11px] font-bold text-[#2D6A4F]">
+                {t("report.hero.streakLabel", { days: String(streak) })}
+              </span>
+            </div>
+          )}
+          {nextWorkoutName && (
+            <span className="text-[11px] text-gray-400 font-medium">
+              {t("report.streak.next", { name: nextWorkoutName })}
+            </span>
+          )}
+        </div>
+
+        {(tierUp || expGained.filter(e => e.source !== "workout").length > 0 || insight?.phaseUnlock) && (
+          <div className="mt-3 pt-3 border-t border-gray-100 flex flex-col gap-1">
+            {expGained.filter(e => e.source !== "workout").map((e, i) => (
+              <p key={i} className="text-[12px] font-bold text-[#2D6A4F]">{translateExpDetail(e, t)} +{e.amount} EXP</p>
+            ))}
+            {tierUp && (
+              <p className="text-[12px] font-black text-[#2D6A4F]">{t("report.tierUp", { prev: prev.tier.name, current: current.tier.name })}</p>
+            )}
+            {insight?.phaseUnlock && (
+              <p
+                className={`text-[12px] font-medium ${insight.phaseJustUnlocked ? "text-[#2D6A4F] font-bold cursor-pointer" : "text-gray-400"}`}
+                onClick={insight.phaseJustUnlocked && onShowPrediction ? onShowPrediction : undefined}
+              >
+                {insight.phaseUnlock}
+              </p>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 /* === RPG 리절트 카드 === */
 interface RpgInsight {
   goalLine?: string;       // 1. 목표 연결 한 줄
@@ -234,7 +328,7 @@ interface RpgInsight {
   volumeCompare?: string;  // 4. vs 지난 세션 비교
 }
 
-function RpgResultCard({ totalDurationSec, totalVolume, isStrengthSession, seasonExp, prevSeasonExp, expGained, intensityLevel, formatDuration, onHelpPress, onShowPrediction, skipAnimation, insight, sessionDesc, hero, timeContext, streak, nextWorkoutName, logs, exercises, condition, savedCoachMessages, onCoachMessagesLoaded, runningStats }: {
+function RpgResultCard({ totalDurationSec, totalVolume, isStrengthSession, seasonExp, prevSeasonExp, expGained, intensityLevel, formatDuration, onHelpPress, onShowPrediction, skipAnimation, insight, sessionDesc, hero, timeContext, streak, nextWorkoutName, logs, exercises, condition, savedCoachMessages, onCoachMessagesLoaded, runningStats, hideExpCard }: {
   totalDurationSec: number; totalSets?: number; totalVolume: number; successRate: number;
   isStrengthSession: boolean; seasonExp: number; prevSeasonExp: number; expGained: ExpLogEntry[];
   intensityLevel: "high" | "moderate" | "low";
@@ -245,12 +339,10 @@ function RpgResultCard({ totalDurationSec, totalVolume, isStrengthSession, seaso
   condition?: { bodyPart: string; energyLevel: number };
   savedCoachMessages?: string[]; onCoachMessagesLoaded?: (msgs: string[]) => void;
   runningStats?: RunningStats;
+  hideExpCard?: boolean; // 회의 42 후속: 러닝 모드 시 EXP 카드 외부에서 렌더
 }) {
   const { t, locale } = useTranslation();
-  const current = getTierFromExp(seasonExp);
-  const prev = getTierFromExp(prevSeasonExp);
-  const tierUp = current.tierIdx > prev.tierIdx;
-  const totalExpGained = sumExp(expGained);
+  // 회의 42 후속: EXP 계산은 ExpTierCard 내부로 이관. RpgResultCard 레벨에선 더 이상 필요 없음.
 
   const intensityLabel = t(`report.intensity.${intensityLevel}`);
   const sessionInfo = `${translateDesc(sessionDesc || "", locale)} · ${intensityLabel} · ${formatDuration(totalDurationSec)}`;
@@ -309,11 +401,6 @@ function RpgResultCard({ totalDurationSec, totalVolume, isStrengthSession, seaso
 
     return () => timers.forEach(clearTimeout);
   }, [coachMessages, isThinking]);
-
-  // EXP 요약
-  const expSummary = totalExpGained > 0
-    ? `+${totalExpGained} EXP${tierUp ? t("report.tierUpShort", { tier: current.tier.name }) : ""}`
-    : current.tier.name;
 
   return (
     <div className="mb-5 flex flex-col gap-3">
@@ -394,81 +481,19 @@ function RpgResultCard({ totalDurationSec, totalVolume, isStrengthSession, seaso
         )}
       </div>
 
-      {/* EXP + 스트릭 (항상 펼침) */}
-      <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
-        <div className="px-5 py-4">
-          {/* EXP 헤더 */}
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <div className="w-5 h-5 rounded-full flex items-center justify-center" style={{ backgroundColor: current.tier.color }}>
-                <span className="text-[8px] font-black text-white">&#9876;</span>
-              </div>
-              <span className="text-[13px] font-bold text-[#1B4332]">{expSummary}</span>
-            </div>
-            <button
-              onClick={onHelpPress}
-              className="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center"
-            >
-              <span className="text-[9px] font-black text-gray-400">?</span>
-            </button>
-          </div>
-
-          {/* 프로그레스바 */}
-          <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[11px] font-bold" style={{ color: current.tier.color }}>{current.tier.name} {seasonExp} EXP</span>
-            <span className="text-[11px] text-gray-400">
-              {current.nextTier ? t("report.tierRemaining", { next: current.nextTier.name, remaining: String(current.remaining) }) : t("report.maxTier")}
-            </span>
-          </div>
-          <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
-            <div
-              className="h-full rounded-full transition-all duration-1000"
-              style={{ width: `${current.progress * 100}%`, backgroundColor: current.tier.color }}
-            />
-          </div>
-
-          {/* 스트릭 + 다음 예정 */}
-          <div className="mt-3 flex items-center justify-between">
-            {streak >= 2 && (
-              <div className="flex items-center gap-1.5">
-                <div className="flex">
-                  {Array.from({ length: Math.min(streak, 7) }).map((_, i) => (
-                    <div key={i} className="w-2 h-2 rounded-full bg-[#2D6A4F] mr-0.5" style={{ opacity: 0.4 + (i / Math.min(streak, 7)) * 0.6 }} />
-                  ))}
-                </div>
-                <span className="text-[11px] font-bold text-[#2D6A4F]">
-                  {t("report.hero.streakLabel", { days: String(streak) })}
-                </span>
-              </div>
-            )}
-            {nextWorkoutName && (
-              <span className="text-[11px] text-gray-400 font-medium">
-                {t("report.streak.next", { name: nextWorkoutName })}
-              </span>
-            )}
-          </div>
-
-          {/* 티어업 / 보너스 EXP 상세 */}
-          {(tierUp || expGained.filter(e => e.source !== "workout").length > 0 || insight?.phaseUnlock) && (
-            <div className="mt-3 pt-3 border-t border-gray-100 flex flex-col gap-1">
-              {expGained.filter(e => e.source !== "workout").map((e, i) => (
-                <p key={i} className="text-[12px] font-bold text-[#2D6A4F]">{translateExpDetail(e, t)} +{e.amount} EXP</p>
-              ))}
-              {tierUp && (
-                <p className="text-[12px] font-black text-[#2D6A4F]">{t("report.tierUp", { prev: prev.tier.name, current: current.tier.name })}</p>
-              )}
-              {insight?.phaseUnlock && (
-                <p
-                  className={`text-[12px] font-medium ${insight.phaseJustUnlocked ? "text-[#2D6A4F] font-bold cursor-pointer" : "text-gray-400"}`}
-                  onClick={insight.phaseJustUnlocked && onShowPrediction ? onShowPrediction : undefined}
-                >
-                  {insight.phaseUnlock}
-                </p>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
+      {/* EXP + 스트릭 — 회의 42: 러닝 모드(hideExpCard)일 땐 외부에서 렌더 */}
+      {!hideExpCard && (
+        <ExpTierCard
+          seasonExp={seasonExp}
+          prevSeasonExp={prevSeasonExp}
+          expGained={expGained}
+          insight={insight}
+          streak={streak}
+          nextWorkoutName={nextWorkoutName}
+          onHelpPress={onHelpPress}
+          onShowPrediction={onShowPrediction}
+        />
+      )}
     </div>
   );
 }
@@ -841,73 +866,89 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
             return undefined;
           })();
 
-          return (
-            <RpgResultCard
-              totalDurationSec={totalDurationSec}
-              totalSets={isStrengthSession ? metrics.strengthSets : metrics.totalSets}
-              totalVolume={totalVolume}
-              successRate={successRate}
-              isStrengthSession={isStrengthSession}
-              seasonExp={currentExp}
-              prevSeasonExp={prevExp}
-              expGained={expGained}
-              intensityLevel={sessionIntensity.level}
-              formatDuration={formatDuration}
-              onHelpPress={() => setHelpCard("levelSystem")}
-              onShowPrediction={onShowPrediction}
-              skipAnimation={!!sessionDate}
-              insight={insight}
-              sessionDesc={sessionData.description || sessionData.title || ""}
-              hero={hero}
-              timeContext={heroTimeContext}
-              streak={heroStreak}
-              nextWorkoutName={nextWorkout}
-              logs={logs}
-              exercises={sessionData.exercises}
-              condition={(() => { try { const fp = JSON.parse(localStorage.getItem("alpha_fitness_profile") || "{}"); return fp.lastCondition; } catch { return undefined; } })()}
-              savedCoachMessages={propCoachMessages || (() => {
-                // prop으로 전달 안 됐으면 히스토리에서 찾기
-                const match = recentHistory.find(h =>
-                  h.id && h.coachMessages && h.coachMessages.length > 0
-                  && h.sessionData.exercises.map(e => e.name).join(",") === sessionData.exercises.map(e => e.name).join(",")
-                );
-                return match?.coachMessages;
-              })()}
-              onCoachMessagesLoaded={(msgs) => {
-                // 최신 히스토리 항목에 코치 멘트 저장
-                try {
-                  const history = JSON.parse(localStorage.getItem("alpha_workout_history") || "[]") as WorkoutHistory[];
-                  const latest = history[history.length - 1];
-                  if (latest) updateCoachMessages(latest.id, msgs);
-                } catch {}
-              }}
-              runningStats={runningStats}
-            />
-          );
-        })()}
-
-        {/* === 러닝 세션 전용 본문 (회의 41) — exercises 패턴으로 감지, stats 없으면 폴백 생성 === */}
-        {(() => {
+          // 회의 42: 러닝 세션 감지 + 폴백 stats 조립 (IIFE 스코프 내 — ExpTierCard 외부 렌더에 expGained 등 필요)
           const detectedRunningType = detectRunningType(sessionData.exercises);
-          if (!detectedRunningType) return null;
-          // GPS 데이터 없이 러닝 세션 종료된 경우: 세션 metadata로 최소 stats 조립
-          const effectiveStats: RunningStats = runningStats ?? {
-            runningType: detectedRunningType,
-            isIndoor: false,
-            gpsAvailable: false,
-            distance: 0,
-            duration: totalDurationSec,
-            avgPace: null,
-            sprintAvgPace: null,
-            recoveryAvgPace: null,
-            bestPace: null,
-            intervalRounds: [],
-            completionRate: 0,
-          };
+          const isRunningReport = detectedRunningType !== null;
+          const effectiveRunningStats: RunningStats | null = isRunningReport
+            ? (runningStats ?? {
+                runningType: detectedRunningType,
+                isIndoor: false,
+                gpsAvailable: false,
+                distance: 0,
+                duration: totalDurationSec,
+                avgPace: null,
+                sprintAvgPace: null,
+                recoveryAvgPace: null,
+                bestPace: null,
+                intervalRounds: [],
+                completionRate: 0,
+              })
+            : null;
+
           return (
-            <div className="mb-5">
-              <RunningReportBody runningStats={effectiveStats} recentHistory={recentHistory} />
-            </div>
+            <>
+              <RpgResultCard
+                totalDurationSec={totalDurationSec}
+                totalSets={isStrengthSession ? metrics.strengthSets : metrics.totalSets}
+                totalVolume={totalVolume}
+                successRate={successRate}
+                isStrengthSession={isStrengthSession}
+                seasonExp={currentExp}
+                prevSeasonExp={prevExp}
+                expGained={expGained}
+                intensityLevel={sessionIntensity.level}
+                formatDuration={formatDuration}
+                onHelpPress={() => setHelpCard("levelSystem")}
+                onShowPrediction={onShowPrediction}
+                skipAnimation={!!sessionDate}
+                insight={insight}
+                sessionDesc={sessionData.description || sessionData.title || ""}
+                hero={hero}
+                timeContext={heroTimeContext}
+                streak={heroStreak}
+                nextWorkoutName={nextWorkout}
+                logs={logs}
+                exercises={sessionData.exercises}
+                condition={(() => { try { const fp = JSON.parse(localStorage.getItem("alpha_fitness_profile") || "{}"); return fp.lastCondition; } catch { return undefined; } })()}
+                savedCoachMessages={propCoachMessages || (() => {
+                  // prop으로 전달 안 됐으면 히스토리에서 찾기
+                  const match = recentHistory.find(h =>
+                    h.id && h.coachMessages && h.coachMessages.length > 0
+                    && h.sessionData.exercises.map(e => e.name).join(",") === sessionData.exercises.map(e => e.name).join(",")
+                  );
+                  return match?.coachMessages;
+                })()}
+                onCoachMessagesLoaded={(msgs) => {
+                  // 최신 히스토리 항목에 코치 멘트 저장
+                  try {
+                    const history = JSON.parse(localStorage.getItem("alpha_workout_history") || "[]") as WorkoutHistory[];
+                    const latest = history[history.length - 1];
+                    if (latest) updateCoachMessages(latest.id, msgs);
+                  } catch {}
+                }}
+                runningStats={runningStats}
+                hideExpCard={isRunningReport}
+              />
+              {/* 회의 41/42: 러닝 세션 전용 본문 — RpgResultCard 직후 */}
+              {isRunningReport && effectiveRunningStats && (
+                <div className="mb-5">
+                  <RunningReportBody runningStats={effectiveRunningStats} recentHistory={recentHistory} />
+                </div>
+              )}
+              {/* 회의 42: 러닝 세션 EXP 카드는 RunningReportBody 아래, Workout Logs 바로 위에 위치 */}
+              {isRunningReport && (
+                <ExpTierCard
+                  seasonExp={currentExp}
+                  prevSeasonExp={prevExp}
+                  expGained={expGained}
+                  insight={insight}
+                  streak={heroStreak}
+                  nextWorkoutName={nextWorkout}
+                  onHelpPress={() => setHelpCard("levelSystem")}
+                  onShowPrediction={onShowPrediction}
+                />
+              )}
+            </>
           );
         })()}
 
