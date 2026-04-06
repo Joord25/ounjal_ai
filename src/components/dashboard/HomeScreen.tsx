@@ -276,24 +276,24 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onStartWorkout
     const missing = allParts.filter(p => !doneParts.has(p));
     const recommend = missing.length > 0 && missing.length < allParts.length ? missing.slice(0, 2).join(" · ") : "";
 
-    // === 버블 1: 인사/감정 ===
+    // === 버블 1: 인사/감정 (ㅎㅎ 밀도: 16개 중 3개) ===
     let bubble1: string;
     if (history.length === 0) {
       bubble1 = pick(isEn
         ? ["Welcome! I'm excited to start with you!", "Hey! Let's take the first step together!"]
-        : ["어서오세요! 첫 발 같이 뗄 생각에 설레요!", "와 드디어 시작이에요! 같이 해서 두근두근!ㅎㅎ", "첫 운동이 제일 특별해요! 같이 만들어가요!"]);
+        : ["어서오세요! 첫 발 같이 뗄 생각에 설레요!", "와 드디어 시작이에요! 같이 해서 두근두근!", "첫 운동이 제일 특별해요! 같이 만들어가요!"]);
     } else if (didWorkoutToday) {
       bubble1 = pick(isEn
         ? ["You're back again today?! Amazing stamina!", "Already worked out and coming back? Love the energy!"]
-        : ["오늘 또 왔어요?! 체력 진짜 좋아졌다!ㅎㅎ", "아까 운동했는데 또 오다니! 이 열정 대단해요!", "벌써 오늘 한 번 했는데! 이 의지 진짜 멋있어요!"]);
+        : ["오늘 또 왔어요?! 체력 진짜 좋아졌다!", "아까 운동했는데 또 오다니! 이 열정 대단해요!", "벌써 오늘 한 번 했는데! 이 의지 진짜 멋있어요!"]);
     } else if (streak >= 3) {
       bubble1 = pick(isEn
         ? [`${streak} days straight! Love running together!`, `Day ${streak}! At this point it's instinct!`]
-        : [`${streak}일 연속이네요! 같이 달리니까 좋아요!`, `${streak}일째! 이쯤 되면 습관 아니라 본능이에요ㅎㅎ`, `와 ${streak}일째! 저도 이 기록 깨고 싶지 않아요!ㅎㅎ`]);
+        : [`${streak}일 연속이네요! 같이 달리니까 좋아요!`, `${streak}일째! 이쯤 되면 습관 아니라 본능이에요ㅎㅎ`, `와 ${streak}일째! 저도 이 기록 깨고 싶지 않아요!`]);
     } else if (daysSinceLast >= 3) {
       bubble1 = pick(isEn
         ? ["Hey! I was waiting for you!", "You're back! So glad to see you!"]
-        : ["오! 기다리고 있었어요! 반가워요!", "돌아왔네요! 보고싶었어요!ㅎㅎ", "다시 온 거 자체가 대단해요!"]);
+        : ["오! 기다리고 있었어요! 반가워요!", "돌아왔네요! 보고싶었어요ㅎㅎ", "다시 온 거 자체가 대단해요!"]);
     } else {
       // 시간대별
       bubble1 = hour < 6
@@ -304,10 +304,10 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onStartWorkout
         ? pick(isEn ? ["Lunch workout? That's impressive!"] : ["점심시간 쪼개서 온 거예요? 진짜 대단!"])
         : hour < 22
         ? pick(isEn ? ["Working out at day's end! Let's finish strong!"] : ["하루 끝에 운동하러 온 거 멋있어요! 같이 마무리해요!", "오늘도 왔네요! 저도 기다리고 있었어요!ㅎㅎ"])
-        : pick(isEn ? ["Late night grind! That dedication!"] : ["남들 쉬는 시간에 온 거잖아요! 이 열정!ㅎㅎ"]);
+        : pick(isEn ? ["Late night grind! That dedication!"] : ["남들 쉬는 시간에 온 거잖아요! 대단해요 진짜!"]);
     }
 
-    // === 버블 2: 추천/행동 ===
+    // === 버블 2: 추천/행동 (ㅎㅎ 밀도: 10개 중 1개) ===
     let bubble2: string;
     if (history.length === 0) {
       bubble2 = pick(isEn
@@ -316,11 +316,11 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onStartWorkout
     } else if (didWorkoutToday) {
       bubble2 = pick(isEn
         ? ["Want to go again? I'm ready!", "If you want more, I won't stop you!"]
-        : ["한 번 더 하실 거예요? 저도 준비됐어요!", "더 하고 싶으면 말리진 않을게요! 같이 가요!ㅎㅎ"]);
+        : ["한 번 더 하실 거예요? 저도 준비됐어요!", "더 하고 싶으면 말리진 않을게요! 같이 가요!"]);
     } else if (recommend) {
       bubble2 = pick(isEn
         ? [`How about ${recommend} today? I'll set up the plan!`, `${recommend} has been resting — let's wake it up!`]
-        : [`오늘 ${recommend} 어때요? 제가 플랜 짜놓을게요!`, `${recommend} 좀 쉬었으니 오늘 깨워볼까요?ㅎㅎ`, `오늘 ${recommend} 가면 밸런스 딱이에요! 같이 가요!`]);
+        : [`오늘 ${recommend} 어때요? 제가 플랜 짜놓을게요!`, `${recommend} 좀 쉬었으니 오늘 깨워볼까요?`, `오늘 ${recommend} 가면 밸런스 딱이에요! 같이 가요!`]);
     } else if (daysSinceLast >= 3) {
       bubble2 = pick(isEn
         ? ["Let's start easy today! No pressure!", "Shall we warm up and ease in?"]
@@ -328,7 +328,12 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onStartWorkout
     } else {
       bubble2 = pick(isEn
         ? ["I've got today's plan ready! Shall we?", "Ready when you are! Let's go!"]
-        : ["오늘 플랜 준비해놨어요! 같이 가볼까요?", "준비 다 됐어요! 오늘도 같이 해요!ㅎㅎ"]);
+        : ["오늘 플랜 준비해놨어요! 같이 가볼까요?", "준비 다 됐어요! 오늘도 같이 해요!"]);
+    }
+
+    // 두 버블 모두 ㅎㅎ로 끝나면 중복 방지 — 버블2에서 제거
+    if (!isEn && bubble1.endsWith("ㅎㅎ") && bubble2.endsWith("ㅎㅎ")) {
+      bubble2 = bubble2.slice(0, -2);
     }
 
     return [bubble1, bubble2];
