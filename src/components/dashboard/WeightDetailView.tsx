@@ -193,6 +193,19 @@ export const WeightDetailView: React.FC<WeightDetailViewProps> = ({
         )}
       </div>
 
+      {/* Add Weight FAB */}
+      {!weightSelectMode && !showAddWeight && (
+        <button
+          onClick={() => setShowAddWeight(true)}
+          className="absolute bottom-6 right-6 w-14 h-14 rounded-full bg-[#1B4332] text-white shadow-lg flex items-center justify-center active:scale-95 transition-all z-30"
+          style={{ marginBottom: "var(--safe-area-bottom, 0px)" }}
+        >
+          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+          </svg>
+        </button>
+      )}
+
       {/* Delete Confirmation Modal */}
       {showBulkDeleteConfirm && selectedWeightIdxs.size > 0 && (
         <div className="absolute inset-0 bg-black/40 z-50 flex items-center justify-center animate-fade-in px-8">

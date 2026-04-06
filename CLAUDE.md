@@ -81,7 +81,14 @@ Frontend calls Cloud Functions via `/api/*` paths, rewritten in `firebase.json`:
 
 ### Key Directories
 
-- **`src/components/`** — All UI components. `FitScreen.tsx` handles exercise execution (timer + reps modes). `WorkoutSession.tsx` manages session flow with adaptive rep logic. `ShareCard.tsx` uses `html2canvas-pro` for workout screenshot sharing. `WorkoutReport.tsx` renders post-workout report with AI coach chat bubbles.
+- **`src/components/`** — UI components organized into 6 domain directories:
+  - **`layout/`** — App shell: `PhoneFrame`, `BottomTabs`, `LanguageSelector`, `LoginScreen`
+  - **`plan/`** — Pre-workout flow: `ConditionCheck`, `MasterPlanPreview`, `PlanShareCard`, `PlanLoadingOverlay`, `Tutorial`
+  - **`workout/`** — Active session: `WorkoutSession`, `FitScreen` (timer + reps modes), `AiCoachChat`, `GpsPermissionDialog`
+  - **`report/`** — Post-workout: `WorkoutReport`, `RunningReportBody`, `ShareCard` (`html2canvas-pro`), `ExpTierCard`, `RpgResultCard`, `ReportHelpModal`, `reportUtils.ts`
+  - **`dashboard/`** — Proof/Home tabs: `ProofTab`, `HomeScreen`, `WorkoutHistory`, `FitnessReading`, `FitnessTest`, chart components (`WeightTrendChart`, `LoadTimelineChart`, `VolumeTrendChart`, `RegressionChart`, `Big3RegressionChart`), `WeightDetailView`, `HelpCardModal`, `predictionReading.ts`, `fitnessTypes.ts`
+  - **`profile/`** — My tab: `MyProfileTab`, `SubscriptionScreen`
+  - Root-level utilities: `SwipeToDelete`, `PullToRefresh`
 - **`src/constants/`** — `workout.ts` contains TypeScript interfaces, exercise pools for UI search (`LABELED_EXERCISE_POOLS`), and `getAlternativeExercises()`. **Algorithm code (`generateAdaptiveWorkout`) is NOT here — it's server-side in `functions/src/workoutEngine.ts` for security.** `theme.ts` has design tokens. `exerciseVideos.ts` maps exercise names to YouTube Shorts IDs.
 - **`src/utils/`** — `gemini.ts` (AI integration via Cloud Functions), `workoutHistory.ts` (Firestore + localStorage persistence, includes `updateCoachMessages()`), `workoutMetrics.ts` (stats), `userProfile.ts` (profile loading), `exerciseName.ts` (locale-based name display).
 - **`src/hooks/`** — `useSafeArea.ts` sets `--safe-area-bottom` CSS variable for iOS/Android PWA bottom spacing. `useTranslation.tsx` provides i18n with ko/en support.
