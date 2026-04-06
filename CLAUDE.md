@@ -1,6 +1,7 @@
 # CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Detailed rules are in `.claude/rules/` (auto-loaded by glob pattern).
 
 ## Build & Development Commands
 
@@ -21,225 +22,59 @@ firebase deploy --only functions     # Deploy functions only
 
 There is no test suite configured.
 
-Deployed to Firebase Hosting (project: `ohunjal`). CI/CD via GitHub Actions auto-deploys on push to main and creates preview deployments on PRs. Deployment requires `FIREBASE_CLI_EXPERIMENTS: webframeworks`.
+Deployed to Firebase Hosting (project: `ohunjal`). CI/CD via GitHub Actions auto-deploys on push to main.
 
 ### Required Environment Variables (`.env.local`)
 
 All are `NEXT_PUBLIC_*` (client-side accessible):
 - `NEXT_PUBLIC_FIREBASE_API_KEY`, `_AUTH_DOMAIN`, `_PROJECT_ID`, `_STORAGE_BUCKET`, `_MESSAGING_SENDER_ID`, `_APP_ID` — Firebase config
 - `NEXT_PUBLIC_GEMINI_API_KEY` — Gemini AI (client-side calls)
-- `NEXT_PUBLIC_PORTONE_STORE_ID`, `NEXT_PUBLIC_PORTONE_CHANNEL_KEY` — PortOne billing integration
+- `NEXT_PUBLIC_PORTONE_STORE_ID`, `NEXT_PUBLIC_PORTONE_CHANNEL_KEY` — PortOne billing
 
 Cloud Functions use `GEMINI_API_KEY` (server-side, set via Firebase config).
 
 ## Architecture
 
-**Next.js 16 + React 19 + TypeScript (strict) + TailwindCSS 4** single-page app simulating a phone-frame workout tracker. Uses Gemini 2.5 Flash (`@google/genai`) for AI workout plan generation, post-workout analysis, and AI coach messages.
+**Next.js 16 + React 19 + TypeScript (strict) + TailwindCSS 4** SPA simulating a phone-frame workout tracker. Uses Gemini 2.5 Flash for AI workout plans, analysis, and coach messages.
 
 ### Core Data Flow
 
-`src/app/app/page.tsx` is the sole orchestrator — it owns all app state and passes props/callbacks down to child components. There is no external state library. View routing is managed via a `ViewState` type (`login → condition_check → master_plan_preview → workout_session → workout_report → home`). Tab navigation uses `BottomTabs` with a `TabId` type.
-
-**State Protection:** During workout flow (`condition_check`, `master_plan_preview`, `workout_session`), tab changes are ignored to prevent session data loss. On `workout_report` close, `completedRitualIds` removes "workout" to prevent stale report display on HOME.
+`src/app/app/page.tsx` is the sole orchestrator — owns all app state, passes props/callbacks down. No external state library. View routing via `ViewState` type (`login → condition_check → master_plan_preview → workout_session → workout_report → home`). Tab navigation: `BottomTabs` with `TabId`.
 
 ### Three Codebases in One Repo
 
-1. **Next.js frontend** (root `package.json`, `src/`) — the main app
-2. **`functions/`** — Firebase Cloud Functions (Node 22, `firebase-functions` v6). Modularized into separate files. Function rewrites in `firebase.json` point to `us-central1`. This is the active codebase.
-3. **`ohunjal/`** — Separate Cloud Functions codebase (Node 24, `firebase-functions` v7) with subscription/payment endpoints. Has its own manual CORS handling. **Not actively deployed** — not referenced in `firebase.json` rewrites.
-
-Each has its own `package.json`, `tsconfig.json`, and `node_modules`. The root `tsconfig.json` excludes `functions` and `ohunjal`.
-
-### Cloud Functions Module Structure
-
-```
-functions/src/
-├── index.ts              ← Re-exports only (11 lines)
-├── helpers.ts            ← verifyAuth, verifyAdmin, app, db
-├── gemini.ts             ← getGemini(), GEMINI_MODEL
-├── coachMessages.ts      ← Rule-based fallback messages (Gemini failure backup)
-├── workoutEngine.ts      ← generateAdaptiveWorkout (server-side only, security)
-├── ai/
-│   ├── coach.ts          ← getCoachMessage — Gemini 3-bubble coach feedback
-│   └── workout.ts        ← generateWorkout, analyzeWorkout — Gemini AI
-├── plan/
-│   └── session.ts        ← planSession — rule-based plan generation
-├── billing/
-│   └── subscription.ts   ← subscribe, getSubscription, cancelSubscription
-└── admin/
-    └── admin.ts          ← adminActivate, adminCheckUser, etc.
-```
-
-### Firebase Rewrites
-
-Frontend calls Cloud Functions via `/api/*` paths, rewritten in `firebase.json`:
-- `/api/generateWorkout`, `/api/analyzeWorkout` → AI functions (Gemini)
-- `/api/planSession` → Rule-based plan generation (server-side)
-- `/api/getCoachMessage` → AI coach 3-bubble feedback (Gemini)
-- `/api/getSubscription`, `/api/subscribe`, `/api/cancelSubscription` → subscription functions
-- `/api/admin*` → Admin functions
+1. **Next.js frontend** (root `src/`) — the main app
+2. **`functions/`** — Firebase Cloud Functions (Node 22, v6). Active codebase.
+3. **`ohunjal/`** — Separate CF codebase (Node 24, v7). **Not actively deployed.**
 
 ### Key Directories
 
-- **`src/components/`** — UI components organized into 6 domain directories:
-  - **`layout/`** — App shell: `PhoneFrame`, `BottomTabs`, `LanguageSelector`, `LoginScreen`
-  - **`plan/`** — Pre-workout flow: `ConditionCheck`, `MasterPlanPreview`, `PlanShareCard`, `PlanLoadingOverlay`, `Tutorial`
-  - **`workout/`** — Active session: `WorkoutSession`, `FitScreen` (timer + reps modes), `AiCoachChat`, `GpsPermissionDialog`
-  - **`report/`** — Post-workout: `WorkoutReport`, `RunningReportBody`, `ShareCard` (`html2canvas-pro`), `ExpTierCard`, `RpgResultCard`, `ReportHelpModal`, `reportUtils.ts`
-  - **`dashboard/`** — Proof/Home tabs: `ProofTab`, `HomeScreen`, `WorkoutHistory`, `FitnessReading`, `FitnessTest`, chart components (`WeightTrendChart`, `LoadTimelineChart`, `VolumeTrendChart`, `RegressionChart`, `Big3RegressionChart`), `WeightDetailView`, `HelpCardModal`, `predictionReading.ts`, `fitnessTypes.ts`
-  - **`profile/`** — My tab: `MyProfileTab`, `SubscriptionScreen`
-  - Root-level utilities: `SwipeToDelete`, `PullToRefresh`
-- **`src/constants/`** — `workout.ts` contains TypeScript interfaces, exercise pools for UI search (`LABELED_EXERCISE_POOLS`), and `getAlternativeExercises()`. **Algorithm code (`generateAdaptiveWorkout`) is NOT here — it's server-side in `functions/src/workoutEngine.ts` for security.** `theme.ts` has design tokens. `exerciseVideos.ts` maps exercise names to YouTube Shorts IDs.
-- **`src/utils/`** — `gemini.ts` (AI integration via Cloud Functions), `workoutHistory.ts` (Firestore + localStorage persistence, includes `updateCoachMessages()`), `workoutMetrics.ts` (stats), `userProfile.ts` (profile loading), `exerciseName.ts` (locale-based name display).
-- **`src/hooks/`** — `useSafeArea.ts` sets `--safe-area-bottom` CSS variable for iOS/Android PWA bottom spacing. `useTranslation.tsx` provides i18n with ko/en support.
-- **`src/app/`** — Next.js App Router pages: main app (`app/page.tsx`), `landing/` (marketing page), `terms/`, `privacy/`, `sitemap.ts`.
-- **`src/lib/firebase.ts`** — Firebase client SDK initialization.
-- **`src/locales/`** — `ko.json` and `en.json` translation files.
-
-### Security Architecture
-
-Core business logic is server-side only to prevent reverse-engineering:
-
-| What | Where | Client Bundle |
-|---|---|---|
-| Workout generation algorithm | `functions/src/workoutEngine.ts` | **0 lines** |
-| Coach message generation | `functions/src/ai/coach.ts` (Gemini) | **0 lines** |
-| Exercise pool data (for algorithm) | `functions/src/workoutEngine.ts` | **0 lines** |
-| Exercise pool data (for UI search) | `src/constants/workout.ts` | Exercise names only |
-| Type definitions | `src/constants/workout.ts` | Types only (~110 lines) |
-
-### Workout Generation
-
-Two server-side paths:
-1. **Rule-based** via `/api/planSession` → `generateAdaptiveWorkout()` in `workoutEngine.ts` — instant, cost-free, used for new UI with sessionMode
-2. **AI** via `/api/generateWorkout` → Gemini 2.5 Flash — used as legacy path
-
-Both adapt based on `UserCondition` (body state + energy) and `WorkoutGoal`. Client calls `/api/planSession` first; no client-side fallback (security).
-
-### Workout Report — AI Coach Chat System
-
-Post-workout report uses a **3-bubble chat interface** powered by Gemini:
-
-1. **Bubble 1:** Emotional empathy with specific exercise name mention
-2. **Bubble 2:** Session detail feedback (failed sets, weight changes, rep patterns)
-3. **Bubble 3:** Condition-linked tomorrow advice
-
-**Flow:**
-- Workout complete → `WorkoutReport` renders → thinking dots ("생각 중 ●●●")
-- `fetchCoachMessages()` calls `/api/getCoachMessage` (Gemini 2.5 Flash)
-- Gemini generates 3 messages in trainer-friend tone (해요체, 느낌표, ㅎㅎ)
-- Messages appear as sequential typing animation
-- Messages saved to `WorkoutHistory.coachMessages` (localStorage + Firestore)
-- History view: loads saved messages instantly (no Gemini re-call)
-
-**Fallback:** If Gemini fails (timeout 5s, API error), server-side rule-based fallback generates 3 messages using session log analysis (fail recovery, weight increase, all-easy detection).
-
-**Prompt rules:** No duplicate exercise names across 3 bubbles. No emoji (한글 이모티콘 ㅎㅎ ㅠㅠ OK), no English words, no medical terms, no "화이팅", no formal speech, no negative feedback, no body/weight comments. Exercise names in Korean only. Korean trend references (food, culture) encouraged.
-
-**Prompt versioning:** `functions/src/ai/PROMPT_HISTORY.md` tracks all prompt versions (v1~v5). Roll back by copying previous version's prompt into `coach.ts`.
-
-### Growth Prediction Coach Mentoring
-
-`FitnessReading.tsx` shows goal-specific coach messages with dynamic data:
-- **Fat Loss:** "4주 뒤 약 {weight}kg! 8주 뒤 {weight8w}kg!" — calorie-based prediction
-- **Muscle Gain:** "3대 합계 {total}kg! {level}까지 {remaining}kg!" — e1RM-based
-- **Endurance:** "주 {min}분! 체력 {grade}! {nextGrade}까지 {remaining}분!" — weekly minutes, military/national team tone
-- **Health:** "총 {count}회! 주 {freq}회씩 {weeks}주째!" — consistency-based
-
-Each goal has 5 message variants, selected by day-seed (same day = same message). Coach message changes when user switches goal tabs. Fitness test uses ACSM/국민체력100 standards (최우수/우수/양호/보통/미흡).
-
-### Intensity System
-
-Three-tier intensity (`"high" | "moderate" | "low"`) based on ACSM guidelines flows through the app:
-- `page.tsx` holds `recommendedIntensity` state, passes it to `MasterPlanPreview` (intensity picker UI)
-- Server-side `generateAdaptiveWorkout()` accepts `intensityOverride` parameter that adjusts sets (high +1, low min 3), compound reps, isolation reps, and weight guides
-- Gender-aware adjustments: female users get different rep ranges at the same %1RM
-- Core/ab exercises always start at 20 reps minimum
-- Low intensity maintains minimum 3 sets (not reduced to 2)
-
-### Exercise Swap
-
-Users can swap individual exercises in both `MasterPlanPreview` and `FitScreen` via a bottom-sheet UI with text search + muscle group filter tabs. `LABELED_EXERCISE_POOLS` (in `workout.ts`) provides categorized exercise lists for client-side search. `getAlternativeExercises()` returns same-group alternatives. Note: `FitScreen` has dual render paths (weight picker vs main exercise view) — the swap bottom sheet must be present in both paths.
-
-### Exercise Name Display
-
-`getExerciseName(name, locale)` in `src/utils/exerciseName.ts`:
-- **KO mode:** Returns Korean name only (strips English parenthetical). e.g., "바벨 벤치 프레스"
-- **EN mode:** Returns English name from parentheses. e.g., "Barbell Bench Press"
-
-Font size in FitScreen dynamically adjusts based on Korean name length: ≤6 chars → 5xl, ≤9 → 4xl, ≤12 → 3xl, else 2xl.
-
-### Adaptive Exercise Logic
-
-In `WorkoutSession.tsx`, feedback from each set adjusts subsequent sets: "easy" → +2 reps, "too_easy" → +5 reps, "fail" → clamp to actual reps completed.
-
-Bodyweight exercises (no weight) use expanded rep pool: [5, 8, 10, 15, 20, 30, 40, 50, 60, 80, 100].
+- **`src/components/`** — 6 domain directories:
+  - **`layout/`** — PhoneFrame, BottomTabs, LanguageSelector, LoginScreen
+  - **`plan/`** — ConditionCheck, MasterPlanPreview, PlanShareCard, PlanLoadingOverlay, Tutorial
+  - **`workout/`** — WorkoutSession, FitScreen, AiCoachChat, GpsPermissionDialog
+  - **`report/`** — WorkoutReport, RunningReportBody, ShareCard, ExpTierCard, RpgResultCard, ReportHelpModal
+  - **`dashboard/`** — HomeScreen, ProofTab, WorkoutHistory, FitnessReading, FitnessTest, charts, modals
+  - **`profile/`** — MyProfileTab, SubscriptionScreen
+  - Root: SwipeToDelete, PullToRefresh
+- **`src/constants/`** — workout.ts (types + exercise pools), theme.ts, exerciseVideos.ts
+- **`src/utils/`** — gemini.ts, workoutHistory.ts, workoutMetrics.ts, userProfile.ts, exerciseName.ts, runningStats.ts, runningFormat.ts
+- **`src/hooks/`** — useSafeArea.ts, useTranslation.tsx, useGpsTracker.ts, useAlarmSynthesizer.ts
+- **`src/locales/`** — ko.json, en.json
 
 ### Authentication
 
-Firebase Auth with Google sign-in (real auth, not mocked). The `onAuthStateChanged` listener in `page.tsx` drives login state. Cloud Functions verify tokens via `Authorization: Bearer <idToken>` headers.
-
-## Firestore Schema
-
-### Collection: `users/{uid}/workout_history`
-
-```typescript
-{
-  id: string;                    // timestamp-based ID
-  date: string;                  // ISO date
-  sessionData: {
-    title: string;
-    description: string;
-    exercises: ExerciseStep[];
-  };
-  logs: Record<number, ExerciseLog[]>;  // keyed by exercise index
-  stats: {
-    totalVolume: number;
-    totalSets: number;
-    totalReps: number;
-    totalDurationSec?: number;
-    bestE1RM?: number;
-    bwRatio?: number;
-    successRate?: number;
-    loadScore?: number;
-  };
-  exerciseTimings?: ExerciseTiming[];
-  analysis?: WorkoutAnalysis;
-  coachMessages?: string[];      // Gemini-generated 3-bubble coach feedback
-  createdAt: Timestamp;          // Firestore server timestamp
-}
-```
-
-## UI Conventions
-
-- Phone frame container: 384×824px on desktop, full viewport on mobile (`PhoneFrame.tsx`)
-- CTA button: 160×160px circle, emerald color palette
-- Theme colors defined in both `src/constants/theme.ts` and CSS variables in `globals.css`
-- All user-facing text supports **Korean and English** via `useTranslation()` hook
-- Path alias: `@/*` maps to `src/*`
-- `Cross-Origin-Opener-Policy: same-origin-allow-popups` header set in both `next.config.ts` and `firebase.json` (required for Google sign-in popup)
-
-### Workout Report UI
-
-- **AI Coach Card:** Chat-style with avatar + 3 sequential typing bubbles + result rich card
-- **Thinking Animation:** "생각 중 ●●●" with bounce dots (CSS `animate-bounce`)
-- **Hero Rich Card:** Dark emerald (`bg-[#1B4332]`) for PR, gray-50 for non-PR
-- **EXP Card:** Always expanded with progress bar (`h-2`) + streak dots + next workout preview
-- **Card radius:** Outer `rounded-3xl`, inner `rounded-2xl`
-- **ShareCard:** Korean mode shows Korean-only exercise names (no English parenthetical)
+Firebase Auth with Google sign-in. `onAuthStateChanged` in `page.tsx`. Cloud Functions verify `Authorization: Bearer <idToken>`.
 
 ## Important Patterns
 
-- **i18n:** ALL UI text additions must include both ko.json and en.json translations simultaneously
-- Subscription gating: free plan limited to 3 workouts (`FREE_PLAN_LIMIT` in `page.tsx`)
-- `page.tsx` is a `"use client"` component — all app state lives there, no SSR for the main app
-- `WorkoutReport` uses `sessionDate` prop to distinguish history view (share button only, saved coach messages) from current session (Gemini call, share + complete buttons)
-- Bottom sheets in `FitScreen` use `rounded-[2rem]` with `bottom-2 left-2 right-2` floating style (no nav bar present, unlike `MasterPlanPreview`)
-- **State change rule:** When modifying any React state, grep for ALL locations that read that state to prevent side effects
-- **Workout flow protection:** During `master_plan_preview` and `workout_session`, tab changes are blocked. On `workout_report` close, `completedRitualIds` removes "workout" to prevent stale report on HOME.
-- **Cold start handling:** `lazyGenerateWorkout` retries once after 1.5s on first failure (Cloud Function cold start)
-- **Coach messages persistence:** Gemini 3-bubble messages saved to `WorkoutHistory.coachMessages` (localStorage + Firestore). History view loads saved messages instantly.
-- **Exercise videos:** All exercises mapped to YouTube Shorts IDs in `exerciseVideos.ts`. Zero empty entries.
+- **i18n:** ALL UI text must include both ko.json and en.json simultaneously
+- **No emoji:** Unicode emoji/pictographs banned. SVG icons instead. Korean text emoticons (ㅎㅎ ㅠㅠ) OK but max 1x per screen.
+- **State change rule:** When modifying React state, grep for ALL locations that read it
+- **Workout flow protection:** During `master_plan_preview`/`workout_session`, tab changes blocked
+- **Cold start handling:** `lazyGenerateWorkout` retries once after 1.5s on first failure
+- **Exercise videos:** All 255+ exercises mapped to YouTube Shorts IDs in `exerciseVideos.ts`
+- **Running pace:** 10-second rolling average, GPS outlier rejection (>12m/s), auto-pause after 10s stop
 
 ## Deployment Checklist
 
