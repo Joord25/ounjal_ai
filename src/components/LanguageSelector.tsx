@@ -27,10 +27,10 @@ export function LanguageSelector({ current }: { current: string }) {
     <div ref={ref} className="relative">
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-white/20 hover:border-white/40 transition-colors"
+        className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-lg border border-white/20 hover:border-white/40 transition-colors"
       >
         <span className="text-base">{currentLang.flag}</span>
-        <span className="text-sm font-medium text-white/70">{currentLang.label}</span>
+        <span className="text-sm font-medium text-white/70 hidden sm:inline">{currentLang.label}</span>
         <svg className={`w-3.5 h-3.5 text-white/50 transition-transform ${open ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
         </svg>

@@ -156,16 +156,16 @@ export default function LandingContent() {
       <section className="relative overflow-hidden" style={{ background: "linear-gradient(to bottom, #0a1a14 0%, #0f2a1f 30%, #143728 60%, #1B4332 85%, #FAFBF9 100%)" }}>
         {/* Nav */}
         <nav className="sticky top-0 z-50">
-          <div className="max-w-5xl mx-auto flex items-center justify-between px-6 py-4" style={{ paddingTop: "max(1rem, env(safe-area-inset-top))" }}>
-            <div className="flex items-center gap-2">
-              <img src="/favicon.png" alt="오운잘 AI" className="w-8 h-8 rounded-lg" />
-              <span className="font-bold text-[#10B981] text-lg">오운잘 AI</span>
+          <div className="max-w-5xl mx-auto flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4" style={{ paddingTop: "max(0.75rem, env(safe-area-inset-top))" }}>
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <img src="/favicon.png" alt="오운잘 AI" className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg" />
+              <span className="font-bold text-[#10B981] text-base sm:text-lg">오운잘 AI</span>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
               <LanguageSelector current="/" />
               <a
                 href="/app?lang=ko"
-                className="px-5 py-2.5 bg-[#059669] text-white text-sm font-bold rounded-xl hover:bg-[#047857] transition-colors"
+                className="px-3 sm:px-5 py-2 sm:py-2.5 bg-[#059669] text-white text-xs sm:text-sm font-bold rounded-xl hover:bg-[#047857] transition-colors whitespace-nowrap"
               >
                 시작하기
               </a>
@@ -317,7 +317,7 @@ export default function LandingContent() {
           <RevealSection>
             <div className="text-center mb-10">
               <p className="text-sm font-bold text-[#059669] mb-2">AI와 함께 성장한 결과</p>
-              <h2 className="text-2xl sm:text-4xl font-black text-[#1B4332]">
+              <h2 className="text-xl sm:text-4xl font-black text-[#1B4332]" style={{ wordBreak: "keep-all" }}>
                 수동적 의존이 아닌, 자발적 성장의 증거
               </h2>
             </div>
@@ -337,10 +337,10 @@ export default function LandingContent() {
               { value: "94%", label: "루틴 완주율", sub: "AI 맞춤 플랜 기준" },
             ].map((stat, i) => (
               <RevealSection key={i}>
-                <div className="bg-white rounded-2xl border border-gray-100 p-5 sm:p-6 text-center shadow-sm">
-                  <p className="text-xl sm:text-3xl font-black text-[#1B4332] mb-1 whitespace-nowrap">{stat.value}</p>
-                  <p className="text-[13px] font-bold text-gray-700 mb-1">{stat.label}</p>
-                  <p className="text-[11px] text-gray-400">{stat.sub}</p>
+                <div className="bg-white rounded-2xl border border-gray-100 p-3 sm:p-6 text-center shadow-sm" style={{ wordBreak: "keep-all" }}>
+                  <p className="text-lg sm:text-3xl font-black text-[#1B4332] mb-1 whitespace-nowrap">{stat.value}</p>
+                  <p className="text-[11px] sm:text-[13px] font-bold text-gray-700 mb-1">{stat.label}</p>
+                  <p className="text-[10px] sm:text-[11px] text-gray-400">{stat.sub}</p>
                 </div>
               </RevealSection>
             ))}
@@ -359,7 +359,7 @@ export default function LandingContent() {
           <RevealSection>
             <div className="text-center mb-10 sm:mb-16">
               <p className="text-sm font-bold text-[#059669] mb-2">AI 맞춤 운동 프로그램</p>
-              <h2 className="text-2xl sm:text-4xl font-black text-[#1B4332]">
+              <h2 className="text-xl sm:text-4xl font-black text-[#1B4332]" style={{ wordBreak: "keep-all" }}>
                 이런 고민, 있지 않으셨나요?
               </h2>
             </div>
