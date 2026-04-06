@@ -21,6 +21,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { GpsPoint, PhaseMark } from "@/utils/runningStats";
 import {
   accumulateDistance,
+  haversineMeters,
   computeCurrentPace,
   isAcceptablePoint,
 } from "@/utils/runningStats";
@@ -30,7 +31,7 @@ export type GpsTrackingStatus = "pending" | "searching" | "tracking" | "denied" 
 interface UseGpsTrackerOptions {
   enabled: boolean;
   isIndoor: boolean;
-  /** 스무딩 윈도우 (초). 기본 5초. */
+  /** 스무딩 윈도우 (초). 기본 10초 (업계 표준 10-20초). */
   smoothingWindowSec?: number;
 }
 
@@ -51,7 +52,7 @@ interface UseGpsTrackerReturn {
 }
 
 export function useGpsTracker(options: UseGpsTrackerOptions): UseGpsTrackerReturn {
-  const { enabled, isIndoor, smoothingWindowSec = 5 } = options;
+  const { enabled, isIndoor, smoothingWindowSec = 10 } = options;
 
   // 내부 tracking status — 이벤트 콜백(position/error)에서만 setState
   const [trackingStatus, setTrackingStatus] = useState<GpsTrackingStatus>("pending");
@@ -60,6 +61,7 @@ export function useGpsTracker(options: UseGpsTrackerOptions): UseGpsTrackerRetur
   const [accuracy, setAccuracy] = useState<number | null>(null);
 
   const pointsRef = useRef<GpsPoint[]>([]);
+  const cumulativeDistRef = useRef<number>(0);
   const phaseMarksRef = useRef<PhaseMark[]>([]);
   const sessionStartMsRef = useRef<number>(0);
   const watchIdRef = useRef<number | null>(null);
@@ -105,9 +107,14 @@ export function useGpsTracker(options: UseGpsTrackerOptions): UseGpsTrackerRetur
     };
     setAccuracy(p.accuracy);
 
-    if (isAcceptablePoint(p, sessionStartMsRef.current)) {
+    const lastPoint = pointsRef.current.length > 0 ? pointsRef.current[pointsRef.current.length - 1] : undefined;
+    if (isAcceptablePoint(p, sessionStartMsRef.current, lastPoint)) {
+      // 누적합: 마지막 세그먼트만 더함 (O(1), 기존 O(n) 재계산 제거)
+      if (lastPoint) {
+        cumulativeDistRef.current += haversineMeters(lastPoint.lat, lastPoint.lng, p.lat, p.lng);
+      }
       pointsRef.current.push(p);
-      setDistance(accumulateDistance(pointsRef.current));
+      setDistance(cumulativeDistRef.current);
       setCurrentPace(computeCurrentPace(pointsRef.current, smoothingWindowSec));
       setTrackingStatus("tracking");
     } else {
@@ -182,6 +189,7 @@ export function useGpsTracker(options: UseGpsTrackerOptions): UseGpsTrackerRetur
   // ── 리셋 ──
   const reset = useCallback(() => {
     pointsRef.current = [];
+    cumulativeDistRef.current = 0;
     phaseMarksRef.current = [];
     sessionStartMsRef.current = 0;
     setDistance(0);

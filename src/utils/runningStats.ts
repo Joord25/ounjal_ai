@@ -44,9 +44,24 @@ export function haversineMeters(
 // - accuracy > 20m 샘플 버림 (GPS 신호 불량)
 // - 시작 후 첫 5초 샘플 버림 (cold start 오차)
 // ─────────────────────────────────────────────────────────────────
-export function isAcceptablePoint(p: GpsPoint, sessionStartMs: number): boolean {
+// 12 m/s = 2:47/km — 인간이 지속할 수 없는 속도. 이 이상이면 GPS 순간이동.
+const MAX_HUMAN_SPEED_MS = 12;
+
+export function isAcceptablePoint(
+  p: GpsPoint,
+  sessionStartMs: number,
+  lastAcceptedPoint?: GpsPoint,
+): boolean {
   if (p.accuracy > 20) return false;
   if (p.t - sessionStartMs < 5000) return false;
+  // 속도 기반 이상치 거부: 이전 포인트 대비 12m/s 초과 시 GPS 순간이동으로 판단
+  if (lastAcceptedPoint) {
+    const dt = (p.t - lastAcceptedPoint.t) / 1000;
+    if (dt > 0) {
+      const dist = haversineMeters(lastAcceptedPoint.lat, lastAcceptedPoint.lng, p.lat, p.lng);
+      if (dist / dt > MAX_HUMAN_SPEED_MS) return false;
+    }
+  }
   return true;
 }
 
@@ -77,12 +92,12 @@ const MIN_PACE_SEC_PER_KM = 2 * 60;     // 2:00
 
 // ─────────────────────────────────────────────────────────────────
 // 현재 페이스 (sec/km) — 최근 windowSec 구간의 이동평균
-// 러닝 코치 권고: raw speed는 튐, 5초 이동평균 권장
+// 전문가 회의: 5초 → 10초 (업계 표준 Strava/Apple 10-20초)
 // 회의 42: drift 방어 — 최소 거리 3m + 20:00 /km 상한
 // ─────────────────────────────────────────────────────────────────
 export function computeCurrentPace(
   points: GpsPoint[],
-  windowSec: number = 5,
+  windowSec: number = 10,
 ): number | null {
   if (points.length < 2) return null;
   const now = points[points.length - 1].t;
