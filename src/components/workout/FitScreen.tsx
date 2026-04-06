@@ -469,7 +469,7 @@ export const FitScreen: React.FC<FitScreenProps> = ({
           phaseRef.current = "recovery";
           phaseStartMsRef.current = nowTick;
           playAlarmSound("rest_end");
-          if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+          if (navigator.vibrate && localStorage.getItem("alpha_settings_vibration") !== "false") navigator.vibrate([200, 100, 200]);
           setIntervalPhase("recovery");
           setIntervalTime(cfg.phase2Sec);
           // 회의 41: GPS 페이즈 전환 마크 (리포트 인터벌 분해용)
@@ -479,7 +479,7 @@ export const FitScreen: React.FC<FitScreenProps> = ({
             setIsPlaying(false);
             setTimerCompleted(true);
             playAlarmSound("end");
-            if (navigator.vibrate) navigator.vibrate([300, 100, 300, 100, 300]);
+            if (navigator.vibrate && localStorage.getItem("alpha_settings_vibration") !== "false") navigator.vibrate([300, 100, 300, 100, 300]);
             // 회의 41: 인터벌 러닝 완주 시 runningStats 산출 + 콜백
             if (onRunningStatsComputed) {
               const snap = gpsGetSnapshot();
@@ -506,7 +506,7 @@ export const FitScreen: React.FC<FitScreenProps> = ({
           phaseRef.current = "sprint";
           phaseStartMsRef.current = nowTick;
           playAlarmSound("start");
-          if (navigator.vibrate) navigator.vibrate(100);
+          if (navigator.vibrate && localStorage.getItem("alpha_settings_vibration") !== "false") navigator.vibrate(100);
           setIntervalRound(roundRef.current);
           setIntervalPhase("sprint");
           setIntervalTime(cfg.phase1Sec);
@@ -521,7 +521,7 @@ export const FitScreen: React.FC<FitScreenProps> = ({
       if (!midpointFiredRef.current && midpoint > 0 && remainingInt <= midpoint) {
         midpointFiredRef.current = true;
         playAlarmSound("half");
-        if (navigator.vibrate) navigator.vibrate(150);
+        if (navigator.vibrate && localStorage.getItem("alpha_settings_vibration") !== "false") navigator.vibrate(150);
       }
 
       // 카운트다운 tick (3, 2, 1초) — 같은 초에 중복 발사 방지

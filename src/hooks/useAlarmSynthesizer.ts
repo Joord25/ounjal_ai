@@ -17,6 +17,8 @@ export function useAlarmSynthesizer() {
 
   const playAlarmSound = useCallback((pattern: AlarmPattern = "end") => {
     try {
+      // 소리 설정 OFF면 무시
+      if (typeof window !== "undefined" && localStorage.getItem("alpha_settings_sound") === "false") return;
       const ctx = getAudioCtx();
       const t = ctx.currentTime;
 

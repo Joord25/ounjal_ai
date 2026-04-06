@@ -189,6 +189,14 @@ This Refund Policy shall be effective from March 1, 2026.`;
 export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout, autoEdit1RM, onCancelFlowChange }) => {
   const { t, locale, setLocale } = useTranslation();
   const [showSubscription, setShowSubscription] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(() => {
+    if (typeof window === "undefined") return true;
+    return localStorage.getItem("alpha_settings_sound") !== "false";
+  });
+  const [vibrationEnabled, setVibrationEnabled] = useState(() => {
+    if (typeof window === "undefined") return true;
+    return localStorage.getItem("alpha_settings_vibration") !== "false";
+  });
   const [isEditingName, setIsEditingName] = useState(false);
   const [nameInput, setNameInput] = useState(user?.displayName || "");
   const [isUploading, setIsUploading] = useState(false);
@@ -682,22 +690,71 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout, auto
           </svg>
         </a>
 
-        {/* Language Selector */}
-        <div className="w-full bg-[#1B4332] rounded-2xl p-5 flex items-center justify-between">
-          <div className="flex flex-col items-start gap-1">
-            <span className="text-base font-bold text-white">{t("my.language")}</span>
-            <span className="text-xs text-white/50">{locale === "en" ? "English" : "한국어"}</span>
+        {/* Settings Section */}
+        <div className="w-full bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="px-5 pt-4 pb-2">
+            <span className="text-[9px] font-black text-gray-400 uppercase tracking-[0.15em]">{t("my.settings")}</span>
           </div>
-          <div className="flex gap-2">
-            {([["ko", "🇰🇷"], ["en", "🇺🇸"]] as const).map(([code, flag]) => (
-              <button
-                key={code}
-                onClick={() => setLocale(code)}
-                className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg transition-all ${locale === code ? "bg-white shadow-md scale-105" : "bg-white/10 hover:bg-white/20"}`}
-              >
-                {flag}
-              </button>
-            ))}
+
+          {/* Sound Toggle */}
+          <div className="px-5 py-3.5 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <svg className="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.536 8.464a5 5 0 010 7.072M12 6.253v11.494m0-11.494A5.99 5.99 0 008 9H5a1 1 0 00-1 1v4a1 1 0 001 1h3a5.99 5.99 0 004 2.747" />
+              </svg>
+              <span className="text-sm font-bold text-[#1B4332]">{t("my.settings.sound")}</span>
+            </div>
+            <button
+              onClick={() => {
+                const next = !soundEnabled;
+                setSoundEnabled(next);
+                localStorage.setItem("alpha_settings_sound", next ? "true" : "false");
+              }}
+              className={`w-11 h-6 rounded-full transition-colors relative ${soundEnabled ? "bg-[#2D6A4F]" : "bg-gray-300"}`}
+            >
+              <div className={`w-5 h-5 bg-white rounded-full shadow-sm absolute top-0.5 transition-transform ${soundEnabled ? "translate-x-5.5" : "translate-x-0.5"}`} />
+            </button>
+          </div>
+
+          {/* Vibration Toggle */}
+          <div className="px-5 py-3.5 flex items-center justify-between border-t border-gray-50">
+            <div className="flex items-center gap-3">
+              <svg className="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3" />
+              </svg>
+              <span className="text-sm font-bold text-[#1B4332]">{t("my.settings.vibration")}</span>
+            </div>
+            <button
+              onClick={() => {
+                const next = !vibrationEnabled;
+                setVibrationEnabled(next);
+                localStorage.setItem("alpha_settings_vibration", next ? "true" : "false");
+              }}
+              className={`w-11 h-6 rounded-full transition-colors relative ${vibrationEnabled ? "bg-[#2D6A4F]" : "bg-gray-300"}`}
+            >
+              <div className={`w-5 h-5 bg-white rounded-full shadow-sm absolute top-0.5 transition-transform ${vibrationEnabled ? "translate-x-5.5" : "translate-x-0.5"}`} />
+            </button>
+          </div>
+
+          {/* Language Selector */}
+          <div className="px-5 py-3.5 flex items-center justify-between border-t border-gray-50">
+            <div className="flex items-center gap-3">
+              <svg className="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582" />
+              </svg>
+              <span className="text-sm font-bold text-[#1B4332]">{t("my.language")}</span>
+            </div>
+            <div className="flex gap-1.5">
+              {([["ko", "KO"], ["en", "EN"]] as const).map(([code, label]) => (
+                <button
+                  key={code}
+                  onClick={() => setLocale(code)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${locale === code ? "bg-[#2D6A4F] text-white" : "bg-gray-100 text-gray-500"}`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
