@@ -452,8 +452,9 @@ export default function Home() {
   // getPlanCount, incrementPlanCount는 @/utils/userProfile에서 import
 
   const handleConditionComplete = async (condition: UserCondition, goal: WorkoutGoal, session?: SessionSelection) => {
-    // 비로그인 게스트 체험 제한
+    // 비로그인 게스트 체험 제한 — 홈으로 돌려보내고 로그인 모달 표시
     if (!isLoggedIn && getGuestTrialCount() >= GUEST_TRIAL_LIMIT) {
+      setView("home");
       setShowLoginModal(true);
       return;
     }
@@ -890,7 +891,7 @@ export default function Home() {
                 <span className="font-bold text-white text-sm">{locale === "ko" ? "Google로 3초 가입" : "Sign in with Google"}</span>
               </button>
               <button
-                onClick={() => setShowLoginModal(false)}
+                onClick={() => { setShowLoginModal(false); if (!isLoggedIn) setView("login"); }}
                 className="w-full py-2.5 text-gray-400 text-sm font-medium hover:text-gray-600 transition-colors"
               >
                 {locale === "ko" ? "나중에" : "Later"}
