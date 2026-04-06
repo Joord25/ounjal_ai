@@ -604,6 +604,7 @@
   "running.report.runs": "회 러닝",
   "running.indoor.label": "실내 모드",
   "running.indoor.desc": "위치 없이 완료",
+  "running.autoPaused": "일시정지",
   "running.gps.searching": "GPS 연결 중",
   "running.gps.weak": "신호 약함",
   "running.gps.denied": "위치 없이 진행 중",

@@ -344,6 +344,7 @@ export const FitScreen: React.FC<FitScreenProps> = ({
     markPhase: gpsMarkPhase,
     getSnapshot: gpsGetSnapshot,
     gpsAvailable: gpsIsAvailable,
+    isAutoPaused: gpsAutoPaused,
   } = useGpsTracker({
     enabled: gpsTrackerEnabled,
     isIndoor,
@@ -1321,8 +1322,13 @@ export const FitScreen: React.FC<FitScreenProps> = ({
                       </div>
                     )}
 
-                    {/* GPS 상태 표시 */}
-                    {!isIndoor && gpsPermissionAsked && gpsStatus === "searching" && (
+                    {/* GPS 상태 표시 + 자동 일시정지 */}
+                    {gpsAutoPaused && (
+                      <p className="text-[10px] font-black text-amber-500 mt-2 animate-pulse">
+                        {t("running.autoPaused")}
+                      </p>
+                    )}
+                    {!gpsAutoPaused && !isIndoor && gpsPermissionAsked && gpsStatus === "searching" && (
                       <p className="text-[10px] font-bold text-gray-400 mt-2">
                         {t("running.gps.searching")}
                       </p>
@@ -1383,8 +1389,13 @@ export const FitScreen: React.FC<FitScreenProps> = ({
                       </div>
                     )}
 
-                    {/* GPS 상태 표시 */}
-                    {!isIndoor && gpsPermissionAsked && gpsStatus === "searching" && (
+                    {/* GPS 상태 표시 + 자동 일시정지 */}
+                    {gpsAutoPaused && (
+                      <p className="text-[10px] font-black text-amber-500 mt-2 animate-pulse">
+                        {t("running.autoPaused")}
+                      </p>
+                    )}
+                    {!gpsAutoPaused && !isIndoor && gpsPermissionAsked && gpsStatus === "searching" && (
                       <p className="text-[10px] font-bold text-gray-400 mt-2">
                         {t("running.gps.searching")}
                       </p>

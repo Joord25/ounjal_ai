@@ -604,6 +604,7 @@
   "running.report.runs": "runs",
   "running.indoor.label": "Indoor Mode",
   "running.indoor.desc": "Completed without GPS",
+  "running.autoPaused": "Paused",
   "running.gps.searching": "Connecting GPS",
   "running.gps.weak": "Weak signal",
   "running.gps.denied": "Running without location",

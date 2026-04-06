@@ -37,12 +37,19 @@ interface UseGpsTrackerOptions {
 
 export type GpsStatus = "idle" | "searching" | "tracking" | "denied" | "error" | "disabled";
 
+/** 자동 일시정지 판정 기준 (초). 이 시간 동안 pace null이면 정지로 판단 */
+const AUTO_PAUSE_THRESHOLD_SEC = 10;
+
 interface UseGpsTrackerReturn {
   status: GpsStatus;
   distance: number;          // meters (필터 적용 후 누적)
   currentPace: number | null; // sec/km
   accuracy: number | null;   // m — 가장 최근 포인트의 정확도
   gpsAvailable: boolean;
+  /** 자동 일시정지 상태 (신호 대기 등 10초 이상 정지 감지) */
+  isAutoPaused: boolean;
+  /** 자동 일시정지로 제외된 총 시간 (초) */
+  totalPausedSec: number;
   /** 세션 종료 시 collected 데이터 스냅샷 획득 */
   getSnapshot: () => { points: GpsPoint[]; phaseMarks: PhaseMark[]; sessionStartMs: number };
   /** 인터벌 페이즈 전환 마크 (FitScreen이 페이즈 바꿀 때 호출) */
@@ -66,6 +73,12 @@ export function useGpsTracker(options: UseGpsTrackerOptions): UseGpsTrackerRetur
   const sessionStartMsRef = useRef<number>(0);
   const watchIdRef = useRef<number | null>(null);
   const wakeLockRef = useRef<{ release: () => Promise<void> } | null>(null);
+
+  // 자동 일시정지
+  const [isAutoPaused, setIsAutoPaused] = useState(false);
+  const [totalPausedSec, setTotalPausedSec] = useState(0);
+  const nullPaceSinceRef = useRef<number | null>(null);   // null pace 시작 시점 (ms)
+  const pauseStartRef = useRef<number | null>(null);       // 일시정지 시작 시점 (ms)
 
   // 파생 노출용 status — 렌더 시점에 계산 (effect에서 setState 안 함)
   let displayStatus: GpsStatus;
@@ -115,8 +128,31 @@ export function useGpsTracker(options: UseGpsTrackerOptions): UseGpsTrackerRetur
       }
       pointsRef.current.push(p);
       setDistance(cumulativeDistRef.current);
-      setCurrentPace(computeCurrentPace(pointsRef.current, smoothingWindowSec));
+      const pace = computeCurrentPace(pointsRef.current, smoothingWindowSec);
+      setCurrentPace(pace);
       setTrackingStatus("tracking");
+
+      // 자동 일시정지 판정
+      if (pace === null) {
+        // pace가 null (정지 상태) — 타이머 시작
+        if (nullPaceSinceRef.current === null) {
+          nullPaceSinceRef.current = Date.now();
+        }
+        const nullDur = (Date.now() - nullPaceSinceRef.current) / 1000;
+        if (nullDur >= AUTO_PAUSE_THRESHOLD_SEC && !isAutoPaused) {
+          setIsAutoPaused(true);
+          pauseStartRef.current = Date.now();
+        }
+      } else {
+        // 움직임 감지 — 일시정지 해제
+        if (isAutoPaused && pauseStartRef.current) {
+          const pausedDur = (Date.now() - pauseStartRef.current) / 1000;
+          setTotalPausedSec(prev => prev + pausedDur);
+          pauseStartRef.current = null;
+        }
+        nullPaceSinceRef.current = null;
+        if (isAutoPaused) setIsAutoPaused(false);
+      }
     } else {
       // lock-on 대기 중 (첫 5s 또는 accuracy 불량)
       setTrackingStatus(prev => (prev === "tracking" ? "tracking" : "searching"));
@@ -192,9 +228,13 @@ export function useGpsTracker(options: UseGpsTrackerOptions): UseGpsTrackerRetur
     cumulativeDistRef.current = 0;
     phaseMarksRef.current = [];
     sessionStartMsRef.current = 0;
+    nullPaceSinceRef.current = null;
+    pauseStartRef.current = null;
     setDistance(0);
     setCurrentPace(null);
     setAccuracy(null);
+    setIsAutoPaused(false);
+    setTotalPausedSec(0);
     setTrackingStatus("pending");
   }, []);
 
@@ -204,6 +244,8 @@ export function useGpsTracker(options: UseGpsTrackerOptions): UseGpsTrackerRetur
     currentPace,
     accuracy,
     gpsAvailable: displayStatus === "tracking" || displayStatus === "searching",
+    isAutoPaused,
+    totalPausedSec,
     getSnapshot,
     markPhase,
     reset,
