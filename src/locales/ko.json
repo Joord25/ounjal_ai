@@ -600,6 +600,7 @@
   "running.report.breakdown": "인터벌 상세",
   "running.report.sprintAvg": "전력 평균",
   "running.report.recoveryAvg": "회복 평균",
+  "running.report.kmSplits": "km 스플릿",
   "running.report.thisWeek": "이번 주",
   "running.report.runs": "회 러닝",
   "running.indoor.label": "실내 모드",

@@ -600,6 +600,7 @@
   "running.report.breakdown": "Interval Breakdown",
   "running.report.sprintAvg": "Sprint Avg",
   "running.report.recoveryAvg": "Recovery Avg",
+  "running.report.kmSplits": "Km Splits",
   "running.report.thisWeek": "This Week",
   "running.report.runs": "runs",
   "running.indoor.label": "Indoor Mode",

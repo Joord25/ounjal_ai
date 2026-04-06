@@ -183,6 +183,47 @@ export const RunningReportBody: React.FC<RunningReportBodyProps> = ({ runningSta
         )}
       </div>
 
+      {/* ── Km Splits ── */}
+      {runningStats.splits && runningStats.splits.length > 0 && (() => {
+        const splits = runningStats.splits;
+        const paces = splits.map(s => s.paceSec);
+        const fastest = Math.min(...paces);
+        const slowest = Math.max(...paces);
+        return (
+          <div className="bg-white rounded-3xl border border-gray-100 shadow-sm px-5 py-5">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-1 h-5 bg-[#2D6A4F] rounded-full" />
+              <span className="text-[9px] font-black text-gray-400 uppercase tracking-[0.15em]">
+                {t("running.report.kmSplits")}
+              </span>
+            </div>
+            <div className="space-y-2">
+              {splits.map((s) => {
+                const isFastest = s.paceSec === fastest && splits.length > 1;
+                const isSlowest = s.paceSec === slowest && splits.length > 1;
+                const barPct = slowest > fastest
+                  ? 100 - ((s.paceSec - fastest) / (slowest - fastest)) * 60
+                  : 80;
+                return (
+                  <div key={s.km} className="flex items-center gap-3">
+                    <span className="text-[11px] font-bold text-gray-400 w-8 text-right">{s.km}km</span>
+                    <div className="flex-1 h-5 bg-gray-100 rounded-full overflow-hidden relative">
+                      <div
+                        className={`h-full rounded-full transition-all ${isFastest ? "bg-[#2D6A4F]" : isSlowest ? "bg-amber-400" : "bg-[#2D6A4F]/40"}`}
+                        style={{ width: `${barPct}%` }}
+                      />
+                    </div>
+                    <span className={`text-[12px] font-black tabular-nums w-12 text-right ${isFastest ? "text-[#2D6A4F]" : isSlowest ? "text-amber-500" : "text-gray-600"}`}>
+                      {formatPace(s.paceSec)}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
+
       {/* ── This Week Card ── */}
       <div className="bg-white rounded-3xl border border-gray-100 shadow-sm px-5 py-5">
         <div className="flex items-center gap-2 mb-3">

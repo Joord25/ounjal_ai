@@ -184,6 +184,37 @@ export function computeIntervalRounds(
 }
 
 // ─────────────────────────────────────────────────────────────────
+// km 스플릿 계산 — 1km 경계를 지날 때마다 구간 페이스 기록
+// ─────────────────────────────────────────────────────────────────
+export function computeKmSplits(points: GpsPoint[]): { km: number; paceSec: number }[] {
+  if (points.length < 2) return [];
+  const splits: { km: number; paceSec: number }[] = [];
+  let cumDist = 0;
+  let splitStartIdx = 0;
+  let nextKm = 1000; // 다음 스플릿 경계 (m)
+
+  for (let i = 1; i < points.length; i++) {
+    const segDist = haversineMeters(points[i - 1].lat, points[i - 1].lng, points[i].lat, points[i].lng);
+    cumDist += segDist;
+
+    if (cumDist >= nextKm) {
+      const splitDurSec = (points[i].t - points[splitStartIdx].t) / 1000;
+      const splitDistM = cumDist - (nextKm - 1000);
+      if (splitDurSec > 0 && splitDistM > 0) {
+        const paceSec = splitDurSec / (splitDistM / 1000);
+        // sanity check
+        if (paceSec >= MIN_PACE_SEC_PER_KM && paceSec <= MAX_PACE_SEC_PER_KM) {
+          splits.push({ km: nextKm / 1000, paceSec: Math.round(paceSec) });
+        }
+      }
+      splitStartIdx = i;
+      nextKm += 1000;
+    }
+  }
+  return splits;
+}
+
+// ─────────────────────────────────────────────────────────────────
 // 최종 RunningStats 조립
 // 세션 종료 시 한 번 호출되어 Firestore에 저장할 요약 생성
 // ─────────────────────────────────────────────────────────────────
@@ -239,6 +270,9 @@ export function computeRunningStats(input: ComputeRunningStatsInput): RunningSta
     ? Math.min(1, completedRounds / totalRounds)
     : 1;
 
+  // km 스플릿 (GPS 사용 가능한 경우만)
+  const splits = (gpsAvailable && !isIndoor) ? computeKmSplits(validPoints) : [];
+
   return {
     runningType,
     isIndoor,
@@ -250,6 +284,7 @@ export function computeRunningStats(input: ComputeRunningStatsInput): RunningSta
     recoveryAvgPace,
     bestPace,
     intervalRounds,
+    splits: splits.length > 0 ? splits : undefined,
     completionRate,
   };
 }

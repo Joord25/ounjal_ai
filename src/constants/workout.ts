@@ -80,6 +80,7 @@ export interface RunningStats {
   recoveryAvgPace: number | null;
   bestPace: number | null;         // sec/km — 가장 빠른 구간 페이스
   intervalRounds: IntervalRoundRecord[];
+  splits?: { km: number; paceSec: number }[];  // km 스플릿 (1km, 2km, ...)
   completionRate: number;          // 0~1
 }
 
