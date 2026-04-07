@@ -252,6 +252,8 @@ export const ConditionCheck: React.FC<ConditionCheckProps> = ({ onComplete, onBa
                       inputMode="numeric"
                       value={birthYear}
                       onChange={(e) => setBirthYear(e.target.value)}
+                      min={1930}
+                      max={2015}
                       placeholder="1995"
                       className="w-full text-center text-3xl font-black text-[#1B4332] bg-transparent border-b-2 border-[#2D6A4F] outline-none pb-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     />
@@ -265,6 +267,8 @@ export const ConditionCheck: React.FC<ConditionCheckProps> = ({ onComplete, onBa
                       inputMode="decimal"
                       value={bodyWeight}
                       onChange={(e) => setBodyWeight(e.target.value)}
+                      min={20}
+                      max={300}
                       placeholder="70"
                       className="w-full text-center text-3xl font-black text-[#1B4332] bg-transparent border-b-2 border-[#2D6A4F] outline-none pb-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     />
@@ -283,6 +287,8 @@ export const ConditionCheck: React.FC<ConditionCheckProps> = ({ onComplete, onBa
                       inputMode="decimal"
                       value={bodyWeight}
                       onChange={(e) => setBodyWeight(e.target.value)}
+                      min={20}
+                      max={300}
                       placeholder="70"
                       autoFocus
                       className="w-32 text-center text-4xl font-black text-[#1B4332] bg-transparent border-b-2 border-[#2D6A4F] outline-none pb-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"

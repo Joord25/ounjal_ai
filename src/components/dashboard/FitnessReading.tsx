@@ -408,6 +408,8 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
                 inputMode="numeric"
                 value={birthYear}
                 onChange={(e) => setBirthYear(e.target.value)}
+                min={1930}
+                max={2015}
                 placeholder="1995"
                 className="w-full text-center text-3xl font-black text-[#5C795E] bg-transparent border-b-2 border-[#2D6A4F] outline-none pb-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
               />
@@ -422,6 +424,8 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
                   inputMode="numeric"
                   value={height}
                   onChange={(e) => setHeight(e.target.value)}
+                  min={100}
+                  max={250}
                   placeholder="175"
                   className="w-full text-center text-3xl font-black text-[#5C795E] bg-transparent border-b-2 border-[#2D6A4F] outline-none pb-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 />
@@ -438,6 +442,8 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
                   inputMode="decimal"
                   value={bodyWeight}
                   onChange={(e) => setBodyWeight(e.target.value)}
+                  min={20}
+                  max={300}
                   placeholder="70"
                   className="w-full text-center text-3xl font-black text-[#5C795E] bg-transparent border-b-2 border-[#2D6A4F] outline-none pb-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 />
@@ -543,6 +549,8 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
                     inputMode="decimal"
                     value={lift.value}
                     onChange={(e) => lift.setter(e.target.value)}
+                    min={0}
+                    max={500}
                     placeholder="—"
                     className="w-full text-center text-3xl font-black text-[#5C795E] bg-transparent border-b-2 border-[#2D6A4F] outline-none pb-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   />
