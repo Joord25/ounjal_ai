@@ -36,8 +36,8 @@ function getUserCollection() {
 export async function saveWorkoutHistory(entry: WorkoutHistory): Promise<void> {
   // Always save to localStorage as cache
   try {
-    const existing = JSON.parse(localStorage.getItem("alpha_workout_history") || "[]");
-    localStorage.setItem("alpha_workout_history", JSON.stringify([...existing, entry]));
+    const existing = JSON.parse(localStorage.getItem("ohunjal_workout_history") || "[]");
+    localStorage.setItem("ohunjal_workout_history", JSON.stringify([...existing, entry]));
   } catch (e) {
     console.error("Failed to save workout history to localStorage", e);
   }
@@ -64,11 +64,11 @@ export async function updateWorkoutAnalysis(
 ): Promise<void> {
   // Update localStorage
   try {
-    const history = JSON.parse(localStorage.getItem("alpha_workout_history") || "[]");
+    const history = JSON.parse(localStorage.getItem("ohunjal_workout_history") || "[]");
     const entry = history.find((h: WorkoutHistory) => h.id === historyId);
     if (entry) {
       entry.analysis = analysis;
-      localStorage.setItem("alpha_workout_history", JSON.stringify(history));
+      localStorage.setItem("ohunjal_workout_history", JSON.stringify(history));
     }
   } catch (e) {
     console.error("Failed to update analysis in localStorage", e);
@@ -92,11 +92,11 @@ export async function updateCoachMessages(
   coachMessages: string[]
 ): Promise<void> {
   try {
-    const history = JSON.parse(localStorage.getItem("alpha_workout_history") || "[]");
+    const history = JSON.parse(localStorage.getItem("ohunjal_workout_history") || "[]");
     const entry = history.find((h: WorkoutHistory) => h.id === historyId);
     if (entry) {
       entry.coachMessages = coachMessages;
-      localStorage.setItem("alpha_workout_history", JSON.stringify(history));
+      localStorage.setItem("ohunjal_workout_history", JSON.stringify(history));
     }
   } catch (e) {
     console.error("Failed to update coachMessages in localStorage", e);
@@ -119,11 +119,11 @@ export async function updateReportTabs(
   reportTabs: WorkoutHistory["reportTabs"]
 ): Promise<void> {
   try {
-    const history = JSON.parse(localStorage.getItem("alpha_workout_history") || "[]");
+    const history = JSON.parse(localStorage.getItem("ohunjal_workout_history") || "[]");
     const entry = history.find((h: WorkoutHistory) => h.id === historyId);
     if (entry) {
       entry.reportTabs = reportTabs;
-      localStorage.setItem("alpha_workout_history", JSON.stringify(history));
+      localStorage.setItem("ohunjal_workout_history", JSON.stringify(history));
     }
   } catch (e) {
     console.error("Failed to update reportTabs in localStorage", e);
@@ -170,7 +170,7 @@ export async function loadWorkoutHistory(): Promise<WorkoutHistory[]> {
     });
 
     // Sync to localStorage as cache
-    localStorage.setItem("alpha_workout_history", JSON.stringify(history));
+    localStorage.setItem("ohunjal_workout_history", JSON.stringify(history));
     return history;
   } catch (e) {
     console.error("Failed to load from Firestore, using localStorage", e);
@@ -216,7 +216,7 @@ export async function deleteWorkoutHistory(sessionIds: string[]): Promise<void> 
     const all = loadFromLocalStorage();
     const idSet = new Set(sessionIds);
     const remaining = all.filter(h => !idSet.has(h.id));
-    localStorage.setItem("alpha_workout_history", JSON.stringify(remaining));
+    localStorage.setItem("ohunjal_workout_history", JSON.stringify(remaining));
   } catch (e) {
     console.error("Failed to delete from localStorage", e);
   }
@@ -256,7 +256,7 @@ async function migrateToFirestore(history: WorkoutHistory[]): Promise<void> {
 
 function loadFromLocalStorage(): WorkoutHistory[] {
   try {
-    const raw = localStorage.getItem("alpha_workout_history");
+    const raw = localStorage.getItem("ohunjal_workout_history");
     if (!raw) return [];
     return JSON.parse(raw) as WorkoutHistory[];
   } catch {

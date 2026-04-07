@@ -261,36 +261,36 @@ export const MasterPlanPreview: React.FC<MasterPlanPreviewProps> = ({
   const [showShareCard, setShowShareCard] = useState(false);
   const [showIntroTip, setShowIntroTip] = useState(() => {
     if (typeof window !== "undefined") {
-      return !localStorage.getItem("alpha_tip_intro");
+      return !localStorage.getItem("ohunjal_tip_intro");
     }
     return true;
   });
   const [showTip, setShowTip] = useState(() => {
     if (typeof window !== "undefined") {
-      return !localStorage.getItem("alpha_tip_change_program");
+      return !localStorage.getItem("ohunjal_tip_change_program");
     }
     return true;
   });
   const [showGuideTip, setShowGuideTip] = useState(() => {
     if (typeof window !== "undefined") {
-      return !localStorage.getItem("alpha_tip_guide_button");
+      return !localStorage.getItem("ohunjal_tip_guide_button");
     }
     return true;
   });
 
   const dismissIntroTip = () => {
     setShowIntroTip(false);
-    localStorage.setItem("alpha_tip_intro", "1");
+    localStorage.setItem("ohunjal_tip_intro", "1");
   };
 
   const dismissTip = () => {
     setShowTip(false);
-    localStorage.setItem("alpha_tip_change_program", "1");
+    localStorage.setItem("ohunjal_tip_change_program", "1");
   };
 
   const dismissGuideTip = () => {
     setShowGuideTip(false);
-    localStorage.setItem("alpha_tip_guide_button", "1");
+    localStorage.setItem("ohunjal_tip_guide_button", "1");
   };
 
   const firstGuideRef = useRef<HTMLDivElement>(null);

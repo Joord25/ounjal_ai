@@ -40,6 +40,7 @@
       { "source": "/api/adminDashboard", "function": { "functionId": "adminDashboard", "region": "us-central1" } },
       { "source": "/api/adminListUsers", "function": { "functionId": "adminListUsers", "region": "us-central1" } },
       { "source": "/api/adminLogs", "function": { "functionId": "adminLogs", "region": "us-central1" } },
+      { "source": "/api/adminCancelFeedbacks", "function": { "functionId": "adminCancelFeedbacks", "region": "us-central1" } },
       { "source": "/api/getCoachMessage", "function": { "functionId": "getCoachMessage", "region": "us-central1" } },
       { "source": "/api/getNutritionGuide", "function": { "functionId": "getNutritionGuide", "region": "us-central1" } },
       { "source": "/api/nutritionChat", "function": { "functionId": "nutritionChat", "region": "us-central1" } },

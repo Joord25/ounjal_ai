@@ -12,6 +12,9 @@ declare global {
 
 type FunnelEvent =
   | "onboarding_start"
+  | "onboarding_profile"
+  | "onboarding_goal"
+  | "onboarding_complete"
   | "condition_check_start"
   | "condition_check_step"
   | "condition_check_complete"

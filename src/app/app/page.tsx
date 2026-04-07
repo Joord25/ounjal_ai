@@ -20,6 +20,7 @@ import { SubscriptionScreen } from "@/components/profile/SubscriptionScreen";
 import { PlanLoadingOverlay } from "@/components/plan/PlanLoadingOverlay";
 import { FitnessReading } from "@/components/dashboard/FitnessReading";
 import { HomeScreen } from "@/components/dashboard/HomeScreen";
+import { Onboarding } from "@/components/layout/Onboarding";
 import { loadUserProfile, getPlanCount, incrementPlanCount, loadPlanCount } from "@/utils/userProfile";
 import { syncExpFromFirestore, processWorkoutCompletion, getOrRebuildSeasonExp, type ExpLogEntry } from "@/utils/questSystem";
 import { useSafeArea } from "@/hooks/useSafeArea";
@@ -86,7 +87,7 @@ const lazyGenerateWorkout = async (
   const token = await user.getIdToken();
 
   // Push/Pull 교대 상태를 localStorage에서 읽어서 서버에 전달
-  const lastUpperType = (typeof window !== "undefined" ? localStorage.getItem("alpha_last_upper_type") as "push" | "pull" : null) || undefined;
+  const lastUpperType = (typeof window !== "undefined" ? localStorage.getItem("ohunjal_last_upper_type") as "push" | "pull" : null) || undefined;
 
   const body = JSON.stringify({
     dayIndex, condition, goal, selectedSessionType,
@@ -114,7 +115,7 @@ const lazyGenerateWorkout = async (
   // 서버 응답 후 Push/Pull 교대 상태 저장
   if (typeof window !== "undefined" && sessionMode === "balanced") {
     const currentUpper = lastUpperType === "push" ? "pull" : "push";
-    localStorage.setItem("alpha_last_upper_type", currentUpper);
+    localStorage.setItem("ohunjal_last_upper_type", currentUpper);
   }
 
   return session;
@@ -122,6 +123,7 @@ const lazyGenerateWorkout = async (
 
 type ViewState =
   | "login"
+  | "onboarding"
   | "prediction_report"
   | "home"
   | "condition_check"
@@ -134,15 +136,43 @@ if (typeof window !== "undefined") {
   const params = new URLSearchParams(window.location.search);
   const lang = params.get("lang");
   if (lang && ["en", "ko", "ja", "zh"].includes(lang)) {
-    localStorage.setItem("alpha_language", lang);
+    localStorage.setItem("ohunjal_language", lang);
     window.history.replaceState({}, "", window.location.pathname);
   }
+}
+
+// 기존 alpha_ 키 → ohunjal_ 키 마이그레이션 (1회성)
+if (typeof window !== "undefined" && !localStorage.getItem("ohunjal_migrated")) {
+  const MIGRATE_KEYS = [
+    "birth_year", "body_weight", "completed_rituals", "fitness_profile",
+    "fitness_reading_done", "fitness_test_history", "gender", "guest_trial_count",
+    "language", "last_upper_type", "plan_count", "prev_weight", "quest_progress",
+    "season_exp", "settings_sound", "settings_vibration", "tip_change_program",
+    "tip_condition", "tip_guide_button", "tip_intro", "weight_log", "workout_history",
+  ];
+  for (const key of MIGRATE_KEYS) {
+    const old = localStorage.getItem(`alpha_${key}`);
+    if (old !== null && localStorage.getItem(`ohunjal_${key}`) === null) {
+      localStorage.setItem(`ohunjal_${key}`, old);
+    }
+  }
+  // 운동별 무게 기록 (alpha_weight_* → ohunjal_weight_*)
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k && k.startsWith("alpha_weight_")) {
+      const newKey = k.replace("alpha_", "ohunjal_");
+      if (localStorage.getItem(newKey) === null) {
+        localStorage.setItem(newKey, localStorage.getItem(k)!);
+      }
+    }
+  }
+  localStorage.setItem("ohunjal_migrated", "1");
 }
 
 export default function Home() {
   useSafeArea();
 
-  const locale = typeof window !== "undefined" ? (localStorage.getItem("alpha_language") || "ko") : "ko";
+  const locale = typeof window !== "undefined" ? (localStorage.getItem("ohunjal_language") || "ko") : "ko";
   const [activeTab, setActiveTab] = useState<TabId>("home");
   // 회의 30: 구독 취소 플로우 활성 시 탭바 숨김 (유저 집중 + 리텐션)
   const [cancelFlowActive, setCancelFlowActive] = useState(false);
@@ -283,17 +313,17 @@ export default function Home() {
           }).catch(() => setSubStatus("free"));
         }
 
-        // Load user profile + plan count + EXP from Firestore → localStorage, then go to home
+        // Load user profile + plan count + EXP from Firestore → localStorage, then route
         Promise.all([
           loadUserProfile().catch((e) => console.error("Failed to load profile", e)),
           loadPlanCount().catch((e) => console.error("Failed to load plan count", e)),
           syncExpFromFirestore().catch((e) => console.error("Failed to sync EXP", e)),
         ]).finally(() => {
-          setView("home");
+          setView(localStorage.getItem("ohunjal_onboarding_done") ? "home" : "onboarding");
         });
 
         // Load workout data
-        const rDone = localStorage.getItem("alpha_completed_rituals");
+        const rDone = localStorage.getItem("ohunjal_completed_rituals");
         if (rDone) {
           const doneIds = JSON.parse(rDone);
           setCompletedRitualIds(doneIds);
@@ -388,10 +418,10 @@ export default function Home() {
     setView("home");
   };
 
-  const getGuestTrialCount = () => parseInt(localStorage.getItem("alpha_guest_trial_count") || "0", 10);
+  const getGuestTrialCount = () => parseInt(localStorage.getItem("ohunjal_guest_trial_count") || "0", 10);
   const incrementGuestTrial = () => {
     const count = getGuestTrialCount() + 1;
-    localStorage.setItem("alpha_guest_trial_count", count.toString());
+    localStorage.setItem("ohunjal_guest_trial_count", count.toString());
   };
 
   // Save to LocalStorage
@@ -403,7 +433,7 @@ export default function Home() {
       newCompleted = [...completedRitualIds, ritualId];
     }
     setCompletedRitualIds(newCompleted);
-    localStorage.setItem("alpha_completed_rituals", JSON.stringify(newCompleted));
+    localStorage.setItem("ohunjal_completed_rituals", JSON.stringify(newCompleted));
   };
 
   const handleTabChange = (id: TabId) => {
@@ -418,7 +448,7 @@ export default function Home() {
       if (completedRitualIds.includes("workout")) {
         const newCompleted = completedRitualIds.filter(rid => rid !== "workout");
         setCompletedRitualIds(newCompleted);
-        localStorage.setItem("alpha_completed_rituals", JSON.stringify(newCompleted));
+        localStorage.setItem("ohunjal_completed_rituals", JSON.stringify(newCompleted));
       }
       setView("home");
     }
@@ -487,7 +517,7 @@ export default function Home() {
     let intensityCtx = null;
     let resolvedIntensity: "high" | "moderate" | "low" | null = null;
     try {
-      const raw = localStorage.getItem("alpha_workout_history");
+      const raw = localStorage.getItem("ohunjal_workout_history");
       if (raw) {
         const all: WorkoutHistory[] = JSON.parse(raw);
         const cutoff = Date.now() - 90 * 24 * 60 * 60 * 1000;
@@ -547,23 +577,24 @@ export default function Home() {
   };
 
   // 회의 31: 로그아웃 시 삭제할 localStorage 키 — 유저별 데이터만.
-  // 유지: alpha_language(기기 언어), alpha_tip_*(튜토리얼 dismiss), alpha_guest_trial_count(비로그인 악용 방지)
+  // 유지: ohunjal_language(기기 언어), ohunjal_tip_*(튜토리얼 dismiss), ohunjal_guest_trial_count(비로그인 악용 방지)
   const LOGOUT_CLEAR_KEYS = [
     "auth_logged_in",
-    "alpha_birth_year",
-    "alpha_body_weight",
-    "alpha_prev_weight",
-    "alpha_gender",
-    "alpha_weight_log",
-    "alpha_workout_history",
-    "alpha_fitness_profile",
-    "alpha_fitness_reading_done",
-    "alpha_fitness_test_history",
-    "alpha_completed_rituals",
-    "alpha_quest_progress",
-    "alpha_season_exp",
-    "alpha_plan_count",
-    "alpha_last_upper_type",
+    "ohunjal_birth_year",
+    "ohunjal_body_weight",
+    "ohunjal_prev_weight",
+    "ohunjal_gender",
+    "ohunjal_weight_log",
+    "ohunjal_workout_history",
+    "ohunjal_fitness_profile",
+    "ohunjal_fitness_reading_done",
+    "ohunjal_fitness_test_history",
+    "ohunjal_completed_rituals",
+    "ohunjal_quest_progress",
+    "ohunjal_season_exp",
+    "ohunjal_plan_count",
+    "ohunjal_last_upper_type",
+    "ohunjal_onboarding_done",
   ];
 
   const handleLogout = async () => {
@@ -607,9 +638,9 @@ export default function Home() {
             isPremium={subStatus === "active"}
             resultOnly
             onBack={() => { setActiveTab(predictionReturnTab); setView("home"); }}
-            workoutCount={(() => { try { return JSON.parse(localStorage.getItem("alpha_workout_history") || "[]").length; } catch { return 0; } })()}
-            workoutHistory={(() => { try { return JSON.parse(localStorage.getItem("alpha_workout_history") || "[]"); } catch { return []; } })()}
-            weightLog={(() => { try { return JSON.parse(localStorage.getItem("alpha_weight_log") || "[]"); } catch { return []; } })()}
+            workoutCount={(() => { try { return JSON.parse(localStorage.getItem("ohunjal_workout_history") || "[]").length; } catch { return 0; } })()}
+            workoutHistory={(() => { try { return JSON.parse(localStorage.getItem("ohunjal_workout_history") || "[]"); } catch { return []; } })()}
+            weightLog={(() => { try { return JSON.parse(localStorage.getItem("ohunjal_weight_log") || "[]"); } catch { return []; } })()}
             onEdit1RM={() => { setAutoEdit1RM(true); setActiveTab("my"); setView("home"); }}
           />
         );
@@ -678,7 +709,7 @@ export default function Home() {
               saveWorkoutHistory(historyEntry);
 
               // Process EXP once at completion (NOT in WorkoutReport render)
-              const recentHist: WorkoutHistory[] = (() => { try { return JSON.parse(localStorage.getItem("alpha_workout_history") || "[]"); } catch { return []; } })();
+              const recentHist: WorkoutHistory[] = (() => { try { return JSON.parse(localStorage.getItem("ohunjal_workout_history") || "[]"); } catch { return []; } })();
               const prevSeasonState = getOrRebuildSeasonExp(recentHist, currentCondition?.birthYear, currentCondition?.gender);
               const expGained = processWorkoutCompletion(historyEntry, [...recentHist, historyEntry], currentCondition?.birthYear, currentCondition?.gender);
               setLastPrevExp(prevSeasonState.totalExp);
@@ -708,7 +739,7 @@ export default function Home() {
             isPremium={subStatus === "active"}
             onReportTabsSaved={(tabs) => {
               try {
-                const history = JSON.parse(localStorage.getItem("alpha_workout_history") || "[]");
+                const history = JSON.parse(localStorage.getItem("ohunjal_workout_history") || "[]");
                 const lastEntry = history[history.length - 1];
                 if (lastEntry?.id) {
                   updateReportTabs(lastEntry.id, tabs);
@@ -719,7 +750,7 @@ export default function Home() {
               // 운동 완료 상태 해제 → HOME 복귀 시 리포트 재표시 방지
               const newCompleted = completedRitualIds.filter(id => id !== "workout");
               setCompletedRitualIds(newCompleted);
-              localStorage.setItem("alpha_completed_rituals", JSON.stringify(newCompleted));
+              localStorage.setItem("ohunjal_completed_rituals", JSON.stringify(newCompleted));
               setCurrentWorkoutSession(null);
               setView("home");
               setActiveTab("proof");
@@ -727,7 +758,7 @@ export default function Home() {
             onAnalysisComplete={(analysis) => {
                 // Update the latest history entry with analysis data
                 try {
-                    const history = JSON.parse(localStorage.getItem("alpha_workout_history") || "[]");
+                    const history = JSON.parse(localStorage.getItem("ohunjal_workout_history") || "[]");
                     if (history.length > 0) {
                         const lastEntry = history[history.length - 1];
                         updateWorkoutAnalysis(lastEntry.id, analysis);
@@ -738,6 +769,9 @@ export default function Home() {
             }}
           />
         );
+
+      case "onboarding":
+        return <Onboarding userName={user?.displayName || ""} onComplete={() => setView("home")} />;
 
       case "login":
         return <LoginScreen onLogin={handleLogin} onTryFree={() => { trackEvent("onboarding_start", { method: "guest" }); setView("home"); }} />;
@@ -755,9 +789,9 @@ export default function Home() {
              <WorkoutReport
                sessionData={currentWorkoutSession || { title: "Daily Workout", description: "Completed", exercises: [] }}
                logs={workoutLogs}
-               bodyWeightKg={currentCondition?.bodyWeightKg || (() => { const w = parseFloat(localStorage.getItem("alpha_body_weight") || ""); return isNaN(w) ? undefined : w; })()}
-               gender={currentCondition?.gender || (localStorage.getItem("alpha_gender") as "male" | "female") || undefined}
-               birthYear={currentCondition?.birthYear || (() => { const y = parseInt(localStorage.getItem("alpha_birth_year") || ""); return isNaN(y) ? undefined : y; })()}
+               bodyWeightKg={currentCondition?.bodyWeightKg || (() => { const w = parseFloat(localStorage.getItem("ohunjal_body_weight") || ""); return isNaN(w) ? undefined : w; })()}
+               gender={currentCondition?.gender || (localStorage.getItem("ohunjal_gender") as "male" | "female") || undefined}
+               birthYear={currentCondition?.birthYear || (() => { const y = parseInt(localStorage.getItem("ohunjal_birth_year") || ""); return isNaN(y) ? undefined : y; })()}
                savedDurationSec={workoutDurationSec}
                onClose={() => {
                  setView("home");
@@ -767,14 +801,14 @@ export default function Home() {
                  // Remove 'workout' from completed list to restart flow
                  const newCompleted = completedRitualIds.filter(id => id !== "workout");
                  setCompletedRitualIds(newCompleted);
-                 localStorage.setItem("alpha_completed_rituals", JSON.stringify(newCompleted));
+                 localStorage.setItem("ohunjal_completed_rituals", JSON.stringify(newCompleted));
                  setView("condition_check");
                }}
                initialAnalysis={currentWorkoutSession ?
                  // Try to find analysis from history if available
                  (() => {
                     try {
-                        const history = JSON.parse(localStorage.getItem("alpha_workout_history") || "[]");
+                        const history = JSON.parse(localStorage.getItem("ohunjal_workout_history") || "[]");
                         const todayStr = new Date().toDateString();
                         const todayEntry = history.find((h: any) => new Date(h.date).toDateString() === todayStr);
                         return todayEntry?.analysis || null;

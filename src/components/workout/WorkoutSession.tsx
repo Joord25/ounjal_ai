@@ -67,7 +67,7 @@ export const WorkoutSession: React.FC<WorkoutSessionProps> = ({
   // 지난 세션에서 같은 운동의 기록 조회
   const lastSessionRecord = React.useMemo(() => {
     try {
-      const raw = localStorage.getItem("alpha_workout_history");
+      const raw = localStorage.getItem("ohunjal_workout_history");
       if (!raw) return null;
       const history: WorkoutHistory[] = JSON.parse(raw);
       // 최근 기록부터 검색 (오늘 제외)
@@ -165,8 +165,8 @@ export const WorkoutSession: React.FC<WorkoutSessionProps> = ({
         const baseRest = feedback === "fail" ? 90
           : feedback === "target" ? 60
           : 45;
-        const gender = (typeof window !== "undefined" ? localStorage.getItem("alpha_gender") : null) as "male" | "female" | null;
-        const birthYearStr = typeof window !== "undefined" ? localStorage.getItem("alpha_birth_year") : null;
+        const gender = (typeof window !== "undefined" ? localStorage.getItem("ohunjal_gender") : null) as "male" | "female" | null;
+        const birthYearStr = typeof window !== "undefined" ? localStorage.getItem("ohunjal_birth_year") : null;
         const age = birthYearStr ? new Date().getFullYear() - parseInt(birthYearStr) : 30;
         const sexAdj = gender === "female" ? -10 : 0;
         const ageAdj = age >= 60 ? 30 : age >= 50 ? 15 : 0;

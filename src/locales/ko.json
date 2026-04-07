@@ -873,5 +873,15 @@
   "report.hero.time.evening": "하루를 마무리하며",
   "report.hero.time.night": "남들 자는 시간에",
 
-  "report.streak.next": "다음 예정: {name}"
+  "report.streak.next": "다음 예정: {name}",
+
+  "onboarding.back": "이전",
+  "onboarding.welcome.title": "{name}님, 반갑습니다",
+  "onboarding.welcome.desc1": "정확할수록, 운동이 달라져요",
+  "onboarding.welcome.desc2": "입력한 정보를 바탕으로 매번 당신에게 맞는 운동을 설계합니다",
+  "onboarding.welcome.cta": "시작하기",
+  "onboarding.profile.title": "기본 정보를 알려주세요",
+  "onboarding.profile.height": "키",
+  "onboarding.goal.title": "어떤 변화를 만들고 싶으세요?",
+  "onboarding.goal.subtitle": "목표를 알면 더 잘 도와드릴 수 있어요"
 }

@@ -191,11 +191,11 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout, auto
   const [showSubscription, setShowSubscription] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(() => {
     if (typeof window === "undefined") return true;
-    return localStorage.getItem("alpha_settings_sound") !== "false";
+    return localStorage.getItem("ohunjal_settings_sound") !== "false";
   });
   const [vibrationEnabled, setVibrationEnabled] = useState(() => {
     if (typeof window === "undefined") return true;
-    return localStorage.getItem("alpha_settings_vibration") !== "false";
+    return localStorage.getItem("ohunjal_settings_vibration") !== "false";
   });
   const [isEditingName, setIsEditingName] = useState(false);
   const [nameInput, setNameInput] = useState(user?.displayName || "");
@@ -206,23 +206,23 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout, auto
 
   const [gender, setGender] = useState<"male" | "female" | null>(() => {
     if (typeof window === "undefined") return null;
-    return (localStorage.getItem("alpha_gender") as "male" | "female") || null;
+    return (localStorage.getItem("ohunjal_gender") as "male" | "female") || null;
   });
   const [birthYear, setBirthYear] = useState(() => {
     if (typeof window === "undefined") return "";
-    return localStorage.getItem("alpha_birth_year") || "";
+    return localStorage.getItem("ohunjal_birth_year") || "";
   });
   const [isEditingBirthYear, setIsEditingBirthYear] = useState(false);
   const [birthYearInput, setBirthYearInput] = useState(birthYear);
   const [height, setHeight] = useState(() => {
     if (typeof window === "undefined") return "";
-    try { return JSON.parse(localStorage.getItem("alpha_fitness_profile") || "{}").height || ""; } catch { return ""; }
+    try { return JSON.parse(localStorage.getItem("ohunjal_fitness_profile") || "{}").height || ""; } catch { return ""; }
   });
   const [isEditingHeight, setIsEditingHeight] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [userGoal, setUserGoal] = useState(() => {
     if (typeof window === "undefined") return "";
-    try { return JSON.parse(localStorage.getItem("alpha_fitness_profile") || "{}").goal || ""; } catch { return ""; }
+    try { return JSON.parse(localStorage.getItem("ohunjal_fitness_profile") || "{}").goal || ""; } catch { return ""; }
   });
   const [heightInput, setHeightInput] = useState(height);
   const [subStatus, setSubStatus] = useState<"loading" | "free" | "active" | "cancelled">("loading");
@@ -241,21 +241,21 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout, auto
   const [bench1RM, setBench1RM] = useState(() => {
     if (typeof window === "undefined") return "";
     try {
-      const fp = JSON.parse(localStorage.getItem("alpha_fitness_profile") || "{}");
+      const fp = JSON.parse(localStorage.getItem("ohunjal_fitness_profile") || "{}");
       return fp.bench1RM ? String(fp.bench1RM) : "";
     } catch { return ""; }
   });
   const [squat1RM, setSquat1RM] = useState(() => {
     if (typeof window === "undefined") return "";
     try {
-      const fp = JSON.parse(localStorage.getItem("alpha_fitness_profile") || "{}");
+      const fp = JSON.parse(localStorage.getItem("ohunjal_fitness_profile") || "{}");
       return fp.squat1RM ? String(fp.squat1RM) : "";
     } catch { return ""; }
   });
   const [deadlift1RM, setDeadlift1RM] = useState(() => {
     if (typeof window === "undefined") return "";
     try {
-      const fp = JSON.parse(localStorage.getItem("alpha_fitness_profile") || "{}");
+      const fp = JSON.parse(localStorage.getItem("ohunjal_fitness_profile") || "{}");
       return fp.deadlift1RM ? String(fp.deadlift1RM) : "";
     } catch { return ""; }
   });
@@ -268,8 +268,8 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout, auto
   // Load tier from workout history
   useEffect(() => {
     loadWorkoutHistory().then(history => {
-      const bYear = typeof window !== "undefined" ? parseInt(localStorage.getItem("alpha_birth_year") || "") : NaN;
-      const g = typeof window !== "undefined" ? (localStorage.getItem("alpha_gender") as "male" | "female") || undefined : undefined;
+      const bYear = typeof window !== "undefined" ? parseInt(localStorage.getItem("ohunjal_birth_year") || "") : NaN;
+      const g = typeof window !== "undefined" ? (localStorage.getItem("ohunjal_gender") as "male" | "female") || undefined : undefined;
       const seasonExp = getOrRebuildSeasonExp(history, !isNaN(bYear) ? bYear : undefined, g);
       setTierInfo(getTierFromExp(seasonExp.totalExp));
       setSeasonLabel(getCurrentSeason().label);
@@ -310,9 +310,9 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout, auto
     if (isNaN(val) || val < 100 || val > 250) return;
     setHeight(String(val));
     try {
-      const fp = JSON.parse(localStorage.getItem("alpha_fitness_profile") || "{}");
+      const fp = JSON.parse(localStorage.getItem("ohunjal_fitness_profile") || "{}");
       fp.height = val;
-      localStorage.setItem("alpha_fitness_profile", JSON.stringify(fp));
+      localStorage.setItem("ohunjal_fitness_profile", JSON.stringify(fp));
     } catch { /* ignore */ }
     setIsEditingHeight(false);
   };
@@ -331,9 +331,9 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout, auto
     const s = parseFloat(squat1RM.trim()) || undefined;
     const d = parseFloat(deadlift1RM.trim()) || undefined;
     try {
-      const fp = JSON.parse(localStorage.getItem("alpha_fitness_profile") || "{}");
+      const fp = JSON.parse(localStorage.getItem("ohunjal_fitness_profile") || "{}");
       const updated = { ...fp, bench1RM: b, squat1RM: s, deadlift1RM: d };
-      localStorage.setItem("alpha_fitness_profile", JSON.stringify(updated));
+      localStorage.setItem("ohunjal_fitness_profile", JSON.stringify(updated));
       saveUserProfile({ fitnessProfile: updated }).catch(() => {});
     } catch {}
     setEditing1RM(false);
@@ -662,9 +662,9 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout, auto
                   onClick={() => {
                     setUserGoal(g.key);
                     try {
-                      const fp = JSON.parse(localStorage.getItem("alpha_fitness_profile") || "{}");
+                      const fp = JSON.parse(localStorage.getItem("ohunjal_fitness_profile") || "{}");
                       fp.goal = g.key;
-                      localStorage.setItem("alpha_fitness_profile", JSON.stringify(fp));
+                      localStorage.setItem("ohunjal_fitness_profile", JSON.stringify(fp));
                       import("@/utils/userProfile").then(({ saveUserProfile }) => {
                         saveUserProfile({ fitnessProfile: fp });
                       });
@@ -701,7 +701,7 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout, auto
             <div className="flex justify-between items-center">
               <span className="text-sm font-bold text-gray-500">{t("my.settings.sound")}</span>
               <button
-                onClick={() => { const next = !soundEnabled; setSoundEnabled(next); localStorage.setItem("alpha_settings_sound", next ? "true" : "false"); }}
+                onClick={() => { const next = !soundEnabled; setSoundEnabled(next); localStorage.setItem("ohunjal_settings_sound", next ? "true" : "false"); }}
                 className={`w-11 h-6 rounded-full transition-colors relative ${soundEnabled ? "bg-[#2D6A4F]" : "bg-gray-300"}`}
               >
                 <div className={`w-5 h-5 bg-white rounded-full shadow-sm absolute top-0.5 transition-transform ${soundEnabled ? "translate-x-5.5" : "translate-x-0.5"}`} />
@@ -711,7 +711,7 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout, auto
             <div className="flex justify-between items-center">
               <span className="text-sm font-bold text-gray-500">{t("my.settings.vibration")}</span>
               <button
-                onClick={() => { const next = !vibrationEnabled; setVibrationEnabled(next); localStorage.setItem("alpha_settings_vibration", next ? "true" : "false"); }}
+                onClick={() => { const next = !vibrationEnabled; setVibrationEnabled(next); localStorage.setItem("ohunjal_settings_vibration", next ? "true" : "false"); }}
                 className={`w-11 h-6 rounded-full transition-colors relative ${vibrationEnabled ? "bg-[#2D6A4F]" : "bg-gray-300"}`}
               >
                 <div className={`w-5 h-5 bg-white rounded-full shadow-sm absolute top-0.5 transition-transform ${vibrationEnabled ? "translate-x-5.5" : "translate-x-0.5"}`} />

@@ -31,26 +31,25 @@ export const ConditionCheck: React.FC<ConditionCheckProps> = ({ onComplete, onBa
 
   // State
   const [bodyPart, setBodyPart] = useState<UserCondition["bodyPart"] | null>(null);
-  const [energy, setEnergy] = useState<number>(3);
   const [goal, setGoal] = useState<WorkoutGoal | null>(null);
   const [showWeightEdit, setShowWeightEdit] = useState(false);
   const [bodyWeight, setBodyWeight] = useState<string>(() => {
     if (isGuest || typeof window === "undefined") return "";
-    return localStorage.getItem("alpha_body_weight") || "";
+    return localStorage.getItem("ohunjal_body_weight") || "";
   });
   const [gender, setGender] = useState<"male" | "female" | null>(() => {
     if (isGuest || typeof window === "undefined") return null;
-    return (localStorage.getItem("alpha_gender") as "male" | "female") || null;
+    return (localStorage.getItem("ohunjal_gender") as "male" | "female") || null;
   });
   const [birthYear, setBirthYear] = useState<string>(() => {
     if (isGuest || typeof window === "undefined") return "";
-    return localStorage.getItem("alpha_birth_year") || "";
+    return localStorage.getItem("ohunjal_birth_year") || "";
   });
 
   const [recentHistory, setRecentHistory] = useState<WorkoutHistory[]>([]);
   const [showCoachTip, setShowCoachTip] = useState(() => {
     if (typeof window !== "undefined") {
-      return !localStorage.getItem("alpha_tip_condition");
+      return !localStorage.getItem("ohunjal_tip_condition");
     }
     return true;
   });
@@ -61,7 +60,7 @@ export const ConditionCheck: React.FC<ConditionCheckProps> = ({ onComplete, onBa
   // Load recent history for intensity recommendation
   useEffect(() => {
     try {
-      const raw = localStorage.getItem("alpha_workout_history");
+      const raw = localStorage.getItem("ohunjal_workout_history");
       if (raw) {
         const all: WorkoutHistory[] = JSON.parse(raw);
         const cutoff = Date.now() - 90 * 24 * 60 * 60 * 1000;
@@ -72,13 +71,13 @@ export const ConditionCheck: React.FC<ConditionCheckProps> = ({ onComplete, onBa
 
   const savedBirthYear = (() => {
     if (typeof window === "undefined") return undefined;
-    const v = parseInt(localStorage.getItem("alpha_birth_year") || "");
+    const v = parseInt(localStorage.getItem("ohunjal_birth_year") || "");
     return !isNaN(v) && v > 1900 ? v : undefined;
   })();
 
   const savedGender = (() => {
     if (typeof window === "undefined") return undefined;
-    return (localStorage.getItem("alpha_gender") as "male" | "female") || undefined;
+    return (localStorage.getItem("ohunjal_gender") as "male" | "female") || undefined;
   })();
 
   const intensityRec = recentHistory.length > 0
@@ -90,7 +89,7 @@ export const ConditionCheck: React.FC<ConditionCheckProps> = ({ onComplete, onBa
 
   const dismissCoachTip = () => {
     setShowCoachTip(false);
-    localStorage.setItem("alpha_tip_condition", "1");
+    localStorage.setItem("ohunjal_tip_condition", "1");
   };
 
 
@@ -98,7 +97,7 @@ export const ConditionCheck: React.FC<ConditionCheckProps> = ({ onComplete, onBa
   // 성별+출생연도가 있으면 재방문 유저 (체중만 입력)
   const [hasProfile] = useState(() => {
     if (isGuest || typeof window === "undefined") return false;
-    return !!(localStorage.getItem("alpha_gender") && localStorage.getItem("alpha_birth_year"));
+    return !!(localStorage.getItem("ohunjal_gender") && localStorage.getItem("ohunjal_birth_year"));
   });
 
   const handleBack = () => {
@@ -129,8 +128,8 @@ export const ConditionCheck: React.FC<ConditionCheckProps> = ({ onComplete, onBa
         updateBirthYear(byNum);
       }
       // 첫 프로필 입력 완료 시 플래그 세팅 (예측모델 등에서 참조)
-      if (!localStorage.getItem("alpha_fitness_reading_done")) {
-        localStorage.setItem("alpha_fitness_reading_done", "1");
+      if (!localStorage.getItem("ohunjal_fitness_reading_done")) {
+        localStorage.setItem("ohunjal_fitness_reading_done", "1");
       }
       trackEvent("condition_check_step", { step: "weight_input" });
       setStep("goal_select");
@@ -139,9 +138,10 @@ export const ConditionCheck: React.FC<ConditionCheckProps> = ({ onComplete, onBa
       setGoal(selectedGoal);
       const weightNum = parseFloat(bodyWeight);
       const birthYearNum = parseInt(birthYear);
+      const energyFromBodyPart = bodyPart === "full_fatigue" ? 2 : bodyPart === "good" ? 4 : 3;
       onComplete({
         bodyPart: bodyPart!,
-        energyLevel: energy as 1|2|3|4|5,
+        energyLevel: energyFromBodyPart as 1|2|3|4|5,
         availableTime: 50,
         bodyWeightKg: !isNaN(weightNum) && weightNum > 0 ? weightNum : undefined,
         gender: gender || undefined,
@@ -300,7 +300,7 @@ export const ConditionCheck: React.FC<ConditionCheckProps> = ({ onComplete, onBa
                   <p className="text-4xl font-black text-[#1B4332]">{bodyWeight || "—"}<span className="text-lg font-bold text-gray-400 ml-1">kg</span></p>
                   {(() => {
                     const prevWeight = recentHistory.length > 0 && recentHistory[recentHistory.length - 1].stats
-                      ? parseFloat(localStorage.getItem("alpha_prev_weight") || "0") : 0;
+                      ? parseFloat(localStorage.getItem("ohunjal_prev_weight") || "0") : 0;
                     const currentW = parseFloat(bodyWeight || "0");
                     if (prevWeight > 0 && currentW > 0 && prevWeight !== currentW) {
                       const diff = Math.round((currentW - prevWeight) * 10) / 10;

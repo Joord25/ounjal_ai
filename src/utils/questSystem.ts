@@ -573,8 +573,8 @@ export function sumExp(entries: ExpLogEntry[]): number {
 
 // ─── Persistence ─────────────────────────────────────────────────
 
-const STORAGE_KEY_QUEST = "alpha_quest_progress";
-const STORAGE_KEY_EXP = "alpha_season_exp";
+const STORAGE_KEY_QUEST = "ohunjal_quest_progress";
+const STORAGE_KEY_EXP = "ohunjal_season_exp";
 
 export function loadWeeklyQuestState(): WeeklyQuestState | null {
   if (typeof window === "undefined") return null;

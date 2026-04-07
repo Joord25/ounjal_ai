@@ -283,7 +283,7 @@ export const NextTab: React.FC<NextTabProps> = ({
 
     // 주간 빈도
     let weeklyFreq = 3;
-    try { weeklyFreq = JSON.parse(localStorage.getItem("alpha_fitness_profile") || "{}").weeklyFrequency || 3; } catch {}
+    try { weeklyFreq = JSON.parse(localStorage.getItem("ohunjal_fitness_profile") || "{}").weeklyFrequency || 3; } catch {}
 
     const done = thisWeekSessions.length;
     const remaining = Math.max(0, weeklyFreq - done);

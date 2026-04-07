@@ -103,7 +103,7 @@ export const ProofTab: React.FC<ProofTabProps> = ({ onShowPrediction }) => {
       data.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
       setHistory(data);
       // Reload weight log
-      const savedWeight = localStorage.getItem("alpha_weight_log");
+      const savedWeight = localStorage.getItem("ohunjal_weight_log");
       if (savedWeight) {
         try { setWeightLog(JSON.parse(savedWeight)); } catch { /* ignore */ }
       }
@@ -122,19 +122,19 @@ export const ProofTab: React.FC<ProofTabProps> = ({ onShowPrediction }) => {
     }).catch((e) => {
       console.error("Failed to load workout history", e);
     });
-    const savedWeight = localStorage.getItem("alpha_weight_log");
+    const savedWeight = localStorage.getItem("ohunjal_weight_log");
     if (savedWeight) {
       try {
         setWeightLog(JSON.parse(savedWeight));
       } catch { /* ignore */ }
     } else {
       // Seed from existing body weight if no log exists yet
-      const currentWeight = localStorage.getItem("alpha_body_weight");
+      const currentWeight = localStorage.getItem("ohunjal_body_weight");
       if (currentWeight) {
         const w = parseFloat(currentWeight);
         if (!isNaN(w) && w > 0) {
           const seed = [{ date: new Date().toISOString().slice(0, 10), weight: w }];
-          localStorage.setItem("alpha_weight_log", JSON.stringify(seed));
+          localStorage.setItem("ohunjal_weight_log", JSON.stringify(seed));
           setWeightLog(seed);
         }
       }
@@ -167,9 +167,9 @@ export const ProofTab: React.FC<ProofTabProps> = ({ onShowPrediction }) => {
   };
 
   // Load user profile from localStorage for consistent report rendering
-  const savedBodyWeight = typeof window !== "undefined" ? parseFloat(localStorage.getItem("alpha_body_weight") || "") : NaN;
-  const savedGender = typeof window !== "undefined" ? (localStorage.getItem("alpha_gender") as "male" | "female") || undefined : undefined;
-  const savedBirthYear = typeof window !== "undefined" ? parseInt(localStorage.getItem("alpha_birth_year") || "") : NaN;
+  const savedBodyWeight = typeof window !== "undefined" ? parseFloat(localStorage.getItem("ohunjal_body_weight") || "") : NaN;
+  const savedGender = typeof window !== "undefined" ? (localStorage.getItem("ohunjal_gender") as "male" | "female") || undefined : undefined;
+  const savedBirthYear = typeof window !== "undefined" ? parseInt(localStorage.getItem("ohunjal_birth_year") || "") : NaN;
 
   const handleDeleteSession = (sessionIds: string[]) => {
     const idSet = new Set(sessionIds);
@@ -199,7 +199,7 @@ export const ProofTab: React.FC<ProofTabProps> = ({ onShowPrediction }) => {
         onDelete={() => {
           const updated = history.filter(h => h.id !== selectedHistory.id);
           setHistory(updated);
-          localStorage.setItem("alpha_workout_history", JSON.stringify(updated));
+          localStorage.setItem("ohunjal_workout_history", JSON.stringify(updated));
           deleteWorkoutHistory([selectedHistory.id]).catch(() => {});
           // Rebuild EXP from remaining history
           const rebuilt = rebuildFromHistory(updated, !isNaN(savedBirthYear) ? savedBirthYear : undefined, savedGender);
@@ -213,7 +213,7 @@ export const ProofTab: React.FC<ProofTabProps> = ({ onShowPrediction }) => {
                     h.id === selectedHistory.id ? { ...h, analysis } : h
                 );
                 setHistory(updatedHistory);
-                localStorage.setItem("alpha_workout_history", JSON.stringify(updatedHistory));
+                localStorage.setItem("ohunjal_workout_history", JSON.stringify(updatedHistory));
                 
                 // Update selectedHistory as well to reflect changes immediately if needed
                 setSelectedHistory({ ...selectedHistory, analysis });

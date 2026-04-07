@@ -99,8 +99,8 @@ export const FitScreen: React.FC<FitScreenProps> = ({
   // 장비 x 성별/연령별 기본 무게 (전문가 6인 합의)
   const getDefaultWeight = (): number => {
     if (typeof window === "undefined") return 20;
-    const gender = localStorage.getItem("alpha_gender");
-    const birthYear = localStorage.getItem("alpha_birth_year");
+    const gender = localStorage.getItem("ohunjal_gender");
+    const birthYear = localStorage.getItem("ohunjal_birth_year");
     const age = birthYear ? new Date().getFullYear() - parseInt(birthYear) : 30;
     const isFemaleOrSenior = gender === "female" || age >= 60;
     const equipment = getEquipmentType(exercise.name);
@@ -118,7 +118,7 @@ export const FitScreen: React.FC<FitScreenProps> = ({
   // Load last used weight from localStorage
   const getStoredWeight = (): number => {
     if (typeof window === "undefined") return getDefaultWeight();
-    const key = `alpha_weight_${exercise.name.replace(/[^a-zA-Z가-힣]/g, "_")}`;
+    const key = `ohunjal_weight_${exercise.name.replace(/[^a-zA-Z가-힣]/g, "_")}`;
     const stored = localStorage.getItem(key);
     if (stored) return parseFloat(stored);
     // Try to parse from exercise.weight string
@@ -166,7 +166,7 @@ export const FitScreen: React.FC<FitScreenProps> = ({
       const parsed = parseFloat(setInfo.targetWeight);
       if (!isNaN(parsed) && parsed > 0) {
         setSelectedWeight(parsed);
-        const key = `alpha_weight_${exercise.name.replace(/[^a-zA-Z가-힣]/g, "_")}`;
+        const key = `ohunjal_weight_${exercise.name.replace(/[^a-zA-Z가-힣]/g, "_")}`;
         localStorage.setItem(key, String(parsed));
       }
     }
@@ -245,7 +245,7 @@ export const FitScreen: React.FC<FitScreenProps> = ({
   };
 
   const confirmWeight = () => {
-    const key = `alpha_weight_${exercise.name.replace(/[^a-zA-Z가-힣]/g, "_")}`;
+    const key = `ohunjal_weight_${exercise.name.replace(/[^a-zA-Z가-힣]/g, "_")}`;
     localStorage.setItem(key, String(selectedWeight));
     setWeightConfirmed(true);
     setShowWeightEdit(false);
@@ -469,7 +469,7 @@ export const FitScreen: React.FC<FitScreenProps> = ({
           phaseRef.current = "recovery";
           phaseStartMsRef.current = nowTick;
           playAlarmSound("rest_end");
-          if (navigator.vibrate && localStorage.getItem("alpha_settings_vibration") !== "false") navigator.vibrate([200, 100, 200]);
+          if (navigator.vibrate && localStorage.getItem("ohunjal_settings_vibration") !== "false") navigator.vibrate([200, 100, 200]);
           setIntervalPhase("recovery");
           setIntervalTime(cfg.phase2Sec);
           // 회의 41: GPS 페이즈 전환 마크 (리포트 인터벌 분해용)
@@ -479,7 +479,7 @@ export const FitScreen: React.FC<FitScreenProps> = ({
             setIsPlaying(false);
             setTimerCompleted(true);
             playAlarmSound("end");
-            if (navigator.vibrate && localStorage.getItem("alpha_settings_vibration") !== "false") navigator.vibrate([300, 100, 300, 100, 300]);
+            if (navigator.vibrate && localStorage.getItem("ohunjal_settings_vibration") !== "false") navigator.vibrate([300, 100, 300, 100, 300]);
             // 회의 41: 인터벌 러닝 완주 시 runningStats 산출 + 콜백
             if (onRunningStatsComputed) {
               const snap = gpsGetSnapshot();
@@ -506,7 +506,7 @@ export const FitScreen: React.FC<FitScreenProps> = ({
           phaseRef.current = "sprint";
           phaseStartMsRef.current = nowTick;
           playAlarmSound("start");
-          if (navigator.vibrate && localStorage.getItem("alpha_settings_vibration") !== "false") navigator.vibrate(100);
+          if (navigator.vibrate && localStorage.getItem("ohunjal_settings_vibration") !== "false") navigator.vibrate(100);
           setIntervalRound(roundRef.current);
           setIntervalPhase("sprint");
           setIntervalTime(cfg.phase1Sec);
@@ -521,7 +521,7 @@ export const FitScreen: React.FC<FitScreenProps> = ({
       if (!midpointFiredRef.current && midpoint > 0 && remainingInt <= midpoint) {
         midpointFiredRef.current = true;
         playAlarmSound("half");
-        if (navigator.vibrate && localStorage.getItem("alpha_settings_vibration") !== "false") navigator.vibrate(150);
+        if (navigator.vibrate && localStorage.getItem("ohunjal_settings_vibration") !== "false") navigator.vibrate(150);
       }
 
       // 카운트다운 tick (3, 2, 1초) — 같은 초에 중복 발사 방지
@@ -1124,7 +1124,7 @@ export const FitScreen: React.FC<FitScreenProps> = ({
           <AiCoachChat
             record={lastSessionRecord?.maxWeight ? lastSessionRecord : null}
             exerciseName={exercise.name}
-            gender={(localStorage.getItem("alpha_gender") as "male" | "female") || "male"}
+            gender={(localStorage.getItem("ohunjal_gender") as "male" | "female") || "male"}
             onClose={() => setShowAiTip(false)}
           />
         )}

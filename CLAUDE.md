@@ -27,7 +27,7 @@ Deployed to Firebase Hosting (project: `ohunjal`). CI/CD via GitHub Actions auto
 ### Required Environment Variables (`.env.local`)
 
 All are `NEXT_PUBLIC_*` (client-side accessible):
-- `NEXT_PUBLIC_FIREBASE_API_KEY`, `_AUTH_DOMAIN`, `_PROJECT_ID`, `_STORAGE_BUCKET`, `_MESSAGING_SENDER_ID`, `_APP_ID` — Firebase config
+- `NEXT_PUBLIC_FIREBASE_API_KEY`, `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`, `NEXT_PUBLIC_FIREBASE_PROJECT_ID`, `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`, `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`, `NEXT_PUBLIC_FIREBASE_APP_ID` — Firebase config
 - `NEXT_PUBLIC_GEMINI_API_KEY` — Gemini AI (client-side calls)
 - `NEXT_PUBLIC_PORTONE_STORE_ID`, `NEXT_PUBLIC_PORTONE_CHANNEL_KEY` — PortOne billing
 
@@ -41,11 +41,19 @@ Cloud Functions use `GEMINI_API_KEY` (server-side, set via Firebase config).
 
 `src/app/app/page.tsx` is the sole orchestrator — owns all app state, passes props/callbacks down. No external state library. View routing via `ViewState` type (`login → condition_check → master_plan_preview → workout_session → workout_report → home`). Tab navigation: `BottomTabs` with `TabId`.
 
+### Route Structure
+
+- `/` — Korean landing page (`src/app/page.tsx` + `LandingContent.tsx`)
+- `/en`, `/ja`, `/zh` — Localized landing pages
+- `/app` — Main SPA (`src/app/app/page.tsx` — the sole app orchestrator)
+- `/admin` — Admin panel
+- `/privacy`, `/terms` — Legal pages
+
 ### Three Codebases in One Repo
 
 1. **Next.js frontend** (root `src/`) — the main app
 2. **`functions/`** — Firebase Cloud Functions (Node 22, v6). Active codebase.
-3. **`ohunjal/`** — Separate CF codebase (Node 24, v7). **Not actively deployed.**
+3. **`ohunjal/`** — Separate CF codebase (Node 24, v7). **Legacy, not actively deployed.**
 
 ### Key Directories
 

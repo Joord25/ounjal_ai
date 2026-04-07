@@ -340,6 +340,56 @@ export const adminListUsers = onRequest(
 );
 
 /**
+ * POST /adminCancelFeedbacks
+ * Admin only: 취소 피드백 목록 조회
+ */
+export const adminCancelFeedbacks = onRequest(
+  { cors: true },
+  async (req, res) => {
+    if (req.method !== "POST") { res.status(405).json({ error: "Method not allowed" }); return; }
+    try { await verifyAdmin(req.headers.authorization); } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Unauthorized";
+      res.status(msg.includes("Forbidden") ? 403 : 401).json({ error: msg });
+      return;
+    }
+
+    try {
+      const snapshot = await db.collection("cancel_feedbacks")
+        .orderBy("cancelledAt", "desc")
+        .limit(50)
+        .get();
+
+      // UID → email 매핑
+      const uids = [...new Set(snapshot.docs.map(d => d.data().uid as string))];
+      const emailMap = new Map<string, string>();
+      for (const uid of uids) {
+        try {
+          const user = await getAuth().getUser(uid);
+          emailMap.set(uid, user.email || uid);
+        } catch {
+          emailMap.set(uid, uid);
+        }
+      }
+
+      const feedbacks = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          email: emailMap.get(data.uid) || data.uid,
+          reason: data.reason || "",
+          cancelledAt: data.cancelledAt?.toDate?.().toISOString() || null,
+        };
+      });
+
+      res.status(200).json({ feedbacks });
+    } catch (error) {
+      console.error("adminCancelFeedbacks error:", error);
+      res.status(500).json({ error: "취소 피드백 조회 실패" });
+    }
+  }
+);
+
+/**
  * POST /adminLogs
  * Admin only: 최근 활성화 이력 조회
  */

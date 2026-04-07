@@ -76,13 +76,24 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
   // Load saved profile
   const savedProfile = React.useMemo<FitnessProfile | null>(() => {
     try {
-      const raw = localStorage.getItem("alpha_fitness_profile");
+      const raw = localStorage.getItem("ohunjal_fitness_profile");
       if (raw) return JSON.parse(raw) as FitnessProfile;
     } catch {}
     return null;
   }, []);
 
-  const [step, setStep] = useState<Step>(resultOnly && savedProfile && savedProfile.height ? "result" : savedProfile && !savedProfile.height ? "profile" : "welcome");
+  const [step, setStep] = useState<Step>(() => {
+    if (resultOnly && savedProfile && savedProfile.height) return "result";
+    if (savedProfile && !savedProfile.height) return "profile";
+    // 온보딩 완료 유저: 이미 입력된 항목 스킵
+    if (savedProfile?.height && savedProfile?.gender) {
+      if (!savedProfile.weeklyFrequency && savedProfile.weeklyFrequency !== 0) return "frequency";
+      if (!savedProfile.sessionMinutes) return "time";
+      if (!savedProfile.goal) return "goal";
+      return "result";
+    }
+    return "welcome";
+  });
   const [profile, setProfile] = useState<Partial<FitnessProfile>>(savedProfile || {});
   const [gender, setGender] = useState<"male" | "female" | null>(savedProfile?.gender || null);
   const [birthYear, setBirthYear] = useState(savedProfile?.birthYear?.toString() || "");
@@ -164,8 +175,8 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
   };
 
   const finishOnboarding = (complete: FitnessProfile) => {
-    localStorage.setItem("alpha_fitness_profile", JSON.stringify(complete));
-    localStorage.setItem("alpha_fitness_reading_done", "true");
+    localStorage.setItem("ohunjal_fitness_profile", JSON.stringify(complete));
+    localStorage.setItem("ohunjal_fitness_reading_done", "true");
     saveUserProfile({ fitnessProfile: complete }).catch(() => {});
     setStep("analyzing");
   };

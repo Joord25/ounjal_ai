@@ -873,5 +873,15 @@
   "report.hero.time.evening": "Ending the day right",
   "report.hero.time.night": "Late night hustle",
 
-  "report.streak.next": "Next up: {name}"
+  "report.streak.next": "Next up: {name}",
+
+  "onboarding.back": "Back",
+  "onboarding.welcome.title": "Welcome, {name}",
+  "onboarding.welcome.desc1": "The more accurate, the better your workouts",
+  "onboarding.welcome.desc2": "We design every workout based on the info you provide",
+  "onboarding.welcome.cta": "Get Started",
+  "onboarding.profile.title": "Tell us about yourself",
+  "onboarding.profile.height": "Height",
+  "onboarding.goal.title": "What change do you want to make?",
+  "onboarding.goal.subtitle": "Knowing your goal helps us help you better"
 }

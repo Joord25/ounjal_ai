@@ -566,7 +566,7 @@ export function computeReading(
     // ── 기초 체력: 체력 테스트 기반 등급 ──
     if (label.includes("현재 기초체력 등급")) {
       try {
-        const testHistory = JSON.parse(localStorage.getItem("alpha_fitness_test_history") || "[]");
+        const testHistory = JSON.parse(localStorage.getItem("ohunjal_fitness_test_history") || "[]");
         if (testHistory.length > 0) {
           const latest = testHistory[testHistory.length - 1];
           const gradeLabels = ["", "최우수", "우수", "양호", "보통", "미흡"];

@@ -23,12 +23,12 @@ const I18nContext = createContext<I18nContextType>({
 export function I18nProvider({ children }: { children: React.ReactNode }) {
   const [locale, setLocaleState] = useState<Locale>(() => {
     if (typeof window === "undefined") return "ko";
-    return (localStorage.getItem("alpha_language") as Locale) || "ko";
+    return (localStorage.getItem("ohunjal_language") as Locale) || "ko";
   });
 
   const setLocale = useCallback((newLocale: Locale) => {
     setLocaleState(newLocale);
-    localStorage.setItem("alpha_language", newLocale);
+    localStorage.setItem("ohunjal_language", newLocale);
   }, []);
 
   const t = useCallback((key: string, vars?: Record<string, string>) => {

@@ -60,12 +60,12 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onStartWorkout
 
   useEffect(() => {
     try {
-      const raw = localStorage.getItem("alpha_workout_history");
+      const raw = localStorage.getItem("ohunjal_workout_history");
       const all: WorkoutHistory[] = raw ? JSON.parse(raw) : [];
       setHistory(all);
 
-      const birthYear = parseInt(localStorage.getItem("alpha_birth_year") || "");
-      const gender = (localStorage.getItem("alpha_gender") as "male" | "female") || undefined;
+      const birthYear = parseInt(localStorage.getItem("ohunjal_birth_year") || "");
+      const gender = (localStorage.getItem("ohunjal_gender") as "male" | "female") || undefined;
       if (all.length > 0) {
         setQuestData(getOrCreateWeeklyQuests(all, isNaN(birthYear) ? undefined : birthYear, gender));
 
@@ -80,7 +80,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onStartWorkout
       }
 
       // 저장된 프로필 불러오기
-      const profileRaw = localStorage.getItem("alpha_fitness_profile");
+      const profileRaw = localStorage.getItem("ohunjal_fitness_profile");
       if (profileRaw) {
         const p = JSON.parse(profileRaw);
         const goalMap: Record<string, WorkoutGoal> = {
@@ -190,7 +190,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onStartWorkout
 
       // 경로 2: 체지방 감량 (칼로리 밸런스 회귀분석)
       try {
-        const fp = JSON.parse(localStorage.getItem("alpha_fitness_profile") || "{}");
+        const fp = JSON.parse(localStorage.getItem("ohunjal_fitness_profile") || "{}");
         const heightCm = fp.height || 170;
         const gender = fp.gender || profile?.gender || "male";
         const bw = profile?.bodyWeight || fp.bodyWeight || 70;

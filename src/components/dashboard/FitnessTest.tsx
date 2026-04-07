@@ -170,9 +170,9 @@ export const FitnessTest: React.FC<FitnessTestProps> = ({ gender, birthYear, onC
 
       // localStorage에 저장
       try {
-        const history = JSON.parse(localStorage.getItem("alpha_fitness_test_history") || "[]");
+        const history = JSON.parse(localStorage.getItem("ohunjal_fitness_test_history") || "[]");
         history.push(result);
-        localStorage.setItem("alpha_fitness_test_history", JSON.stringify(history));
+        localStorage.setItem("ohunjal_fitness_test_history", JSON.stringify(history));
       } catch { /* ignore */ }
 
       setPhase("result");

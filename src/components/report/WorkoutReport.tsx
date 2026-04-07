@@ -142,7 +142,7 @@ interface WorkoutReportProps {
 function getRecentHistorySync(): WorkoutHistory[] {
   if (typeof window === "undefined") return [];
   try {
-    const raw = localStorage.getItem("alpha_workout_history");
+    const raw = localStorage.getItem("ohunjal_workout_history");
     if (!raw) return [];
     const all: WorkoutHistory[] = JSON.parse(raw);
     const cutoff = Date.now() - 90 * 24 * 60 * 60 * 1000;
@@ -201,7 +201,7 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
   useEffect(() => {
     if (sessionDate || !onReportTabsSaved) return; // 히스토리 뷰면 저장 안 함
     try {
-      const fp = JSON.parse(localStorage.getItem("alpha_fitness_profile") || "{}");
+      const fp = JSON.parse(localStorage.getItem("ohunjal_fitness_profile") || "{}");
       const m = buildWorkoutMetrics(sessionData.exercises, logs, bodyWeightKg, savedDurationSec);
       const userGoal = fp.goal || "health";
       let volChange: number | null = null;
@@ -265,11 +265,11 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
           const nutritionData = await res.json();
           setCachedNutritionGuide(nutritionData);
           // Firestore 업데이트
-          const history = JSON.parse(localStorage.getItem("alpha_workout_history") || "[]");
+          const history = JSON.parse(localStorage.getItem("ohunjal_workout_history") || "[]");
           const lastEntry = history[history.length - 1];
           if (lastEntry?.reportTabs) {
             lastEntry.reportTabs.nutrition = nutritionData;
-            localStorage.setItem("alpha_workout_history", JSON.stringify(history));
+            localStorage.setItem("ohunjal_workout_history", JSON.stringify(history));
             const { updateReportTabs } = await import("@/utils/workoutHistory");
             updateReportTabs(lastEntry.id, lastEntry.reportTabs);
           }
@@ -441,7 +441,7 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
           }
           // 유저 목표 + PR 감지
           let userGoal: string | undefined;
-          try { userGoal = JSON.parse(localStorage.getItem("alpha_fitness_profile") || "{}").goal; } catch {}
+          try { userGoal = JSON.parse(localStorage.getItem("ohunjal_fitness_profile") || "{}").goal; } catch {}
           // PR 감지 (기존 detectMicroPR 재활용)
           const microPR = detectMicroPR(sessionData.exercises, logs, recentHistory, t, locale);
           const prInfo = microPR ? { exerciseName: microPR.subText || "", value: microPR.bigNumber } : null;
@@ -472,7 +472,7 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
           let todayBodyPart: string | undefined;
           let weeklySchedule: string[] | undefined;
           try {
-            const fp = JSON.parse(localStorage.getItem("alpha_fitness_profile") || "{}");
+            const fp = JSON.parse(localStorage.getItem("ohunjal_fitness_profile") || "{}");
             todayBodyPart = fp.lastCondition?.bodyPart;
             weeklySchedule = fp.weeklySchedule;
           } catch {}
@@ -515,7 +515,7 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
           let userHeight: number | undefined;
           let todayBodyPart: string | undefined;
           try {
-            const fp = JSON.parse(localStorage.getItem("alpha_fitness_profile") || "{}");
+            const fp = JSON.parse(localStorage.getItem("ohunjal_fitness_profile") || "{}");
             userGoal = fp.goal || "health";
             userFreq = fp.weeklyFrequency || 3;
             userHeight = fp.height;
@@ -544,11 +544,11 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
                 // 영양 데이터 Firestore 업데이트
                 if (onReportTabsSaved && !sessionDate) {
                   try {
-                    const history = JSON.parse(localStorage.getItem("alpha_workout_history") || "[]");
+                    const history = JSON.parse(localStorage.getItem("ohunjal_workout_history") || "[]");
                     const lastEntry = history[history.length - 1];
                     if (lastEntry?.reportTabs) {
                       lastEntry.reportTabs.nutrition = g;
-                      localStorage.setItem("alpha_workout_history", JSON.stringify(history));
+                      localStorage.setItem("ohunjal_workout_history", JSON.stringify(history));
                       // Firestore도 업데이트
                       import("@/utils/workoutHistory").then(({ updateReportTabs }) => {
                         updateReportTabs(lastEntry.id, lastEntry.reportTabs);
@@ -596,7 +596,7 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
           )}
           {activeReportTab === "today" && (() => {
             let userGoal: string | undefined;
-            try { userGoal = JSON.parse(localStorage.getItem("alpha_fitness_profile") || "{}").goal; } catch {}
+            try { userGoal = JSON.parse(localStorage.getItem("ohunjal_fitness_profile") || "{}").goal; } catch {}
             return (
               <TodayTab
                 sessionCategory={sessionCategory}
@@ -696,7 +696,7 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
 
           const nextWorkout = (() => {
             try {
-              const fp = JSON.parse(localStorage.getItem("alpha_fitness_profile") || "{}");
+              const fp = JSON.parse(localStorage.getItem("ohunjal_fitness_profile") || "{}");
               const schedule = fp.weeklySchedule as string[] | undefined;
               if (!schedule) return undefined;
               const today = new Date().getDay();
@@ -739,12 +739,12 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
                 nextWorkoutName={nextWorkout}
                 logs={logs}
                 exercises={sessionData.exercises}
-                condition={(() => { try { return JSON.parse(localStorage.getItem("alpha_fitness_profile") || "{}").lastCondition; } catch { return undefined; } })()}
+                condition={(() => { try { return JSON.parse(localStorage.getItem("ohunjal_fitness_profile") || "{}").lastCondition; } catch { return undefined; } })()}
                 savedCoachMessages={propCoachMessages || (() => {
                   const match = recentHistory.find(h => h.id && h.coachMessages && h.coachMessages.length > 0 && h.sessionData.exercises.map(e => e.name).join(",") === sessionData.exercises.map(e => e.name).join(","));
                   return match?.coachMessages;
                 })()}
-                onCoachMessagesLoaded={(msgs) => { try { const history = JSON.parse(localStorage.getItem("alpha_workout_history") || "[]") as WorkoutHistory[]; const latest = history[history.length - 1]; if (latest) updateCoachMessages(latest.id, msgs); } catch {} }}
+                onCoachMessagesLoaded={(msgs) => { try { const history = JSON.parse(localStorage.getItem("ohunjal_workout_history") || "[]") as WorkoutHistory[]; const latest = history[history.length - 1]; if (latest) updateCoachMessages(latest.id, msgs); } catch {} }}
                 runningStats={runningStats}
                 hideExpCard={isRunningReport}
               />
@@ -1276,7 +1276,7 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
                 // 4탭 데이터 저장
                 if (onReportTabsSaved && !sessionDate) {
                   try {
-                    const fp = JSON.parse(localStorage.getItem("alpha_fitness_profile") || "{}");
+                    const fp = JSON.parse(localStorage.getItem("ohunjal_fitness_profile") || "{}");
                     const userAge = birthYear ? new Date().getFullYear() - birthYear : 30;
                     const userGoal = fp.goal || "health";
                     // 볼륨 변화
