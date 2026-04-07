@@ -269,6 +269,13 @@ export const TodayTab: React.FC<TodayTabProps> = ({
                   <p className="text-2xl font-black text-[#1B4332]">
                     {latest.toFixed(1)} {graphVerdict && <span className={`text-base ${graphVerdict.color}`}>— {graphVerdict.text}</span>}
                   </p>
+                  <p className="text-[11px] text-gray-400 mt-1 leading-relaxed pb-2">
+                    {graphVerdict?.color === "text-[#2D6A4F]"
+                      ? (ko ? "목표에 맞는 운동량이에요. 이 페이스 유지하세요." : "Right on target. Keep this pace.")
+                      : graphVerdict?.color === "text-amber-600"
+                        ? (ko ? "운동량이 많았어요. 다음엔 좀 가볍게 가도 괜찮아요." : "That was a lot. Going lighter next time is fine.")
+                        : (ko ? "운동량이 적었어요. 쉬는 날엔 괜찮지만 계속되면 아쉬워요." : "Volume was low. OK for rest days, but don't make it a habit.")}
+                  </p>
                 </div>
               </>
             );
