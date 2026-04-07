@@ -427,9 +427,25 @@ export const NutritionTab: React.FC<NutritionTabProps> = ({
                 </p>
               </div>
             </div>
-            <p className="text-[10px] text-gray-400 mt-4 text-center">
-              {isKo ? "ACSM/ISSN 가이드라인 기반" : "Based on ACSM/ISSN guidelines"}
-            </p>
+            <div className="mt-4 pt-3 border-t border-gray-100">
+              <p className="text-[10px] font-bold text-gray-400 mb-2">
+                {isKo ? "출처 및 근거" : "Sources & References"}
+              </p>
+              <div className="space-y-1">
+                <p className="text-[9px] text-gray-400">
+                  {isKo ? "BMR: Mifflin-St Jeor et al. (1990) — 미국임상영양학회지" : "BMR: Mifflin-St Jeor et al. (1990) — Am J Clin Nutr"}
+                </p>
+                <p className="text-[9px] text-gray-400">
+                  {isKo ? "단백질: ISSN Position Stand (2017) — 체중당 1.6~2.2g 권장" : "Protein: ISSN Position Stand (2017) — 1.6-2.2g/kg recommended"}
+                </p>
+                <p className="text-[9px] text-gray-400">
+                  {isKo ? "활동계수: ACSM Guidelines for Exercise Testing (11th ed.)" : "Activity Factor: ACSM Guidelines for Exercise Testing (11th ed.)"}
+                </p>
+                <p className="text-[9px] text-gray-400">
+                  {isKo ? "감량 적자: ACSM/AHA 공동 성명 — 주 0.5~1kg 감량 권장" : "Deficit: ACSM/AHA Joint Statement — 0.5-1kg/week loss recommended"}
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       )}
