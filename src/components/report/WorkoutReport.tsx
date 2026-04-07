@@ -197,6 +197,34 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
   const { t, locale } = useTranslation();
   useEffect(() => { trackEvent("report_view"); }, []);
 
+  // 리포트 열리자마자 reportTabs 저장 (영양 제외 — 영양은 Gemini 응답 후 별도 업데이트)
+  useEffect(() => {
+    if (sessionDate || !onReportTabsSaved) return; // 히스토리 뷰면 저장 안 함
+    try {
+      const fp = JSON.parse(localStorage.getItem("alpha_fitness_profile") || "{}");
+      const m = buildWorkoutMetrics(sessionData.exercises, logs, bodyWeightKg, savedDurationSec);
+      const userGoal = fp.goal || "health";
+      let volChange: number | null = null;
+      const hist = recentHistory;
+      if ((m.sessionCategory === "strength" || m.sessionCategory === "mixed") && m.totalVolume > 0 && hist.length > 0) {
+        const cid = sessionData.exercises.map(e => e.name).join(",");
+        const prev = hist.filter(h => h.sessionData.exercises.map((e: {name:string}) => e.name).join(",") !== cid || h.stats.totalVolume !== m.totalVolume);
+        const last = prev[prev.length - 1];
+        if (last?.stats?.totalVolume) volChange = Math.round(((m.totalVolume - last.stats.totalVolume) / last.stats.totalVolume) * 100);
+      }
+      const met = m.sessionCategory === "cardio" ? 8 : 4.5;
+      const bw = bodyWeightKg ?? 70;
+      const calBurned = Math.round(met * bw * (m.totalDurationSec / 3600));
+      const recoveryH = m.fatigueDrop === null ? "24" : m.fatigueDrop >= 0 ? "12" : m.fatigueDrop > -15 ? "24" : m.fatigueDrop > -25 ? "48" : "48~72";
+      onReportTabsSaved({
+        status: { percentiles: [], overallRank: 0, fitnessAge: 0, ageGroupLabel: "", genderLabel: "" },
+        today: { volumeChangePercent: volChange, caloriesBurned: calBurned, foodAnalogy: "", recoveryHours: recoveryH, stimulusMessage: "" },
+        next: { message: "", recommendedPart: "", recommendedIntensity: "" },
+        nutrition: null,
+      });
+    } catch {}
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const metrics = buildWorkoutMetrics(sessionData.exercises, logs, bodyWeightKg, savedDurationSec);
   const { sessionCategory, totalVolume, bestE1RM, allE1RMs, successRate, fatigueDrop, loadScore, totalDurationSec } = metrics;
   const isStrengthSession = sessionCategory === "strength" || sessionCategory === "mixed";
