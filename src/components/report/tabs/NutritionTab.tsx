@@ -201,6 +201,8 @@ export const NutritionTab: React.FC<NutritionTabProps> = ({
 
   if (!guide) return null;
 
+  const [showCalorieHelp, setShowCalorieHelp] = useState(false);
+
   const totalMacroCal = guide.macros.protein * 4 + guide.macros.carb * 4 + guide.macros.fat * 9;
   const proteinPct = Math.round((guide.macros.protein * 4 / totalMacroCal) * 100);
   const carbPct = Math.round((guide.macros.carb * 4 / totalMacroCal) * 100);
@@ -209,7 +211,10 @@ export const NutritionTab: React.FC<NutritionTabProps> = ({
   return (
     <div className="space-y-4">
       {/* 칼로리 + 목표 */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
+      <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm relative">
+        <button onClick={() => setShowCalorieHelp(true)} className="absolute top-4 right-4 w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center">
+          <span className="text-[11px] font-black text-gray-400">?</span>
+        </button>
         <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1">
           {isKo ? "하루 목표 칼로리" : "Daily Target"}
         </p>
@@ -365,6 +370,67 @@ export const NutritionTab: React.FC<NutritionTabProps> = ({
           ? "일반적인 영양 정보이며 개인 건강 상담을 대체하지 않습니다"
           : "General nutrition information. Not a substitute for professional advice."}
       </p>
+
+      {/* 칼로리 도움말 모달 */}
+      {showCalorieHelp && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40" onClick={() => setShowCalorieHelp(false)}>
+          <div className="bg-white rounded-2xl mx-6 max-w-sm w-full p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base font-black text-[#1B4332]">
+                {isKo ? "칼로리 계산 방법" : "How calories are calculated"}
+              </h3>
+              <button onClick={() => setShowCalorieHelp(false)} className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M10.5 3.5L3.5 10.5M3.5 3.5l7 7" stroke="#666" strokeWidth="2" strokeLinecap="round"/></svg>
+              </button>
+            </div>
+            <div className="space-y-3 text-sm text-gray-600">
+              <div>
+                <p className="font-bold text-[#1B4332] text-xs mb-1">
+                  {isKo ? "1. 기초대사량 (BMR)" : "1. Basal Metabolic Rate (BMR)"}
+                </p>
+                <p className="text-xs leading-relaxed">
+                  {isKo
+                    ? "Mifflin-St Jeor 공식으로 계산해요. 성별, 체중, 키, 나이를 기반으로 아무것도 안 해도 몸이 쓰는 에너지예요."
+                    : "Calculated using the Mifflin-St Jeor formula based on your gender, weight, height, and age."}
+                </p>
+              </div>
+              <div>
+                <p className="font-bold text-[#1B4332] text-xs mb-1">
+                  {isKo ? "2. 활동대사량 (TDEE)" : "2. Total Daily Energy Expenditure (TDEE)"}
+                </p>
+                <p className="text-xs leading-relaxed">
+                  {isKo
+                    ? "BMR에 주간 운동 횟수에 따른 활동계수를 곱해요. 운동을 많이 할수록 하루에 쓰는 칼로리가 높아져요."
+                    : "BMR multiplied by an activity factor based on how often you work out per week."}
+                </p>
+              </div>
+              <div>
+                <p className="font-bold text-[#1B4332] text-xs mb-1">
+                  {isKo ? "3. 목표 반영" : "3. Goal Adjustment"}
+                </p>
+                <p className="text-xs leading-relaxed">
+                  {isKo
+                    ? "감량 목표면 -400kcal, 증량 목표면 +300kcal을 조정해요. 건강/체력 목표는 TDEE를 그대로 유지해요."
+                    : "Fat loss: -400kcal, muscle gain: +300kcal. Health/endurance goals maintain TDEE as is."}
+                </p>
+              </div>
+              <div>
+                <p className="font-bold text-[#1B4332] text-xs mb-1">
+                  {isKo ? "4. 탄단지 배분" : "4. Macro Split"}
+                </p>
+                <p className="text-xs leading-relaxed">
+                  {isKo
+                    ? "단백질은 체중 x 1.6~2.0g (목표별), 지방은 체중 x 0.9g, 나머지를 탄수화물로 채워요."
+                    : "Protein: 1.6-2.0g/kg (by goal), fat: 0.9g/kg, remaining calories from carbs."}
+                </p>
+              </div>
+            </div>
+            <p className="text-[10px] text-gray-400 mt-4 text-center">
+              {isKo ? "ACSM/ISSN 가이드라인 기반" : "Based on ACSM/ISSN guidelines"}
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
