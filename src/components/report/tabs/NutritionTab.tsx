@@ -30,6 +30,10 @@ export interface NutritionTabProps {
     bodyPart?: string;
     estimatedCalories: number;
   };
+  /** 부모에서 캐시된 가이드 (탭 전환 시 리셋 방지) */
+  cachedGuide?: NutritionGuide | null;
+  /** 가이드 로드 완료 시 부모에 전달 */
+  onGuideLoaded?: (guide: NutritionGuide) => void;
 }
 
 async function getIdToken(): Promise<string> {
@@ -42,6 +46,8 @@ async function getIdToken(): Promise<string> {
 export const NutritionTab: React.FC<NutritionTabProps> = ({
   bodyWeightKg,
   heightCm,
+  cachedGuide,
+  onGuideLoaded,
   age,
   gender,
   goal,
@@ -50,8 +56,8 @@ export const NutritionTab: React.FC<NutritionTabProps> = ({
 }) => {
   const { t, locale } = useTranslation();
   const isKo = locale === "ko";
-  const [guide, setGuide] = useState<NutritionGuide | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [guide, setGuide] = useState<NutritionGuide | null>(cachedGuide ?? null);
+  const [loading, setLoading] = useState(!cachedGuide);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
@@ -59,8 +65,9 @@ export const NutritionTab: React.FC<NutritionTabProps> = ({
   const chatEndRef = useRef<HTMLDivElement>(null);
   const MAX_FREE_CHATS = 3;
 
-  // 가이드 로드
+  // 가이드 로드 (캐시 있으면 스킵)
   useEffect(() => {
+    if (cachedGuide) return;
     (async () => {
       try {
         const token = await getIdToken();
@@ -80,6 +87,7 @@ export const NutritionTab: React.FC<NutritionTabProps> = ({
         });
         const data = await res.json();
         setGuide(data);
+        onGuideLoaded?.(data);
       } catch (err) {
         console.error("Nutrition guide fetch failed:", err);
         // 폴백
@@ -104,6 +112,16 @@ export const NutritionTab: React.FC<NutritionTabProps> = ({
                 { time: "Snack", menu: "Protein shake + banana" },
                 { time: "Dinner", menu: "Rice + beef/fish 200g" },
               ],
+          keyTip: isKo ? "단백질만 맞추면 나머지는 유동적으로 OK" : "Hit your protein and the rest is flexible",
+        });
+        // 폴백도 부모에 전달
+        onGuideLoaded?.({
+          dailyCalorie: Math.round(bodyWeightKg * 33),
+          goalBasis: isKo ? "일반 기준" : "General",
+          macros: { protein: Math.round(bodyWeightKg * 1.8), carb: Math.round(bodyWeightKg * 4), fat: Math.round(bodyWeightKg * 0.9) },
+          meals: isKo
+            ? [{ time: "아침", menu: "오트밀 + 계란 3개 + 프로틴" }, { time: "점심", menu: "밥 + 닭가슴살 + 견과류" }, { time: "간식", menu: "프로틴 쉐이크 + 바나나" }, { time: "저녁", menu: "밥 + 소고기/생선 200g" }]
+            : [{ time: "Breakfast", menu: "Oatmeal + 3 eggs + protein" }, { time: "Lunch", menu: "Rice + chicken + nuts" }, { time: "Snack", menu: "Protein shake + banana" }, { time: "Dinner", menu: "Rice + beef/fish 200g" }],
           keyTip: isKo ? "단백질만 맞추면 나머지는 유동적으로 OK" : "Hit your protein and the rest is flexible",
         });
       } finally {
@@ -230,59 +248,89 @@ export const NutritionTab: React.FC<NutritionTabProps> = ({
         </div>
       </div>
 
-      {/* 채팅 영역 */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
-        {chatMessages.length > 0 && (
-          <div className="space-y-3 mb-4 max-h-48 overflow-y-auto">
-            {chatMessages.map((msg, i) => (
-              <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                <div className={`max-w-[80%] rounded-2xl px-3.5 py-2.5 ${
-                  msg.role === "user"
-                    ? "bg-[#1B4332] text-white text-sm"
-                    : "bg-gray-100 text-[#1B4332] text-sm"
-                }`}>
-                  {msg.content}
-                </div>
-              </div>
-            ))}
-            {chatLoading && (
-              <div className="flex justify-start">
-                <div className="bg-gray-100 rounded-2xl px-4 py-3 flex gap-1">
-                  <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "0s" }} />
-                  <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "0.15s" }} />
-                  <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "0.3s" }} />
-                </div>
-              </div>
-            )}
-            <div ref={chatEndRef} />
+      {/* 채팅 영역 — AI 코치챗 스타일 */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        {/* 채팅 헤더 */}
+        <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100">
+          <img src="/favicon_backup.png" alt="AI" className="w-7 h-7 rounded-full shrink-0" />
+          <div>
+            <p className="text-xs font-black text-[#1B4332]">{isKo ? "영양 코치" : "Nutrition Coach"}</p>
+            <p className="text-[9px] text-[#2D6A4F] font-medium">{isKo ? "온라인" : "Online"}</p>
           </div>
-        )}
+          {chatCount > 0 && (
+            <span className="ml-auto text-[9px] text-gray-400 font-medium">{chatCount}/{MAX_FREE_CHATS}</span>
+          )}
+        </div>
 
-        {chatCount < MAX_FREE_CHATS ? (
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={chatInput}
-              onChange={(e) => setChatInput(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && sendChat()}
-              placeholder={isKo ? "궁금한 거 물어보세요" : "Ask anything about nutrition"}
-              className="flex-1 text-sm bg-gray-50 rounded-xl px-4 py-2.5 border border-gray-100 focus:outline-none focus:border-[#2D6A4F] text-[#1B4332] placeholder-gray-400"
-            />
-            <button
-              onClick={sendChat}
-              disabled={!chatInput.trim() || chatLoading}
-              className="px-3 py-2.5 bg-[#1B4332] text-white rounded-xl text-sm font-bold disabled:opacity-40 active:scale-95 transition-all"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-              </svg>
-            </button>
-          </div>
-        ) : (
-          <p className="text-center text-xs text-gray-400 py-2">
-            {isKo ? "무료 질문 3회를 사용했어요" : "You've used 3 free questions"}
-          </p>
-        )}
+        {/* 채팅 메시지 */}
+        <div className="px-4 py-4 bg-gray-50/50 max-h-64 overflow-y-auto">
+          {chatMessages.length === 0 && (
+            <div className="flex gap-2.5">
+              <img src="/favicon_backup.png" alt="AI" className="w-6 h-6 rounded-full shrink-0 mt-0.5" />
+              <div className="bg-white rounded-2xl rounded-tl-md px-3.5 py-2.5 shadow-sm border border-gray-100">
+                <p className="text-xs text-gray-500">
+                  {isKo ? "식단이나 영양에 대해 궁금한 거 물어보세요" : "Ask me anything about your diet or nutrition"}
+                </p>
+              </div>
+            </div>
+          )}
+          {chatMessages.map((msg, i) => (
+            <div key={i} className={`flex gap-2.5 ${msg.role === "user" ? "justify-end" : ""} ${i > 0 ? "mt-3" : ""}`}>
+              {msg.role === "assistant" && (
+                <img src="/favicon_backup.png" alt="AI" className="w-6 h-6 rounded-full shrink-0 mt-0.5" />
+              )}
+              <div className={`max-w-[80%] px-3.5 py-2.5 shadow-sm ${
+                msg.role === "user"
+                  ? "bg-[#1B4332] text-white rounded-2xl rounded-tr-md text-sm"
+                  : "bg-white rounded-2xl rounded-tl-md border border-gray-100 text-[#1B4332] text-sm"
+              }`}>
+                {msg.content}
+              </div>
+            </div>
+          ))}
+          {chatLoading && (
+            <div className="flex gap-2.5 mt-3">
+              <img src="/favicon_backup.png" alt="AI" className="w-6 h-6 rounded-full shrink-0 mt-0.5" />
+              <div className="bg-white rounded-2xl rounded-tl-md px-4 py-3 shadow-sm border border-gray-100">
+                <div className="flex gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: "0ms" }} />
+                  <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: "150ms" }} />
+                  <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: "300ms" }} />
+                </div>
+              </div>
+            </div>
+          )}
+          <div ref={chatEndRef} />
+        </div>
+
+        {/* 입력 영역 */}
+        <div className="px-4 py-3 border-t border-gray-100">
+          {chatCount < MAX_FREE_CHATS ? (
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && sendChat()}
+                placeholder={isKo ? "궁금한 거 물어보세요" : "Ask anything"}
+                className="flex-1 text-sm bg-gray-50 rounded-xl px-4 py-2.5 border border-gray-100 focus:outline-none focus:border-[#2D6A4F] text-[#1B4332] placeholder-gray-400"
+              />
+              <button
+                onClick={sendChat}
+                disabled={!chatInput.trim() || chatLoading}
+                className="w-10 h-10 bg-[#1B4332] text-white rounded-xl flex items-center justify-center disabled:opacity-40 active:scale-95 transition-all shrink-0"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                </svg>
+              </button>
+            </div>
+          ) : (
+            <p className="text-center text-xs text-gray-400 py-1">
+              {isKo ? "무료 질문 3회를 사용했어요" : "You've used 3 free questions"}
+            </p>
+          )}
+        </div>
       </div>
 
       {/* 면책조항 */}

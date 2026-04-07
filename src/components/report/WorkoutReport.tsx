@@ -92,6 +92,8 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
   const [e1rmIndex, setE1rmIndex] = useState(0);
   const [recentHistory, setRecentHistory] = useState<WorkoutHistory[]>(getRecentHistorySync);
   const [activeReportTab, setActiveReportTab] = useState<ReportTabId>("status");
+  // 영양 가이드 캐시 (탭 전환 시 리셋 방지)
+  const [cachedNutritionGuide, setCachedNutritionGuide] = useState<unknown>(null);
 
   const { t, locale } = useTranslation();
   useEffect(() => { trackEvent("report_view"); }, []);
@@ -338,6 +340,8 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
                 bodyPart: todayBodyPart,
                 estimatedCalories: estimatedCal,
               }}
+              cachedGuide={cachedNutritionGuide as Parameters<typeof NutritionTab>[0]["cachedGuide"]}
+              onGuideLoaded={(g) => setCachedNutritionGuide(g)}
             />
           );
         })()}
@@ -396,8 +400,8 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
           );
         })()}
 
-        {/* === 운동 과학 데이터 (펼쳐보기, 웨이트만) === */}
-        {isStrengthSession && (
+        {/* === 운동 과학 데이터 (펼쳐보기, 웨이트만) — 오늘 탭 or 히스토리에서만 === */}
+        {(activeReportTab === "today" || !!sessionDate) && isStrengthSession && (
         <div className="mb-5">
           <button
             onClick={() => setShowDetail(!showDetail)}
@@ -683,8 +687,8 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
         </div>
         </>}
 
-        {/* === Workout Logs (Collapsible) === */}
-        <div className="mb-4">
+        {/* === Workout Logs (Collapsible) — 오늘 탭 or 히스토리에서만 === */}
+        {(activeReportTab === "today" || !!sessionDate) && <div className="mb-4">
           <button
             onClick={() => setShowLogs(!showLogs)}
             className="w-full flex items-center justify-between bg-white rounded-2xl border border-gray-100 p-4 shadow-sm active:scale-[0.99] transition-all"
@@ -860,7 +864,7 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
               })}
             </div>
           )}
-        </div>
+        </div>}
       </div>
 
       {/* Help Card Bottom Sheet */}
