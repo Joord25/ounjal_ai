@@ -502,32 +502,27 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout, auto
         </div>
 
         {/* ── 2. MY INFO (접힘) ── */}
-        {(() => {
-          const missing = [!gender, !birthYear].filter(Boolean).length;
-          return (
-            <>
-              <button
-                onClick={() => setShowBodyInfo(!showBodyInfo)}
-                className="flex items-center justify-between w-full px-2 active:opacity-60"
-              >
-                <div className="flex items-center gap-2">
-                  <p className="text-[11px] font-serif font-medium text-gray-400 uppercase tracking-widest">My Info</p>
-                  {missing > 0 && !showBodyInfo && (
-                    <span className="text-[9px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-full">
-                      {missing}{locale === "ko" ? "개 미설정" : " missing"}
-                    </span>
-                  )}
-                </div>
-                <svg className={`w-4 h-4 text-gray-400 transition-transform ${showBodyInfo ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-            </>
-          );
-        })()}
+        <p className="text-[11px] font-serif font-medium text-gray-400 uppercase tracking-widest px-2">My Info</p>
+        <div className="bg-gray-50 rounded-2xl overflow-hidden">
+          <button
+            onClick={() => setShowBodyInfo(!showBodyInfo)}
+            className="w-full p-5 flex items-center justify-between active:opacity-60"
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-bold text-gray-500">{t("my.gender")}</span>
+              <span className="text-sm font-medium text-gray-900">
+                {gender === "male" ? t("my.gender.male") : gender === "female" ? t("my.gender.female") : t("my.notSet")}
+              </span>
+              {!showBodyInfo && birthYear && <span className="text-sm text-gray-400">· {birthYear}</span>}
+              {!showBodyInfo && height && <span className="text-sm text-gray-400">· {height}cm</span>}
+            </div>
+            <svg className={`w-4 h-4 text-gray-400 transition-transform ${showBodyInfo ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
 
-        {showBodyInfo && (
-        <div className="bg-gray-50 rounded-2xl p-5 flex flex-col gap-3">
+          {showBodyInfo && (
+          <div className="px-5 pb-5 flex flex-col gap-3">
           {/* Gender */}
           <div className="flex justify-between items-center min-h-[32px]">
             <span className="text-sm font-bold text-gray-500">{t("my.gender")}</span>
@@ -695,22 +690,32 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout, auto
           </div>
         </div>
         )}
+        </div>
 
-        {/* ── 3. 환경설정 (접힘) ── */}
-        <button
-          onClick={() => setShowSettings(!showSettings)}
-          className="flex items-center justify-between w-full px-2 active:opacity-60"
-        >
-          <p className="text-[11px] font-serif font-medium text-gray-400 uppercase tracking-widest">{t("my.settings")}</p>
-          <svg className={`w-4 h-4 text-gray-400 transition-transform ${showSettings ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-          </svg>
-        </button>
+        {/* ── 3. 환경설정 (접힘) — Account 스타일 ── */}
+        <p className="text-[11px] font-serif font-medium text-gray-400 uppercase tracking-widest px-2">{t("my.settings")}</p>
+        <div className="bg-gray-50 rounded-2xl overflow-hidden">
+          <button
+            onClick={() => setShowSettings(!showSettings)}
+            className="w-full p-5 flex items-center justify-between active:opacity-60"
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-bold text-gray-500">{t("my.settings.sound")}</span>
+              <span className="text-sm text-gray-400">{soundEnabled ? "ON" : "OFF"}</span>
+              {!showSettings && <>
+                <span className="text-sm text-gray-400">·</span>
+                <span className="text-sm text-gray-400">{t("my.settings.vibration")} {vibrationEnabled ? "ON" : "OFF"}</span>
+              </>}
+            </div>
+            <svg className={`w-4 h-4 text-gray-400 transition-transform ${showSettings ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
 
-        {showSettings && (
-        <div className="bg-gray-50 rounded-2xl p-5 flex flex-col gap-3">
-          <div className="flex justify-between items-center">
-            <span className="text-sm font-bold text-gray-500">{t("my.settings.sound")}</span>
+          {showSettings && (
+          <div className="px-5 pb-5 flex flex-col gap-3">
+            <div className="flex justify-between items-center">
+              <span className="text-sm font-bold text-gray-500">{t("my.settings.sound")}</span>
             <button
               onClick={() => { const next = !soundEnabled; setSoundEnabled(next); localStorage.setItem("alpha_settings_sound", next ? "true" : "false"); }}
               className={`w-11 h-6 rounded-full transition-colors relative ${soundEnabled ? "bg-[#2D6A4F]" : "bg-gray-300"}`}
@@ -745,6 +750,7 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout, auto
           </div>
         </div>
         )}
+        </div>
 
         {/* ── 4. 프리미엄 구독 ── */}
         <button
