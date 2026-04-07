@@ -611,11 +611,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onStartWorkout
               <h3 className="text-[13px] font-black text-[#1B4332] mb-3">{t("home.checklist.title")}</h3>
 
               {/* 오늘 운동하기 */}
-              <button
-                onClick={() => { setCtaPulse(false); onStartWorkout(); }}
-                className="w-full flex items-center gap-3 py-2.5 group"
-              >
-                <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-all ${didWorkoutToday ? "bg-[#2D6A4F] border-[#2D6A4F]" : "border-gray-300 group-active:border-[#2D6A4F]"}`}>
+              <div className="flex items-center gap-3 py-2.5">
+                <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-all ${didWorkoutToday ? "bg-[#2D6A4F] border-[#2D6A4F]" : "border-gray-300"}`}>
                   {didWorkoutToday && (
                     <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2.5 6L5 8.5L9.5 3.5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                   )}
@@ -624,16 +621,12 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onStartWorkout
                   <p className={`text-[14px] font-bold ${didWorkoutToday ? "text-[#2D6A4F]" : "text-[#1B4332]"}`}>
                     {didWorkoutToday ? t("home.checklist.workout.done") : t("home.checklist.workout")}
                   </p>
-                  <p className="text-[11px] text-gray-400 mt-0.5">
-                    {didWorkoutToday ? t("home.coach.oneMore") : coachBubbles[1]}
-                  </p>
+                  {!didWorkoutToday && (
+                    <p className="text-[11px] text-gray-400 mt-0.5">{coachBubbles[1]}</p>
+                  )}
                 </div>
-                <div className={`px-3 py-1.5 rounded-lg ${didWorkoutToday ? "bg-[#2D6A4F]" : "bg-[#1B4332]"} ${!didWorkoutToday && ctaPulse ? "animate-cta-breathe" : ""}`}>
-                  <span className="text-[11px] font-bold text-white">{didWorkoutToday ? t("home.coach.oneMore") : t("home.startWorkout")}</span>
-                </div>
-              </button>
+              </div>
 
-              {/* 구분선 */}
               <div className="h-px bg-gray-100 my-1" />
 
               {/* 오늘 식단 확인 */}
@@ -648,11 +641,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onStartWorkout
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="text-gray-300"><path d="M6 4l4 4-4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
               </button>
 
-              {/* 구분선 */}
               {questSummaryText && (
                 <>
                   <div className="h-px bg-gray-100 my-1" />
-                  {/* 주간 퀘스트 요약 */}
                   <div className="flex items-center gap-3 py-2.5">
                     <div className="w-5 h-5 rounded-md bg-[#2D6A4F]/10 flex items-center justify-center shrink-0">
                       <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1L7.5 4.5L11 5L8.5 7.5L9 11L6 9.5L3 11L3.5 7.5L1 5L4.5 4.5L6 1Z" fill="#2D6A4F"/></svg>
@@ -661,15 +652,15 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onStartWorkout
                   </div>
                 </>
               )}
-            </div>
 
-            {/* CTA 버튼 */}
-            <button
-              onClick={() => { setCtaPulse(false); onStartWorkout(); }}
-              className={`w-full py-4 rounded-2xl bg-[#1B4332] border-2 border-black shadow-[4px_4px_0px_0px_#000000] text-white font-bold text-[16px] flex items-center justify-center gap-2 active:shadow-[1px_1px_0px_0px_#000000] active:translate-x-[3px] active:translate-y-[3px] transition-all mb-4 ${ctaPulse ? "animate-cta-breathe" : ""}`}
-            >
-              {didWorkoutToday ? t("home.coach.oneMore") : t("home.coach.startToday")}
-            </button>
+              {/* CTA 버튼 — 체크리스트 안 하단 */}
+              <button
+                onClick={() => { setCtaPulse(false); onStartWorkout(); }}
+                className={`w-full py-4 mt-3 rounded-2xl bg-[#1B4332] border-2 border-black shadow-[4px_4px_0px_0px_#000000] text-white font-bold text-[16px] flex items-center justify-center gap-2 active:shadow-[1px_1px_0px_0px_#000000] active:translate-x-[3px] active:translate-y-[3px] transition-all ${ctaPulse ? "animate-cta-breathe" : ""}`}
+              >
+                {didWorkoutToday ? t("home.coach.oneMore") : t("home.coach.startToday")}
+              </button>
+            </div>
 
             {/* === 성장 통계 (3 cards) === */}
             <div className="flex gap-3 mb-4">
