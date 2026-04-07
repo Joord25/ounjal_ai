@@ -141,36 +141,38 @@ if (typeof window !== "undefined") {
   }
 }
 
-// 기존 alpha_ 키 → ohunjal_ 키 마이그레이션 (1회성)
-if (typeof window !== "undefined" && !localStorage.getItem("ohunjal_migrated")) {
-  const MIGRATE_KEYS = [
-    "birth_year", "body_weight", "completed_rituals", "fitness_profile",
-    "fitness_reading_done", "fitness_test_history", "gender", "guest_trial_count",
-    "language", "last_upper_type", "plan_count", "prev_weight", "quest_progress",
-    "season_exp", "settings_sound", "settings_vibration", "tip_change_program",
-    "tip_condition", "tip_guide_button", "tip_intro", "weight_log", "workout_history",
-  ];
-  for (const key of MIGRATE_KEYS) {
-    const old = localStorage.getItem(`alpha_${key}`);
-    if (old !== null && localStorage.getItem(`ohunjal_${key}`) === null) {
-      localStorage.setItem(`ohunjal_${key}`, old);
-    }
-  }
-  // 운동별 무게 기록 (alpha_weight_* → ohunjal_weight_*)
-  for (let i = 0; i < localStorage.length; i++) {
-    const k = localStorage.key(i);
-    if (k && k.startsWith("alpha_weight_")) {
-      const newKey = k.replace("alpha_", "ohunjal_");
-      if (localStorage.getItem(newKey) === null) {
-        localStorage.setItem(newKey, localStorage.getItem(k)!);
-      }
-    }
-  }
-  localStorage.setItem("ohunjal_migrated", "1");
-}
+// 마이그레이션은 컴포넌트 내부 useEffect에서 실행
 
 export default function Home() {
   useSafeArea();
+
+  // 기존 alpha_ 키 → ohunjal_ 키 마이그레이션 (1회성
+  useEffect(() => {
+    if (localStorage.getItem("ohunjal_migrated")) return;
+    const MIGRATE_KEYS = [
+      "birth_year", "body_weight", "completed_rituals", "fitness_profile",
+      "fitness_reading_done", "fitness_test_history", "gender", "guest_trial_count",
+      "language", "last_upper_type", "plan_count", "prev_weight", "quest_progress",
+      "season_exp", "settings_sound", "settings_vibration", "tip_change_program",
+      "tip_condition", "tip_guide_button", "tip_intro", "weight_log", "workout_history",
+    ];
+    for (const key of MIGRATE_KEYS) {
+      const old = localStorage.getItem(`alpha_${key}`);
+      if (old !== null && localStorage.getItem(`ohunjal_${key}`) === null) {
+        localStorage.setItem(`ohunjal_${key}`, old);
+      }
+    }
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith("alpha_weight_")) {
+        const newKey = k.replace("alpha_", "ohunjal_");
+        if (localStorage.getItem(newKey) === null) {
+          localStorage.setItem(newKey, localStorage.getItem(k)!);
+        }
+      }
+    }
+    localStorage.setItem("ohunjal_migrated", "1");
+  }, []);
 
   const locale = typeof window !== "undefined" ? (localStorage.getItem("ohunjal_language") || "ko") : "ko";
   const [activeTab, setActiveTab] = useState<TabId>("home");
