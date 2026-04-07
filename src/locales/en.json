@@ -878,7 +878,7 @@
   "onboarding.back": "Back",
   "onboarding.welcome.title": "Hi {name}!",
   "onboarding.welcome.desc1": "Your coach prepared a few questions\nto give you the best help possible",
-  "onboarding.welcome.desc2": "The more honest you are,\nthe better we can help!",
+  "onboarding.welcome.desc2": "",
   "onboarding.welcome.cta": "Get Started",
   "onboarding.gender.title": "What's your gender?",
   "onboarding.gender.sub": "Workouts are tailored to your gender",
