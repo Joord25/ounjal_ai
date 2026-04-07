@@ -157,10 +157,10 @@ export const Onboarding: React.FC<OnboardingProps> = ({ userName, onComplete }) 
               {t("onboarding.welcome.title", { name: displayName })}
             </h1>
             <div className={`text-center mb-12 transition-all duration-700 delay-[400ms] ${welcomeVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}>
-              <p className="text-gray-500 text-base font-medium leading-relaxed">
+              <p className="text-gray-500 text-base font-medium leading-relaxed whitespace-pre-line">
                 {t("onboarding.welcome.desc1")}
               </p>
-              <p className="text-gray-500 text-base font-medium leading-relaxed mt-0.5">
+              <p className="text-gray-500 text-base font-medium leading-relaxed whitespace-pre-line mt-3">
                 {t("onboarding.welcome.desc2")}
               </p>
             </div>
