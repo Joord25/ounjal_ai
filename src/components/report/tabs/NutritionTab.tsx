@@ -34,6 +34,14 @@ export interface NutritionTabProps {
   cachedGuide?: NutritionGuide | null;
   /** 가이드 로드 완료 시 부모에 전달 */
   onGuideLoaded?: (guide: NutritionGuide) => void;
+  /** 유료 회원 여부 (채팅 무제한) */
+  isPremium?: boolean;
+  /** 읽기 전용 모드 (히스토리 뷰) */
+  readOnly?: boolean;
+  /** 히스토리에서 저장된 채팅 기록 */
+  savedChatHistory?: ChatMessage[];
+  /** 채팅 변경 시 부모에 전달 (저장용) */
+  onChatHistoryChange?: (messages: ChatMessage[]) => void;
 }
 
 async function getIdToken(): Promise<string> {
@@ -48,6 +56,10 @@ export const NutritionTab: React.FC<NutritionTabProps> = ({
   heightCm,
   cachedGuide,
   onGuideLoaded,
+  isPremium,
+  readOnly,
+  savedChatHistory,
+  onChatHistoryChange,
   age,
   gender,
   goal,
@@ -58,7 +70,7 @@ export const NutritionTab: React.FC<NutritionTabProps> = ({
   const isKo = locale === "ko";
   const [guide, setGuide] = useState<NutritionGuide | null>(cachedGuide ?? null);
   const [loading, setLoading] = useState(!cachedGuide);
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>(savedChatHistory ?? []);
   const [chatInput, setChatInput] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
   const [chatCount, setChatCount] = useState(0);
@@ -132,7 +144,7 @@ export const NutritionTab: React.FC<NutritionTabProps> = ({
 
   // 채팅 보내기
   const sendChat = async () => {
-    if (!chatInput.trim() || chatLoading || chatCount >= MAX_FREE_CHATS) return;
+    if (!chatInput.trim() || chatLoading || (!isPremium && chatCount >= MAX_FREE_CHATS)) return;
     const question = chatInput.trim();
     setChatInput("");
     setChatMessages((prev) => [...prev, { role: "user", content: question }]);
@@ -158,9 +170,17 @@ export const NutritionTab: React.FC<NutritionTabProps> = ({
         }),
       });
       const data = await res.json();
-      setChatMessages((prev) => [...prev, { role: "assistant", content: data.answer }]);
+      setChatMessages((prev) => {
+        const updated = [...prev, { role: "assistant" as const, content: data.answer }];
+        onChatHistoryChange?.(updated);
+        return updated;
+      });
     } catch {
-      setChatMessages((prev) => [...prev, { role: "assistant", content: isKo ? "잠시 후 다시 시도해주세요" : "Please try again" }]);
+      setChatMessages((prev) => {
+        const updated = [...prev, { role: "assistant" as const, content: isKo ? "잠시 후 다시 시도해주세요" : "Please try again" }];
+        onChatHistoryChange?.(updated);
+        return updated;
+      });
     } finally {
       setChatLoading(false);
       setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
@@ -257,7 +277,7 @@ export const NutritionTab: React.FC<NutritionTabProps> = ({
             <p className="text-xs font-black text-[#1B4332]">{isKo ? "AI 코치" : "AI Coach"}</p>
             <p className="text-[9px] text-[#2D6A4F] font-medium">{isKo ? "온라인" : "Online"}</p>
           </div>
-          {chatCount > 0 && (
+          {chatCount > 0 && !isPremium && (
             <span className="ml-auto text-[9px] text-gray-400 font-medium">{chatCount}/{MAX_FREE_CHATS}</span>
           )}
         </div>
@@ -305,7 +325,13 @@ export const NutritionTab: React.FC<NutritionTabProps> = ({
 
         {/* 입력 영역 */}
         <div className="px-4 py-3 border-t border-gray-100">
-          {chatCount < MAX_FREE_CHATS ? (
+          {readOnly ? (
+            chatMessages.length === 0 ? null : (
+              <p className="text-center text-[10px] text-gray-400 py-1">
+                {isKo ? "저장된 대화 기록이에요" : "Saved chat history"}
+              </p>
+            )
+          ) : (isPremium || chatCount < MAX_FREE_CHATS) ? (
             <div className="flex gap-2">
               <input
                 type="text"

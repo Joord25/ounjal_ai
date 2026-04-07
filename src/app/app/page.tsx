@@ -705,6 +705,16 @@ export default function Home() {
             precomputedExpGained={lastExpGained}
             precomputedPrevExp={lastPrevExp}
             runningStats={currentRunningStats ?? undefined}
+            isPremium={subStatus === "active"}
+            onReportTabsSaved={(tabs) => {
+              try {
+                const history = JSON.parse(localStorage.getItem("alpha_workout_history") || "[]");
+                if (history.length > 0) {
+                  history[history.length - 1].reportTabs = tabs;
+                  localStorage.setItem("alpha_workout_history", JSON.stringify(history));
+                }
+              } catch {}
+            }}
             onClose={() => {
               // 운동 완료 상태 해제 → HOME 복귀 시 리포트 재표시 방지
               const newCompleted = completedRitualIds.filter(id => id !== "workout");

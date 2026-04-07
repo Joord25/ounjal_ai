@@ -131,6 +131,11 @@ interface WorkoutReportProps {
   precomputedPrevExp?: number;
   savedCoachMessages?: string[];
   runningStats?: RunningStats;  // 회의 41: 러닝 세션 전용
+  isPremium?: boolean;  // 회의 37: 유료 회원 여부 (영양 채팅 무제한)
+  /** 히스토리에서 열 때 저장된 4탭 데이터 */
+  savedReportTabs?: WorkoutHistory["reportTabs"];
+  /** 4탭 데이터 저장 콜백 */
+  onReportTabsSaved?: (tabs: NonNullable<WorkoutHistory["reportTabs"]>) => void;
 }
 
 // Sync load of recent history from localStorage (initial render), then async update from Firestore
@@ -171,6 +176,9 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
   precomputedPrevExp,
   savedCoachMessages: propCoachMessages,
   runningStats,
+  isPremium,
+  savedReportTabs,
+  onReportTabsSaved,
 }) => {
   const analysis = initialAnalysis;
   const [showLogs, setShowLogs] = useState(false);
@@ -184,6 +192,7 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
   const [activeReportTab, setActiveReportTab] = useState<ReportTabId>("status");
   // 영양 가이드 캐시 (탭 전환 시 리셋 방지)
   const [cachedNutritionGuide, setCachedNutritionGuide] = useState<unknown>(null);
+  const [cachedChatHistory, setCachedChatHistory] = useState<{ role: "user" | "assistant"; content: string }[]>([]);
 
   const { t, locale } = useTranslation();
   useEffect(() => { trackEvent("report_view"); }, []);
@@ -432,13 +441,77 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
               }}
               cachedGuide={cachedNutritionGuide as Parameters<typeof NutritionTab>[0]["cachedGuide"]}
               onGuideLoaded={(g) => setCachedNutritionGuide(g)}
+              isPremium={isPremium}
+              onChatHistoryChange={(msgs) => setCachedChatHistory(msgs)}
             />
           );
         })()}
         </>}
 
-        {/* === 히스토리 뷰: 기존 RPG 결과 (코치+히어로+EXP) === */}
-        {!!sessionDate && (() => {
+        {/* === 히스토리 뷰: savedReportTabs 있으면 4탭, 없으면 기존 RPG === */}
+        {!!sessionDate && !!savedReportTabs && <>
+          {/* 4탭 네비게이션 (히스토리 — 저장된 데이터) */}
+          <div className="flex bg-white rounded-2xl border border-gray-100 p-1 mb-5 shadow-sm">
+            {(["status", "today", "next", "nutrition"] as ReportTabId[]).map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveReportTab(tab)}
+                className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                  activeReportTab === tab
+                    ? "bg-[#1B4332] text-white shadow-sm"
+                    : "text-gray-400 active:bg-gray-50"
+                }`}
+              >
+                {t(`report.tab.${tab}`)}
+              </button>
+            ))}
+          </div>
+          {activeReportTab === "status" && (
+            <StatusTab
+              exercises={sessionData.exercises}
+              logs={logs}
+              recentHistory={recentHistory}
+              bodyWeightKg={bodyWeightKg ?? 70}
+              gender={gender ?? "male"}
+              age={birthYear ? new Date().getFullYear() - birthYear : 30}
+            />
+          )}
+          {activeReportTab === "today" && (
+            <TodayTab
+              sessionCategory={sessionCategory}
+              totalVolume={totalVolume}
+              volumeChangePercent={savedReportTabs.today.volumeChangePercent}
+              bodyWeightKg={bodyWeightKg}
+              totalDurationSec={totalDurationSec}
+              fatigueDrop={fatigueDrop}
+              isRunning={sessionData.exercises.some(e => e.type === "cardio")}
+            />
+          )}
+          {activeReportTab === "next" && savedReportTabs.next && (
+            <NextTab
+              todayBodyPart={undefined}
+              sessionCategory={sessionCategory}
+              fatigueDrop={fatigueDrop}
+              recentHistory={recentHistory}
+              streak={0}
+              totalVolume={totalVolume}
+            />
+          )}
+          {activeReportTab === "nutrition" && savedReportTabs.nutrition && (
+            <NutritionTab
+              bodyWeightKg={bodyWeightKg ?? 70}
+              age={birthYear ? new Date().getFullYear() - birthYear : 30}
+              gender={gender ?? "male"}
+              goal="health"
+              weeklyFrequency={3}
+              todaySession={{ type: sessionCategory, durationMin: Math.round(totalDurationSec / 60), estimatedCalories: 0 }}
+              cachedGuide={savedReportTabs.nutrition}
+              readOnly={true}
+              savedChatHistory={savedReportTabs.nutrition.chatHistory}
+            />
+          )}
+        </>}
+        {!!sessionDate && !savedReportTabs && (() => {
           const seasonState = getOrRebuildSeasonExp(recentHistory, birthYear, gender);
           const expGained: ExpLogEntry[] = [];
           const prevExp = seasonState.totalExp;
@@ -1070,7 +1143,39 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
               {t("report.btn.share")}
             </button>
             <button
-              onClick={() => { setCloseAfterShare(true); setShowShare(true); }}
+              onClick={() => {
+                // 4탭 데이터 저장
+                if (onReportTabsSaved && !sessionDate) {
+                  try {
+                    const fp = JSON.parse(localStorage.getItem("alpha_fitness_profile") || "{}");
+                    const userAge = birthYear ? new Date().getFullYear() - birthYear : 30;
+                    const userGoal = fp.goal || "health";
+                    // 볼륨 변화
+                    let volChange: number | null = null;
+                    if (isStrengthSession && totalVolume > 0 && recentHistory.length > 0) {
+                      const cid = sessionData.exercises.map(e => e.name).join(",");
+                      const prev = recentHistory.filter(h => h.sessionData.exercises.map((e: {name:string}) => e.name).join(",") !== cid || h.stats.totalVolume !== totalVolume);
+                      const last = prev[prev.length - 1];
+                      if (last?.stats?.totalVolume) volChange = Math.round(((totalVolume - last.stats.totalVolume) / last.stats.totalVolume) * 100);
+                    }
+                    const met = sessionCategory === "cardio" ? 8 : 4.5;
+                    const bw = bodyWeightKg ?? 70;
+                    const calBurned = Math.round(met * bw * (totalDurationSec / 3600));
+                    const recoveryH = fatigueDrop === null ? "24" : fatigueDrop >= 0 ? "12" : fatigueDrop > -15 ? "24" : fatigueDrop > -25 ? "48" : "48~72";
+                    const nutritionData = cachedNutritionGuide ? {
+                      ...(cachedNutritionGuide as { dailyCalorie: number; goalBasis: string; macros: { protein: number; carb: number; fat: number }; meals: { time: string; menu: string }[]; keyTip: string }),
+                      chatHistory: cachedChatHistory.length > 0 ? cachedChatHistory : undefined,
+                    } : null;
+                    onReportTabsSaved({
+                      status: { percentiles: [], overallRank: 0, fitnessAge: userAge, ageGroupLabel: "", genderLabel: "" },
+                      today: { volumeChangePercent: volChange, caloriesBurned: calBurned, foodAnalogy: "", recoveryHours: recoveryH, stimulusMessage: "" },
+                      next: { message: "", recommendedPart: "", recommendedIntensity: "" },
+                      nutrition: nutritionData,
+                    });
+                  } catch {}
+                }
+                setCloseAfterShare(true); setShowShare(true);
+              }}
               className="flex-1 py-3 rounded-2xl bg-[#1B4332] text-white font-bold text-base shadow-xl shadow-[#1B4332]/20 active:scale-95 transition-all"
             >
               {t("report.btn.complete")}

@@ -103,6 +103,37 @@ export interface WorkoutHistory {
   analysis?: WorkoutAnalysis;
   coachMessages?: string[];
   runningStats?: RunningStats;     // 회의 41: 러닝 세션만 설정
+  /** 회의 37: 4탭 리포트 데이터 */
+  reportTabs?: {
+    status: {
+      percentiles: { category: string; rank: number; percentile: number; hasData: boolean }[];
+      overallRank: number;
+      fitnessAge: number;
+      ageGroupLabel: string;
+      genderLabel: string;
+    };
+    today: {
+      volumeChangePercent: number | null;
+      caloriesBurned: number;
+      foodAnalogy: string;
+      recoveryHours: string;
+      stimulusMessage: string;
+    };
+    next: {
+      message: string;
+      recommendedPart: string;
+      recommendedIntensity: string;
+      scheduleEntry?: { dayLabel: string; workout: string };
+    };
+    nutrition: {
+      dailyCalorie: number;
+      goalBasis: string;
+      macros: { protein: number; carb: number; fat: number };
+      meals: { time: string; menu: string }[];
+      keyTip: string;
+      chatHistory?: { role: "user" | "assistant"; content: string }[];
+    } | null;
+  };
 }
 
 export interface UserCondition {
