@@ -347,33 +347,7 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
         })()}
         </>}
 
-        {/* === 스트릭 뱃지 (회의 37 — 상단 유지) === */}
-        {(() => {
-          const streak = (() => {
-            if (recentHistory.length === 0) return 1; // 오늘 포함
-            let count = 0;
-            const today = new Date(); today.setHours(0, 0, 0, 0);
-            const dayMs = 24 * 60 * 60 * 1000;
-            for (let i = 0; ; i++) {
-              const checkDate = new Date(today.getTime() - i * dayMs);
-              if (recentHistory.some(h => new Date(h.date).toDateString() === checkDate.toDateString())) { count++; }
-              else if (i === 0) { count++; continue; }
-              else break;
-            }
-            return count;
-          })();
-          if (streak < 2) return null;
-          return (
-            <div className="flex items-center justify-center gap-1.5 mb-4">
-              <svg className="w-4 h-4 text-amber-500" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" />
-              </svg>
-              <span className="text-xs font-black text-amber-600">
-                {streak}{locale === "ko" ? "일 연속" : " day streak"}
-              </span>
-            </div>
-          );
-        })()}
+        {/* 스트릭 뱃지 — 디자인 미확정, 대표님 확인 후 재추가 */}
 
         {/* === 러닝 세션 전용 본문 (유지) === */}
         {(() => {
