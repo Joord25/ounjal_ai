@@ -315,7 +315,7 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
           {(["status", "today", "next", "nutrition"] as ReportTabId[]).map((tab) => (
             <button
               key={tab}
-              onClick={() => setActiveReportTab(tab)}
+              onClick={() => { setActiveReportTab(tab); setShowDetail(false); setShowLogs(false); }}
               className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all ${
                 activeReportTab === tab
                   ? "bg-[#1B4332] text-white shadow-sm"
@@ -369,6 +369,8 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
               totalDurationSec={totalDurationSec}
               savedDurationSec={savedDurationSec}
               fatigueDrop={fatigueDrop}
+              totalSets={metrics.totalSets}
+              totalReps={metrics.totalReps}
             />
           );
         })()}
@@ -454,7 +456,7 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
             {(["status", "today", "next", "nutrition"] as ReportTabId[]).map((tab) => (
               <button
                 key={tab}
-                onClick={() => setActiveReportTab(tab)}
+                onClick={() => { setActiveReportTab(tab); setShowDetail(false); setShowLogs(false); }}
                 className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all ${
                   activeReportTab === tab
                     ? "bg-[#1B4332] text-white shadow-sm"
@@ -484,6 +486,8 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
               totalDurationSec={totalDurationSec}
               savedDurationSec={savedDurationSec}
               fatigueDrop={fatigueDrop}
+              totalSets={metrics.totalSets}
+              totalReps={metrics.totalReps}
             />
           )}
           {activeReportTab === "next" && savedReportTabs.next && (
