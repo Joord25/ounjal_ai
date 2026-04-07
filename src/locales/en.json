@@ -890,10 +890,8 @@
   "onboarding.weight.sub": "Recommended weights adjust to your body",
   "onboarding.goal.title": "What change do you want to make?",
   "onboarding.goal.subtitle": "Knowing your goal helps us help you better",
-  "onboarding.done.title": "All set, {name}!",
-  "onboarding.done.cta": "Start First Workout",
-  "onboarding.done.fat_loss": "We'll design workouts focused on fat management",
-  "onboarding.done.muscle_gain": "We'll build a program focused on strength growth",
-  "onboarding.done.endurance": "We'll help you build a solid fitness foundation",
-  "onboarding.done.health": "We'll support your consistent health routine"
+  "onboarding.done.thanks": "Thanks for sharing, {name}",
+  "onboarding.done.goalMsg": "I'll help you based on your info\nand your {goal} goal!",
+  "onboarding.done.credential": "Trained on ACSM/NSCA guidelines\nand 200+ latest research papers\nI'll make sure you get the best results!",
+  "onboarding.done.cta": "Start First Workout"
 }

@@ -877,7 +877,7 @@
 
   "onboarding.back": "이전",
   "onboarding.welcome.title": "{name}님, 반가워요!",
-  "onboarding.welcome.desc1": "진짜 내 운동을 시작할 시간!\n가볍게 답하고 나만의 핏을 찾아보세요",
+  "onboarding.welcome.desc1": "진짜 내 운동을 시작할 시간!\n가볍게 답해서 나만의 핏을 찾아보세요",
   "onboarding.welcome.desc2": "",
   "onboarding.welcome.cta": "시작하기",
   "onboarding.gender.title": "성별이 어떻게 되세요?",
@@ -890,10 +890,8 @@
   "onboarding.weight.sub": "오늘 무게에 맞는 추천 중량이 바뀌어요",
   "onboarding.goal.title": "어떤 변화를 만들고 싶으세요?",
   "onboarding.goal.subtitle": "목표를 알면 더 잘 도와드릴 수 있어요",
-  "onboarding.done.title": "{name}님, 준비 완료!",
-  "onboarding.done.cta": "첫 운동 시작하기",
-  "onboarding.done.fat_loss": "체지방 관리에 맞춘 운동을 설계해드릴게요",
-  "onboarding.done.muscle_gain": "근력 성장에 집중한 프로그램을 만들어드릴게요",
-  "onboarding.done.endurance": "기초 체력부터 탄탄하게 잡아드릴게요",
-  "onboarding.done.health": "꾸준한 건강 관리를 도와드릴게요"
+  "onboarding.done.thanks": "{name}님, 답변 감사해요",
+  "onboarding.done.goalMsg": "주신 정보와 {goal} 목적에 맞게\n제가 도와드릴게요!",
+  "onboarding.done.credential": "ACSM/NSCA 기반 운동 가이드라인과\n200+ 최신 논문으로 학습했으니\n트렌드에 맞게 확실하게 도와드릴게요!",
+  "onboarding.done.cta": "첫 운동 시작하기"
 }

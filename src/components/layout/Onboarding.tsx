@@ -309,12 +309,17 @@ export const Onboarding: React.FC<OnboardingProps> = ({ userName, onComplete }) 
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h1 className="text-2xl font-black text-[#1B4332] text-center mb-3">
-            {t("onboarding.done.title", { name: displayName })}
+          <h1 className="text-xl font-black text-[#1B4332] text-center mb-2">
+            {t("onboarding.done.thanks", { name: displayName })}
           </h1>
-          <p className="text-gray-500 text-sm text-center leading-relaxed mb-10">
-            {t(GOAL_OPTIONS.find(o => o.value === selectedGoal)!.descKey)}
+          <p className="text-gray-600 text-sm text-center leading-relaxed mb-6">
+            {t("onboarding.done.goalMsg", { goal: t(GOAL_OPTIONS.find(o => o.value === selectedGoal)!.key) })}
           </p>
+          <div className="bg-gray-50 rounded-2xl p-5 w-full mb-8">
+            <p className="text-[#1B4332] text-sm text-center leading-relaxed font-medium whitespace-pre-line">
+              {t("onboarding.done.credential")}
+            </p>
+          </div>
           <button
             onClick={onComplete}
             className="w-full py-4 rounded-2xl font-bold text-white bg-[#2D6A4F] active:scale-95 transition-all"
