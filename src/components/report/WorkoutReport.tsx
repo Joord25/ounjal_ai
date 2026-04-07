@@ -222,6 +222,38 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
         next: { message: "", recommendedPart: "", recommendedIntensity: "" },
         nutrition: null,
       });
+
+      // 영양 가이드 백그라운드 프리로드 (유저가 영양 탭 안 열어도 저장)
+      (async () => {
+        try {
+          const { getAuth } = await import("firebase/auth");
+          const user = getAuth().currentUser;
+          if (!user) return;
+          const token = await user.getIdToken();
+          const durationMin = Math.round(m.totalDurationSec / 60);
+          const userAge = birthYear ? new Date().getFullYear() - birthYear : 30;
+          const res = await fetch("/api/getNutritionGuide", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            body: JSON.stringify({
+              locale, bodyWeightKg: bw, heightCm: fp.height, age: userAge,
+              gender: gender ?? "male", goal: userGoal, weeklyFrequency: fp.weeklyFrequency || 3,
+              todaySession: { type: m.sessionCategory, durationMin, estimatedCalories: calBurned },
+            }),
+          });
+          const nutritionData = await res.json();
+          setCachedNutritionGuide(nutritionData);
+          // Firestore 업데이트
+          const history = JSON.parse(localStorage.getItem("alpha_workout_history") || "[]");
+          const lastEntry = history[history.length - 1];
+          if (lastEntry?.reportTabs) {
+            lastEntry.reportTabs.nutrition = nutritionData;
+            localStorage.setItem("alpha_workout_history", JSON.stringify(history));
+            const { updateReportTabs } = await import("@/utils/workoutHistory");
+            updateReportTabs(lastEntry.id, lastEntry.reportTabs);
+          }
+        } catch {}
+      })();
     } catch {}
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
