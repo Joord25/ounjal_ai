@@ -214,7 +214,7 @@ export const ShareCard: React.FC<ShareCardProps> = ({
   );
 
   return (
-    <div className="fixed inset-0 z-[100] bg-black/90 flex flex-col items-center justify-center animate-fade-in" style={{ padding: "env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px) 0" }}>
+    <div className="absolute inset-0 z-[100] bg-black/90 flex flex-col items-center animate-fade-in" style={{ padding: "max(1rem, env(safe-area-inset-top, 0px)) 0 max(1rem, env(safe-area-inset-bottom, 0px)) 0" }}>
       {/* Close */}
       <button onClick={onClose} className="absolute top-4 right-4 z-10 w-10 h-10 flex items-center justify-center" style={{ top: "max(1rem, env(safe-area-inset-top, 0px))" }}>
         <svg className="w-6 h-6 text-white/70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -527,7 +527,7 @@ export const ShareCard: React.FC<ShareCardProps> = ({
       </div>
 
       {/* Action buttons */}
-      <div className="flex items-center gap-5 mt-5">
+      <div className="flex items-center gap-5 mt-4 shrink-0 mb-4">
         <button onClick={handleDownload} disabled={isCapturing} className="flex flex-col items-center gap-1.5 opacity-80 hover:opacity-100 transition-opacity">
           <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center">
             <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
