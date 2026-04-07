@@ -110,11 +110,11 @@ export const WheelPicker: React.FC<WheelPickerProps> = ({
 
       {/* Selection highlight */}
       <div
-        className="absolute left-1/2 -translate-x-1/2 bg-gray-100 rounded-2xl pointer-events-none"
+        className="absolute left-1/2 -translate-x-1/2 border-2 border-gray-200 rounded-xl pointer-events-none"
         style={{
-          width: 140,
-          height: itemHeight + 16,
-          top: centerOffset - 8,
+          width: 120,
+          height: itemHeight + 8,
+          top: centerOffset - 4,
         }}
       />
     </div>
