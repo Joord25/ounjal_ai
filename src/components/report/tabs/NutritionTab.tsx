@@ -74,6 +74,7 @@ export const NutritionTab: React.FC<NutritionTabProps> = ({
   const [chatInput, setChatInput] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
   const [chatCount, setChatCount] = useState(0);
+  const [showCalorieHelp, setShowCalorieHelp] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const MAX_FREE_CHATS = 3;
 
@@ -189,19 +190,20 @@ export const NutritionTab: React.FC<NutritionTabProps> = ({
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-16">
+      <div className="flex flex-col items-center justify-center py-16 gap-4">
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 bg-[#2D6A4F] rounded-full animate-bounce" style={{ animationDelay: "0s" }} />
           <div className="w-2 h-2 bg-[#2D6A4F] rounded-full animate-bounce" style={{ animationDelay: "0.15s" }} />
           <div className="w-2 h-2 bg-[#2D6A4F] rounded-full animate-bounce" style={{ animationDelay: "0.3s" }} />
         </div>
+        <p className="text-sm text-gray-400 font-medium">
+          {isKo ? "맞춤 영양 가이드를 준비하고 있어요" : "Preparing your nutrition guide"}
+        </p>
       </div>
     );
   }
 
   if (!guide) return null;
-
-  const [showCalorieHelp, setShowCalorieHelp] = useState(false);
 
   const totalMacroCal = guide.macros.protein * 4 + guide.macros.carb * 4 + guide.macros.fat * 9;
   const proteinPct = Math.round((guide.macros.protein * 4 / totalMacroCal) * 100);
