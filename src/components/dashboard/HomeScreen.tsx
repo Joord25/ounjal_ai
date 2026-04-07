@@ -612,7 +612,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onStartWorkout
 
               {/* 오늘 운동하기 */}
               <button
-                onClick={() => { if (!didWorkoutToday) { setCtaPulse(false); onStartWorkout(); } }}
+                onClick={() => { setCtaPulse(false); onStartWorkout(); }}
                 className="w-full flex items-center gap-3 py-2.5 group"
               >
                 <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-all ${didWorkoutToday ? "bg-[#2D6A4F] border-[#2D6A4F]" : "border-gray-300 group-active:border-[#2D6A4F]"}`}>
@@ -621,18 +621,16 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onStartWorkout
                   )}
                 </div>
                 <div className="flex-1 text-left">
-                  <p className={`text-[14px] font-bold ${didWorkoutToday ? "text-[#2D6A4F] line-through" : "text-[#1B4332]"}`}>
+                  <p className={`text-[14px] font-bold ${didWorkoutToday ? "text-[#2D6A4F]" : "text-[#1B4332]"}`}>
                     {didWorkoutToday ? t("home.checklist.workout.done") : t("home.checklist.workout")}
                   </p>
-                  {!didWorkoutToday && (
-                    <p className="text-[11px] text-gray-400 mt-0.5">{coachBubbles[1]}</p>
-                  )}
+                  <p className="text-[11px] text-gray-400 mt-0.5">
+                    {didWorkoutToday ? t("home.coach.oneMore") : coachBubbles[1]}
+                  </p>
                 </div>
-                {!didWorkoutToday && (
-                  <div className={`px-3 py-1.5 rounded-lg bg-[#1B4332] ${ctaPulse ? "animate-cta-breathe" : ""}`}>
-                    <span className="text-[11px] font-bold text-white">{t("home.startWorkout")}</span>
-                  </div>
-                )}
+                <div className={`px-3 py-1.5 rounded-lg ${didWorkoutToday ? "bg-[#2D6A4F]" : "bg-[#1B4332]"} ${!didWorkoutToday && ctaPulse ? "animate-cta-breathe" : ""}`}>
+                  <span className="text-[11px] font-bold text-white">{didWorkoutToday ? t("home.coach.oneMore") : t("home.startWorkout")}</span>
+                </div>
               </button>
 
               {/* 구분선 */}
