@@ -58,8 +58,17 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onStartWorkout
 
   // 내부 탭 상태
   const [homeTab, setHomeTab] = useState<"home" | "nutrition">("home");
-  // 영양 가이드 캐시 (탭 전환 시 리셋 방지)
-  const [cachedNutritionGuide, setCachedNutritionGuide] = useState<Record<string, unknown> | null>(null);
+  // 영양 가이드 캐시 (탭/화면 전환 시 리셋 방지 — localStorage 영속)
+  const [cachedNutritionGuide, setCachedNutritionGuide] = useState<Record<string, unknown> | null>(() => {
+    try {
+      const cached = localStorage.getItem("ohunjal_nutrition_cache");
+      if (!cached) return null;
+      const { data, date } = JSON.parse(cached);
+      // 당일 캐시만 사용
+      if (date === new Date().toDateString()) return data;
+    } catch {}
+    return null;
+  });
 
   // 퀘스트 라벨 번역 헬퍼
   const tq = (label: string) => {
@@ -796,7 +805,10 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onStartWorkout
             todaySession={todaySession}
             isPremium={isPremium}
             cachedGuide={cachedNutritionGuide as never}
-            onGuideLoaded={(g) => setCachedNutritionGuide(g as never)}
+            onGuideLoaded={(g) => {
+              setCachedNutritionGuide(g as never);
+              try { localStorage.setItem("ohunjal_nutrition_cache", JSON.stringify({ data: g, date: new Date().toDateString() })); } catch {}
+            }}
           />
         )}
       </div>
