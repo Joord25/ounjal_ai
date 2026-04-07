@@ -7,6 +7,7 @@ import { getIntensityRecommendation, type IntensityLevel } from "@/utils/workout
 import { CoachTooltip } from "./Tutorial";
 import { trackEvent } from "@/utils/analytics";
 import { useTranslation } from "@/hooks/useTranslation";
+import { WheelPicker } from "@/components/layout/WheelPicker";
 
 export interface SessionSelection {
   goal: WorkoutGoal;
@@ -36,6 +37,11 @@ export const ConditionCheck: React.FC<ConditionCheckProps> = ({ onComplete, onBa
   const [bodyWeight, setBodyWeight] = useState<string>(() => {
     if (isGuest || typeof window === "undefined") return "";
     return localStorage.getItem("ohunjal_body_weight") || "";
+  });
+  const [bodyWeightNum, setBodyWeightNum] = useState<number>(() => {
+    if (isGuest || typeof window === "undefined") return 70;
+    const v = parseInt(localStorage.getItem("ohunjal_body_weight") || "");
+    return !isNaN(v) && v > 0 ? v : 70;
   });
   const [gender, setGender] = useState<"male" | "female" | null>(() => {
     if (isGuest || typeof window === "undefined") return null;
@@ -259,42 +265,27 @@ export const ConditionCheck: React.FC<ConditionCheckProps> = ({ onComplete, onBa
                     />
                   </div>
                 </div>
-                <div className="bg-white rounded-2xl border-2 border-gray-100 p-5 animate-card-enter" style={{ animationDelay: "0.15s", animationFillMode: "forwards" }}>
-                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] mb-3">{t("condition.weight")}</p>
-                  <div className="flex items-end justify-center gap-1">
-                    <input
-                      type="number"
-                      inputMode="decimal"
-                      value={bodyWeight}
-                      onChange={(e) => setBodyWeight(e.target.value)}
-                      min={20}
-                      max={300}
-                      placeholder="70"
-                      className="w-full text-center text-3xl font-black text-[#1B4332] bg-transparent border-b-2 border-[#2D6A4F] outline-none pb-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                    />
-                    <span className="text-sm font-bold text-gray-400 pb-2">kg</span>
-                  </div>
+                <div className="animate-card-enter" style={{ animationDelay: "0.15s", animationFillMode: "forwards" }}>
+                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] mb-3 text-center">{t("condition.weight")}</p>
+                  <WheelPicker
+                    values={Array.from({ length: 131 }, (_, i) => 30 + i)}
+                    selected={bodyWeightNum}
+                    onChange={(v) => { setBodyWeightNum(v); setBodyWeight(String(v)); }}
+                    suffix="kg"
+                  />
                 </div>
               </>
             ) : (
               /* 재방문: "어제랑 같아요" 원탭 + 변경 옵션 */
               showWeightEdit ? (
-                <div className="bg-white rounded-2xl border-2 border-gray-100 p-5 animate-card-enter" style={{ animationDelay: "0.05s", animationFillMode: "forwards" }}>
-                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] mb-3">{t("condition.weight.edit")}</p>
-                  <div className="flex items-end justify-center gap-2">
-                    <input
-                      type="number"
-                      inputMode="decimal"
-                      value={bodyWeight}
-                      onChange={(e) => setBodyWeight(e.target.value)}
-                      min={20}
-                      max={300}
-                      placeholder="70"
-                      autoFocus
-                      className="w-32 text-center text-4xl font-black text-[#1B4332] bg-transparent border-b-2 border-[#2D6A4F] outline-none pb-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                    />
-                    <span className="text-lg font-bold text-gray-400 pb-2">kg</span>
-                  </div>
+                <div className="animate-card-enter" style={{ animationDelay: "0.05s", animationFillMode: "forwards" }}>
+                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] mb-3 text-center">{t("condition.weight.edit")}</p>
+                  <WheelPicker
+                    values={Array.from({ length: 131 }, (_, i) => 30 + i)}
+                    selected={bodyWeightNum}
+                    onChange={(v) => { setBodyWeightNum(v); setBodyWeight(String(v)); }}
+                    suffix="kg"
+                  />
                 </div>
               ) : (
                 <button
