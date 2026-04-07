@@ -2,8 +2,8 @@
  * ACSM/NSCA 기반 연령·성별별 퍼센타일 기준표
  * BW(체중) 대비 1RM 비율로 퍼센타일 산출
  *
- * 카테고리: 가슴(chest), 등(back), 어깨(shoulder), 하체(legs), 체력(cardio)
- * 종합(overall)은 5개 가중 평균으로 산출
+ * 카테고리: 가슴(chest), 등(back), 어깨(shoulder), 하체(legs), 코어(core), 체력(cardio)
+ * 종합(overall)은 6개 가중 평균으로 산출
  */
 
 // 연령대 구간
@@ -36,36 +36,42 @@ const PERCENTILE_TABLE: PercentileTable = {
       back: [0.45, 0.55, 0.65, 0.75, 0.85, 0.95, 1.05, 1.15, 1.30],
       shoulder: [0.25, 0.32, 0.38, 0.44, 0.50, 0.56, 0.62, 0.70, 0.80],
       legs: [0.55, 0.70, 0.85, 1.00, 1.10, 1.25, 1.40, 1.55, 1.80],
+      core: [0.20, 0.28, 0.35, 0.42, 0.48, 0.55, 0.62, 0.70, 0.82],
     },
     "20s": {
       chest: [0.50, 0.60, 0.72, 0.82, 0.92, 1.05, 1.15, 1.30, 1.50],
       back: [0.55, 0.65, 0.78, 0.88, 1.00, 1.12, 1.25, 1.40, 1.60],
       shoulder: [0.30, 0.38, 0.44, 0.50, 0.56, 0.62, 0.70, 0.80, 0.92],
       legs: [0.70, 0.85, 1.00, 1.15, 1.30, 1.45, 1.60, 1.80, 2.10],
+      core: [0.25, 0.32, 0.40, 0.48, 0.55, 0.65, 0.72, 0.82, 0.95],
     },
     "30s": {
       chest: [0.45, 0.55, 0.68, 0.78, 0.90, 1.00, 1.12, 1.25, 1.45],
       back: [0.50, 0.62, 0.75, 0.85, 0.95, 1.08, 1.20, 1.35, 1.55],
       shoulder: [0.28, 0.35, 0.42, 0.48, 0.54, 0.60, 0.68, 0.78, 0.90],
       legs: [0.65, 0.80, 0.95, 1.10, 1.25, 1.40, 1.55, 1.72, 2.00],
+      core: [0.22, 0.30, 0.38, 0.45, 0.52, 0.60, 0.68, 0.78, 0.90],
     },
     "40s": {
       chest: [0.40, 0.50, 0.62, 0.72, 0.82, 0.92, 1.02, 1.15, 1.35],
       back: [0.45, 0.58, 0.70, 0.80, 0.90, 1.00, 1.12, 1.25, 1.45],
       shoulder: [0.25, 0.32, 0.38, 0.44, 0.50, 0.56, 0.64, 0.72, 0.85],
       legs: [0.58, 0.72, 0.85, 1.00, 1.12, 1.28, 1.42, 1.58, 1.85],
+      core: [0.20, 0.28, 0.35, 0.42, 0.48, 0.55, 0.62, 0.70, 0.82],
     },
     "50s": {
       chest: [0.35, 0.45, 0.55, 0.65, 0.75, 0.85, 0.95, 1.05, 1.25],
       back: [0.40, 0.52, 0.62, 0.72, 0.82, 0.92, 1.04, 1.18, 1.38],
       shoulder: [0.22, 0.28, 0.35, 0.40, 0.46, 0.52, 0.58, 0.66, 0.78],
       legs: [0.50, 0.65, 0.78, 0.90, 1.02, 1.15, 1.30, 1.45, 1.70],
+      core: [0.18, 0.25, 0.32, 0.38, 0.44, 0.50, 0.56, 0.64, 0.75],
     },
     "60plus": {
       chest: [0.28, 0.38, 0.48, 0.56, 0.65, 0.75, 0.85, 0.95, 1.12],
       back: [0.35, 0.45, 0.55, 0.65, 0.75, 0.85, 0.95, 1.08, 1.25],
       shoulder: [0.18, 0.24, 0.30, 0.35, 0.40, 0.46, 0.52, 0.60, 0.70],
       legs: [0.42, 0.55, 0.68, 0.80, 0.92, 1.05, 1.18, 1.32, 1.55],
+      core: [0.15, 0.22, 0.28, 0.34, 0.40, 0.46, 0.52, 0.58, 0.68],
     },
   },
   female: {
@@ -74,41 +80,47 @@ const PERCENTILE_TABLE: PercentileTable = {
       back: [0.25, 0.32, 0.40, 0.48, 0.55, 0.62, 0.70, 0.78, 0.90],
       shoulder: [0.15, 0.20, 0.25, 0.30, 0.34, 0.38, 0.42, 0.48, 0.55],
       legs: [0.35, 0.45, 0.55, 0.65, 0.75, 0.85, 0.95, 1.08, 1.25],
+      core: [0.12, 0.18, 0.22, 0.28, 0.32, 0.38, 0.42, 0.48, 0.58],
     },
     "20s": {
       chest: [0.28, 0.35, 0.42, 0.50, 0.58, 0.65, 0.72, 0.82, 0.95],
       back: [0.32, 0.40, 0.48, 0.55, 0.65, 0.72, 0.80, 0.90, 1.05],
       shoulder: [0.18, 0.24, 0.30, 0.35, 0.40, 0.45, 0.50, 0.56, 0.65],
       legs: [0.45, 0.55, 0.68, 0.80, 0.90, 1.00, 1.12, 1.28, 1.50],
+      core: [0.15, 0.20, 0.26, 0.32, 0.38, 0.44, 0.50, 0.58, 0.68],
     },
     "30s": {
       chest: [0.25, 0.32, 0.40, 0.48, 0.55, 0.62, 0.70, 0.78, 0.92],
       back: [0.30, 0.38, 0.45, 0.52, 0.60, 0.68, 0.76, 0.86, 1.00],
       shoulder: [0.16, 0.22, 0.28, 0.32, 0.38, 0.42, 0.48, 0.54, 0.62],
       legs: [0.40, 0.52, 0.62, 0.74, 0.85, 0.95, 1.08, 1.22, 1.42],
+      core: [0.14, 0.18, 0.24, 0.30, 0.35, 0.42, 0.48, 0.55, 0.65],
     },
     "40s": {
       chest: [0.22, 0.30, 0.36, 0.44, 0.50, 0.58, 0.65, 0.72, 0.85],
       back: [0.28, 0.35, 0.42, 0.48, 0.56, 0.64, 0.72, 0.80, 0.92],
       shoulder: [0.14, 0.20, 0.25, 0.30, 0.35, 0.40, 0.45, 0.50, 0.58],
       legs: [0.35, 0.48, 0.58, 0.68, 0.78, 0.88, 1.00, 1.12, 1.32],
+      core: [0.12, 0.16, 0.22, 0.28, 0.32, 0.38, 0.44, 0.50, 0.60],
     },
     "50s": {
       chest: [0.20, 0.26, 0.32, 0.40, 0.46, 0.52, 0.58, 0.66, 0.78],
       back: [0.25, 0.32, 0.38, 0.44, 0.52, 0.58, 0.66, 0.74, 0.85],
       shoulder: [0.12, 0.18, 0.22, 0.26, 0.32, 0.36, 0.40, 0.46, 0.54],
       legs: [0.30, 0.42, 0.52, 0.62, 0.72, 0.82, 0.92, 1.05, 1.22],
+      core: [0.10, 0.14, 0.20, 0.25, 0.30, 0.35, 0.40, 0.46, 0.55],
     },
     "60plus": {
       chest: [0.16, 0.22, 0.28, 0.34, 0.40, 0.46, 0.52, 0.58, 0.70],
       back: [0.20, 0.28, 0.34, 0.40, 0.46, 0.52, 0.58, 0.66, 0.78],
       shoulder: [0.10, 0.14, 0.18, 0.22, 0.28, 0.32, 0.36, 0.40, 0.48],
       legs: [0.25, 0.35, 0.45, 0.55, 0.65, 0.75, 0.85, 0.95, 1.10],
+      core: [0.08, 0.12, 0.16, 0.22, 0.26, 0.32, 0.36, 0.42, 0.50],
     },
   },
 };
 
-export type FitnessCategory = "chest" | "back" | "shoulder" | "legs" | "cardio";
+export type FitnessCategory = "chest" | "back" | "shoulder" | "legs" | "cardio" | "core";
 
 /** 운동명 → 카테고리 매핑 */
 const EXERCISE_CATEGORY_MAP: Record<string, FitnessCategory> = {};
@@ -119,6 +131,14 @@ const EXERCISE_CATEGORY_MAP: Record<string, FitnessCategory> = {};
  "Barbell Bench Press", "Dumbbell Bench Press", "Incline Bench Press", "Incline Dumbbell Press",
  "Decline Bench Press", "Chest Press", "Cable Crossover", "Pec Deck Fly", "Dumbbell Fly",
  "Push Up", "Push-Up", "Dips", "스미스 벤치 프레스", "Smith Bench Press",
+ "웨이티드 푸쉬업", "니 푸쉬업", "다이아몬드 푸쉬업", "와이드 푸쉬업", "아처 푸쉬업", "힌두 푸쉬업",
+ "케틀벨 플로어 프레스", "인클라인 바벨 프레스", "중량 딥스", "랜드마인 프레스", "덤벨 플로어 프레스",
+ "트라이셉 로프 푸쉬다운", "스컬 크러셔", "케이블 푸쉬 다운", "트라이셉스 킥백", "트라이셉스 딥스",
+ "바텀스업 케틀벨 프레스",
+ "Weighted Push-Up", "Knee Push-Up", "Diamond Push-Up", "Wide Push-Up", "Archer Push-Up",
+ "Hindu Push-Up", "Kettlebell Floor Press", "Incline Barbell Press", "Weighted Dips",
+ "Landmine Press", "Dumbbell Floor Press", "Tricep Rope Pushdown", "Skullcrushers",
+ "Cable Pushdown", "Tricep Kickback", "Tricep Dips", "Bottoms-Up Kettlebell Press",
 ].forEach(name => EXERCISE_CATEGORY_MAP[name] = "chest");
 
 // 등 (back)
@@ -127,6 +147,12 @@ const EXERCISE_CATEGORY_MAP: Record<string, FitnessCategory> = {};
  "Barbell Row", "Dumbbell Row", "Pull Up", "Pull-Up", "Lat Pulldown", "Seated Row",
  "Cable Row", "T-Bar Row", "Pendlay Row", "One Arm Dumbbell Row", "Chin Up", "Chin-Up",
  "Inverted Row", "스미스 로우", "Smith Row",
+ "바벨 컬", "해머 컬", "덤벨 컬", "인클라인 덤벨 컬", "케이블 바이셉 컬", "덤벨 프리쳐 컬",
+ "TRX 바이셉스 컬", "밴드 풀 어파트", "바벨 슈러그", "케이블 페이스 풀", "밴드 페이스 풀",
+ "어시스티드 풀업", "시티드 케이블 로우",
+ "Barbell Curl", "Hammer Curl", "Dumbbell Curl", "Incline Dumbbell Curl", "Cable Bicep Curl",
+ "Dumbbell Preacher Curl", "TRX Biceps Curl", "Band Pull-Apart", "Barbell Shrug",
+ "Cable Face Pull", "Band Face Pull", "Assisted Pull-Up", "Seated Cable Row",
 ].forEach(name => EXERCISE_CATEGORY_MAP[name] = "back");
 
 // 어깨 (shoulder)
@@ -150,7 +176,22 @@ const EXERCISE_CATEGORY_MAP: Record<string, FitnessCategory> = {};
  "Calf Raise", "Glute Bridge", "Step Up",
  "스미스 스쿼트", "Smith Squat", "해킹 스쿼트", "Hack Squat",
  "케틀벨 스윙", "Kettlebell Swing",
+ "케이블 풀 스루", "덤벨 쓰러스터", "스텝업",
+ "Cable Pull-Through", "Dumbbell Thruster", "Step-Up",
 ].forEach(name => EXERCISE_CATEGORY_MAP[name] = "legs");
+
+// 코어 (core)
+["플랭크", "사이드 플랭크", "웨이티드 플랭크", "러시안 트위스트", "버드 독",
+ "행잉 니 레이즈", "행잉 레그 레이즈", "Ab 휠 롤아웃", "바벨 롤아웃",
+ "케이블 우드찹", "크런치", "바이시클 크런치", "오블리크 크런치", "리버스 크런치",
+ "마운틴 클라이머", "시저 킥", "토 터치 크런치", "플러터 킥", "케이블 크런치",
+ "덤벨 사이드 벤드", "브이 업", "Ab 슬라이드", "슈퍼맨 동작",
+ "Plank", "Side Plank", "Weighted Plank", "Russian Twist", "Bird Dog",
+ "Hanging Knee Raise", "Hanging Leg Raise", "Ab Wheel Rollout", "Barbell Rollout",
+ "Cable Woodchop", "Crunch", "Bicycle Crunch", "Oblique Crunch", "Reverse Crunch",
+ "Mountain Climber", "Scissor Kick", "Toe Touch Crunch", "Flutter Kick", "Cable Crunch",
+ "Dumbbell Side Bend", "V-Up", "Ab Slide", "Superman",
+].forEach(name => EXERCISE_CATEGORY_MAP[name] = "core");
 
 /** 운동명으로 카테고리 찾기 (부분 매칭 지원) */
 export function getExerciseCategory(exerciseName: string): FitnessCategory | null {
@@ -163,6 +204,7 @@ export function getExerciseCategory(exerciseName: string): FitnessCategory | nul
   if (lower.includes("row") || lower.includes("로우") || lower.includes("pull up") || lower.includes("풀업") || lower.includes("pulldown") || lower.includes("풀다운") || lower.includes("턱걸이") || lower.includes("chin")) return "back";
   if (lower.includes("shoulder") || lower.includes("어깨") || lower.includes("overhead") || lower.includes("오버헤드") || lower.includes("military") || lower.includes("밀리터리") || lower.includes("lateral") || lower.includes("레터럴") || lower.includes("숄더")) return "shoulder";
   if (lower.includes("squat") || lower.includes("스쿼트") || lower.includes("deadlift") || lower.includes("데드") || lower.includes("leg") || lower.includes("레그") || lower.includes("lunge") || lower.includes("런지") || lower.includes("하체") || lower.includes("hip") || lower.includes("힙") || lower.includes("calf") || lower.includes("카프")) return "legs";
+  if (lower.includes("plank") || lower.includes("플랭크") || lower.includes("crunch") || lower.includes("크런치") || lower.includes("ab ") || lower.includes("코어") || lower.includes("core")) return "core";
 
   return null;
 }
@@ -204,6 +246,9 @@ function isBodyweightExercise(name: string): boolean {
     "스텝 업", "step up", "런지", "lunge", "워킹 런지", "walking lunge",
     "불가리안 스플릿 스쿼트", "bulgarian split squat",
     "어시스티드 풀업", "assisted pull up", "assisted pull-up",
+    "플랭크", "plank", "크런치", "crunch", "브이 업", "v-up",
+    "마운틴 클라이머", "mountain climber", "시저 킥", "scissor kick",
+    "플러터 킥", "flutter kick", "버드 독", "bird dog", "슈퍼맨", "superman",
   ].some(kw => lower.includes(kw));
 }
 
@@ -293,7 +338,7 @@ export function bwRatioToPercentile(
 /** 종합 퍼센타일 (가중 평균) */
 export function computeOverallPercentile(categories: CategoryPercentile[]): number {
   const weights: Record<FitnessCategory, number> = {
-    chest: 20, back: 20, shoulder: 15, legs: 30, cardio: 15,
+    chest: 18, back: 18, shoulder: 12, legs: 25, core: 12, cardio: 15,
   };
   let weightedSum = 0;
   let totalWeight = 0;

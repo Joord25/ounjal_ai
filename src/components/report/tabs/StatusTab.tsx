@@ -31,10 +31,11 @@ const CATEGORY_LABELS: Record<FitnessCategory, { ko: string; en: string }> = {
   back: { ko: "등", en: "Back" },
   shoulder: { ko: "어깨", en: "Shoulder" },
   legs: { ko: "하체", en: "Legs" },
+  core: { ko: "코어", en: "Core" },
   cardio: { ko: "체력", en: "Cardio" },
 };
 
-const CATEGORIES: FitnessCategory[] = ["chest", "back", "shoulder", "legs", "cardio"];
+const CATEGORIES: FitnessCategory[] = ["chest", "back", "shoulder", "legs", "core", "cardio"];
 
 /** [나] 탭 — 육각형 레이더 + 피트니스 나이 (회의 37) */
 export const StatusTab: React.FC<StatusTabProps> = ({
@@ -85,23 +86,14 @@ export const StatusTab: React.FC<StatusTabProps> = ({
   // 데이터가 하나라도 있는지
   const hasAnyData = categoryPercentiles.some((c) => c.hasData);
 
-  // 육각형 축 데이터 (5개 + 종합 = 6)
-  const hexAxes: HexagonAxis[] = [
-    ...categoryPercentiles.map((cp) => ({
-      label: isKo ? CATEGORY_LABELS[cp.category].ko : CATEGORY_LABELS[cp.category].en,
-      value: cp.hasData ? cp.percentile : 0,
-      rankText: cp.hasData
-        ? `${cp.rank}${isKo ? "등" : "th"}`
-        : (isKo ? "-" : "-"),
-    })),
-    {
-      label: isKo ? "종합" : "Overall",
-      value: hasAnyData ? overallPercentile : 0,
-      rankText: hasAnyData
-        ? `${overallRank}${isKo ? "등" : "th"}`
-        : "-",
-    },
-  ];
+  // 육각형 축 데이터 (6개 카테고리)
+  const hexAxes: HexagonAxis[] = categoryPercentiles.map((cp) => ({
+    label: isKo ? CATEGORY_LABELS[cp.category].ko : CATEGORY_LABELS[cp.category].en,
+    value: cp.hasData ? cp.percentile : 0,
+    rankText: cp.hasData
+      ? `${cp.rank}${isKo ? "등" : "th"}`
+      : (isKo ? "-" : "-"),
+  }));
 
   const ageGroupLabel = getAgeGroupLabel(age, locale);
   const genderLabel = isKo ? (gender === "male" ? "남성" : "여성") : (gender === "male" ? "men" : "women");

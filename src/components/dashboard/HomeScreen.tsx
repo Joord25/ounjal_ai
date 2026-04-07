@@ -46,10 +46,11 @@ const CATEGORY_LABELS: Record<FitnessCategory, { ko: string; en: string }> = {
   back: { ko: "등", en: "Back" },
   shoulder: { ko: "어깨", en: "Shoulder" },
   legs: { ko: "하체", en: "Legs" },
+  core: { ko: "코어", en: "Core" },
   cardio: { ko: "체력", en: "Cardio" },
 };
 
-const CATEGORIES: FitnessCategory[] = ["chest", "back", "shoulder", "legs", "cardio"];
+const CATEGORIES: FitnessCategory[] = ["chest", "back", "shoulder", "legs", "core", "cardio"];
 
 
 export const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onStartWorkout, onShowPrediction, isPremium, isLoggedIn }) => {
@@ -424,18 +425,11 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onStartWorkout
     const ageDiff = age - fitnessAge;
     const hasAnyData = categoryPercentiles.some((c) => c.hasData);
 
-    const hexAxes: HexagonAxis[] = [
-      ...categoryPercentiles.map((cp) => ({
-        label: locale === "ko" ? CATEGORY_LABELS[cp.category].ko : CATEGORY_LABELS[cp.category].en,
-        value: cp.hasData ? cp.percentile : 0,
-        rankText: cp.hasData ? `${cp.rank}${locale === "ko" ? "등" : "th"}` : "-",
-      })),
-      {
-        label: locale === "ko" ? "종합" : "Overall",
-        value: hasAnyData ? overallPercentile : 0,
-        rankText: hasAnyData ? `${overallRank}${locale === "ko" ? "등" : "th"}` : "-",
-      },
-    ];
+    const hexAxes: HexagonAxis[] = categoryPercentiles.map((cp) => ({
+      label: locale === "ko" ? CATEGORY_LABELS[cp.category].ko : CATEGORY_LABELS[cp.category].en,
+      value: cp.hasData ? cp.percentile : 0,
+      rankText: cp.hasData ? `${cp.rank}${locale === "ko" ? "등" : "th"}` : "-",
+    }));
 
     const ageGroupLabel = getAgeGroupLabel(age, locale);
     const genderLabel = locale === "ko" ? (gender === "male" ? "남성" : "여성") : (gender === "male" ? "men" : "women");

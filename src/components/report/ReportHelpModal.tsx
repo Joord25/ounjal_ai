@@ -207,18 +207,19 @@ export const ReportHelpModal: React.FC<ReportHelpModalProps> = ({ helpCard, onCl
                   <div className="space-y-1.5 text-[12px]">
                     <p>{locale === "ko" ? "1. 운동별 최고 기록(E1RM)을 체중 대비 비율로 변환" : "1. Convert your best lifts (E1RM) to body weight ratio"}</p>
                     <p>{locale === "ko" ? "2. 연령/성별별 퍼센타일표에서 당신의 위치 산출" : "2. Find your percentile in age/gender reference tables"}</p>
-                    <p>{locale === "ko" ? "3. 5개 카테고리(가슴/등/어깨/하체/체력) 가중 평균" : "3. Weighted average of 5 categories (chest/back/shoulder/legs/cardio)"}</p>
+                    <p>{locale === "ko" ? "3. 6개 카테고리(가슴/등/어깨/하체/코어/체력) 가중 평균" : "3. Weighted average of 6 categories (chest/back/shoulder/legs/core/cardio)"}</p>
                     <p>{locale === "ko" ? "4. 종합 퍼센타일을 전 연령대에 대입해 피트니스 나이 역산" : "4. Map overall percentile across all age groups to find fitness age"}</p>
                   </div>
                 </div>
                 <div className="bg-gray-50 rounded-xl p-3 space-y-2">
                   <p className="text-[11px] font-bold text-gray-500">{locale === "ko" ? "카테고리별 가중치" : "Category Weights"}</p>
                   <div className="space-y-1 text-[12px]">
-                    <div className="flex justify-between"><span>{locale === "ko" ? "하체" : "Legs"}</span><span className="font-bold">30%</span></div>
-                    <div className="flex justify-between"><span>{locale === "ko" ? "가슴" : "Chest"}</span><span className="font-bold">20%</span></div>
-                    <div className="flex justify-between"><span>{locale === "ko" ? "등" : "Back"}</span><span className="font-bold">20%</span></div>
-                    <div className="flex justify-between"><span>{locale === "ko" ? "어깨" : "Shoulder"}</span><span className="font-bold">15%</span></div>
+                    <div className="flex justify-between"><span>{locale === "ko" ? "하체" : "Legs"}</span><span className="font-bold">25%</span></div>
+                    <div className="flex justify-between"><span>{locale === "ko" ? "가슴" : "Chest"}</span><span className="font-bold">18%</span></div>
+                    <div className="flex justify-between"><span>{locale === "ko" ? "등" : "Back"}</span><span className="font-bold">18%</span></div>
                     <div className="flex justify-between"><span>{locale === "ko" ? "체력" : "Cardio"}</span><span className="font-bold">15%</span></div>
+                    <div className="flex justify-between"><span>{locale === "ko" ? "어깨" : "Shoulder"}</span><span className="font-bold">12%</span></div>
+                    <div className="flex justify-between"><span>{locale === "ko" ? "코어" : "Core"}</span><span className="font-bold">12%</span></div>
                   </div>
                 </div>
                 <div className="bg-gray-50 rounded-xl p-3 space-y-2">
@@ -253,7 +254,7 @@ export const ReportHelpModal: React.FC<ReportHelpModalProps> = ({ helpCard, onCl
                   <div className="space-y-1.5 text-[12px]">
                     <p>{locale === "ko" ? "가슴 25등 = 같은 또래 남성 중 상위 25%" : "Chest 25th = Top 25% among peers"}</p>
                     <p>{locale === "ko" ? "등 88등 = 같은 또래 남성 중 하위 88% (아직 성장 중)" : "Back 88th = Bottom 88% (still growing)"}</p>
-                    <p>{locale === "ko" ? "종합 = 5개 카테고리의 가중 평균 (하체30/가슴20/등20/어깨15/체력15)" : "Overall = weighted avg of 5 categories (legs30/chest20/back20/shoulder15/cardio15)"}</p>
+                    <p>{locale === "ko" ? "종합 = 6개 카테고리의 가중 평균 (하체25/가슴18/등18/체력15/어깨12/코어12)" : "Overall = weighted avg of 6 categories (legs25/chest18/back18/cardio15/shoulder12/core12)"}</p>
                   </div>
                 </div>
                 <div className="bg-gray-50 rounded-xl p-3 space-y-2">
@@ -263,6 +264,7 @@ export const ReportHelpModal: React.FC<ReportHelpModalProps> = ({ helpCard, onCl
                     <p>{locale === "ko" ? "등: 로우, 풀업, 랫풀다운 등" : "Back: Row, Pull-up, Lat Pulldown, etc."}</p>
                     <p>{locale === "ko" ? "어깨: 오버헤드프레스, 숄더프레스 등" : "Shoulder: Overhead Press, Shoulder Press, etc."}</p>
                     <p>{locale === "ko" ? "하체: 스쿼트, 데드리프트, 레그프레스 등" : "Legs: Squat, Deadlift, Leg Press, etc."}</p>
+                    <p>{locale === "ko" ? "코어: 플랭크, 크런치, 행잉 레그 레이즈 등" : "Core: Plank, Crunch, Hanging Leg Raise, etc."}</p>
                     <p>{locale === "ko" ? "체력: 러닝 기록 기반 (데이터 있을 때)" : "Cardio: Based on running data (when available)"}</p>
                   </div>
                 </div>
