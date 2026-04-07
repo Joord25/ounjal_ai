@@ -252,19 +252,20 @@ export const NextTab: React.FC<NextTabProps> = ({
     const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() + mondayOffset);
     monday.setHours(0, 0, 0, 0);
 
-    // 이번 주 운동한 날 + 부위
-    const thisWeekSessions: { dayIdx: number; dayLabel: string; desc: string }[] = [];
+    // 이번 주 운동한 날 + 부위 + 강도
+    const thisWeekSessions: { dayIdx: number; dayLabel: string; desc: string; intensity?: string }[] = [];
     for (const h of recentHistory) {
       const d = new Date(h.date);
       if (d >= monday && d <= now) {
-        const idx = d.getDay() === 0 ? 6 : d.getDay() - 1; // Mon-indexed
+        const idx = d.getDay() === 0 ? 6 : d.getDay() - 1;
         const desc = h.sessionData.description || h.sessionData.title || "";
         const partLabel = desc.split("·")[0]?.trim() || (ko ? "운동" : "Workout");
-        thisWeekSessions.push({
-          dayIdx: idx,
-          dayLabel: ko ? DAY_KO[idx] : DAY_EN[idx],
-          desc: partLabel,
-        });
+        let intensity = "";
+        if (h.logs && h.sessionData?.exercises) {
+          const lvl = classifySessionIntensity(h.sessionData.exercises, h.logs).level;
+          intensity = lvl === "high" ? (ko ? "고강도" : "High") : lvl === "moderate" ? (ko ? "중강도" : "Mod") : (ko ? "저강도" : "Low");
+        }
+        thisWeekSessions.push({ dayIdx: idx, dayLabel: ko ? DAY_KO[idx] : DAY_EN[idx], desc: partLabel, intensity });
       }
     }
     // 오늘도 포함
@@ -272,7 +273,12 @@ export const NextTab: React.FC<NextTabProps> = ({
     const todayDesc = sessionDesc?.split("·")[0]?.trim() || (ko ? "운동" : "Workout");
     const todayAlready = thisWeekSessions.some(s => s.dayIdx === todayIdx);
     if (!todayAlready) {
-      thisWeekSessions.push({ dayIdx: todayIdx, dayLabel: ko ? DAY_KO[todayIdx] : DAY_EN[todayIdx], desc: todayDesc });
+      let todayIntensityLabel = "";
+      if (exercises && logs) {
+        const lvl = classifySessionIntensity(exercises as Parameters<typeof classifySessionIntensity>[0], logs as Parameters<typeof classifySessionIntensity>[1]).level;
+        todayIntensityLabel = lvl === "high" ? (ko ? "고강도" : "High") : lvl === "moderate" ? (ko ? "중강도" : "Mod") : (ko ? "저강도" : "Low");
+      }
+      thisWeekSessions.push({ dayIdx: todayIdx, dayLabel: ko ? DAY_KO[todayIdx] : DAY_EN[todayIdx], desc: todayDesc, intensity: todayIntensityLabel });
     }
 
     // 주간 빈도
@@ -393,13 +399,27 @@ export const NextTab: React.FC<NextTabProps> = ({
             </div>
           ))}
         </div>
-        {/* 이번 주 운동 이력 */}
+        {/* 이번 주 운동 기록 */}
         {weekSummary.sessions.length > 0 && <>
           <div className="h-px bg-gray-100 my-3" />
+          <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-2">
+            {ko ? "이번 주 기록" : "This Week"}
+          </p>
           {weekSummary.sessions.map((s, i) => (
-            <div key={i} className="flex items-center justify-between py-0.5">
+            <div key={i} className="flex items-center justify-between py-1">
               <span className="text-xs font-bold text-[#1B4332]">{s.dayLabel}</span>
-              <span className="text-xs text-gray-500">{s.desc}</span>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-500">{s.desc}</span>
+                {s.intensity && (
+                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
+                    s.intensity.includes("고") || s.intensity === "High" ? "bg-red-50 text-red-500"
+                    : s.intensity.includes("중") || s.intensity === "Mod" ? "bg-amber-50 text-amber-600"
+                    : "bg-blue-50 text-blue-500"
+                  }`}>
+                    {s.intensity}
+                  </span>
+                )}
+              </div>
             </div>
           ))}
         </>}
