@@ -224,6 +224,15 @@ export const ReportHelpModal: React.FC<ReportHelpModalProps> = ({ helpCard, onCl
                     <p>{locale === "ko" ? "머신 운동은 프리웨이트 대비 0.7~0.75 보정 적용" : "Machine exercises adjusted by 0.7-0.75 vs free weights"}</p>
                   </div>
                 </div>
+                <div className="bg-gray-50 rounded-xl p-3 space-y-2">
+                  <p className="text-[11px] font-bold text-gray-500">{locale === "ko" ? "100명 중 등수란?" : "What does ranking mean?"}</p>
+                  <div className="space-y-1.5 text-[12px]">
+                    <p>{locale === "ko" ? "같은 연령대/성별 100명이 모였을 때, 당신이 몇 번째로 힘이 센지를 나타내요." : "If 100 people of your age/gender gathered, this shows where you rank in strength."}</p>
+                    <p>{locale === "ko" ? "예: 가슴 25등 = 같은 또래 남성 중 상위 25%" : "Ex: Chest 25th = Top 25% among peers"}</p>
+                    <p>{locale === "ko" ? "각 카테고리는 해당 부위의 최고 기록(E1RM)을 체중 대비 비율로 비교해요." : "Each category compares your best lift (E1RM) as a body weight ratio."}</p>
+                    <p>{locale === "ko" ? "종합 등수 = 5개 카테고리의 가중 평균이에요." : "Overall = weighted average of 5 categories."}</p>
+                  </div>
+                </div>
                 <p className="text-[11px] text-gray-400">{locale === "ko" ? "운동 기록이 쌓일수록 정확도가 올라가요. 최소 3회 이상 기록하면 신뢰도가 높아집니다." : "Accuracy improves with more data. At least 3 sessions recommended for reliable results."}</p>
               </div>
             </>
