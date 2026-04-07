@@ -108,12 +108,13 @@ export const WheelPicker: React.FC<WheelPickerProps> = ({
         <div style={{ height: centerOffset }} />
       </div>
 
-      {/* Selection highlight bar */}
+      {/* Selection highlight */}
       <div
-        className="absolute -left-5 -right-5 bg-white border-2 border-gray-200 rounded-2xl shadow-sm pointer-events-none"
+        className="absolute left-1/2 -translate-x-1/2 bg-gray-100 rounded-2xl pointer-events-none"
         style={{
-          height: itemHeight + 12,
-          top: centerOffset - 6,
+          width: 140,
+          height: itemHeight + 16,
+          top: centerOffset - 8,
         }}
       />
     </div>
