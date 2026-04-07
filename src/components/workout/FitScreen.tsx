@@ -83,7 +83,7 @@ export const FitScreen: React.FC<FitScreenProps> = ({
   const isStrengthType = exercise.type === "strength" || exercise.type === "core";
   const isBodyweight = !exercise.weight || exercise.weight === "Bodyweight"
     || /맨몸|체중|bodyweight/i.test(exercise.weight)
-    || (/푸쉬업|푸시업|push[\s-]?up|pull[\s-]?up|풀업|친업|chin[\s-]?up|턱걸이|딥스|dip|plank|플랭크|버피|burpee|크런치|crunch|레그레이즈|leg raise|마운틴\s?클라이머|mountain\s?climber|점프|jump/i.test(exercise.name) && !/중량/i.test(exercise.name));
+    || (/푸쉬업|푸시업|push[\s-]?up|pull[\s-]?up|풀업|친업|chin[\s-]?up|턱걸이|딥스|dip|plank|플랭크|버피|burpee|크런치|crunch|레그레이즈|leg raise|마운틴\s?클라이머|mountain\s?climber|점프|jump/i.test(exercise.name) && !/중량|weighted|웨이티드/i.test(exercise.name));
   const hasWeight = isStrengthType && !isBodyweight;
 
   // 장비 타입 감지 (운동 이름 키워드 기반)
