@@ -230,16 +230,44 @@ export const ReportHelpModal: React.FC<ReportHelpModalProps> = ({ helpCard, onCl
                     <p>{locale === "ko" ? "머신 운동은 프리웨이트 대비 0.7~0.75 보정 적용" : "Machine exercises adjusted by 0.7-0.75 vs free weights"}</p>
                   </div>
                 </div>
+                <p className="text-[11px] text-gray-400">{locale === "ko" ? "운동 기록이 쌓일수록 정확도가 올라가요. 최소 3회 이상 기록하면 신뢰도가 높아집니다." : "Accuracy improves with more data. At least 3 sessions recommended for reliable results."}</p>
+              </div>
+            </>
+          )}
+
+          {helpCard === "fitnessRank" && (
+            <>
+              <h3 className="text-lg font-black text-[#1B4332] mb-3">{locale === "ko" ? "100명 중 등수란?" : "What does ranking mean?"}</h3>
+              <div className="space-y-3 text-[13px] text-gray-600 leading-relaxed">
+                <p>{locale === "ko" ? <>같은 연령대/성별 <span className="font-bold text-[#1B4332]">100명이 모였을 때, 당신이 몇 번째로 힘이 센지</span>를 나타내요.</> : <>If 100 people of your age/gender gathered, this shows <span className="font-bold text-[#1B4332]">where you rank in strength</span>.</>}</p>
                 <div className="bg-gray-50 rounded-xl p-3 space-y-2">
-                  <p className="text-[11px] font-bold text-gray-500">{locale === "ko" ? "100명 중 등수란?" : "What does ranking mean?"}</p>
+                  <p className="text-[11px] font-bold text-gray-500">{locale === "ko" ? "계산 방법" : "How it's calculated"}</p>
                   <div className="space-y-1.5 text-[12px]">
-                    <p>{locale === "ko" ? "같은 연령대/성별 100명이 모였을 때, 당신이 몇 번째로 힘이 센지를 나타내요." : "If 100 people of your age/gender gathered, this shows where you rank in strength."}</p>
-                    <p>{locale === "ko" ? "예: 가슴 25등 = 같은 또래 남성 중 상위 25%" : "Ex: Chest 25th = Top 25% among peers"}</p>
-                    <p>{locale === "ko" ? "각 카테고리는 해당 부위의 최고 기록(E1RM)을 체중 대비 비율로 비교해요." : "Each category compares your best lift (E1RM) as a body weight ratio."}</p>
-                    <p>{locale === "ko" ? "종합 등수 = 5개 카테고리의 가중 평균이에요." : "Overall = weighted average of 5 categories."}</p>
+                    <p>{locale === "ko" ? "1. 각 부위의 최고 기록(E1RM)을 체중 대비 비율로 변환" : "1. Convert best lift (E1RM) per body part to BW ratio"}</p>
+                    <p>{locale === "ko" ? "2. ACSM/NSCA 연령·성별별 기준표에서 퍼센타일 산출" : "2. Find percentile from ACSM/NSCA age/gender tables"}</p>
+                    <p>{locale === "ko" ? "3. 퍼센타일을 100명 중 등수로 변환 (높을수록 강함)" : "3. Convert percentile to rank out of 100 (higher = stronger)"}</p>
                   </div>
                 </div>
-                <p className="text-[11px] text-gray-400">{locale === "ko" ? "운동 기록이 쌓일수록 정확도가 올라가요. 최소 3회 이상 기록하면 신뢰도가 높아집니다." : "Accuracy improves with more data. At least 3 sessions recommended for reliable results."}</p>
+                <div className="bg-gray-50 rounded-xl p-3 space-y-2">
+                  <p className="text-[11px] font-bold text-gray-500">{locale === "ko" ? "예시" : "Example"}</p>
+                  <div className="space-y-1.5 text-[12px]">
+                    <p>{locale === "ko" ? "가슴 25등 = 같은 또래 남성 중 상위 25%" : "Chest 25th = Top 25% among peers"}</p>
+                    <p>{locale === "ko" ? "등 88등 = 같은 또래 남성 중 하위 88% (아직 성장 중)" : "Back 88th = Bottom 88% (still growing)"}</p>
+                    <p>{locale === "ko" ? "종합 = 5개 카테고리의 가중 평균 (하체30/가슴20/등20/어깨15/체력15)" : "Overall = weighted avg of 5 categories (legs30/chest20/back20/shoulder15/cardio15)"}</p>
+                  </div>
+                </div>
+                <div className="bg-gray-50 rounded-xl p-3 space-y-2">
+                  <p className="text-[11px] font-bold text-gray-500">{locale === "ko" ? "운동별 카테고리" : "Exercise Categories"}</p>
+                  <div className="space-y-1 text-[12px]">
+                    <p>{locale === "ko" ? "가슴: 벤치프레스, 체스트프레스, 푸쉬업 등" : "Chest: Bench Press, Chest Press, Push-ups, etc."}</p>
+                    <p>{locale === "ko" ? "등: 로우, 풀업, 랫풀다운 등" : "Back: Row, Pull-up, Lat Pulldown, etc."}</p>
+                    <p>{locale === "ko" ? "어깨: 오버헤드프레스, 숄더프레스 등" : "Shoulder: Overhead Press, Shoulder Press, etc."}</p>
+                    <p>{locale === "ko" ? "하체: 스쿼트, 데드리프트, 레그프레스 등" : "Legs: Squat, Deadlift, Leg Press, etc."}</p>
+                    <p>{locale === "ko" ? "체력: 러닝 기록 기반 (데이터 있을 때)" : "Cardio: Based on running data (when available)"}</p>
+                  </div>
+                </div>
+                <p className="text-[11px] text-gray-400">{locale === "ko" ? "머신 운동은 프리웨이트 대비 0.7~0.75 보정 적용. 운동 기록이 쌓일수록 정확해져요." : "Machine exercises adjusted 0.7-0.75 vs free weights. Accuracy improves with more data."}</p>
+                <p className="text-[10px] text-gray-400 pt-2 border-t border-gray-100">{locale === "ko" ? "근거: ACSM 11th ed, NSCA 4th ed, Brzycki/Epley/Lombardi E1RM 공식" : "Source: ACSM 11th ed, NSCA 4th ed, Brzycki/Epley/Lombardi E1RM formulas"}</p>
               </div>
             </>
           )}

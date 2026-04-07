@@ -401,6 +401,7 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
               gender={gender ?? "male"}
               age={userAge}
               onHelpPress={() => setHelpCard("fitnessAge")}
+              onRankHelpPress={() => setHelpCard("fitnessRank")}
             />
           );
         })()}
@@ -564,6 +565,7 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
               gender={gender ?? "male"}
               age={birthYear ? new Date().getFullYear() - birthYear : 30}
               onHelpPress={() => setHelpCard("fitnessAge")}
+              onRankHelpPress={() => setHelpCard("fitnessRank")}
             />
           )}
           {activeReportTab === "today" && (() => {

@@ -23,6 +23,7 @@ export interface StatusTabProps {
   gender: "male" | "female";
   age: number;
   onHelpPress?: () => void;
+  onRankHelpPress?: () => void;
 }
 
 const CATEGORY_LABELS: Record<FitnessCategory, { ko: string; en: string }> = {
@@ -44,6 +45,7 @@ export const StatusTab: React.FC<StatusTabProps> = ({
   gender,
   age,
   onHelpPress,
+  onRankHelpPress,
 }) => {
   const { t, locale } = useTranslation();
   const isKo = locale === "ko";
@@ -133,8 +135,8 @@ export const StatusTab: React.FC<StatusTabProps> = ({
 
       {/* 육각형 레이더 */}
       <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm relative">
-        {onHelpPress && (
-          <button onClick={onHelpPress} className="absolute top-4 right-4 w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center">
+        {onRankHelpPress && (
+          <button onClick={onRankHelpPress} className="absolute top-4 right-4 w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center">
             <span className="text-[11px] font-black text-gray-400">?</span>
           </button>
         )}
