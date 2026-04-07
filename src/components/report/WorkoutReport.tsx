@@ -6,12 +6,16 @@ import { RunningReportBody } from "@/components/report/RunningReportBody";
 import { detectRunningType } from "@/utils/runningFormat";
 import { buildWorkoutMetrics, estimateTrainingLevel, getOptimalLoadBand, getBig4FromHistory, classifySessionIntensity, getIntensityRecommendation } from "@/utils/workoutMetrics";
 import { ShareCard } from "./ShareCard";
-import { loadRecentHistory as loadRecentHistoryFromStore } from "@/utils/workoutHistory";
+import { loadRecentHistory as loadRecentHistoryFromStore, updateCoachMessages } from "@/utils/workoutHistory";
+import { type ExpLogEntry, sumExp, getOrRebuildSeasonExp } from "@/utils/questSystem";
 import { trackEvent } from "@/utils/analytics";
 import { useTranslation } from "@/hooks/useTranslation";
 import { getExerciseName } from "@/utils/exerciseName";
 
+import { ExpTierCard, type RpgInsight } from "./ExpTierCard";
+import { RpgResultCard, type HeroData, type HeroType } from "./RpgResultCard";
 import { ReportHelpModal } from "./ReportHelpModal";
+import { translateDesc } from "./reportUtils";
 
 import { StatusTab } from "./tabs/StatusTab";
 import { TodayTab } from "./tabs/TodayTab";
@@ -19,6 +23,92 @@ import { NextTab } from "./tabs/NextTab";
 import { NutritionTab } from "./tabs/NutritionTab";
 
 type ReportTabId = "status" | "today" | "next" | "nutrition";
+
+/** 시간대 맥락 메시지 키 반환 */
+function getTimeContextKey(): string {
+  const h = new Date().getHours();
+  if (h >= 0 && h < 5) return "report.hero.time.night";
+  if (h >= 5 && h < 8) return "report.hero.time.dawn";
+  if (h >= 8 && h < 11) return "report.hero.time.morning";
+  if (h >= 11 && h < 12) return "report.hero.time.preLunch";
+  if (h >= 12 && h < 14) return "report.hero.time.lunch";
+  if (h >= 14 && h < 18) return "report.hero.time.afternoon";
+  if (h >= 18 && h < 22) return "report.hero.time.evening";
+  return "report.hero.time.night";
+}
+
+/** 마이크로 PR 감지 */
+function detectMicroPR(
+  exercises: WorkoutSessionData["exercises"],
+  logs: Record<number, ExerciseLog[]>,
+  history: WorkoutHistory[],
+  t: (key: string, vars?: Record<string, string>) => string,
+  locale: string,
+): HeroData | null {
+  const historyBest: Record<string, { maxWeight: number; maxRepsAtWeight: Record<number, number>; maxVolume: number; count: number }> = {};
+  for (const h of history) {
+    if (!h.logs) continue;
+    for (const ex of h.sessionData.exercises) {
+      const exIdx = h.sessionData.exercises.indexOf(ex);
+      const exLogs = h.logs[exIdx];
+      if (!exLogs || exLogs.length === 0) continue;
+      const name = ex.name;
+      if (!historyBest[name]) historyBest[name] = { maxWeight: 0, maxRepsAtWeight: {}, maxVolume: 0, count: 0 };
+      historyBest[name].count++;
+      let exVol = 0;
+      for (const l of exLogs) {
+        const w = parseFloat(l.weightUsed || "0");
+        if (w > historyBest[name].maxWeight) historyBest[name].maxWeight = w;
+        if (w > 0) {
+          const prevMax = historyBest[name].maxRepsAtWeight[w] || 0;
+          if (l.repsCompleted > prevMax) historyBest[name].maxRepsAtWeight[w] = l.repsCompleted;
+        }
+        exVol += (w || 0) * l.repsCompleted;
+      }
+      if (exVol > historyBest[name].maxVolume) historyBest[name].maxVolume = exVol;
+    }
+  }
+  for (let i = 0; i < exercises.length; i++) {
+    const ex = exercises[i]; const exLogs = logs[i];
+    if (!exLogs || exLogs.length === 0) continue;
+    const best = historyBest[ex.name];
+    if (!best || best.count < 1) continue;
+    for (const l of exLogs) {
+      const w = parseFloat(l.weightUsed || "0");
+      if (w > 0 && w > best.maxWeight && best.maxWeight > 0) {
+        const displayName = getExerciseName(ex.name, locale).split("(")[0].trim();
+        return { type: "weightPR", label: t("report.hero.pr"), isDark: true, bigNumber: `${best.maxWeight} → ${w} kg`, subText: displayName, exerciseName: ex.name, exerciseType: ex.type, vars: { name: displayName, weight: String(w), prev: String(best.maxWeight) } };
+      }
+    }
+  }
+  for (let i = 0; i < exercises.length; i++) {
+    const ex = exercises[i]; const exLogs = logs[i];
+    if (!exLogs || exLogs.length === 0) continue;
+    const best = historyBest[ex.name];
+    if (!best || best.count < 1) continue;
+    for (const l of exLogs) {
+      const w = parseFloat(l.weightUsed || "0");
+      if (w > 0 && best.maxRepsAtWeight[w] && l.repsCompleted > best.maxRepsAtWeight[w]) {
+        const displayName = getExerciseName(ex.name, locale).split("(")[0].trim();
+        const diff = l.repsCompleted - best.maxRepsAtWeight[w];
+        return { type: "repsPR", label: t("report.hero.pr"), isDark: true, bigNumber: `${best.maxRepsAtWeight[w]} → ${l.repsCompleted}`, subText: `${displayName} · ${w}kg`, exerciseName: ex.name, exerciseType: ex.type, vars: { name: displayName, diff: String(diff), prev: String(best.maxRepsAtWeight[w]), current: String(l.repsCompleted) } };
+      }
+    }
+  }
+  for (let i = 0; i < exercises.length; i++) {
+    const ex = exercises[i]; const exLogs = logs[i];
+    if (!exLogs || exLogs.length === 0) continue;
+    const best = historyBest[ex.name];
+    if (!best || best.count < 1) continue;
+    let todayVol = 0;
+    for (const l of exLogs) todayVol += (parseFloat(l.weightUsed || "0") || 0) * l.repsCompleted;
+    if (todayVol > best.maxVolume && best.maxVolume > 0) {
+      const displayName = getExerciseName(ex.name, locale).split("(")[0].trim();
+      return { type: "volumePR", label: t("report.hero.sessionRecord"), isDark: true, bigNumber: `${best.maxVolume.toLocaleString()} → ${todayVol.toLocaleString()} kg`, subText: displayName, exerciseName: ex.name, exerciseType: ex.type, vars: { name: displayName } };
+    }
+  }
+  return null;
+}
 
 
 
@@ -37,9 +127,9 @@ interface WorkoutReportProps {
   onDelete?: () => void;
   onShowPrediction?: () => void;
   onAnalysisComplete?: (analysis: WorkoutAnalysis) => void;
-  precomputedExpGained?: unknown[];  // 회의 37: EXP 삭제, props 호환용
-  precomputedPrevExp?: number;       // 회의 37: EXP 삭제, props 호환용
-  savedCoachMessages?: string[];     // 회의 37: 코치 삭제, props 호환용
+  precomputedExpGained?: ExpLogEntry[];
+  precomputedPrevExp?: number;
+  savedCoachMessages?: string[];
   runningStats?: RunningStats;  // 회의 41: 러닝 세션 전용
 }
 
@@ -77,9 +167,9 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
   onDelete,
   onShowPrediction,
   onAnalysisComplete,
-  // precomputedExpGained — 회의 37: EXP 시스템 삭제 (props 호환성 유지)
-  // precomputedPrevExp — 회의 37: EXP 시스템 삭제
-  // savedCoachMessages — 회의 37: 코치 3버블 삭제
+  precomputedExpGained,
+  precomputedPrevExp,
+  savedCoachMessages: propCoachMessages,
   runningStats,
 }) => {
   const analysis = initialAnalysis;
@@ -347,10 +437,122 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
         })()}
         </>}
 
-        {/* 스트릭 뱃지 — 디자인 미확정, 대표님 확인 후 재추가 */}
+        {/* === 히스토리 뷰: 기존 RPG 결과 (코치+히어로+EXP) === */}
+        {!!sessionDate && (() => {
+          const seasonState = getOrRebuildSeasonExp(recentHistory, birthYear, gender);
+          const expGained: ExpLogEntry[] = [];
+          const prevExp = seasonState.totalExp;
+          const currentExp = seasonState.totalExp;
 
-        {/* === 러닝 세션 전용 본문 (유지) === */}
-        {(() => {
+          const insight: RpgInsight = {};
+          if (isStrengthSession && totalVolume > 0 && recentHistory.length > 0) {
+            const currentId = sessionData.exercises.map(e => e.name).join(",");
+            const prevSessions = recentHistory.filter(h => {
+              const hId = h.sessionData.exercises.map((e: { name: string }) => e.name).join(",");
+              return hId !== currentId || h.stats.totalVolume !== totalVolume;
+            });
+            const lastSession = prevSessions[prevSessions.length - 1];
+            const lastVol = lastSession?.stats?.totalVolume || 0;
+            if (lastVol > 0) {
+              const diff = Math.round(((totalVolume - lastVol) / lastVol) * 100);
+              if (diff > 0) insight.volumeCompare = t("report.insight.volumeUp", { volume: totalVolume.toLocaleString(), diff: String(diff) });
+              else if (diff < 0) insight.volumeCompare = t("report.insight.volumeDown", { volume: totalVolume.toLocaleString(), diff: String(diff) });
+              else insight.volumeCompare = t("report.insight.volumeSame", { volume: totalVolume.toLocaleString() });
+            }
+          }
+
+          const microPR = detectMicroPR(sessionData.exercises, logs, recentHistory, t, locale);
+          const heroStreak = (() => {
+            if (recentHistory.length === 0) return 0;
+            let count = 0;
+            const today = new Date(); today.setHours(0, 0, 0, 0);
+            const dayMs = 24 * 60 * 60 * 1000;
+            for (let i = 0; ; i++) {
+              const checkDate = new Date(today.getTime() - i * dayMs);
+              if (recentHistory.some(h => new Date(h.date).toDateString() === checkDate.toDateString())) { count++; }
+              else if (i === 0) { count++; continue; }
+              else break;
+            }
+            return count;
+          })();
+
+          const hero: HeroData = microPR ?? (() => {
+            const isRunning = sessionData.exercises.some(e => e.type === "cardio");
+            if (isRunning) return { type: "running" as HeroType, label: t("report.hero.todaysWork"), bigNumber: formatDuration(totalDurationSec), subText: translateDesc(sessionData.description || "", locale), isDark: false };
+            if (successRate >= 100 && isStrengthSession) return { type: "perfect" as HeroType, label: t("report.hero.perfectSession"), bigNumber: t("report.hero.perfectDesc"), isDark: false };
+            if (heroStreak >= 3) return { type: "streak" as HeroType, label: t("report.hero.streakLabel", { days: String(heroStreak) }), bigNumber: t("report.hero.streakDesc"), isDark: false, vars: { days: String(heroStreak) } };
+            if (totalVolume > 0) return { type: "volume" as HeroType, label: t("report.hero.todaysWork"), bigNumber: `${totalVolume.toLocaleString()} kg`, subText: t("report.hero.totalVolume"), isDark: false };
+            return { type: "volume" as HeroType, label: t("report.hero.todaysWork"), bigNumber: formatDuration(totalDurationSec), subText: translateDesc(sessionData.description || "", locale), isDark: false };
+          })();
+
+          const nextWorkout = (() => {
+            try {
+              const fp = JSON.parse(localStorage.getItem("alpha_fitness_profile") || "{}");
+              const schedule = fp.weeklySchedule as string[] | undefined;
+              if (!schedule) return undefined;
+              const today = new Date().getDay();
+              for (let i = 1; i <= 7; i++) {
+                const nextDay = (today + i) % 7;
+                const label = schedule[nextDay === 0 ? 6 : nextDay - 1];
+                if (label && label !== "rest" && label !== "휴식") return translateDesc(label, locale);
+              }
+            } catch {}
+            return undefined;
+          })();
+
+          const detectedRunningType = detectRunningType(sessionData.exercises);
+          const isRunningReport = detectedRunningType !== null;
+          const effectiveRunningStats: RunningStats | null = isRunningReport
+            ? (runningStats ?? { runningType: detectedRunningType, isIndoor: false, gpsAvailable: false, distance: 0, duration: totalDurationSec, avgPace: null, sprintAvgPace: null, recoveryAvgPace: null, bestPace: null, intervalRounds: [], completionRate: 0 })
+            : null;
+
+          return (
+            <>
+              <RpgResultCard
+                totalDurationSec={totalDurationSec}
+                totalSets={isStrengthSession ? metrics.strengthSets : metrics.totalSets}
+                totalVolume={totalVolume}
+                successRate={successRate}
+                isStrengthSession={isStrengthSession}
+                seasonExp={currentExp}
+                prevSeasonExp={prevExp}
+                expGained={expGained}
+                intensityLevel={sessionIntensity.level}
+                formatDuration={formatDuration}
+                onHelpPress={() => setHelpCard("levelSystem")}
+                onShowPrediction={onShowPrediction}
+                skipAnimation={true}
+                insight={insight}
+                sessionDesc={sessionData.description || sessionData.title || ""}
+                hero={hero}
+                timeContext={t(getTimeContextKey())}
+                streak={heroStreak}
+                nextWorkoutName={nextWorkout}
+                logs={logs}
+                exercises={sessionData.exercises}
+                condition={(() => { try { return JSON.parse(localStorage.getItem("alpha_fitness_profile") || "{}").lastCondition; } catch { return undefined; } })()}
+                savedCoachMessages={propCoachMessages || (() => {
+                  const match = recentHistory.find(h => h.id && h.coachMessages && h.coachMessages.length > 0 && h.sessionData.exercises.map(e => e.name).join(",") === sessionData.exercises.map(e => e.name).join(","));
+                  return match?.coachMessages;
+                })()}
+                onCoachMessagesLoaded={(msgs) => { try { const history = JSON.parse(localStorage.getItem("alpha_workout_history") || "[]") as WorkoutHistory[]; const latest = history[history.length - 1]; if (latest) updateCoachMessages(latest.id, msgs); } catch {} }}
+                runningStats={runningStats}
+                hideExpCard={isRunningReport}
+              />
+              {isRunningReport && effectiveRunningStats && (
+                <div className="mb-5">
+                  <RunningReportBody runningStats={effectiveRunningStats} recentHistory={recentHistory} />
+                </div>
+              )}
+              {isRunningReport && (
+                <ExpTierCard seasonExp={currentExp} prevSeasonExp={prevExp} expGained={expGained} insight={insight} streak={heroStreak} nextWorkoutName={nextWorkout} onHelpPress={() => setHelpCard("levelSystem")} onShowPrediction={onShowPrediction} />
+              )}
+            </>
+          );
+        })()}
+
+        {/* === 러닝 세션 전용 본문 (현재 세션용) === */}
+        {!sessionDate && (() => {
           const detectedRunningType = detectRunningType(sessionData.exercises);
           const isRunningReport = detectedRunningType !== null;
           if (!isRunningReport) return null;
