@@ -172,7 +172,7 @@ export const TodayTab: React.FC<TodayTabProps> = ({
             {ko ? "4주 운동량 변화" : "4-Week Volume Trend"}
           </p>
           {/* 미니 그래프 */}
-          {graphData && graphData.length > 1 ? (
+          {graphData && graphData.length >= 1 ? (
             <div className="relative h-24 mb-3">
               {/* 적정 범위 배경 */}
               {loadBand && (() => {

@@ -565,19 +565,29 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
               onHelpPress={() => setHelpCard("fitnessAge")}
             />
           )}
-          {activeReportTab === "today" && (
-            <TodayTab
-              sessionCategory={sessionCategory}
-              totalVolume={totalVolume}
-              volumeChangePercent={savedReportTabs.today.volumeChangePercent}
-              bodyWeightKg={bodyWeightKg}
-              totalDurationSec={totalDurationSec}
-              savedDurationSec={savedDurationSec}
-              fatigueDrop={fatigueDrop}
-              totalSets={metrics.totalSets}
-              totalReps={metrics.totalReps}
-            />
-          )}
+          {activeReportTab === "today" && (() => {
+            let userGoal: string | undefined;
+            try { userGoal = JSON.parse(localStorage.getItem("alpha_fitness_profile") || "{}").goal; } catch {}
+            return (
+              <TodayTab
+                sessionCategory={sessionCategory}
+                totalVolume={totalVolume}
+                volumeChangePercent={savedReportTabs.today.volumeChangePercent}
+                goal={userGoal}
+                gender={gender}
+                bodyWeightKg={bodyWeightKg}
+                totalDurationSec={totalDurationSec}
+                savedDurationSec={savedDurationSec}
+                fatigueDrop={fatigueDrop}
+                totalSets={metrics.totalSets}
+                totalReps={metrics.totalReps}
+                sessionDesc={sessionData.description || sessionData.title || ""}
+                graphData={graphData}
+                loadBand={loadBand.low > 0 ? { low: loadBand.low, high: loadBand.high } : null}
+                todayLoadScore={loadScore}
+              />
+            );
+          })()}
           {activeReportTab === "next" && savedReportTabs.next && (
             <NextTab
               todayBodyPart={undefined}
