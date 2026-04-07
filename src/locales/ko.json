@@ -877,11 +877,22 @@
 
   "onboarding.back": "이전",
   "onboarding.welcome.title": "{name}님, 반갑습니다",
-  "onboarding.welcome.desc1": "정확할수록, 운동이 달라져요",
-  "onboarding.welcome.desc2": "입력한 정보를 바탕으로 매번 당신에게 맞는 운동을 설계합니다",
+  "onboarding.welcome.desc1": "당신의 더 나은 운동을 위해",
+  "onboarding.welcome.desc2": "몇 가지 질문을 준비했어요",
   "onboarding.welcome.cta": "시작하기",
-  "onboarding.profile.title": "기본 정보를 알려주세요",
-  "onboarding.profile.height": "키",
+  "onboarding.gender.title": "성별이 어떻게 되시나요?",
+  "onboarding.birthYear.title": "태어난 연도를 알려주세요",
+  "onboarding.birthYear.sub": "나이에 따라 최적의 운동을 만들어요",
+  "onboarding.height.title": "키가 몇이신가요?",
+  "onboarding.height.sub": "체중 대비 근력을 정확히 비교할 수 있어요",
+  "onboarding.weight.title": "현재 몸무게를 알려주세요",
+  "onboarding.weight.sub": "오늘 무게에 맞는 추천 중량이 바뀌어요",
   "onboarding.goal.title": "어떤 변화를 만들고 싶으세요?",
-  "onboarding.goal.subtitle": "목표를 알면 더 잘 도와드릴 수 있어요"
+  "onboarding.goal.subtitle": "목표를 알면 더 잘 도와드릴 수 있어요",
+  "onboarding.done.title": "{name}님, 준비 완료!",
+  "onboarding.done.cta": "첫 운동 시작하기",
+  "onboarding.done.fat_loss": "체지방 관리에 맞춘 운동을 설계해드릴게요",
+  "onboarding.done.muscle_gain": "근력 성장에 집중한 프로그램을 만들어드릴게요",
+  "onboarding.done.endurance": "기초 체력부터 탄탄하게 잡아드릴게요",
+  "onboarding.done.health": "꾸준한 건강 관리를 도와드릴게요"
 }

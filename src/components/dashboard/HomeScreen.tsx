@@ -56,7 +56,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onStartWorkout
   }, []);
 
   const [profile, setProfile] = useState<FitnessProfile | null>(null);
-  const isFirstVisit = history.length === 0;
+  const isFirstVisit = history.length === 0 && !localStorage.getItem("ohunjal_onboarding_done");
 
   useEffect(() => {
     try {

@@ -877,11 +877,22 @@
 
   "onboarding.back": "Back",
   "onboarding.welcome.title": "Welcome, {name}",
-  "onboarding.welcome.desc1": "The more accurate, the better your workouts",
-  "onboarding.welcome.desc2": "We design every workout based on the info you provide",
+  "onboarding.welcome.desc1": "To build your perfect workout,",
+  "onboarding.welcome.desc2": "we've prepared a few quick questions",
   "onboarding.welcome.cta": "Get Started",
-  "onboarding.profile.title": "Tell us about yourself",
-  "onboarding.profile.height": "Height",
+  "onboarding.gender.title": "What's your gender?",
+  "onboarding.birthYear.title": "What year were you born?",
+  "onboarding.birthYear.sub": "We optimize workouts based on your age",
+  "onboarding.height.title": "How tall are you?",
+  "onboarding.height.sub": "Helps us compare your strength relative to size",
+  "onboarding.weight.title": "What's your current weight?",
+  "onboarding.weight.sub": "Recommended weights adjust to your body",
   "onboarding.goal.title": "What change do you want to make?",
-  "onboarding.goal.subtitle": "Knowing your goal helps us help you better"
+  "onboarding.goal.subtitle": "Knowing your goal helps us help you better",
+  "onboarding.done.title": "All set, {name}!",
+  "onboarding.done.cta": "Start First Workout",
+  "onboarding.done.fat_loss": "We'll design workouts focused on fat management",
+  "onboarding.done.muscle_gain": "We'll build a program focused on strength growth",
+  "onboarding.done.endurance": "We'll help you build a solid fitness foundation",
+  "onboarding.done.health": "We'll support your consistent health routine"
 }

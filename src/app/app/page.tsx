@@ -771,7 +771,7 @@ export default function Home() {
         );
 
       case "onboarding":
-        return <Onboarding userName={user?.displayName || ""} onComplete={() => setView("home")} />;
+        return <Onboarding userName={user?.displayName || ""} onComplete={() => setView("condition_check")} />;
 
       case "login":
         return <LoginScreen onLogin={handleLogin} onTryFree={() => { trackEvent("onboarding_start", { method: "guest" }); setView("home"); }} />;
