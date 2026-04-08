@@ -172,8 +172,14 @@ export const TodayTab: React.FC<TodayTabProps> = ({
                 <div className="relative mx-5 mt-2" style={{ height: chartH }}>
                   <div className="absolute inset-x-0 bg-emerald-100/50 rounded" style={{ top: toY(optHigh), height: toY(optLow) - toY(optHigh) }} />
                   <svg className="absolute inset-0 w-full h-full" viewBox={`0 0 ${graphData.length > 1 ? (graphData.length - 1) * 40 : 40} ${chartH}`} preserveAspectRatio="none">
-                    <polyline fill="none" stroke="#2D6A4F" strokeWidth="2" strokeLinejoin="round"
-                      points={graphData.map((g, i) => `${i * 40},${toY(g.loadScore)}`).join(" ")} />
+                    <path fill="none" stroke="#2D6A4F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                      d={graphData.map((g, i) => {
+                        const x = i * 40, y = toY(g.loadScore);
+                        if (i === 0) return `M ${x} ${y}`;
+                        const px = (i - 1) * 40, py = toY(graphData[i - 1].loadScore);
+                        const t = 0.3;
+                        return `C ${px + (x - px) * t} ${py}, ${x - (x - px) * t} ${y}, ${x} ${y}`;
+                      }).join(" ")} />
                   </svg>
                   {/* 오늘 점만 표시 */}
                   {graphData.length > 0 && (() => {
@@ -266,7 +272,11 @@ export const TodayTab: React.FC<TodayTabProps> = ({
                       d={graphData.map((d, i) => {
                         const x = graphData.length === 1 ? 50 : (i / (graphData.length - 1)) * 100;
                         const y = 100 - ((d.loadScore / maxScale) * 80);
-                        return `${i === 0 ? "M" : "L"} ${x} ${y}`;
+                        if (i === 0) return `M ${x} ${y}`;
+                        const px = graphData.length === 1 ? 50 : ((i - 1) / (graphData.length - 1)) * 100;
+                        const py = 100 - ((graphData[i - 1].loadScore / maxScale) * 80);
+                        const t = 0.3;
+                        return `C ${px + (x - px) * t} ${py}, ${x - (x - px) * t} ${y}, ${x} ${y}`;
                       }).join(" ")}
                       fill="none" stroke="#2D6A4F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"
                     />
