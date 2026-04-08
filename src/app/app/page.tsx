@@ -634,7 +634,7 @@ export default function Home() {
         <p className="text-sm text-gray-400 animate-pulse">{locale === "ko" ? "잠시만요..." : "Loading..."}</p>
         {/* 하단 초록 물결 */}
         <div className="absolute bottom-0 left-0 right-0">
-          <svg viewBox="0 0 1440 320" className="w-full" preserveAspectRatio="none" style={{ height: 280 }}>
+          <svg viewBox="0 0 1440 320" className="w-full" preserveAspectRatio="none" style={{ height: "50vh" }}>
             <path fill="#2D6A4F" fillOpacity="0.15" d="M0,224L48,213.3C96,203,192,181,288,181.3C384,181,480,203,576,218.7C672,235,768,245,864,234.7C960,224,1056,192,1152,181.3C1248,171,1344,181,1392,186.7L1440,192L1440,320L0,320Z" />
             <path fill="#2D6A4F" fillOpacity="0.3" d="M0,256L48,250.7C96,245,192,235,288,224C384,213,480,203,576,208C672,213,768,235,864,240C960,245,1056,235,1152,218.7C1248,203,1344,181,1392,170.7L1440,160L1440,320L0,320Z" />
             <path fill="#2D6A4F" fillOpacity="0.5" d="M0,288L48,282.7C96,277,192,267,288,261.3C384,256,480,256,576,261.3C672,267,768,277,864,272C960,267,1056,245,1152,240C1248,235,1344,245,1392,250.7L1440,256L1440,320L0,320Z" />
