@@ -471,7 +471,7 @@ export const ProofTab: React.FC<ProofTabProps> = ({ onShowPrediction }) => {
         </div>
         ) : proofView === "bodypart" ? (
           /* === 부위 도감 탭 === */
-          <div className="p-4 min-h-[300px]">
+          <div className="p-4 min-h-[320px] flex items-center">
             {(() => {
               const partCount: Record<string, number> = {};
               for (const h of monthHistory) {
@@ -492,7 +492,7 @@ export const ProofTab: React.FC<ProofTabProps> = ({ onShowPrediction }) => {
               ];
               const maxCount = 8;
               return (
-                <div className="space-y-2.5">
+                <div className="space-y-2.5 w-full">
                   {parts.map(p => {
                     const count = partCount[p.key] || 0;
                     const pct = Math.min((count / maxCount) * 100, 100);
@@ -512,9 +512,9 @@ export const ProofTab: React.FC<ProofTabProps> = ({ onShowPrediction }) => {
           </div>
         ) : proofView === "weight" ? (
           /* === 체중 변화 탭 === */
-          <div className="p-4 min-h-[300px]">
+          <div className="p-4 min-h-[320px] flex items-center justify-center">
             {weightLog.length > 0 ? (
-              <WeightTrendChart weightLog={weightLog} onViewAll={() => setView("weight_detail")} embedded />
+              <div className="w-full"><WeightTrendChart weightLog={weightLog} onViewAll={() => setView("weight_detail")} embedded /></div>
             ) : (
               <p className="text-sm text-gray-400 text-center py-8">{locale === "ko" ? "체중 기록이 없어요" : "No weight data yet"}</p>
             )}
@@ -526,7 +526,7 @@ export const ProofTab: React.FC<ProofTabProps> = ({ onShowPrediction }) => {
             const tierInfo = getTierFromExp(seasonExp.totalExp);
             const seasonInfo = getCurrentSeason();
             return (
-              <div className="p-4 min-h-[300px]">
+              <div className="p-4 min-h-[320px]">
                 <div className={`bg-gradient-to-r ${tierInfo.tier.name === "Diamond" ? "from-purple-500 to-indigo-400" : tierInfo.tier.name === "Platinum" ? "from-cyan-500 to-blue-400" : tierInfo.tier.name === "Gold" ? "from-amber-500 to-orange-400" : tierInfo.tier.name === "Silver" ? "from-gray-400 to-gray-300" : tierInfo.tier.name === "Bronze" ? "from-amber-700 to-amber-600" : "from-gray-500 to-gray-400"} rounded-2xl px-5 py-4 mb-3`}>
                   <div className="flex items-center justify-between">
                     <p className="text-sm font-black text-white">{locale === "ko" ? seasonInfo.label : seasonInfo.label.replace("시즌", "Season")}</p>
@@ -542,7 +542,7 @@ export const ProofTab: React.FC<ProofTabProps> = ({ onShowPrediction }) => {
                   const expLog = [...seasonExp.expLog].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 10);
                   if (expLog.length === 0) return <p className="text-[11px] text-gray-400 text-center">{locale === "ko" ? "운동할수록 티어가 올라가요" : "Work out more to level up"}</p>;
                   return (
-                    <div className="space-y-1.5 mt-1 max-h-[140px] overflow-y-auto scrollbar-hide">
+                    <div className="space-y-1.5 mt-1 max-h-[220px] overflow-y-auto scrollbar-hide">
                       {expLog.map((entry, i) => (
                         <div key={i} className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
