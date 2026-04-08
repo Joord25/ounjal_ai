@@ -633,18 +633,18 @@ export default function Home() {
         <div className="w-10 h-10 border-4 border-emerald-100 border-t-[#5C795E] rounded-full animate-spin mb-4" />
         <p className="text-sm text-gray-400 animate-pulse">{locale === "ko" ? "잠시만요..." : "Loading..."}</p>
         {/* 하단 초록 물결 */}
-        <div className="absolute bottom-0 left-0 right-0 overflow-hidden" style={{ height: "50vh" }}>
+        <div className="absolute bottom-0 left-0 right-0 overflow-hidden" style={{ height: "100vh" }}>
           {/* 물결 1 — 가장 연한, 느리게 */}
           <svg viewBox="0 0 1440 320" className="absolute bottom-0 w-[200%]" preserveAspectRatio="none" style={{ height: "100%", animation: "waveSlide 8s ease-in-out infinite alternate" }}>
-            <path fill="#2D6A4F" fillOpacity="0.12" d="M0,270L80,266C160,262,320,254,480,250C640,246,800,246,960,250C1120,254,1280,262,1360,266L1440,270L1440,320L0,320Z" />
+            <path fill="#2D6A4F" fillOpacity="0.12" d="M0,280L80,276C160,272,320,268,480,266C640,264,800,264,960,266C1120,268,1280,272,1360,276L1440,280L1440,320L0,320Z" />
           </svg>
           {/* 물결 2 — 중간, 중간 속도 */}
-          <svg viewBox="0 0 1440 320" className="absolute bottom-0 w-[200%]" preserveAspectRatio="none" style={{ height: "90%", animation: "waveSlide 6s ease-in-out infinite alternate-reverse" }}>
-            <path fill="#2D6A4F" fillOpacity="0.25" d="M0,278L80,274C160,270,320,262,480,258C640,254,800,254,960,258C1120,262,1280,270,1360,274L1440,278L1440,320L0,320Z" />
+          <svg viewBox="0 0 1440 320" className="absolute bottom-0 w-[200%]" preserveAspectRatio="none" style={{ height: "97%", animation: "waveSlide 6s ease-in-out infinite alternate-reverse" }}>
+            <path fill="#2D6A4F" fillOpacity="0.25" d="M0,284L80,280C160,276,320,272,480,270C640,268,800,268,960,270C1120,272,1280,276,1360,280L1440,284L1440,320L0,320Z" />
           </svg>
           {/* 물결 3 — 가장 진한, 빠르게 */}
-          <svg viewBox="0 0 1440 320" className="absolute bottom-0 w-[200%]" preserveAspectRatio="none" style={{ height: "80%", animation: "waveSlide 4s ease-in-out infinite alternate" }}>
-            <path fill="#2D6A4F" fillOpacity="0.4" d="M0,286L80,282C160,278,320,270,480,268C640,266,800,266,960,268C1120,270,1280,278,1360,282L1440,286L1440,320L0,320Z" />
+          <svg viewBox="0 0 1440 320" className="absolute bottom-0 w-[200%]" preserveAspectRatio="none" style={{ height: "94%", animation: "waveSlide 4s ease-in-out infinite alternate" }}>
+            <path fill="#2D6A4F" fillOpacity="0.4" d="M0,288L80,286C160,284,320,278,480,276C640,274,800,274,960,276C1120,278,1280,284,1360,286L1440,288L1440,320L0,320Z" />
           </svg>
         </div>
       </div>
