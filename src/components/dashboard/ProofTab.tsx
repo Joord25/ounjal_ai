@@ -542,7 +542,7 @@ export const ProofTab: React.FC<ProofTabProps> = ({ onShowPrediction }) => {
                   const expLog = [...seasonExp.expLog].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 10);
                   if (expLog.length === 0) return <p className="text-[11px] text-gray-400 text-center">{locale === "ko" ? "운동할수록 티어가 올라가요" : "Work out more to level up"}</p>;
                   return (
-                    <div className="space-y-1.5 mt-1 max-h-[24px] overflow-y-auto scrollbar-hide">
+                    <div className="space-y-1.5 mt-1 max-h-[180px] overflow-y-auto scrollbar-hide">
                       {expLog.map((entry, i) => (
                         <div key={i} className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
