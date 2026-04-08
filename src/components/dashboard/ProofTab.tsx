@@ -533,9 +533,9 @@ export const ProofTab: React.FC<ProofTabProps> = ({ onShowPrediction }) => {
                     <p className="text-xl font-black text-white">{tierInfo.tier.name}</p>
                   </div>
                   <div className="mt-2 h-2 bg-white/20 rounded-full overflow-hidden">
-                    <div className="h-full bg-white rounded-full transition-all" style={{ width: `${tierInfo.nextTier ? Math.min((tierInfo.progress / tierInfo.nextTier.minExp) * 100, 100) : 100}%` }} />
+                    <div className="h-full bg-white rounded-full transition-all" style={{ width: `${tierInfo.nextTier ? Math.min(tierInfo.progress * 100, 100) : 100}%` }} />
                   </div>
-                  <p className="text-[10px] text-white/60 mt-1">{tierInfo.progress} / {tierInfo.nextTier ? tierInfo.nextTier.minExp : "MAX"} EXP</p>
+                  <p className="text-[10px] text-white/60 mt-1">{seasonExp.totalExp} / {tierInfo.nextTier ? tierInfo.nextTier.minExp : "MAX"} EXP</p>
                 </div>
                 {/* 경험치 내역 */}
                 {(() => {
@@ -547,7 +547,7 @@ export const ProofTab: React.FC<ProofTabProps> = ({ onShowPrediction }) => {
                         <div key={i} className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <span className="text-[10px] text-gray-400 w-12 shrink-0">{entry.date.slice(5, 10).replace("-", ".")}</span>
-                            <span className="text-[11px] text-gray-600">{entry.source === "workout" ? (locale === "ko" ? "운동 완료" : "Workout") : entry.source}</span>
+                            <span className="text-[11px] text-gray-600">{entry.source === "workout" ? (locale === "ko" ? "운동 완료" : "Workout") : entry.source === "quest" ? (locale === "ko" ? "퀘스트 달성" : "Quest") : (locale === "ko" ? "주간 보너스" : "Weekly Bonus")}</span>
                           </div>
                           <span className="text-[11px] font-bold text-[#2D6A4F] shrink-0">+{entry.amount}</span>
                         </div>
