@@ -248,27 +248,25 @@ export const ProofTab: React.FC<ProofTabProps> = ({ onShowPrediction }) => {
 
   return (
     <div className="flex flex-col h-full bg-[#F0F4F1] animate-fade-in relative overflow-hidden">
-      {/* ── 다크 히어로 존 (스크롤에 포함 — 위로 밀려남) ── */}
-      <div className="shrink-0 pt-[max(1.5rem,calc(env(safe-area-inset-top)+0.5rem))] px-4 sm:px-6 text-center z-10 relative"
-        style={{ background: "radial-gradient(ellipse at 50% 0%, #2D6A4F 0%, #1B4332 70%)" }}>
-        {/* 서브타이틀 제거 — 월 네비에 이미 정보 충분 */}
+      {/* ── 히어로 존 (라이트 톤) ── */}
+      <div className="shrink-0 pt-[max(1.5rem,calc(env(safe-area-inset-top)+0.5rem))] px-4 sm:px-6 text-center z-10 relative bg-[#F0F4F1]">
         {/* 월 네비게이션 */}
-        <div className="inline-flex items-center gap-1 bg-white/10 rounded-full">
+        <div className="inline-flex items-center gap-1 bg-[#2D6A4F]/10 rounded-full">
           <button
             onClick={() => setMonthOffset(prev => prev - 1)}
             className="p-2 pl-3 active:opacity-60 transition-opacity"
           >
-            <svg className="w-3.5 h-3.5 text-[#95D5B2]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+            <svg className="w-3.5 h-3.5 text-[#2D6A4F]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
             </svg>
           </button>
-          <span className="text-xs font-black text-white min-w-[100px] text-center">{currentMonthLabel}</span>
+          <span className="text-xs font-black text-[#1B4332] min-w-[100px] text-center">{currentMonthLabel}</span>
           <button
             onClick={() => setMonthOffset(prev => Math.min(prev + 1, 0))}
             disabled={isCurrentMonth}
             className="p-2 pr-3 active:opacity-60 transition-opacity disabled:opacity-20"
           >
-            <svg className="w-3.5 h-3.5 text-[#95D5B2]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+            <svg className="w-3.5 h-3.5 text-[#2D6A4F]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
             </svg>
           </button>
@@ -277,19 +275,19 @@ export const ProofTab: React.FC<ProofTabProps> = ({ onShowPrediction }) => {
         <div className="mt-3 mb-1">
           {monthHistory.length > 0 ? (
             <div className="flex items-end gap-2 px-2 flex-nowrap">
-              <h1 className="font-black text-white leading-none shrink-0" style={{ fontSize: "clamp(2rem, 10vw, 3rem)", textShadow: "0 0 30px rgba(82,183,136,0.3)" }}>{monthHistory.length}<span className="font-bold text-[#95D5B2]/50 ml-1" style={{ fontSize: "clamp(0.75rem, 3vw, 1rem)" }}>{t("proof.workoutCount")}</span></h1>
-              <p className="text-[#95D5B2]/60 ml-auto font-bold whitespace-nowrap" style={{ fontSize: "clamp(0.65rem, 2.5vw, 0.875rem)" }}>
-                <span className="font-black text-white/90" style={{ fontSize: "clamp(0.875rem, 3.5vw, 1.25rem)" }}>{Math.round(monthHistory.reduce((s, h) => s + (h.stats.totalVolume || 0), 0)).toLocaleString()}</span> kg · <span className="font-black text-white/90" style={{ fontSize: "clamp(0.875rem, 3.5vw, 1.25rem)" }}>{Math.round(monthHistory.reduce((s, h) => s + (h.stats.totalDurationSec || 0), 0) / 60)}</span> {locale === "ko" ? "분" : "min"} · <span className="font-black text-white/90" style={{ fontSize: "clamp(0.875rem, 3.5vw, 1.25rem)" }}>{monthHistory.reduce((s, h) => s + (h.stats.totalSets || 0), 0)}</span> {locale === "ko" ? "세트" : "sets"}
+              <h1 className="font-black text-[#1B4332] leading-none shrink-0" style={{ fontSize: "clamp(2rem, 10vw, 3rem)" }}>{monthHistory.length}<span className="font-bold text-[#2D6A4F]/50 ml-1" style={{ fontSize: "clamp(0.75rem, 3vw, 1rem)" }}>{t("proof.workoutCount")}</span></h1>
+              <p className="text-[#2D6A4F]/50 ml-auto font-bold whitespace-nowrap" style={{ fontSize: "clamp(0.65rem, 2.5vw, 0.875rem)" }}>
+                <span className="font-black text-[#1B4332]" style={{ fontSize: "clamp(0.875rem, 3.5vw, 1.25rem)" }}>{Math.round(monthHistory.reduce((s, h) => s + (h.stats.totalVolume || 0), 0)).toLocaleString()}</span> kg · <span className="font-black text-[#1B4332]" style={{ fontSize: "clamp(0.875rem, 3.5vw, 1.25rem)" }}>{Math.round(monthHistory.reduce((s, h) => s + (h.stats.totalDurationSec || 0), 0) / 60)}</span> {locale === "ko" ? "분" : "min"} · <span className="font-black text-[#1B4332]" style={{ fontSize: "clamp(0.875rem, 3.5vw, 1.25rem)" }}>{monthHistory.reduce((s, h) => s + (h.stats.totalSets || 0), 0)}</span> {locale === "ko" ? "세트" : "sets"}
               </p>
             </div>
           ) : isCurrentMonth ? (
             <div className="text-center">
-              <h1 className="text-xl font-black text-white">{t("proof.createFirstRecord")}</h1>
-              <p className="text-[12px] font-medium text-[#95D5B2]/50 mt-1">{t("proof.startToday")}</p>
+              <h1 className="text-xl font-black text-[#1B4332]">{t("proof.createFirstRecord")}</h1>
+              <p className="text-[12px] font-medium text-[#2D6A4F]/50 mt-1">{t("proof.startToday")}</p>
             </div>
           ) : (
             <div className="text-center">
-              <h1 className="text-xl font-black text-white/30">{t("proof.noRecordsMonth")}</h1>
+              <h1 className="text-xl font-black text-gray-300">{t("proof.noRecordsMonth")}</h1>
               <p className="text-[12px] font-medium text-[#95D5B2]/40 mt-1">{t("proof.monthLabel", { month: String(viewMonth + 1) })}</p>
             </div>
           )}
@@ -302,30 +300,30 @@ export const ProofTab: React.FC<ProofTabProps> = ({ onShowPrediction }) => {
           return (
             <div className="mt-3 pb-2">
               <div className="flex items-center gap-3 mb-3">
-                <div className="flex-1 h-px bg-gradient-to-r from-transparent to-[#95D5B2]/20" />
-                <p className="text-[13px] font-serif font-bold text-[#95D5B2]/60 tracking-[0.25em]" style={{ textShadow: "0 0 15px rgba(82,183,136,0.3)" }}>
+                <div className="flex-1 h-px bg-gradient-to-r from-transparent to-[#2D6A4F]/20" />
+                <p className="text-[13px] font-serif font-bold text-[#2D6A4F]/50 tracking-[0.25em]">
                   {locale === "ko" ? "나의 업적" : "My Achievements"}
                 </p>
-                <div className="flex-1 h-px bg-gradient-to-l from-transparent to-[#95D5B2]/20" />
+                <div className="flex-1 h-px bg-gradient-to-l from-transparent to-[#2D6A4F]/20" />
               </div>
               <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-2 -mx-4 px-4 sm:-mx-6 sm:px-6">
                 {recent.map((a, i) => {
                   const cardStyle = a.type === "pr"
-                    ? "border-amber-400/30 shadow-[0_2px_15px_rgba(251,191,36,0.15)]"
+                    ? "border-amber-400/30"
                     : a.type === "streak"
-                      ? "border-[#52B788]/30 shadow-[0_2px_15px_rgba(82,183,136,0.15)]"
+                      ? "border-[#2D6A4F]/30"
                       : a.type === "milestone"
-                        ? "border-white/20 shadow-[0_2px_15px_rgba(255,255,255,0.1)]"
-                        : "border-white/15 shadow-[0_2px_10px_rgba(0,0,0,0.3)]";
+                        ? "border-[#2D6A4F]/20"
+                        : "border-gray-200";
                   return (
-                  <div key={i} className={`shrink-0 bg-white/10 backdrop-blur-md rounded-2xl border px-4 py-3 min-w-[140px] ${cardStyle}`}>
-                    <p className="text-[9px] font-bold text-[#95D5B2]/40 mb-1">
+                  <div key={i} className={`shrink-0 bg-white/80 rounded-2xl border px-4 py-3 min-w-[140px] shadow-sm ${cardStyle}`}>
+                    <p className="text-[9px] font-bold text-gray-400 mb-1">
                       {a.date.slice(0, 10).replace(/-/g, ".")}
                     </p>
-                    <p className="text-sm font-black text-white leading-tight">
+                    <p className="text-sm font-black text-[#1B4332] leading-tight">
                       {locale === "ko" ? a.title : a.titleEn}
                     </p>
-                    <p className={`text-[9px] font-bold mt-1 ${a.type === "pr" ? "text-amber-400/70" : "text-[#52B788]/60"}`}>
+                    <p className={`text-[9px] font-bold mt-1 ${a.type === "pr" ? "text-amber-600/70" : "text-[#2D6A4F]/60"}`}>
                       {a.type === "pr" ? (locale === "ko" ? "신기록" : "PR") : a.type === "streak" ? (locale === "ko" ? "연속" : "Streak") : a.type === "milestone" ? (locale === "ko" ? "달성" : "Milestone") : (locale === "ko" ? "시작" : "First")}
                     </p>
                   </div>
@@ -367,8 +365,8 @@ export const ProofTab: React.FC<ProofTabProps> = ({ onShowPrediction }) => {
           isPulling.current = false;
         }}
       >
-        {/* 다크 → 라이트 그라데이션 전환 */}
-        <div className="h-16 bg-gradient-to-b from-[#1B4332] to-[#F0F4F1] -mx-4 sm:-mx-6 px-4 sm:px-6" />
+        {/* 구분선 */}
+        <div className="h-px bg-[#2D6A4F]/10 -mx-4 sm:-mx-6 mt-2" />
         {/* Pull-to-refresh indicator */}
         <div
           className="flex items-center justify-center overflow-hidden transition-all"
