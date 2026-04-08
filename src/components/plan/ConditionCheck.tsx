@@ -367,10 +367,10 @@ const GoalSelection = ({
 
   // 러닝 종류 서브뷰
   if (subView === "running") {
-    const runs: { key: RunType; label: string; desc: string }[] = [
-      { key: "interval", label: "인터벌 달리기", desc: "빠르게/느리게 반복, 심폐 능력 향상" },
-      { key: "easy", label: "이지런 (가벼운 조깅)", desc: "편하게 30-40분, 체지방 연소" },
-      { key: "long", label: "장거리 달리기", desc: "60분 이상, 지구력 훈련" },
+    const runs: { key: RunType; labelKey: string; descKey: string }[] = [
+      { key: "interval", labelKey: "condition.running.interval", descKey: "condition.running.interval.desc" },
+      { key: "easy", labelKey: "condition.running.easy", descKey: "condition.running.easy.desc" },
+      { key: "long", labelKey: "condition.running.long", descKey: "condition.running.long.desc" },
     ];
     return (
       <div className="flex flex-col gap-3">
@@ -381,16 +381,16 @@ const GoalSelection = ({
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
           </svg>
-          뒤로
+          {t("common.back")}
         </button>
-        <p className="text-sm font-bold text-[#2D6A4F] mb-1">어떤 달리기를 할까요?</p>
+        <p className="text-sm font-bold text-[#2D6A4F] mb-1">{t("condition.running.title")}</p>
         {runs.map((r, i) => (
           <ConditionCard
             key={r.key}
             selected={false}
             onClick={() => onSelect("general_fitness", { goal: "general_fitness", sessionMode: "running", runType: r.key })}
-            title={r.label}
-            desc={r.desc}
+            title={t(r.labelKey)}
+            desc={t(r.descKey)}
             delay={0.05 * (i + 1)}
           />
         ))}

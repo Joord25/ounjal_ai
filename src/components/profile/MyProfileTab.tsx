@@ -600,7 +600,7 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout, auto
                   }}
                 />
                 <span className="text-sm text-gray-400">cm</span>
-                <button onClick={handleHeightSave} className="text-xs font-bold text-[#2D6A4F] active:opacity-60 shrink-0">저장</button>
+                <button onClick={handleHeightSave} className="text-xs font-bold text-[#2D6A4F] active:opacity-60 shrink-0">{t("common.save")}</button>
               </div>
             ) : (
               <button
@@ -620,7 +620,7 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout, auto
           <div ref={rmRef} className="flex justify-between items-center min-h-[32px]">
             <span className="text-sm font-bold text-gray-500">{t("my.oneRM")}</span>
             {editing1RM ? (
-              <button onClick={handle1RMSave} className="text-xs font-bold text-[#2D6A4F] active:opacity-60">저장</button>
+              <button onClick={handle1RMSave} className="text-xs font-bold text-[#2D6A4F] active:opacity-60">{t("common.save")}</button>
             ) : (
               <button onClick={() => setEditing1RM(true)} className="flex items-center gap-2 active:opacity-60">
                 <span className="text-sm font-medium text-gray-900">

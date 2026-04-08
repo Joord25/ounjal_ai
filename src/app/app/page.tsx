@@ -324,6 +324,7 @@ export default function Home() {
           const hasProfile = !!(localStorage.getItem("ohunjal_gender") && localStorage.getItem("ohunjal_birth_year"));
           if (hasProfile) localStorage.setItem("ohunjal_onboarding_done", "1");
           setView(hasProfile || localStorage.getItem("ohunjal_onboarding_done") ? "home" : "onboarding");
+          setIsInitialized(true);
         });
 
         // Load workout data
@@ -346,8 +347,7 @@ export default function Home() {
         // onAuthStateChanged가 다시 호출되어 anonymous 분기로 처리됨
         return;
       }
-
-      setIsInitialized(true);
+      // setIsInitialized는 Promise.all.finally 안에서 setView 후 호출
     });
 
     return () => unsubscribe();
@@ -609,6 +609,13 @@ export default function Home() {
     }
     // 회의 31: 유저 데이터 완전 정리 (프라이버시) — 다른 유저가 같은 기기 로그인 시 데이터 잔여 방지
     LOGOUT_CLEAR_KEYS.forEach(k => localStorage.removeItem(k));
+    // per-exercise weight 키 동적 삭제
+    const allKeys: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith("ohunjal_weight_")) allKeys.push(k);
+    }
+    allKeys.forEach(k => localStorage.removeItem(k));
     setIsLoggedIn(false);
     setUser(null);
     setView("login");
@@ -624,7 +631,7 @@ export default function Home() {
     if (!isInitialized) return (
       <div className="flex flex-col items-center justify-center h-full bg-white">
         <div className="w-10 h-10 border-4 border-emerald-100 border-t-[#5C795E] rounded-full animate-spin mb-4" />
-        <p className="text-sm text-gray-400 animate-pulse">잠시만요...</p>
+        <p className="text-sm text-gray-400 animate-pulse">{locale === "ko" ? "잠시만요..." : "Loading..."}</p>
       </div>
     );
 
@@ -693,7 +700,7 @@ export default function Home() {
               // Save to Workout History
               const historyEntry: WorkoutHistory = {
                 id: Date.now().toString(),
-                date: new Date().toISOString(),
+                date: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString(),
                 sessionData: completedData,
                 logs: logs,
                 stats: {
