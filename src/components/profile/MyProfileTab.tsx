@@ -303,6 +303,11 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout, auto
     const next = gender === "male" ? "female" : "male";
     setGender(next);
     updateGender(next);
+    try {
+      const fp = JSON.parse(localStorage.getItem("ohunjal_fitness_profile") || "{}");
+      fp.gender = next;
+      localStorage.setItem("ohunjal_fitness_profile", JSON.stringify(fp));
+    } catch { /* ignore */ }
   };
 
   const handleHeightSave = () => {
@@ -313,6 +318,7 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout, auto
       const fp = JSON.parse(localStorage.getItem("ohunjal_fitness_profile") || "{}");
       fp.height = val;
       localStorage.setItem("ohunjal_fitness_profile", JSON.stringify(fp));
+      saveUserProfile({ fitnessProfile: fp }).catch(() => {});
     } catch { /* ignore */ }
     setIsEditingHeight(false);
   };

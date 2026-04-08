@@ -539,7 +539,7 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ user, on
           "Content-Type": "application/json",
           "Authorization": `Bearer ${token}`,
         },
-        body: JSON.stringify({ reason: cancelReason === "기타" && cancelReasonText.trim() ? `기타: ${cancelReasonText.trim()}` : cancelReason }),
+        body: JSON.stringify({ reason: cancelReason === t("sub.cancel.reason.etc") && cancelReasonText.trim() ? `${cancelReason}: ${cancelReasonText.trim()}` : cancelReason }),
       });
 
       if (!res.ok) {
