@@ -267,7 +267,8 @@ export function calcSessionCalories(
 ): number {
   const exercises = session.sessionData?.exercises || [];
   const timings = (session as { exerciseTimings?: { durationSec: number }[] }).exerciseTimings;
-  const totalDurationSec = session.stats.totalDurationSec || 2700; // 기본 45분
+  const rawDuration = session.stats.totalDurationSec || 0;
+  const totalDurationSec = rawDuration >= 300 ? rawDuration : 2700; // 5분 미만이면 45분 폴백
 
   // 러닝 세션: runningStats 기반 정밀 계산
   const rs = session.runningStats;

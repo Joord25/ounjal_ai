@@ -335,7 +335,7 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
   }));
   // Add today's session
   if (totalVolume > 0) {
-    const todayCal = calcSessionCalories({ sessionData, logs, stats: { totalVolume, totalSets: metrics.totalSets, totalReps: metrics.totalReps, totalDurationSec }, date: "", id: "" } as WorkoutHistory, bwForCalc);
+    const todayCal = calcSessionCalories({ sessionData, logs, stats: { totalVolume, totalSets: metrics.totalSets, totalReps: metrics.totalReps, totalDurationSec: savedDurationSec || totalDurationSec || 2700 }, date: "", id: "" } as WorkoutHistory, bwForCalc);
     graphData.push({
       date: new Date(),
       loadScore: loadScore,
@@ -470,7 +470,7 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
               loadBand={loadBand.low > 0 ? { low: loadBand.low, high: loadBand.high } : null}
               todayLoadScore={loadScore}
               onHelpPress={() => setHelpCard("loadTimeline")}
-              calorieOverride={calcSessionCalories({ sessionData, logs, stats: { totalVolume, totalSets: metrics.totalSets, totalReps: metrics.totalReps, totalDurationSec }, date: "", id: "" } as WorkoutHistory, bodyWeightKg ?? 70)}
+              calorieOverride={calcSessionCalories({ sessionData, logs, stats: { totalVolume, totalSets: metrics.totalSets, totalReps: metrics.totalReps, totalDurationSec: savedDurationSec || totalDurationSec || 2700 }, date: "", id: "" } as WorkoutHistory, bodyWeightKg ?? 70)}
             />
           );
         })()}
@@ -632,7 +632,7 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
                 loadBand={loadBand.low > 0 ? { low: loadBand.low, high: loadBand.high } : null}
                 todayLoadScore={loadScore}
                 onHelpPress={() => setHelpCard("loadTimeline")}
-                calorieOverride={calcSessionCalories({ sessionData, logs, stats: { totalVolume, totalSets: metrics.totalSets, totalReps: metrics.totalReps, totalDurationSec }, date: "", id: "" } as WorkoutHistory, bodyWeightKg ?? 70)}
+                calorieOverride={calcSessionCalories({ sessionData, logs, stats: { totalVolume, totalSets: metrics.totalSets, totalReps: metrics.totalReps, totalDurationSec: savedDurationSec || totalDurationSec || 2700 }, date: "", id: "" } as WorkoutHistory, bodyWeightKg ?? 70)}
               />
             );
           })()}
