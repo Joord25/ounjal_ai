@@ -150,26 +150,65 @@ export const TodayTab: React.FC<TodayTabProps> = ({
 
       {/* ── 메인 하이라이트 ── */}
       {showCalorieMain ? (
-        /* 여성/감량: 칼로리 메인 — 영양 탭 스타일 */
-        <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
-          <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1">
-            {ko ? "오늘 소모한 칼로리" : "Calories Burned"}
-          </p>
-          <div className="flex items-baseline gap-2">
-            <p className="text-4xl font-black text-[#1B4332]">
-              {cal > 0 ? cal.toLocaleString() : "-"}
+        /* 여성/감량: 칼로리 메인 — 4주 그래프 + 칼로리 판정 */
+        <div className="bg-white rounded-3xl border border-[#2D6A4F]/10 p-4 shadow-sm">
+          <div className="flex items-center justify-between mb-1">
+            <p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.15em]">
+              {ko ? "오늘의 운동 평가" : "Today's Workout Rating"}
             </p>
-            <span className="text-base font-bold text-gray-400">kcal</span>
+            {onHelpPress && (
+              <button onClick={onHelpPress} className="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center">
+                <span className="text-[10px] font-black text-gray-400">?</span>
+              </button>
+            )}
           </div>
-          {food && (
-            <p className="text-sm text-[#2D6A4F] font-bold mt-2">
-              {ko ? `${food} 태웠어요` : `Burned ${food}`}
-            </p>
-          )}
-          {cal === 0 && (
-            <p className="text-xs text-gray-400 mt-2">
-              {ko ? "운동 시간 데이터가 부족해요" : "Not enough duration data"}
-            </p>
+          {graphData && graphData.length >= 1 ? (() => {
+            const maxLoad = Math.max(...graphData.map(g => g.loadScore), 1);
+            const optLow = loadBand?.low ?? maxLoad * 0.6;
+            const optHigh = loadBand?.high ?? maxLoad * 0.85;
+            const chartH = 120;
+            const toY = (v: number) => chartH - (v / (maxLoad * 1.2)) * chartH;
+            return (
+              <>
+                <div className="relative mx-5 mt-2" style={{ height: chartH }}>
+                  <div className="absolute inset-x-0 bg-emerald-100/50 rounded" style={{ top: toY(optHigh), height: toY(optLow) - toY(optHigh) }} />
+                  <svg className="absolute inset-0 w-full h-full" viewBox={`0 0 ${graphData.length > 1 ? (graphData.length - 1) * 40 : 40} ${chartH}`} preserveAspectRatio="none">
+                    <polyline fill="none" stroke="#2D6A4F" strokeWidth="2" strokeLinejoin="round"
+                      points={graphData.map((g, i) => `${i * 40},${toY(g.loadScore)}`).join(" ")} />
+                  </svg>
+                  {graphData.map((g, i) => (
+                    <button key={i} className="absolute" style={{ left: `${(i / Math.max(graphData.length - 1, 1)) * 100}%`, top: toY(g.loadScore), transform: "translate(-50%, -50%)" }}
+                      onClick={() => setActiveGraphDot(activeGraphDot === i ? null : i)}>
+                      <div className={`rounded-full border-2 transition-transform ${activeGraphDot === i ? "scale-150" : ""} w-2 h-2 bg-white border-[#2D6A4F]`} />
+                    </button>
+                  ))}
+                </div>
+                <div className="mt-4 pt-4 border-t border-gray-100 text-center">
+                  <div className="flex items-baseline justify-center gap-2 mb-1">
+                    <p className="text-3xl font-black text-[#1B4332]">{cal > 0 ? cal.toLocaleString() : "-"}</p>
+                    <span className="text-base font-bold text-gray-400">kcal</span>
+                    {graphVerdict && <span className={`text-base font-bold ${graphVerdict.color}`}>— {graphVerdict.text}</span>}
+                  </div>
+                  {food && <p className="text-sm text-[#2D6A4F] font-bold">{ko ? `${food} 태웠어요` : `Burned ${food}`}</p>}
+                  <p className="text-[11px] text-gray-400 mt-1 leading-relaxed pb-1">
+                    {graphVerdict?.color === "text-[#2D6A4F]"
+                      ? (ko ? "꾸준한 소모가 감량의 핵심이에요. 이 페이스 유지!" : "Consistent burn is key. Keep this pace!")
+                      : graphVerdict?.color === "text-amber-600"
+                        ? (ko ? "오늘 많이 움직였어요. 충분히 쉬세요." : "Big effort today. Rest well.")
+                        : (ko ? "가볍게 쉬어가는 날이에요. 내일 다시!" : "Easy day. Back at it tomorrow!")}
+                  </p>
+                </div>
+              </>
+            );
+          })() : (
+            <div className="py-6 text-center">
+              <div className="flex items-baseline justify-center gap-2 mb-1">
+                <p className="text-4xl font-black text-[#1B4332]">{cal > 0 ? cal.toLocaleString() : "-"}</p>
+                <span className="text-base font-bold text-gray-400">kcal</span>
+              </div>
+              {food && <p className="text-sm text-[#2D6A4F] font-bold mt-1">{ko ? `${food} 태웠어요` : `Burned ${food}`}</p>}
+              <p className="text-xs text-gray-400 mt-2">{ko ? "데이터가 쌓이면 추이 그래프가 보여요" : "Trend graph appears with more data"}</p>
+            </div>
           )}
         </div>
       ) : (
@@ -177,7 +216,7 @@ export const TodayTab: React.FC<TodayTabProps> = ({
         <div className="bg-white rounded-3xl border border-[#2D6A4F]/10 p-4 shadow-sm">
           <div className="flex items-center justify-between mb-1">
             <p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.15em]">
-              {ko ? "4주 운동량 변화" : "4-Week Volume Trend"}
+              {ko ? "오늘의 운동 평가" : "Today's Workout Rating"}
             </p>
             {onHelpPress && (
               <button onClick={onHelpPress} className="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center">
