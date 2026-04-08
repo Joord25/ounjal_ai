@@ -338,7 +338,7 @@ export const ProofTab: React.FC<ProofTabProps> = ({ onShowPrediction }) => {
       {/* 전체 스크롤 영역 (히어로 뒤로 콘텐츠가 자연스럽게 밀려올라감) */}
       <div
         ref={scrollRef}
-        className="flex-1 overflow-y-auto scrollbar-hide"
+        className="flex-1 overflow-y-auto scrollbar-hide px-4 sm:px-6"
         style={{ paddingBottom: "calc(8px + var(--safe-area-bottom, 0px))" }}
         onTouchStart={(e) => {
           if (scrollRef.current && scrollRef.current.scrollTop === 0) {
