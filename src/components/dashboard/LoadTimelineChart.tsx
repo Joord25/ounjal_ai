@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import { useTranslation } from "@/hooks/useTranslation";
 import { WorkoutHistory as WorkoutHistoryType } from "@/constants/workout";
 import { estimateTrainingLevelDetailed, getOptimalLoadBand } from "@/utils/workoutMetrics";
@@ -21,7 +21,6 @@ export const LoadTimelineChart: React.FC<LoadTimelineChartProps> = ({
   onHelpPress,
 }) => {
   const { t } = useTranslation();
-  const [activeTimelineDot, setActiveTimelineDot] = useState<number | null>(null);
 
   const levelEst = estimateTrainingLevelDetailed(history, bodyWeightKg, gender);
 
@@ -103,33 +102,26 @@ export const LoadTimelineChart: React.FC<LoadTimelineChartProps> = ({
             d={graphData.map((d, i) => {
               const x = (i / (graphData.length - 1)) * 100;
               const y = 100 - ((d.loadScore / maxScale) * 80);
-              return `${i === 0 ? "M" : "L"} ${x} ${y}`;
+              if (i === 0) return `M ${x} ${y}`;
+              const px = ((i - 1) / (graphData.length - 1)) * 100;
+              const py = 100 - ((graphData[i - 1].loadScore / maxScale) * 80);
+              const t = 0.35;
+              return `C ${px + (x - px) * t} ${py}, ${x - (x - px) * t} ${y}, ${x} ${y}`;
             }).join(" ")}
             fill="none" stroke="#2D6A4F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"
           />
         </svg>
-        {/* Dots */}
-        {graphData.map((d, i) => {
-          const xPct = (i / (graphData.length - 1)) * 100;
-          const yPct = 100 - ((d.loadScore / maxScale) * 80);
-          const isActive = activeTimelineDot === i;
+        {/* 마지막 점만 표시 */}
+        {graphData.length > 0 && (() => {
+          const lastIdx = graphData.length - 1;
+          const xPct = (lastIdx / Math.max(lastIdx, 1)) * 100;
+          const yPct = 100 - ((graphData[lastIdx].loadScore / maxScale) * 80);
           return (
-            <button
-              type="button"
-              key={i}
-              className="absolute animate-dot-pop z-10 flex items-center justify-center"
-              style={{ left: `${xPct}%`, top: `${yPct}%`, transform: "translate(-50%, -50%)", width: 44, height: 44, background: "none", border: "none", padding: 0, animationDelay: `${0.9 + i * 0.1}s` }}
-              onPointerUp={(e) => { e.stopPropagation(); setActiveTimelineDot(isActive ? null : i); }}
-            >
-              {isActive && (
-                <span className="absolute -top-7 text-[10px] font-black text-gray-700 bg-white px-1.5 py-0.5 rounded shadow-sm border border-gray-100 z-20 whitespace-nowrap pointer-events-none">
-                  {d.loadScore.toFixed(1)}
-                </span>
-              )}
-              <div className={`rounded-full border-2 transition-transform ${isActive ? "scale-150" : ""} w-2 h-2 bg-white border-[#2D6A4F]`} />
-            </button>
+            <div className="absolute z-10" style={{ left: `${xPct}%`, top: `${yPct}%`, transform: "translate(-50%, -50%)" }}>
+              <div className="w-3 h-3 rounded-full bg-[#2D6A4F] border-2 border-white shadow-sm" />
+            </div>
           );
-        })}
+        })()}
       </div>
       <div className="relative text-[9px] text-gray-300 font-medium mx-5">
         <span className="absolute left-0 -translate-x-1/2">{graphData.length > 0 ? `${graphData[0].date.getMonth() + 1}/${graphData[0].date.getDate()}` : ""}</span>
