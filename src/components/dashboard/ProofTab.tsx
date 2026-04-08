@@ -278,8 +278,8 @@ export const ProofTab: React.FC<ProofTabProps> = ({ onShowPrediction }) => {
           {monthHistory.length > 0 ? (
             <div className="flex items-end gap-4 px-2">
               <h1 className="text-5xl font-black text-white leading-none" style={{ textShadow: "0 0 30px rgba(82,183,136,0.3)" }}>{monthHistory.length}<span className="text-base font-bold text-[#95D5B2]/50 ml-1">{t("proof.workoutCount")}</span></h1>
-              <p className="text-sm text-[#95D5B2]/60 ml-auto font-bold">
-                <span className="text-lg font-black text-white/90">{Math.round(monthHistory.reduce((s, h) => s + (h.stats.totalVolume || 0), 0)).toLocaleString()}</span> kg · <span className="text-lg font-black text-white/90">{Math.round(monthHistory.reduce((s, h) => s + (h.stats.totalDurationSec || 0), 0) / 60)}</span> {locale === "ko" ? "분" : "min"} · <span className="text-lg font-black text-white/90">{monthHistory.reduce((s, h) => s + (h.stats.totalSets || 0), 0)}</span> {locale === "ko" ? "세트" : "sets"}
+              <p className="text-base text-[#95D5B2]/60 ml-auto font-bold">
+                <span className="text-xl font-black text-white/90">{Math.round(monthHistory.reduce((s, h) => s + (h.stats.totalVolume || 0), 0)).toLocaleString()}</span> kg · <span className="text-xl font-black text-white/90">{Math.round(monthHistory.reduce((s, h) => s + (h.stats.totalDurationSec || 0), 0) / 60)}</span> {locale === "ko" ? "분" : "min"} · <span className="text-xl font-black text-white/90">{monthHistory.reduce((s, h) => s + (h.stats.totalSets || 0), 0)}</span> {locale === "ko" ? "세트" : "sets"}
               </p>
             </div>
           ) : isCurrentMonth ? (
