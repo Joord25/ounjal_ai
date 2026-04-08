@@ -399,7 +399,7 @@ export const ProofTab: React.FC<ProofTabProps> = ({ onShowPrediction }) => {
           </div>
 
         {proofView === "calendar" ? (
-        <div className="p-4">
+        <div className="p-4 min-h-[280px]">
           <div className="grid grid-cols-7 gap-2">
             {(locale === "ko" ? ['일', '월', '화', '수', '목', '금', '토'] : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']).map((day, i) => (
               <div key={i} className={`text-center text-xs font-bold mb-2 ${
@@ -471,7 +471,7 @@ export const ProofTab: React.FC<ProofTabProps> = ({ onShowPrediction }) => {
         </div>
         ) : proofView === "bodypart" ? (
           /* === 부위 도감 탭 === */
-          <div className="p-4">
+          <div className="p-4 min-h-[280px]">
             {(() => {
               const partCount: Record<string, number> = {};
               for (const h of monthHistory) {
@@ -512,9 +512,9 @@ export const ProofTab: React.FC<ProofTabProps> = ({ onShowPrediction }) => {
           </div>
         ) : proofView === "weight" ? (
           /* === 체중 변화 탭 === */
-          <div className="p-4">
+          <div className="p-4 min-h-[280px]">
             {weightLog.length > 0 ? (
-              <WeightTrendChart weightLog={weightLog} onViewAll={() => setView("weight_detail")} />
+              <WeightTrendChart weightLog={weightLog} onViewAll={() => setView("weight_detail")} embedded />
             ) : (
               <p className="text-sm text-gray-400 text-center py-8">{locale === "ko" ? "체중 기록이 없어요" : "No weight data yet"}</p>
             )}
@@ -526,7 +526,7 @@ export const ProofTab: React.FC<ProofTabProps> = ({ onShowPrediction }) => {
             const tierInfo = getTierFromExp(seasonExp.totalExp);
             const seasonInfo = getCurrentSeason();
             return (
-              <div className="p-4">
+              <div className="p-4 min-h-[280px]">
                 <div className={`bg-gradient-to-r ${tierInfo.tier.name === "Diamond" ? "from-purple-500 to-indigo-400" : tierInfo.tier.name === "Platinum" ? "from-cyan-500 to-blue-400" : tierInfo.tier.name === "Gold" ? "from-amber-500 to-orange-400" : tierInfo.tier.name === "Silver" ? "from-gray-400 to-gray-300" : tierInfo.tier.name === "Bronze" ? "from-amber-700 to-amber-600" : "from-gray-500 to-gray-400"} rounded-2xl px-5 py-4 mb-3`}>
                   <div className="flex items-center justify-between">
                     <p className="text-sm font-black text-white">{locale === "ko" ? seasonInfo.label : seasonInfo.label.replace("시즌", "Season")}</p>
@@ -537,7 +537,24 @@ export const ProofTab: React.FC<ProofTabProps> = ({ onShowPrediction }) => {
                   </div>
                   <p className="text-[10px] text-white/60 mt-1">{tierInfo.progress} / {tierInfo.nextTier ? tierInfo.nextTier.minExp : "MAX"} EXP</p>
                 </div>
-                <p className="text-[11px] text-gray-400 text-center">{locale === "ko" ? "운동할수록 티어가 올라가요" : "Work out more to level up"}</p>
+                {/* 경험치 내역 */}
+                {(() => {
+                  const expLog = [...seasonExp.expLog].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 10);
+                  if (expLog.length === 0) return <p className="text-[11px] text-gray-400 text-center">{locale === "ko" ? "운동할수록 티어가 올라가요" : "Work out more to level up"}</p>;
+                  return (
+                    <div className="space-y-1.5 mt-1 max-h-[140px] overflow-y-auto scrollbar-hide">
+                      {expLog.map((entry, i) => (
+                        <div key={i} className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] text-gray-400 w-12 shrink-0">{entry.date.slice(5, 10).replace("-", ".")}</span>
+                            <span className="text-[11px] text-gray-600">{entry.source === "workout" ? (locale === "ko" ? "운동 완료" : "Workout") : entry.source}</span>
+                          </div>
+                          <span className="text-[11px] font-bold text-[#2D6A4F] shrink-0">+{entry.amount}</span>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
               </div>
             );
           })()

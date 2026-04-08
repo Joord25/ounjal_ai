@@ -6,9 +6,10 @@ import { useTranslation } from "@/hooks/useTranslation";
 interface WeightTrendChartProps {
   weightLog: { date: string; weight: number }[];
   onViewAll: () => void;
+  embedded?: boolean;
 }
 
-export const WeightTrendChart: React.FC<WeightTrendChartProps> = ({ weightLog, onViewAll }) => {
+export const WeightTrendChart: React.FC<WeightTrendChartProps> = ({ weightLog, onViewAll, embedded }) => {
   const { t } = useTranslation();
 
   const sorted = [...weightLog].sort((a, b) => a.date.localeCompare(b.date));
@@ -27,7 +28,7 @@ export const WeightTrendChart: React.FC<WeightTrendChartProps> = ({ weightLog, o
   const diff = latestWeight - firstWeight;
 
   return (
-    <div className="p-4 sm:p-6 bg-white rounded-3xl border border-[#2D6A4F]/10 shadow-sm overflow-visible transition-all">
+    <div className={embedded ? "overflow-visible transition-all" : "p-4 sm:p-6 bg-white rounded-3xl border border-[#2D6A4F]/10 shadow-sm overflow-visible transition-all"}>
       <div className="flex justify-between items-baseline mb-1">
         <div className="flex items-center gap-2">
           <p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.15em]">{t("proof.weightTrend")}</p>
