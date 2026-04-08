@@ -277,9 +277,9 @@ export const ProofTab: React.FC<ProofTabProps> = ({ onShowPrediction }) => {
         <div className="mt-3 mb-1">
           {monthHistory.length > 0 ? (
             <div className="flex items-center gap-4 px-2">
-              <h1 className="text-4xl font-black text-white leading-none" style={{ textShadow: "0 0 30px rgba(82,183,136,0.3)" }}>{monthHistory.length}<span className="text-sm font-bold text-[#95D5B2]/50 ml-1">{t("proof.workoutCount")}</span></h1>
-              <p className="text-[11px] text-[#95D5B2]/40 ml-auto">
-                <span className="font-bold text-white/80">{Math.round(monthHistory.reduce((s, h) => s + (h.stats.totalVolume || 0), 0)).toLocaleString()}</span>kg · <span className="font-bold text-white/80">{Math.round(monthHistory.reduce((s, h) => s + (h.stats.totalDurationSec || 0), 0) / 60)}</span>{locale === "ko" ? "분" : "min"} · <span className="font-bold text-white/80">{monthHistory.reduce((s, h) => s + (h.stats.totalSets || 0), 0)}</span>{locale === "ko" ? "세트" : "sets"}
+              <h1 className="text-5xl font-black text-white leading-none" style={{ textShadow: "0 0 30px rgba(82,183,136,0.3)" }}>{monthHistory.length}<span className="text-base font-bold text-[#95D5B2]/50 ml-1">{t("proof.workoutCount")}</span></h1>
+              <p className="text-sm text-[#95D5B2]/40 ml-auto">
+                <span className="text-base font-black text-white/90">{Math.round(monthHistory.reduce((s, h) => s + (h.stats.totalVolume || 0), 0)).toLocaleString()}</span><span className="text-[10px]">kg</span> · <span className="text-base font-black text-white/90">{Math.round(monthHistory.reduce((s, h) => s + (h.stats.totalDurationSec || 0), 0) / 60)}</span><span className="text-[10px]">{locale === "ko" ? "분" : "min"}</span> · <span className="text-base font-black text-white/90">{monthHistory.reduce((s, h) => s + (h.stats.totalSets || 0), 0)}</span><span className="text-[10px]">{locale === "ko" ? "세트" : "sets"}</span>
               </p>
             </div>
           ) : isCurrentMonth ? (
