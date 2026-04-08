@@ -2,25 +2,71 @@
 
 ---
 
+### 회의 45: 운동 리포트 오늘 탭 — 감량 하이라이트 + 칼로리 정밀화
+**참석:** 대표(임주용), 기획자, 한체대 교수, 트레이너, 러닝 코치, UX 디자이너, 콘텐츠 MD, 프론트엔드 개발자, 백엔드 개발자, 평가자
+**일자:** 2026-04-08
+
+**수정 사항:**
+1. 칼로리 계산 3곳 통일 → `calcSessionCalories()` (운동 이름 기반 정밀 MET)
+2. MET값 255+ 종목 전수 매핑 (고중량 5.5~6.0, 아이솔레이션 3.5~4.0, 맨몸 3.5~5.5, 머신 3.0~3.5, 코어 3.0~4.0, 러닝 6.0~10.0)
+3. BMR 공식 Harris-Benedict → Mifflin-St Jeor 통일
+4. 감량 하이라이트: 4주 칼로리 소모 추이 그래프 + 칼로리 판정 + 음식 비유
+5. 그래프 제목 "오늘의 운동 평가", 오늘 점만 표시, 곡선 부드럽게
+6. 히스토리 목표 고정: reportTabs에 goal 저장
+7. 초기 로딩 화면 하단 emerald 물결 배경
+
+---
+
+### 회의 44: 1000명 시뮬 버그 헌팅
+**참석:** 기획자, UX 디자이너, 프론트엔드 개발자, 백엔드 개발자, 평가자
+**일자:** 2026-04-08
+
+**방법:** 5개 에이전트 병렬 (200명씩) — 신규/마이그레이션/운동세션/프로필변경/공격
+**결과:** 16개 버그 발견 + 전부 수정 (CRITICAL 1 + HIGH 2 + MEDIUM 10 + LOW 3)
+
+---
+
+### 회의 43: 모바일 /app 접속 에러 긴급 대응
+**일자:** 2026-04-08
+**원인:** style jsx 모바일 크래시 + Service Worker 구버전 캐시
+**해결:** style jsx 제거, SW v1→v2, globals.css로 keyframes 이동
+
+---
+
+### 회의 42: cardio 퍼센타일 구현
+**일자:** 2026-04-08
+**결정:** 러닝 페이스 기반 (이지런/템포/장거리만, 2km+, 4주), 성별×연령별 기준표
+**구현:** `getCardioPacePercentile()` + `getBestRunningPace()`, StatusTab + HomeScreen 적용
+
+---
+
+### 회의 40: 온보딩 + localStorage 리네이밍 + admin 취소 피드백
+**일자:** 2026-04-08
+
+**온보딩:** 7스텝 (안내→성별→출생연도→키→체중→목표→완료카드) + 휠피커 + 완료 후 ConditionCheck 직행
+**리네이밍:** alpha_ → ohunjal_ 전면 교체 (19파일 165곳) + 기존 유저 마이그레이션
+**기타:** admin 취소 피드백 탭, ConditionCheck energyLevel bodyPart 자동 추론, 입력값 범위 제한
+
+---
+
 ### 회의 41: 온보딩 플로우 통합 설계 + 짐워크 벤치마크 분석
 **참석:** 대표(임주용), 기획자, UX 디자이너, 프론트엔드 개발자, 백엔드 개발자, 트레이너, 한체대 교수, 콘텐츠 MD, 그로스 마케터, 퍼포먼스 마케터, 평가자, 박서진(Toss FE Head), 카피라이터
 **일자:** 2026-04-08
 
-**배경:** 프로필 입력이 ConditionCheck, FitnessReading, MyProfileTab 3곳에 분산되어 있고, HomeScreen "첫 운동" 화면이 온보딩 없이 노출됨. 짐워크(18스텝 온보딩) 벤치마크 분석 후 필요한 것만 채택.
+**배경:** 프로필 입력이 ConditionCheck, FitnessReading, MyProfileTab 3곳에 분산되어 있고, HomeScreen "첫 운동" 화면이 온보딩 없이 노출됨.
 
 **핵심 결정:**
 
 1. **프로필 입력 통합** — 기존 3곳(ConditionCheck, FitnessReading, MyProfileTab) 분산 프로필 입력을 온보딩 1곳으로 통합
 2. **온보딩 7스텝 확정** — 안내카드 → 성별(원탭) → 출생연도(휠피커) → 키(휠피커) → 체중(휠피커) → 목표(4택) → 완료카드
-3. **짐워크 벤치마크** — 18스텝 분석 후 필요한 것만 채택: 1화면 1질문, 휠피커 UI, 즉시 피드백(완료카드). 불필요한 것 제외(기구환경, 서약서, 유입경로, 닉네임)
-4. **HomeScreen "첫 운동" 중복 제거** — 온보딩 완료 유저는 isFirstVisit 화면 스킵
-5. **온보딩 → condition_check 직행** — 완료카드에서 "첫 운동 시작하기" → 바로 컨디션체크
-6. **energyLevel 자동 추론** — 항상 3이던 에너지 레벨을 bodyPart에서 자동 매핑 (full_fatigue→2, good→4, 나머지→3)
-7. **localStorage 키 리네이밍** — alpha_ → ohunjal_ 전면 교체 (19파일 165곳) + 기존 유저 마이그레이션
-8. **package.json** — "alphamale" → "ohunjal"
-9. **admin 취소 피드백 탭** — Firestore cancel_feedbacks 조회 Cloud Function + admin 프론트 탭 추가
-10. **입력값 범위 제한 통일** — 출생연도 1930~2015, 키 100~250cm, 체중 20~300kg, 1RM 0~500kg (MyProfileTab, ConditionCheck, FitnessReading 전부)
-11. **온보딩 탭바 숨김** — 온보딩 중 BottomTabs 비노출
+3. **HomeScreen "첫 운동" 중복 제거** — 온보딩 완료 유저는 isFirstVisit 화면 스킵
+4. **온보딩 → condition_check 직행** — 완료카드에서 "첫 운동 시작하기" → 바로 컨디션체크
+5. **energyLevel 자동 추론** — 항상 3이던 에너지 레벨을 bodyPart에서 자동 매핑 (full_fatigue→2, good→4, 나머지→3)
+6. **localStorage 키 리네이밍** — alpha_ → ohunjal_ 전면 교체 (19파일 165곳) + 기존 유저 마이그레이션
+7. **package.json** — "alphamale" → "ohunjal"
+8. **admin 취소 피드백 탭** — Firestore cancel_feedbacks 조회 Cloud Function + admin 프론트 탭 추가
+9. **입력값 범위 제한 통일** — 출생연도 1930~2015, 키 100~250cm, 체중 20~300kg, 1RM 0~500kg (MyProfileTab, ConditionCheck, FitnessReading 전부)
+10. **온보딩 탭바 숨김** — 온보딩 중 BottomTabs 비노출
 
 **카피 결정:**
 - 웰컴: "{name}님, 반가워요!" + "진짜 내 운동을 시작할 시간!\n가볍게 답해서 나만의 핏을 찾아보세요"
