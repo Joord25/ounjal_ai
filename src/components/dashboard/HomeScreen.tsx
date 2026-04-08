@@ -652,9 +652,15 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onStartWorkout
                 onClick={() => setHomeTab("nutrition")}
                 className="w-full flex items-center gap-3 py-2.5 group"
               >
-                <div className="w-5 h-5 rounded-md border-2 border-gray-300 flex items-center justify-center shrink-0 group-active:border-[#2D6A4F] transition-all" />
-                <p className="text-[14px] font-bold text-[#1B4332] text-left flex-1">
-                  {t("home.checklist.nutrition")}
+                {cachedNutritionGuide ? (
+                  <div className="w-5 h-5 rounded-md bg-[#2D6A4F] flex items-center justify-center shrink-0">
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2.5 6L5 8.5L9.5 3.5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  </div>
+                ) : (
+                  <div className="w-5 h-5 rounded-md border-2 border-gray-300 flex items-center justify-center shrink-0 group-active:border-[#2D6A4F] transition-all" />
+                )}
+                <p className={`text-[14px] font-bold text-left flex-1 ${cachedNutritionGuide ? "text-gray-400 line-through" : "text-[#1B4332]"}`}>
+                  {cachedNutritionGuide ? (locale === "ko" ? "오늘 식단 확인 완료" : "Nutrition checked") : t("home.checklist.nutrition")}
                 </p>
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="text-gray-300"><path d="M6 4l4 4-4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
               </button>
