@@ -126,13 +126,13 @@ export function calcVolumeGrowthRate(sessions: WorkoutHistory[]): {
   };
 }
 
-/* ─── 해리스-베네딕트 기초대사량 (BMR) ─── */
+/* ─── Mifflin-St Jeor 기초대사량 (BMR) — ACSM/ISSN 권장 ─── */
 
 export function calcBMR(gender: "male" | "female", weightKg: number, heightCm: number, age: number): number {
   if (gender === "male") {
-    return Math.round(88.362 + (13.397 * weightKg) + (4.799 * heightCm) - (5.677 * age));
+    return Math.round(10 * weightKg + 6.25 * heightCm - 5 * age + 5);
   }
-  return Math.round(447.593 + (9.247 * weightKg) + (3.098 * heightCm) - (4.330 * age));
+  return Math.round(10 * weightKg + 6.25 * heightCm - 5 * age - 161);
 }
 
 /** 다이어트 가정 섭취 칼로리 (한국영양학회 권장 - 감량분 적용) */
@@ -189,7 +189,7 @@ export function calcCalorieBalanceTrend(
 
 /* ─── Phase 1: 세션별 칼로리 추정 (실제 볼륨 기반) ─── */
 
-/** 운동 타입별 MET 값 (ACSM Compendium of Physical Activities) */
+/** 운동 타입별 기본 MET 값 (ACSM Compendium of Physical Activities) */
 const EXERCISE_TYPE_MET: Record<string, number> = {
   warmup: 2.5,
   mobility: 2.5,
@@ -199,8 +199,54 @@ const EXERCISE_TYPE_MET: Record<string, number> = {
 };
 
 /**
+ * 운동 이름 기반 정밀 MET 매핑 (ACSM Compendium 2024)
+ * 고중량 컴파운드 5.5~6.0 / 중량 아이솔레이션 3.5~4.5 / 맨몸 3.8~4.5 / 머신 3.0~4.0
+ */
+function getExerciseMET(name: string, type: string): number {
+  const lower = name.toLowerCase();
+
+  // 고중량 컴파운드 (MET 5.5~6.0)
+  if (/스쿼트|squat|데드리프트|deadlift|클린|clean|스내치|snatch|쓰러스터|thruster/.test(lower)) return 6.0;
+  if (/벤치\s*프레스|bench\s*press|오버헤드\s*프레스|overhead\s*press|밀리터리|military|숄더\s*프레스|shoulder\s*press/.test(lower)) return 5.5;
+  if (/로우|row|풀업|pull.?up|턱걸이|chin.?up|딥스|dip/.test(lower)) return 5.5;
+  if (/힙\s*쓰러스트|hip\s*thrust|런지|lunge|레그\s*프레스|leg\s*press/.test(lower)) return 5.5;
+
+  // 중량 아이솔레이션 (MET 3.5~4.5)
+  if (/컬|curl|레이즈|raise|플라이|fly|익스텐션|extension|킥백|kickback|푸쉬\s*다운|pushdown|크로스오버|crossover/.test(lower)) return 4.0;
+  if (/레그\s*컬|leg\s*curl|레그\s*익스텐션|leg\s*extension|카프|calf|글루트|glute|페이스\s*풀|face\s*pull/.test(lower)) return 3.8;
+  if (/사이드\s*벤드|side\s*bend|슈러그|shrug/.test(lower)) return 3.5;
+
+  // 맨몸 운동 (MET 3.8~4.5)
+  if (/푸시업|push.?up|푸쉬업/.test(lower)) return 4.0;
+  if (/인버티드|inverted|버피|burpee/.test(lower)) return 5.0;
+  if (/마운틴\s*클라이머|mountain\s*climber/.test(lower)) return 4.5;
+
+  // 머신 운동 (MET 3.0~4.0)
+  if (/머신|machine|스미스|smith|케이블|cable|펙\s*덱|pec\s*deck|체스트\s*프레스|chest\s*press/.test(lower)) return 3.5;
+
+  // 코어 (MET 3.0~4.0)
+  if (/플랭크|plank/.test(lower)) return 3.0;
+  if (/크런치|crunch|시저|scissor|플러터|flutter|v.?up|브이\s*업/.test(lower)) return 3.5;
+  if (/행잉|hanging|Ab\s*휠|ab\s*wheel|롤아웃|rollout|우드찹|woodchop/.test(lower)) return 4.0;
+  if (/러시안\s*트위스트|russian\s*twist|버드\s*독|bird\s*dog|슈퍼맨|superman/.test(lower)) return 3.5;
+
+  // 카디오 (MET 6.0~10.0)
+  if (/스프린트|sprint/.test(lower)) return 10.0;
+  if (/파틀렉|fartlek/.test(lower)) return 8.5;
+  if (/인터벌|interval|워크런|walkrun/.test(lower)) return 7.0;
+  if (/템포|tempo/.test(lower)) return 7.5;
+  if (/이지런|easy\s*run|조깅|jog/.test(lower)) return 6.0;
+  if (/장거리|long\s*distance|long\s*run/.test(lower)) return 6.5;
+  if (/케틀벨\s*스윙|kettlebell\s*swing/.test(lower)) return 6.0;
+  if (/점프|jump|점핑|jumping|박스\s*점프|box\s*jump/.test(lower)) return 7.0;
+
+  // 폴백: 타입 기반
+  return EXERCISE_TYPE_MET[type] || 4.0;
+}
+
+/**
  * 운동별 MET × 시간으로 세션 칼로리 계산
- * 각 운동의 type과 소요 시간을 기반으로 개별 계산 후 합산
+ * 개별 운동 이름 기반 정밀 MET 적용 → 타이밍 기반 또는 비율 배분
  */
 export function calcSessionCalories(
   session: WorkoutHistory,
@@ -214,29 +260,22 @@ export function calcSessionCalories(
   if (timings && timings.length === exercises.length) {
     let totalCal = 0;
     exercises.forEach((ex, i) => {
-      const met = EXERCISE_TYPE_MET[ex.type] || 4.0;
+      const met = getExerciseMET(ex.name, ex.type);
       const durationHours = (timings[i].durationSec || 0) / 3600;
       totalCal += met * bodyWeightKg * durationHours;
     });
     return Math.round(totalCal);
   }
 
-  // 타이밍 없으면 운동 타입 비율로 시간 배분
-  const typeCounts: Record<string, number> = {};
-  exercises.forEach(ex => {
-    typeCounts[ex.type] = (typeCounts[ex.type] || 0) + 1;
-  });
-  const totalExercises = exercises.length || 1;
-  const totalHours = totalDurationSec / 3600;
-
-  let totalCal = 0;
-  for (const [type, count] of Object.entries(typeCounts)) {
-    const met = EXERCISE_TYPE_MET[type] || 4.0;
-    const proportion = count / totalExercises;
-    totalCal += met * bodyWeightKg * totalHours * proportion;
+  // 타이밍 없으면 운동별 MET 평균 × 총 시간
+  if (exercises.length === 0) {
+    return Math.round(4.5 * bodyWeightKg * (totalDurationSec / 3600));
   }
 
-  return Math.round(totalCal);
+  const totalHours = totalDurationSec / 3600;
+  const avgMET = exercises.reduce((sum, ex) => sum + getExerciseMET(ex.name, ex.type), 0) / exercises.length;
+
+  return Math.round(avgMET * bodyWeightKg * totalHours);
 }
 
 /**
