@@ -30,9 +30,11 @@ export const WeightTrendChart: React.FC<WeightTrendChartProps> = ({ weightLog, o
   return (
     <div className={embedded ? "overflow-visible transition-all" : "p-4 sm:p-6 bg-white rounded-3xl border border-[#2D6A4F]/10 shadow-sm overflow-visible transition-all"}>
       <div className="flex justify-between items-baseline mb-1">
+        {!embedded && (
         <div className="flex items-center gap-2">
           <p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.15em]">{t("proof.weightTrend")}</p>
         </div>
+        )}
         <button
           type="button"
           className="flex items-center gap-2 cursor-pointer active:scale-95 transition-transform"
