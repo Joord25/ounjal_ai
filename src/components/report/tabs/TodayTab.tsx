@@ -174,8 +174,8 @@ export const TodayTab: React.FC<TodayTabProps> = ({
             return (
               <>
                 <div className="relative mx-5 mt-2" style={{ height: chartH }}>
-                  {/* Y축 눈금 */}
-                  {[maxCal, Math.round(avgCal), Math.round(maxCal * 0.3)].map((v, ti) => {
+                  {/* Y축 눈금 (최대/중간/최소) */}
+                  {[maxCal, Math.round((maxCal + Math.min(...calData)) / 2), Math.min(...calData)].map((v, ti) => {
                     const yPx = toY(v);
                     if (yPx < 0 || yPx > chartH) return null;
                     return (
@@ -195,7 +195,7 @@ export const TodayTab: React.FC<TodayTabProps> = ({
                         return `C ${px + (x - px) * 0.2} ${py}, ${x - (x - px) * 0.2} ${y}, ${x} ${y}`;
                       }).join(" ") + ` L ${(calData.length - 1) * 40} ${chartH} L 0 ${chartH} Z`} />
                     {/* 선 */}
-                    <path fill="none" stroke="#2D6A4F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                    <path fill="none" stroke="#2D6A4F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"
                       d={calData.map((c, i) => {
                         const x = i * 40, y = toY(c);
                         if (i === 0) return `M ${x} ${y}`;
