@@ -247,7 +247,7 @@ export const ProofTab: React.FC<ProofTabProps> = ({ onShowPrediction }) => {
   }
 
   return (
-    <div className="flex flex-col h-full bg-[#F0F4F1] animate-fade-in relative overflow-hidden">
+    <div className="flex flex-col h-full bg-[#1B4332] animate-fade-in relative overflow-hidden">
       {/* ── 다크 히어로 존 (스크롤에 포함 — 위로 밀려남) ── */}
       <div className="shrink-0 pt-[max(1.5rem,calc(env(safe-area-inset-top)+0.5rem))] px-4 sm:px-6 text-center z-10 relative"
         style={{ background: "radial-gradient(ellipse at 50% 0%, #2D6A4F 0%, #1B4332 70%)" }}>
@@ -368,7 +368,7 @@ export const ProofTab: React.FC<ProofTabProps> = ({ onShowPrediction }) => {
         }}
       >
         {/* 다크 → 라이트 그라데이션 전환 */}
-        <div className="h-16 bg-gradient-to-b from-[#1B4332] to-[#F0F4F1] -mx-4 sm:-mx-6 px-4 sm:px-6" />
+        {/* 그라데이션 전환 제거 — 전체 다크 통일 */}
         {/* Pull-to-refresh indicator */}
         <div
           className="flex items-center justify-center overflow-hidden transition-all"
@@ -404,9 +404,9 @@ export const ProofTab: React.FC<ProofTabProps> = ({ onShowPrediction }) => {
           ];
           const maxCount = 8; // ACSM 권장 부위별 주 2회 = 월 8회
           return (
-            <div className="bg-white/80 rounded-2xl border border-[#2D6A4F]/10 p-4 shadow-sm mb-5 relative overflow-hidden">
-              <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#2D6A4F]/30 rounded-l-2xl" />
-              <p className="text-[10px] font-black text-[#2D6A4F]/50 uppercase tracking-[0.15em] mb-3 pl-2">
+            <div className="bg-white/8 backdrop-blur-sm rounded-2xl border border-white/10 p-4 shadow-[0_2px_15px_rgba(0,0,0,0.2)] mb-5 relative overflow-hidden">
+              <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#52B788]/40 rounded-l-2xl" />
+              <p className="text-[10px] font-black text-[#95D5B2]/50 uppercase tracking-[0.15em] mb-3 pl-2">
                 {locale === "ko" ? "부위 도감" : "Body Part Log"}
               </p>
               <div className="space-y-2.5 pl-2">
@@ -415,11 +415,11 @@ export const ProofTab: React.FC<ProofTabProps> = ({ onShowPrediction }) => {
                   const pct = Math.min((count / maxCount) * 100, 100);
                   return (
                     <div key={p.key} className="flex items-center gap-2">
-                      <span className="text-[11px] font-bold text-[#1B4332]/60 w-10 shrink-0">{locale === "ko" ? p.ko : p.en}</span>
-                      <div className="flex-1 h-2 bg-[#2D6A4F]/10 rounded-full overflow-hidden">
-                        <div className="h-full bg-[#2D6A4F] rounded-full transition-all" style={{ width: `${pct}%` }} />
+                      <span className="text-[11px] font-bold text-white/60 w-10 shrink-0">{locale === "ko" ? p.ko : p.en}</span>
+                      <div className="flex-1 h-2 bg-white/10 rounded-full overflow-hidden">
+                        <div className="h-full bg-[#52B788] rounded-full transition-all" style={{ width: `${pct}%` }} />
                       </div>
-                      <span className="text-[10px] font-bold text-[#1B4332]/40 w-4 text-right">{count}</span>
+                      <span className="text-[10px] font-bold text-white/40 w-4 text-right">{count}</span>
                     </div>
                   );
                 })}
@@ -429,7 +429,7 @@ export const ProofTab: React.FC<ProofTabProps> = ({ onShowPrediction }) => {
         })()}
 
         {/* Calendar / Quest Toggle */}
-        <div className="flex gap-1 bg-[#2D6A4F]/10 rounded-2xl p-1 mb-5">
+        <div className="flex gap-1 bg-white/10 rounded-2xl p-1 mb-5">
           <button
             onClick={() => setProofView("calendar")}
             className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${
