@@ -5,7 +5,7 @@ import React, { useEffect, useState, useRef, useCallback } from "react";
 import { WorkoutHistory as WorkoutHistoryType } from "@/constants/workout";
 import { loadWorkoutHistory, deleteWorkoutHistory } from "@/utils/workoutHistory";
 
-import { estimateTrainingLevelDetailed, detectAchievements, type Achievement } from "@/utils/workoutMetrics";
+import { estimateTrainingLevelDetailed, detectAchievements } from "@/utils/workoutMetrics";
 import { SwipeToDelete } from "@/components/SwipeToDelete";
 import { useTranslation } from "@/hooks/useTranslation";
 import { getCurrentSeason, getTierFromExp, getOrRebuildSeasonExp, getOrCreateWeeklyQuests, rebuildFromHistory, saveSeasonExp, translateQuestLabel, translateExpDetail, type QuestDefinition, type QuestProgress } from "@/utils/questSystem";
@@ -392,16 +392,16 @@ export const ProofTab: React.FC<ProofTabProps> = ({ onShowPrediction }) => {
             { key: "core", ko: "코어", en: "Core" },
             { key: "cardio", ko: "유산소", en: "Cardio" },
           ];
-          const maxCount = Math.max(...Object.values(partCount), 1);
+          const maxCount = 8; // ACSM 권장 부위별 주 2회 = 월 8회
           return (
             <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm mb-4">
               <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] mb-3">
-                {locale === "ko" ? "이번 달 부위별" : "This Month by Part"}
+                {locale === "ko" ? "부위 도감" : "Body Part Log"}
               </p>
               <div className="space-y-2">
                 {parts.map(p => {
                   const count = partCount[p.key] || 0;
-                  const pct = (count / maxCount) * 100;
+                  const pct = Math.min((count / maxCount) * 100, 100);
                   return (
                     <div key={p.key} className="flex items-center gap-2">
                       <span className="text-[11px] font-bold text-gray-500 w-10 shrink-0">{locale === "ko" ? p.ko : p.en}</span>
