@@ -216,10 +216,18 @@ function getExerciseMET(name: string, type: string): number {
   if (/레그\s*컬|leg\s*curl|레그\s*익스텐션|leg\s*extension|카프|calf|글루트|glute|페이스\s*풀|face\s*pull/.test(lower)) return 3.8;
   if (/사이드\s*벤드|side\s*bend|슈러그|shrug/.test(lower)) return 3.5;
 
-  // 맨몸 운동 (MET 3.8~4.5)
+  // 맨몸 운동 (MET 3.5~5.5)
   if (/푸시업|push.?up|푸쉬업/.test(lower)) return 4.0;
+  if (/니\s*푸시업|니\s*푸쉬업|knee\s*push/.test(lower)) return 3.5;
+  if (/다이아몬드|diamond|아처|archer|힌두|hindu/.test(lower)) return 4.5;
+  if (/웨이티드\s*푸쉬업|weighted\s*push/.test(lower)) return 5.0;
   if (/인버티드|inverted|버피|burpee/.test(lower)) return 5.0;
   if (/마운틴\s*클라이머|mountain\s*climber/.test(lower)) return 4.5;
+  if (/피스톨\s*스쿼트|pistol\s*squat/.test(lower)) return 5.5;
+  if (/에어\s*스쿼트|air\s*squat|스쿼트\s*점프|squat\s*jump/.test(lower)) return 5.0;
+  if (/글루트\s*브릿지|glute\s*bridge/.test(lower)) return 3.5;
+  if (/스텝\s*업|step.?up/.test(lower)) return 4.5;
+  if (/중량\s*딥스|weighted\s*dip/.test(lower)) return 6.0;
 
   // 머신 운동 (MET 3.0~4.0)
   if (/머신|machine|스미스|smith|케이블|cable|펙\s*덱|pec\s*deck|체스트\s*프레스|chest\s*press/.test(lower)) return 3.5;
@@ -229,6 +237,11 @@ function getExerciseMET(name: string, type: string): number {
   if (/크런치|crunch|시저|scissor|플러터|flutter|v.?up|브이\s*업/.test(lower)) return 3.5;
   if (/행잉|hanging|Ab\s*휠|ab\s*wheel|롤아웃|rollout|우드찹|woodchop/.test(lower)) return 4.0;
   if (/러시안\s*트위스트|russian\s*twist|버드\s*독|bird\s*dog|슈퍼맨|superman/.test(lower)) return 3.5;
+  if (/데드버그|deadbug|레그\s*레이즈|leg\s*raise|싱글\s*레그|single\s*leg\s*raise/.test(lower)) return 3.5;
+
+  // 머신 보충 (MET 3.0~3.5)
+  if (/백\s*익스텐션|back\s*extension|힙\s*어덕션|hip\s*abduction|프리쳐\s*컬\s*머신|preacher\s*curl\s*machine/.test(lower)) return 3.0;
+  if (/하이\s*로우|high\s*row|원\s*암.*머신|one\s*arm.*machine/.test(lower)) return 3.5;
 
   // 카디오 (MET 6.0~10.0)
   if (/스프린트|sprint/.test(lower)) return 10.0;
@@ -255,6 +268,17 @@ export function calcSessionCalories(
   const exercises = session.sessionData?.exercises || [];
   const timings = (session as { exerciseTimings?: { durationSec: number }[] }).exerciseTimings;
   const totalDurationSec = session.stats.totalDurationSec || 2700; // 기본 45분
+
+  // 러닝 세션: runningStats 기반 정밀 계산
+  const rs = session.runningStats;
+  if (rs && rs.duration > 0) {
+    const runMET: Record<string, number> = {
+      sprint: 10.0, fartlek: 8.5, tempo: 7.5, interval: 7.0, walkrun: 7.0,
+      easy: 6.0, long: 6.5,
+    };
+    const met = runMET[rs.runningType] || 6.5;
+    return Math.round(met * bodyWeightKg * (rs.duration / 3600));
+  }
 
   // 운동별 타이밍이 있으면 개별 계산
   if (timings && timings.length === exercises.length) {
