@@ -377,7 +377,7 @@ export const ProofTab: React.FC<ProofTabProps> = ({ onShowPrediction }) => {
 
         {/* 부위 도감은 4탭 카드 안으로 이동 */}
 
-        {/* 4탭 통합 카드 */}
+        {/* 4탭 통합 카드 — 풀폭 */}
         <div className="bg-white/80 rounded-2xl border border-[#2D6A4F]/10 shadow-sm mb-5 overflow-hidden">
           <div className="flex gap-0.5 bg-[#2D6A4F]/10 p-1 m-3 mb-0 rounded-xl">
             {([
