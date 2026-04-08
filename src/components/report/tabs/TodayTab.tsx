@@ -61,7 +61,7 @@ export interface TodayTabProps {
   /** 운동 설명 (부위 요약) */
   sessionDesc?: string;
   /** 4주 그래프 데이터 */
-  graphData?: { date: Date; loadScore: number; volume: number }[];
+  graphData?: { date: Date; loadScore: number; volume: number; calories?: number }[];
   /** PR 정보 (있을 때만) */
   prInfo?: { exerciseName: string; value: string } | null;
   /** 부하 밴드 (적정 범위) */
@@ -149,44 +149,49 @@ export const TodayTab: React.FC<TodayTabProps> = ({
 
       {/* ── 메인 하이라이트 ── */}
       {showCalorieMain ? (
-        /* 여성/감량: 칼로리 메인 — 4주 그래프 + 칼로리 판정 */
+        /* 여성/감량: 4주 칼로리 소모 추이 그래프 */
         <div className="bg-white rounded-3xl border border-[#2D6A4F]/10 p-4 shadow-sm">
           <div className="flex items-center justify-between mb-1">
             <p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.15em]">
-              {ko ? "오늘의 운동 평가" : "Today's Workout Rating"}
+              {ko ? "4주 칼로리 소모 추이" : "4-Week Calorie Trend"}
             </p>
-            {onHelpPress && (
-              <button onClick={onHelpPress} className="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center">
-                <span className="text-[10px] font-black text-gray-400">?</span>
-              </button>
-            )}
           </div>
-          {graphData && graphData.length >= 1 ? (() => {
-            const maxLoad = Math.max(...graphData.map(g => g.loadScore), 1);
-            const optLow = loadBand?.low ?? maxLoad * 0.6;
-            const optHigh = loadBand?.high ?? maxLoad * 0.85;
+          {graphData && graphData.length >= 1 && graphData.some(g => (g.calories ?? 0) > 0) ? (() => {
+            const calData = graphData.map(g => g.calories ?? 0);
+            const maxCal = Math.max(...calData, 1);
+            const avgCal = Math.round(calData.reduce((a, b) => a + b, 0) / calData.length);
             const chartH = 120;
-            const toY = (v: number) => chartH - (v / (maxLoad * 1.2)) * chartH;
+            const toY = (v: number) => chartH - (v / (maxCal * 1.2)) * chartH;
+
+            // 칼로리 판정: 오늘 vs 4주 평균
+            const todayCal = cal;
+            const calVerdict = todayCal >= avgCal * 1.1
+              ? { text: ko ? "잘 태우고 있어요" : "Burning well", color: "text-[#2D6A4F]" }
+              : todayCal >= avgCal * 0.7
+                ? { text: ko ? "적당히 했어요" : "Moderate effort", color: "text-[#2D6A4F]" }
+                : { text: ko ? "오늘은 가볍게" : "Light day", color: "text-blue-500" };
+
             return (
               <>
                 <div className="relative mx-5 mt-2" style={{ height: chartH }}>
-                  <div className="absolute inset-x-0 bg-emerald-100/50 rounded" style={{ top: toY(optHigh), height: toY(optLow) - toY(optHigh) }} />
+                  {/* 평균선 */}
+                  <div className="absolute inset-x-0 border-t border-dashed border-emerald-300/50" style={{ top: toY(avgCal) }} />
                   <svg className="absolute inset-0 w-full h-full" viewBox={`0 0 ${graphData.length > 1 ? (graphData.length - 1) * 40 : 40} ${chartH}`} preserveAspectRatio="none">
                     <path fill="none" stroke="#2D6A4F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                      d={graphData.map((g, i) => {
-                        const x = i * 40, y = toY(g.loadScore);
+                      d={calData.map((c, i) => {
+                        const x = i * 40, y = toY(c);
                         if (i === 0) return `M ${x} ${y}`;
-                        const px = (i - 1) * 40, py = toY(graphData[i - 1].loadScore);
-                        const t = 0.3;
+                        const px = (i - 1) * 40, py = toY(calData[i - 1]);
+                        const t = 0.35;
                         return `C ${px + (x - px) * t} ${py}, ${x - (x - px) * t} ${y}, ${x} ${y}`;
                       }).join(" ")} />
                   </svg>
-                  {/* 오늘 점만 표시 */}
-                  {graphData.length > 0 && (() => {
-                    const lastIdx = graphData.length - 1;
+                  {/* 오늘 점만 */}
+                  {calData.length > 0 && (() => {
+                    const lastIdx = calData.length - 1;
                     return (
                       <div className="absolute w-3 h-3 rounded-full bg-[#2D6A4F] border-2 border-white shadow-sm"
-                        style={{ left: `${(lastIdx / Math.max(lastIdx, 1)) * 100}%`, top: toY(graphData[lastIdx].loadScore), transform: "translate(-50%, -50%)" }} />
+                        style={{ left: `${(lastIdx / Math.max(lastIdx, 1)) * 100}%`, top: toY(calData[lastIdx]), transform: "translate(-50%, -50%)" }} />
                     );
                   })()}
                 </div>
@@ -194,15 +199,11 @@ export const TodayTab: React.FC<TodayTabProps> = ({
                   <div className="flex items-baseline justify-center gap-2 mb-1">
                     <p className="text-3xl font-black text-[#1B4332]">{cal > 0 ? cal.toLocaleString() : "-"}</p>
                     <span className="text-base font-bold text-gray-400">kcal</span>
-                    {graphVerdict && <span className={`text-base font-bold ${graphVerdict.color}`}>— {graphVerdict.text}</span>}
+                    <span className={`text-base font-bold ${calVerdict.color}`}>— {calVerdict.text}</span>
                   </div>
                   {food && <p className="text-sm text-[#2D6A4F] font-bold">{ko ? `${food} 태웠어요` : `Burned ${food}`}</p>}
                   <p className="text-[11px] text-gray-400 mt-1 leading-relaxed pb-1">
-                    {graphVerdict?.color === "text-[#2D6A4F]"
-                      ? (ko ? "꾸준한 소모가 감량의 핵심이에요. 이 페이스 유지!" : "Consistent burn is key. Keep this pace!")
-                      : graphVerdict?.color === "text-amber-600"
-                        ? (ko ? "오늘 많이 움직였어요. 충분히 쉬세요." : "Big effort today. Rest well.")
-                        : (ko ? "가볍게 쉬어가는 날이에요. 내일 다시!" : "Easy day. Back at it tomorrow!")}
+                    {ko ? "꾸준한 소모가 감량의 핵심이에요" : "Consistent calorie burn is the key to fat loss"}
                   </p>
                 </div>
               </>

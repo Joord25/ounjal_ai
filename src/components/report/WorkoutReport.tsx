@@ -325,17 +325,21 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
 
 
   // Build graph data from history (last 28 days load scores)
+  const bwForCalc = bodyWeightKg ?? 70;
   const graphData = recentHistory.map(h => ({
     date: new Date(h.date),
     loadScore: h.stats.totalVolume && bodyWeightKg ? Math.round((h.stats.totalVolume / bodyWeightKg) * 10) / 10 : h.stats.totalVolume,
     volume: h.stats.totalVolume,
+    calories: calcSessionCalories(h, bwForCalc),
   }));
   // Add today's session
   if (totalVolume > 0) {
+    const todayCal = calcSessionCalories({ sessionData, logs, stats: { totalVolume, totalSets: metrics.totalSets, totalReps: metrics.totalReps, totalDurationSec }, date: "", id: "" } as WorkoutHistory, bwForCalc);
     graphData.push({
       date: new Date(),
       loadScore: loadScore,
       volume: totalVolume,
+      calories: todayCal,
     });
   }
 
