@@ -247,9 +247,9 @@ export const ProofTab: React.FC<ProofTabProps> = ({ onShowPrediction }) => {
   }
 
   return (
-    <div className="flex flex-col h-full bg-[#F0F4F1] animate-fade-in relative overflow-hidden">
+    <div className="flex flex-col h-full bg-[#FAFBF9] animate-fade-in relative overflow-hidden">
       {/* ── 히어로 존 (라이트 톤) ── */}
-      <div className="shrink-0 pt-[max(1.5rem,calc(env(safe-area-inset-top)+0.5rem))] px-4 sm:px-6 text-center z-10 relative bg-[#F0F4F1]">
+      <div className="shrink-0 pt-[max(1.5rem,calc(env(safe-area-inset-top)+0.5rem))] px-4 sm:px-6 text-center z-10 relative bg-[#FAFBF9]">
         {/* 월 네비게이션 */}
         <div className="inline-flex items-center gap-1 bg-[#2D6A4F]/10 rounded-full">
           <button
