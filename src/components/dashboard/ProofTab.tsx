@@ -365,8 +365,6 @@ export const ProofTab: React.FC<ProofTabProps> = ({ onShowPrediction }) => {
           isPulling.current = false;
         }}
       >
-        {/* 구분선 */}
-        <div className="h-px bg-[#2D6A4F]/10 -mx-4 sm:-mx-6 mt-2" />
         {/* Pull-to-refresh indicator */}
         <div
           className="flex items-center justify-center overflow-hidden transition-all"
@@ -402,12 +400,11 @@ export const ProofTab: React.FC<ProofTabProps> = ({ onShowPrediction }) => {
           ];
           const maxCount = 8; // ACSM 권장 부위별 주 2회 = 월 8회
           return (
-            <div className="bg-white/80 rounded-2xl border border-[#2D6A4F]/10 p-4 shadow-sm mb-5 relative overflow-hidden">
-              <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#2D6A4F]/30 rounded-l-2xl" />
-              <p className="text-[10px] font-black text-[#2D6A4F]/50 uppercase tracking-[0.15em] mb-3 pl-2">
+            <div className="bg-white/80 rounded-2xl border border-[#2D6A4F]/10 p-4 shadow-sm mb-5">
+              <p className="text-[10px] font-black text-[#2D6A4F]/50 uppercase tracking-[0.15em] mb-3">
                 {locale === "ko" ? "부위 도감" : "Body Part Log"}
               </p>
-              <div className="space-y-2.5 pl-2">
+              <div className="space-y-2.5">
                 {parts.map(p => {
                   const count = partCount[p.key] || 0;
                   const pct = Math.min((count / maxCount) * 100, 100);
