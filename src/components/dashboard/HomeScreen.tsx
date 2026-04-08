@@ -629,8 +629,11 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onStartWorkout
               <h3 className="text-[13px] font-black text-[#1B4332] mb-3">{t("home.checklist.title")}</h3>
 
               {/* 오늘 운동하기 */}
-              <div className="flex items-center gap-3 py-2.5">
-                <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-all ${didWorkoutToday ? "bg-[#2D6A4F] border-[#2D6A4F]" : "border-gray-300"}`}>
+              <button
+                onClick={() => { if (!didWorkoutToday) onStartWorkout(); }}
+                className="w-full flex items-center gap-3 py-2.5 group"
+              >
+                <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-all ${didWorkoutToday ? "bg-[#2D6A4F] border-[#2D6A4F]" : "border-gray-300 group-active:border-[#2D6A4F]"}`}>
                   {didWorkoutToday && (
                     <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2.5 6L5 8.5L9.5 3.5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                   )}
@@ -643,7 +646,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onStartWorkout
                     <p className="text-[11px] text-gray-400 mt-0.5">{coachBubbles[1]}</p>
                   )}
                 </div>
-              </div>
+              </button>
 
               <div className="h-px bg-gray-100 my-1" />
 
