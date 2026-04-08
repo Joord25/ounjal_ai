@@ -48,7 +48,7 @@ export const BottomTabs: React.FC<BottomTabsProps> = ({ active, onChange }) => {
               }`}
             >
               <span
-                className={`text-[11px] font-serif font-bold tracking-widest transition-colors duration-300 ${
+                className={`text-[11px] font-sans font-bold tracking-wide transition-colors duration-300 ${
                   isActive ? "text-white" : "text-gray-500"
                 }`}
               >
