@@ -560,6 +560,7 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ user, on
   ];
 
   const openCancelFlow = () => {
+    setRefundStep(0); // 환불 폼과 상호 배제
     setCancelStep(1);
     setCancelReason(null);
     setCancelReasonText("");
@@ -844,7 +845,7 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ user, on
                           </p>
                           {(status === "active" || status === "cancelled") && (
                             <button
-                              onClick={() => { setRefundStep(1); setRefundReason(""); setError(null); }}
+                              onClick={() => { setCancelStep(0); setRefundStep(1); setRefundReason(""); setError(null); }}
                               className="mt-3 w-full py-2.5 rounded-xl text-xs font-bold text-gray-500 bg-gray-100 border border-gray-200 active:scale-[0.98] transition-all"
                             >
                               {t("sub.refundRequest.submit")}

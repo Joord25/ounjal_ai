@@ -580,7 +580,9 @@ export default function Home() {
       }
       throw err;
     }
-    await incrementPlanCount();
+    // 게스트 체험 카운트: 플랜 생성 시점에 증가 (서버 IP 카운트와 동기화)
+    if (!isLoggedIn) incrementGuestTrial();
+    // planCount는 운동 시작(onStart) 시점에 증가 — 생성만 하고 취소해도 횟수 차감 안 됨
     // sessionMode path: view transition handled by onComplete callback
     if (!session?.sessionMode) {
       setView("master_plan_preview");
@@ -710,7 +712,7 @@ export default function Home() {
         return (
           <MasterPlanPreview
             sessionData={currentWorkoutSession}
-            onStart={(modifiedData) => { trackEvent("plan_preview_start"); setCurrentWorkoutSession(modifiedData); setView("workout_session"); }}
+            onStart={(modifiedData) => { trackEvent("plan_preview_start"); incrementPlanCount(); setCurrentWorkoutSession(modifiedData); setView("workout_session"); }}
             onBack={() => setView("condition_check")}
             onRegenerate={handleRegenerate}
             onIntensityChange={handleIntensityChange}
@@ -765,8 +767,7 @@ export default function Home() {
               setLastPrevExp(prevSeasonState.totalExp);
               setLastExpGained(expGained);
 
-              // 비로그인 체험 카운트 증가
-              if (!isLoggedIn) incrementGuestTrial();
+              // 게스트 체험 카운트는 플랜 생성 시점에 이미 증가됨 (handleConditionComplete)
               setView("workout_report");
             }}
             onBack={() => { trackEvent("workout_abandon"); setView("master_plan_preview"); }}
@@ -936,18 +937,19 @@ export default function Home() {
             sessionMode={currentSession?.sessionMode}
             targetMuscle={currentSession?.targetMuscle}
             onComplete={() => {
-              // 서버 응답 대기: pendingSession이 있을 때까지 폴링
+              // 서버 응답 대기: pendingSession이 있을 때까지 폴링 (최대 20회=10초)
+              let pollCount = 0;
               const checkReady = () => {
                 if (pendingSessionRef.current) {
                   setCurrentWorkoutSession(pendingSessionRef.current);
                   pendingSessionRef.current = null;
                   setIsLoading(false);
                   setView("master_plan_preview");
-                } else if (isLoading) {
-                  // 아직 서버 응답 대기 중 — 500ms 후 재확인
+                } else if (pollCount < 20) {
+                  pollCount++;
                   setTimeout(checkReady, 500);
                 } else {
-                  // generatePlan이 실패로 끝남 — 로딩만 종료
+                  // 타임아웃 — 로딩 종료
                   setIsLoading(false);
                 }
               };
