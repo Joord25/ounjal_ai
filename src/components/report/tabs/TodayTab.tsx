@@ -126,11 +126,10 @@ export const TodayTab: React.FC<TodayTabProps> = ({
     return { text: ko ? "조금 적어요" : "A bit low", color: "text-blue-500" };
   })();
 
-  // 부위·시간·세트 한줄
+  // 부위·시간 한줄 (세트 수는 description에 포함)
   const summaryLine = [
     sessionDesc || (ko ? "운동" : "Workout"),
     `${minutes}${ko ? "분" : "min"}`,
-    totalSets ? `${totalSets}${ko ? "세트" : " sets"}` : null,
   ].filter(Boolean).join(" · ");
 
   return (

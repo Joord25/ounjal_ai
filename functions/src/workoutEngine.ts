@@ -728,20 +728,14 @@ const SESSION_TITLES: Record<string, Record<WorkoutGoal, string>> = {
   },
 };
 
-const getSessionDescription = (workoutType: string, goal: WorkoutGoal, sets: number, condition: UserCondition): string => {
-  const conditionMap: Record<string, string> = {
-    upper_stiff: "상체 뻣뻣함 개선",
-    lower_heavy: "하체 무거움 완화",
-    full_fatigue: "전반적 피로 회복",
-    good: "최적 컨디션",
-  };
+const getSessionDescription = (_workoutType: string, goal: WorkoutGoal, sets: number, _condition: UserCondition): string => {
   const goalMap: Record<string, string> = {
     muscle_gain: "근비대",
-    strength: "근력 강화",
-    fat_loss: "체지방 감량",
-    general_fitness: "전반적 체력 향상",
+    strength: "근력",
+    fat_loss: "감량",
+    general_fitness: "체력",
   };
-  return `${goalMap[goal]} • ${conditionMap[condition.bodyPart]} • ${sets}세트`;
+  return `${goalMap[goal]} · ${sets}세트`;
 };
 
 // Adaptive Logic: Adjust volume/intensity based on condition & goal
@@ -1220,7 +1214,7 @@ function generateHomeWorkout(
 
   return {
     title: "기초체력강화 · 홈트레이닝",
-    description: `맨몸 + 덤벨 전신 서킷 5종 · ${sets}세트`,
+    description: `전신 서킷 5종 · ${sets}세트`,
     exercises,
     intendedIntensity: deriveStrengthIntensity(intensityOverride, goal),
   };
