@@ -758,12 +758,6 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ user, on
                 <p className="text-xs text-amber-600 mt-1">
                   {expiresAt ? t("sub.cancelled.until", { date: new Date(expiresAt).toLocaleDateString(locale === "ko" ? "ko-KR" : "en-US") }) : t("sub.cancelled.expire")}
                 </p>
-                <button
-                  onClick={() => { setRefundStep(1); setRefundReason(""); setError(null); }}
-                  className="text-xs text-amber-700 underline underline-offset-2 mt-2"
-                >
-                  {t("sub.refundRequest.link")}
-                </button>
               </div>
             )}
 
