@@ -200,11 +200,11 @@ export function getExerciseCategory(exerciseName: string): FitnessCategory | nul
 
   // 부분 매칭
   const lower = exerciseName.toLowerCase();
-  if (lower.includes("bench") || lower.includes("벤치") || lower.includes("chest") || lower.includes("가슴") || lower.includes("push up") || lower.includes("푸시업") || lower.includes("플라이") || lower.includes("fly")) return "chest";
-  if (lower.includes("row") || lower.includes("로우") || lower.includes("pull up") || lower.includes("풀업") || lower.includes("pulldown") || lower.includes("풀다운") || lower.includes("턱걸이") || lower.includes("chin")) return "back";
+  if (lower.includes("bench") || lower.includes("벤치") || lower.includes("chest") || lower.includes("가슴") || lower.includes("push up") || lower.includes("push-up") || lower.includes("pushup") || lower.includes("푸시업") || lower.includes("푸쉬업") || lower.includes("플라이") || lower.includes("fly")) return "chest";
+  if (lower.includes("row") || lower.includes("로우") || lower.includes("pull up") || lower.includes("pull-up") || lower.includes("pullup") || lower.includes("풀업") || lower.includes("pulldown") || lower.includes("풀다운") || lower.includes("턱걸이") || lower.includes("chin") || lower.includes("trx")) return "back";
   if (lower.includes("shoulder") || lower.includes("어깨") || lower.includes("overhead") || lower.includes("오버헤드") || lower.includes("military") || lower.includes("밀리터리") || lower.includes("lateral") || lower.includes("레터럴") || lower.includes("숄더")) return "shoulder";
-  if (lower.includes("squat") || lower.includes("스쿼트") || lower.includes("deadlift") || lower.includes("데드") || lower.includes("leg") || lower.includes("레그") || lower.includes("lunge") || lower.includes("런지") || lower.includes("하체") || lower.includes("hip") || lower.includes("힙") || lower.includes("calf") || lower.includes("카프")) return "legs";
-  if (lower.includes("plank") || lower.includes("플랭크") || lower.includes("crunch") || lower.includes("크런치") || lower.includes("ab ") || lower.includes("코어") || lower.includes("core")) return "core";
+  if (lower.includes("squat") || lower.includes("스쿼트") || lower.includes("deadlift") || lower.includes("데드") || lower.includes("leg") || lower.includes("레그") || lower.includes("lunge") || lower.includes("런지") || lower.includes("하체") || lower.includes("hip") || lower.includes("힙") || lower.includes("calf") || lower.includes("카프") || lower.includes("글루트") || lower.includes("glute") || lower.includes("burpee") || lower.includes("버피")) return "legs";
+  if (lower.includes("plank") || lower.includes("플랭크") || lower.includes("crunch") || lower.includes("크런치") || lower.includes("ab ") || lower.includes("ab휠") || lower.includes("ab wheel") || lower.includes("코어") || lower.includes("core") || lower.includes("leg raise") || lower.includes("레그 레이즈") || lower.includes("시저") || lower.includes("scissor") || lower.includes("flutter") || lower.includes("플러터") || lower.includes("v-up") || lower.includes("브이 업") || lower.includes("mountain") || lower.includes("마운틴") || lower.includes("bird dog") || lower.includes("버드") || lower.includes("superman") || lower.includes("슈퍼맨") || lower.includes("deadbug") || lower.includes("데드버그")) return "core";
 
   return null;
 }
@@ -240,42 +240,80 @@ export interface CategoryPercentile {
 /** 맨몸 운동 판별 — weight 0이면 체중을 자동 대입 */
 function isBodyweightExercise(name: string): boolean {
   const lower = name.toLowerCase();
-  return ["푸시업", "push up", "push-up", "딥스", "dips", "dip",
-    "풀업", "pull up", "pull-up", "턱걸이", "친업", "chin up", "chin-up",
-    "인버티드 로우", "inverted row", "글루트 브릿지", "glute bridge",
+  return [
+    // 상체 맨몸
+    "푸시업", "푸쉬업", "push up", "push-up", "pushup",
+    "딥스", "dips", "dip",
+    "풀업", "pull up", "pull-up", "pullup",
+    "턱걸이", "친업", "chin up", "chin-up",
+    "인버티드 로우", "inverted row",
+    "어시스티드 풀업", "assisted pull up", "assisted pull-up",
+    "trx",
+    // 하체 맨몸
+    "에어 스쿼트", "air squat",
+    "글루트 브릿지", "glute bridge",
     "힙 쓰러스트", "hip thrust",
     "스텝 업", "step up", "런지", "lunge", "워킹 런지", "walking lunge",
     "불가리안 스플릿 스쿼트", "bulgarian split squat",
-    "어시스티드 풀업", "assisted pull up", "assisted pull-up",
-    "플랭크", "plank", "크런치", "crunch", "브이 업", "v-up",
-    "마운틴 클라이머", "mountain climber", "시저 킥", "scissor kick",
-    "플러터 킥", "flutter kick", "버드 독", "bird dog", "슈퍼맨", "superman",
+    "스쿼트 점프", "squat jump",
+    // 전신 맨몸
+    "버피", "burpee",
+    "점핑 잭", "jumping jack",
+    "하이니즈", "high knee",
+    "베어 크롤", "bear crawl",
+    // 코어 맨몸
+    "플랭크", "plank", "사이드 플랭크", "side plank",
+    "크런치", "crunch", "바이시클 크런치", "bicycle crunch",
+    "오블리크 크런치", "oblique crunch", "리버스 크런치", "reverse crunch",
+    "토 터치", "toe touch",
+    "브이 업", "v-up", "v up",
+    "마운틴 클라이머", "mountain climber",
+    "시저 킥", "scissor kick", "플러터 킥", "flutter kick",
+    "레그 레이즈", "leg raise",
+    "버드 독", "bird dog", "슈퍼맨", "superman", "데드버그", "deadbug", "dead bug",
+    "ab 휠", "ab wheel",
   ].some(kw => lower.includes(kw));
 }
 
 /** 맨몸 운동별 실효 부하 비율 (Suprak et al. 2011, biomechanics 연구 기반) */
 function getBodyweightLoadRatio(name: string): number {
   const lower = name.toLowerCase();
-  // 전 체중 지지
-  if (["딥스", "dips", "dip", "풀업", "pull up", "pull-up", "턱걸이", "친업", "chin up", "chin-up", "어시스티드 풀업", "assisted pull"].some(kw => lower.includes(kw))) return 1.0;
+  // 전 체중 지지 (100%)
+  if (["딥스", "dips", "dip", "풀업", "pull up", "pull-up", "pullup", "턱걸이", "친업", "chin up", "chin-up", "어시스티드 풀업", "assisted pull"].some(kw => lower.includes(kw))) return 1.0;
   // 불가리안 — 한 다리 지지 85%
   if (["불가리안", "bulgarian"].some(kw => lower.includes(kw))) return 0.85;
   // 스텝업 — 한 다리 주도 80%
   if (["스텝 업", "step up"].some(kw => lower.includes(kw))) return 0.80;
+  // 스쿼트 점프 — 착지 충격 포함 75%
+  if (["스쿼트 점프", "squat jump"].some(kw => lower.includes(kw))) return 0.75;
   // 런지 — 양측 분배 75%
   if (["런지", "lunge"].some(kw => lower.includes(kw))) return 0.75;
+  // 에어 스쿼트 — 양다리 전 체중, ROM 큼 70%
+  if (["에어 스쿼트", "air squat"].some(kw => lower.includes(kw))) return 0.70;
+  // 버피 — 전신 복합 70%
+  if (["버피", "burpee"].some(kw => lower.includes(kw))) return 0.70;
   // 푸시업 — 64% (Suprak et al.)
-  if (["푸시업", "push up", "push-up"].some(kw => lower.includes(kw))) return 0.64;
-  // 인버티드 로우 — 60%
-  if (["인버티드 로우", "inverted row"].some(kw => lower.includes(kw))) return 0.60;
+  if (["푸시업", "푸쉬업", "push up", "push-up", "pushup"].some(kw => lower.includes(kw)) && !["니", "knee"].some(kw => lower.includes(kw))) return 0.64;
+  // 인버티드 로우, TRX — 60%
+  if (["인버티드 로우", "inverted row", "trx"].some(kw => lower.includes(kw))) return 0.60;
+  // 베어 크롤 — 전신 이동 50%
+  if (["베어 크롤", "bear crawl"].some(kw => lower.includes(kw))) return 0.50;
+  // 니 푸쉬업 — 무릎 지지 49% (Suprak et al.)
+  if (["니 푸쉬업", "니 푸시업", "knee push"].some(kw => lower.includes(kw))) return 0.49;
   // 힙쓰러스트(BW) — 45%
   if (["힙 쓰러스트", "hip thrust"].some(kw => lower.includes(kw))) return 0.45;
   // 글루트브릿지 — 40%
   if (["글루트 브릿지", "glute bridge"].some(kw => lower.includes(kw))) return 0.40;
-  // 등척성 코어 (플랭크, 크런치 등) — e1RM 부적합, 낮은 비율
-  if (["플랭크", "plank", "크런치", "crunch", "브이 업", "v-up", "마운틴 클라이머", "mountain climber", "시저 킥", "scissor", "플러터 킥", "flutter", "버드 독", "bird dog", "슈퍼맨", "superman"].some(kw => lower.includes(kw))) return 0.30;
+  // 유산소성 맨몸 (점핑잭, 하이니즈) — 30%
+  if (["점핑 잭", "jumping jack", "하이니즈", "high knee"].some(kw => lower.includes(kw))) return 0.30;
+  // 코어 (플랭크, 크런치 등) — 30%
+  if (["플랭크", "plank", "크런치", "crunch", "브이 업", "v-up", "v up",
+    "마운틴 클라이머", "mountain climber", "시저 킥", "scissor", "플러터 킥", "flutter",
+    "버드 독", "bird dog", "슈퍼맨", "superman", "데드버그", "deadbug", "dead bug",
+    "레그 레이즈", "leg raise", "토 터치", "toe touch", "ab 휠", "ab wheel",
+  ].some(kw => lower.includes(kw))) return 0.30;
   // 기본값
-  return 0.64;
+  return 0.50;
 }
 
 /** 카테고리별 최고 E1RM BW ratio 추출 (이력 + 오늘) */
