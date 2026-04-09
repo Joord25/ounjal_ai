@@ -243,6 +243,7 @@ function isBodyweightExercise(name: string): boolean {
   return ["푸시업", "push up", "push-up", "딥스", "dips", "dip",
     "풀업", "pull up", "pull-up", "턱걸이", "친업", "chin up", "chin-up",
     "인버티드 로우", "inverted row", "글루트 브릿지", "glute bridge",
+    "힙 쓰러스트", "hip thrust",
     "스텝 업", "step up", "런지", "lunge", "워킹 런지", "walking lunge",
     "불가리안 스플릿 스쿼트", "bulgarian split squat",
     "어시스티드 풀업", "assisted pull up", "assisted pull-up",
@@ -250,6 +251,31 @@ function isBodyweightExercise(name: string): boolean {
     "마운틴 클라이머", "mountain climber", "시저 킥", "scissor kick",
     "플러터 킥", "flutter kick", "버드 독", "bird dog", "슈퍼맨", "superman",
   ].some(kw => lower.includes(kw));
+}
+
+/** 맨몸 운동별 실효 부하 비율 (Suprak et al. 2011, biomechanics 연구 기반) */
+function getBodyweightLoadRatio(name: string): number {
+  const lower = name.toLowerCase();
+  // 전 체중 지지
+  if (["딥스", "dips", "dip", "풀업", "pull up", "pull-up", "턱걸이", "친업", "chin up", "chin-up", "어시스티드 풀업", "assisted pull"].some(kw => lower.includes(kw))) return 1.0;
+  // 불가리안 — 한 다리 지지 85%
+  if (["불가리안", "bulgarian"].some(kw => lower.includes(kw))) return 0.85;
+  // 스텝업 — 한 다리 주도 80%
+  if (["스텝 업", "step up"].some(kw => lower.includes(kw))) return 0.80;
+  // 런지 — 양측 분배 75%
+  if (["런지", "lunge"].some(kw => lower.includes(kw))) return 0.75;
+  // 푸시업 — 64% (Suprak et al.)
+  if (["푸시업", "push up", "push-up"].some(kw => lower.includes(kw))) return 0.64;
+  // 인버티드 로우 — 60%
+  if (["인버티드 로우", "inverted row"].some(kw => lower.includes(kw))) return 0.60;
+  // 힙쓰러스트(BW) — 45%
+  if (["힙 쓰러스트", "hip thrust"].some(kw => lower.includes(kw))) return 0.45;
+  // 글루트브릿지 — 40%
+  if (["글루트 브릿지", "glute bridge"].some(kw => lower.includes(kw))) return 0.40;
+  // 등척성 코어 (플랭크, 크런치 등) — e1RM 부적합, 낮은 비율
+  if (["플랭크", "plank", "크런치", "crunch", "브이 업", "v-up", "마운틴 클라이머", "mountain climber", "시저 킥", "scissor", "플러터 킥", "flutter", "버드 독", "bird dog", "슈퍼맨", "superman"].some(kw => lower.includes(kw))) return 0.30;
+  // 기본값
+  return 0.64;
 }
 
 /** 카테고리별 최고 E1RM BW ratio 추출 (이력 + 오늘) */
@@ -274,9 +300,8 @@ export function getCategoryBestBwRatio(
       const correction = getEquipmentCorrection(ex.name);
       for (const l of exLogs) {
         let w = parseFloat(l.weightUsed || "0");
-        if (w <= 0 && isBodyweightExercise(ex.name)) w = bodyWeightKg;
+        if (w <= 0 && isBodyweightExercise(ex.name)) w = bodyWeightKg * getBodyweightLoadRatio(ex.name);
         if (w <= 0 || l.repsCompleted <= 0) continue;
-        // E1RM 계산 (Epley)
         const e1rm = l.repsCompleted === 1 ? w : w * (1 + l.repsCompleted / 30);
         const corrected = e1rm * correction;
         const bwRatio = corrected / bodyWeightKg;
@@ -295,7 +320,8 @@ export function getCategoryBestBwRatio(
     if (!exLogs) continue;
     const correction = getEquipmentCorrection(ex.name);
     for (const l of exLogs) {
-      const w = parseFloat(l.weightUsed || "0");
+      let w = parseFloat(l.weightUsed || "0");
+      if (w <= 0 && isBodyweightExercise(ex.name)) w = bodyWeightKg * getBodyweightLoadRatio(ex.name);
       if (w <= 0 || l.repsCompleted <= 0) continue;
       const e1rm = l.repsCompleted === 1 ? w : w * (1 + l.repsCompleted / 30);
       const corrected = e1rm * correction;
