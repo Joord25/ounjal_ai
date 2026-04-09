@@ -841,6 +841,7 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ user, on
                       {faq.key === "refund" ? (
                         <div>
                           <p className="text-sm text-gray-600 leading-relaxed">
+                            <span className="font-bold text-gray-900">{t("sub.faq.a5.bold")}</span>
                             {t("sub.faq.a5.prefix")}{" "}
                             <button type="button" onClick={() => setShowRefund(true)} className="text-[#2D6A4F] font-bold underline underline-offset-2">{t("my.refund")}</button>
                             {t("sub.faq.a5.suffix")}
