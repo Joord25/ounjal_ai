@@ -4,6 +4,8 @@ declare namespace PortOne {
     channelKey: string;
     billingKeyMethod: "EASY_PAY" | "CARD";
     issueName: string;
+    redirectUrl?: string;
+    windowType?: "IFRAME" | "POPUP" | "REDIRECT";
     customer?: {
       customerId?: string;
       email?: string;
