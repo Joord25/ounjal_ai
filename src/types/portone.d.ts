@@ -5,7 +5,10 @@ declare namespace PortOne {
     billingKeyMethod: "EASY_PAY" | "CARD";
     issueName: string;
     redirectUrl?: string;
-    windowType?: "IFRAME" | "POPUP" | "REDIRECT";
+    windowType?: {
+      pc?: "IFRAME" | "POPUP" | "REDIRECTION" | "UI";
+      mobile?: "IFRAME" | "POPUP" | "REDIRECTION" | "UI";
+    };
     customer?: {
       customerId?: string;
       email?: string;

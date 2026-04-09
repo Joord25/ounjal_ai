@@ -444,14 +444,13 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ user, on
 
     try {
       // 1. Issue billing key via PortOne SDK
-      const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
       const response = await window.PortOne.requestIssueBillingKey({
         storeId: process.env.NEXT_PUBLIC_PORTONE_STORE_ID || "",
         channelKey: process.env.NEXT_PUBLIC_PORTONE_CHANNEL_KEY || "",
         billingKeyMethod: "EASY_PAY",
         issueName: "오운잘 AI 월간 구독",
         redirectUrl: `${window.location.origin}/app`,
-        ...(isMobile && { windowType: "REDIRECT" }),
+        windowType: { pc: "POPUP", mobile: "REDIRECTION" },
         customer: {
           customerId: user.uid,
           email: user.email || undefined,
