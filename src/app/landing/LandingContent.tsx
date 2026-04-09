@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { LANDING_TEXTS, type LandingLocale } from "./landingTexts";
+import { LanguageSelector } from "@/components/layout/LanguageSelector";
 
 // ─── Hooks ───────────────────────────────────────────────────────
 function useAtTop(threshold = 80) {
@@ -168,9 +169,12 @@ export default function LandingContent({ locale = "ko" }: { locale?: LandingLoca
               <img src="/favicon.png" alt="ohunjal" className="w-7 h-7 rounded-lg" />
               <span className="font-bold text-[#34d399] text-base tracking-tight">{t.nav.brand}</span>
             </div>
-            <a href={ctaHref} className="px-5 py-2.5 bg-[#059669] text-white text-sm font-bold rounded-xl hover:bg-[#047857] active:scale-95 transition-all">
-              {t.nav.cta}
-            </a>
+            <div className="flex items-center gap-2 sm:gap-3">
+              <LanguageSelector current={locale === "ko" ? "/" : "/en"} />
+              <a href={ctaHref} className="px-5 py-2.5 bg-[#059669] text-white text-sm font-bold rounded-xl hover:bg-[#047857] active:scale-95 transition-all">
+                {t.nav.cta}
+              </a>
+            </div>
           </div>
         </div>
       </nav>
