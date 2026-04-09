@@ -106,7 +106,8 @@ export const getNutritionGuide = onRequest(
 - 한국에서 쉽게 구할 수 있는 음식
 - 시간 부족한 직장인 기준으로 간편하게
 - 운동 시간대에 따라 식사 배치 조정
-- keyTip은 한 줄로 핵심만`
+- keyTip은 한 줄로 핵심만
+- 반드시 모든 텍스트를 한국어로 작성 (time: "아침","점심","간식","저녁" / menu도 한국어)`
       : `You are a sports nutrition expert. Recommend today's meal plan based on the user profile below. Respond ONLY in JSON format.
 
 User: ${age}yo ${gender}, ${bodyWeightKg}kg, ${height}cm

@@ -65,9 +65,10 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onStartWorkout
     try {
       const cached = localStorage.getItem("ohunjal_nutrition_cache");
       if (!cached) return null;
-      const { data, date } = JSON.parse(cached);
-      // 당일 캐시만 사용
-      if (date === new Date().toDateString()) return data;
+      const { data, date, locale: cachedLocale } = JSON.parse(cached);
+      // 당일 + 같은 locale 캐시만 사용
+      const currentLocale = localStorage.getItem("ohunjal_language") || "ko";
+      if (date === new Date().toDateString() && cachedLocale === currentLocale) return data;
     } catch {}
     return null;
   });
@@ -825,7 +826,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onStartWorkout
             cachedGuide={cachedNutritionGuide as never}
             onGuideLoaded={(g) => {
               setCachedNutritionGuide(g as never);
-              try { localStorage.setItem("ohunjal_nutrition_cache", JSON.stringify({ data: g, date: new Date().toDateString() })); } catch {}
+              try { const lang = localStorage.getItem("ohunjal_language") || "ko"; localStorage.setItem("ohunjal_nutrition_cache", JSON.stringify({ data: g, date: new Date().toDateString(), locale: lang })); } catch {}
             }}
           />
         )}
