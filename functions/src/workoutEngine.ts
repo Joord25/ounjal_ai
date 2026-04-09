@@ -1178,13 +1178,19 @@ function generateHomeWorkout(
     "베어 크롤 (Bear Crawl)", "스쿼트 점프 (Squat Jump)",
   ]);
 
-  const wt = "맨몸 또는 가벼운 무게";
+  // 운동별 실제 장비 매핑 (맨몸 vs 덤벨/케틀벨)
+  const getHomeWeight = (name: string): string => {
+    if (/덤벨|dumbbell/i.test(name)) return "Dumbbell";
+    if (/케틀벨|kettlebell/i.test(name)) return "Kettlebell";
+    if (/바벨|barbell/i.test(name)) return "Barbell";
+    return "Bodyweight";
+  };
   exercises.push(
-    { type: "strength", phase: "main", name: homeSquat, count: formatCountKo(sets, repsKo), weight: wt, sets, reps: repsVal },
-    { type: "strength", phase: "main", name: homePush, count: formatCountKo(sets, repsKo), weight: wt, sets, reps: repsVal },
-    { type: "strength", phase: "main", name: homePull, count: formatCountKo(sets, repsKo), weight: wt, sets, reps: repsVal },
-    { type: "strength", phase: "main", name: homeHinge, count: formatCountKo(sets, repsKo), weight: wt, sets, reps: repsVal },
-    { type: "strength", phase: "main", name: homeFullBody, count: formatCountKo(sets, repsKo), weight: wt, sets, reps: repsVal },
+    { type: "strength", phase: "main", name: homeSquat, count: formatCountKo(sets, repsKo), weight: getHomeWeight(homeSquat), sets, reps: repsVal },
+    { type: "strength", phase: "main", name: homePush, count: formatCountKo(sets, repsKo), weight: getHomeWeight(homePush), sets, reps: repsVal },
+    { type: "strength", phase: "main", name: homePull, count: formatCountKo(sets, repsKo), weight: getHomeWeight(homePull), sets, reps: repsVal },
+    { type: "strength", phase: "main", name: homeHinge, count: formatCountKo(sets, repsKo), weight: getHomeWeight(homeHinge), sets, reps: repsVal },
+    { type: "strength", phase: "main", name: homeFullBody, count: formatCountKo(sets, repsKo), weight: getHomeWeight(homeFullBody), sets, reps: repsVal },
   );
 
   exercises.push(...buildCore(isoRepsKo, isoRepsVal));

@@ -143,9 +143,9 @@ const EXERCISE_CATEGORY_MAP: Record<string, FitnessCategory> = {};
 
 // 등 (back)
 ["바벨 로우", "덤벨 로우", "풀업", "랫 풀다운", "시티드 로우", "케이블 로우", "T바 로우",
- "펜들레이 로우", "원암 덤벨 로우", "턱걸이", "친업", "인버티드 로우",
+ "펜들레이 로우", "원암 덤벨 로우", "싱글 암 덤벨 로우", "턱걸이", "친업", "인버티드 로우", "TRX 로우",
  "Barbell Row", "Dumbbell Row", "Pull Up", "Pull-Up", "Lat Pulldown", "Seated Row",
- "Cable Row", "T-Bar Row", "Pendlay Row", "One Arm Dumbbell Row", "Chin Up", "Chin-Up",
+ "Cable Row", "T-Bar Row", "Pendlay Row", "One Arm Dumbbell Row", "Single Arm Dumbbell Row", "Chin Up", "Chin-Up", "TRX Row",
  "Inverted Row", "스미스 로우", "Smith Row",
  "바벨 컬", "해머 컬", "덤벨 컬", "인클라인 덤벨 컬", "케이블 바이셉 컬", "덤벨 프리쳐 컬",
  "TRX 바이셉스 컬", "밴드 풀 어파트", "바벨 슈러그", "케이블 페이스 풀", "밴드 페이스 풀",
