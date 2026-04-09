@@ -711,7 +711,7 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ user, on
             <div className="bg-gray-50 rounded-2xl p-5">
               <h3 className="text-sm font-bold text-gray-900 mb-3">{t("sub.features.header")}</h3>
               <div className="flex flex-col gap-2">
-                {[t("sub.feature.unlimited"), t("sub.feature.prediction"), t("sub.feature.analysisReport"), t("sub.feature.weightTrack")].map((feature) => (
+                {[t("sub.feature.unlimited"), t("sub.feature.prediction"), t("sub.feature.levelAnalysis"), t("sub.feature.sessionReport"), t("sub.feature.nutritionCoach")].map((feature) => (
                   <div key={feature} className="flex items-center gap-2">
                     <svg className="w-4 h-4 text-[#2D6A4F] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -1037,7 +1037,7 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ user, on
               <div className="bg-amber-50 rounded-2xl p-5 border border-amber-200 mb-6">
                 <h3 className="text-sm font-bold text-amber-800 mb-3">{t("sub.cancel.lostBenefits")}</h3>
                 <div className="flex flex-col gap-2">
-                  {[t("sub.feature.unlimited"), t("sub.feature.prediction"), t("sub.feature.levelAnalysis"), t("sub.feature.sessionReport")].map((feature) => (
+                  {[t("sub.feature.unlimited"), t("sub.feature.prediction"), t("sub.feature.levelAnalysis"), t("sub.feature.sessionReport"), t("sub.feature.nutritionCoach")].map((feature) => (
                     <div key={feature} className="flex items-center gap-2">
                       <svg className="w-4 h-4 text-red-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
