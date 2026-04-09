@@ -217,9 +217,6 @@ export default function LandingContent() {
               <span className="text-white opacity-0 animate-[fadeSlideUp_0.5s_ease-out_0.3s_forwards]">PT는 비싸고,</span><br />
               <span className="text-[#34d399] text-xl sm:text-5xl lg:text-6xl opacity-0 animate-[fadeSlideUp_0.5s_ease-out_0.6s_forwards]">혼자 하자니 뭘 해야 할지 모르겠고.</span>
             </h1>
-            <p className="mt-6 text-sm sm:text-lg text-white font-medium tracking-wide opacity-0 animate-[fadeSlideUp_0.5s_ease-out_1.2s_forwards]">
-              컨디션만 고르면 오운잘 AI가 오늘 운동을 짜드려요
-            </p>
             <div className="mt-10">
               <a
                 href="/app?lang=ko"
