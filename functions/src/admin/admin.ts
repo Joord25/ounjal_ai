@@ -252,11 +252,15 @@ export const adminDashboard = onRequest(
       const googleUsers = allUsers.filter(u => !u.isAnonymous);
       const trialUsers = allUsers.filter(u => u.isAnonymous);
 
-      // Time ranges
-      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const weekStart = new Date(todayStart);
-      weekStart.setDate(weekStart.getDate() - weekStart.getDay()); // Sunday
-      const monthStartDate = new Date(now.getFullYear(), now.getMonth(), 1);
+      // Time ranges (KST = UTC+9)
+      const kstNow = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+      const kstYear = kstNow.getUTCFullYear();
+      const kstMonth = kstNow.getUTCMonth();
+      const kstDate = kstNow.getUTCDate();
+      const kstDay = kstNow.getUTCDay();
+      const todayStart = new Date(Date.UTC(kstYear, kstMonth, kstDate) - 9 * 60 * 60 * 1000);
+      const weekStart = new Date(todayStart.getTime() - kstDay * 24 * 60 * 60 * 1000);
+      const monthStartDate = new Date(Date.UTC(kstYear, kstMonth, 1) - 9 * 60 * 60 * 1000);
 
       const countByRange = (users: typeof allUsers) => ({
         today: users.filter(u => u.createdAt >= todayStart).length,
