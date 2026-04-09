@@ -475,6 +475,19 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onStartWorkout
     }
   }, [history, profile, locale]);
 
+  // NutritionTab 용 프로필 데이터 (must be before early return to keep hooks order)
+  const nutritionProps = useMemo(() => {
+    const fp = profile;
+    return {
+      bodyWeightKg: fp?.bodyWeight || 70,
+      heightCm: fp?.height || 170,
+      age: fp?.birthYear ? new Date().getFullYear() - fp.birthYear : 30,
+      gender: (fp?.gender || "male") as "male" | "female",
+      goal: fp?.goal || "health",
+      weeklyFrequency: fp?.weeklyFrequency || 3,
+    };
+  }, [profile]);
+
   // 첫 방문자 화면
   if (isFirstVisit) {
     return (
@@ -586,18 +599,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onStartWorkout
     return `${t("home.checklist.quest")} ${doneCount}/${questDefs.length}`;
   })();
 
-  // NutritionTab 용 프로필 데이터
-  const nutritionProps = useMemo(() => {
-    const fp = profile;
-    return {
-      bodyWeightKg: fp?.bodyWeight || 70,
-      heightCm: fp?.height || 170,
-      age: fp?.birthYear ? new Date().getFullYear() - fp.birthYear : 30,
-      gender: (fp?.gender || "male") as "male" | "female",
-      goal: fp?.goal || "health",
-      weeklyFrequency: fp?.weeklyFrequency || 3,
-    };
-  }, [profile]);
+  // nutritionProps는 early return 위에서 선언됨 (hooks 순서 보장)
 
   // 재방문 유저 홈 화면
   return (
