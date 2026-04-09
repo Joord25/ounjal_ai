@@ -622,6 +622,8 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ user, on
         throw new Error(err.error || t("sub.refundRequest.errorGeneric"));
       }
       setRefundStep(2);
+      setStatus("cancelled");
+      await checkSubscription();
     } catch (err) {
       setError(err instanceof Error ? err.message : t("sub.refundRequest.errorGeneric"));
     } finally {
@@ -837,11 +839,21 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ user, on
                   {openFaqIndex === i && (
                     <div className="px-4 pb-4">
                       {faq.key === "refund" ? (
-                        <p className="text-sm text-gray-600 leading-relaxed">
-                          {t("sub.faq.a5.prefix")}{" "}
-                          <button type="button" onClick={() => setShowRefund(true)} className="text-[#2D6A4F] font-bold underline underline-offset-2">{t("my.refund")}</button>
-                          {t("sub.faq.a5.suffix")}
-                        </p>
+                        <div>
+                          <p className="text-sm text-gray-600 leading-relaxed">
+                            {t("sub.faq.a5.prefix")}{" "}
+                            <button type="button" onClick={() => setShowRefund(true)} className="text-[#2D6A4F] font-bold underline underline-offset-2">{t("my.refund")}</button>
+                            {t("sub.faq.a5.suffix")}
+                          </p>
+                          {(status === "active" || status === "cancelled") && (
+                            <button
+                              onClick={() => { setRefundStep(1); setRefundReason(""); setError(null); }}
+                              className="mt-3 w-full py-2.5 rounded-xl text-xs font-bold text-[#2D6A4F] bg-emerald-50 border border-emerald-200 active:scale-[0.98] transition-all"
+                            >
+                              {t("sub.refundRequest.submit")}
+                            </button>
+                          )}
+                        </div>
                       ) : faq.aKey ? (
                         <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">{t(faq.aKey)}</p>
                       ) : null}

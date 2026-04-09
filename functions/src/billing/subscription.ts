@@ -331,6 +331,14 @@ export const submitRefundRequest = onRequest(
         requestedAt: FieldValue.serverTimestamp(),
       });
 
+      // 5. Auto-cancel subscription (stop auto-renewal)
+      if (subData.status === "active") {
+        await db.collection("subscriptions").doc(uid).update({
+          status: "cancelled",
+          updatedAt: FieldValue.serverTimestamp(),
+        });
+      }
+
       res.status(200).json({ status: "pending", message: "환불 요청이 접수되었습니다." });
     } catch (error) {
       console.error("submitRefundRequest error:", error);
