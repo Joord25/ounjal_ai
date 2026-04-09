@@ -14,6 +14,13 @@ function useBodyScroll() {
 }
 type Tab = "dashboard" | "users" | "cancel" | "refund" | "history";
 
+interface UserStats {
+  today: number;
+  week: number;
+  month: number;
+  total: number;
+}
+
 interface DashboardData {
   totalUsers: number;
   active: number;
@@ -22,6 +29,8 @@ interface DashboardData {
   expired: number;
   expiringIn3Days: number;
   monthlyRevenue: number;
+  trial: UserStats;
+  registered: UserStats;
 }
 
 interface ListUser {
@@ -374,6 +383,40 @@ export default function AdminPage() {
                   <p className="text-xs text-gray-400 mb-1">이번 달 매출</p>
                   <p className="text-2xl font-black text-[#1B4332]">₩{dashboard.monthlyRevenue.toLocaleString()}</p>
                 </div>
+
+                {/* User Segment Stats */}
+                {dashboard.trial && dashboard.registered && (
+                  <div className="bg-white rounded-2xl border border-gray-200 p-5 mb-4">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="text-xs text-gray-400">
+                          <th className="text-left pb-3 font-medium"></th>
+                          <th className="text-center pb-3 font-medium">오늘</th>
+                          <th className="text-center pb-3 font-medium">이번 주</th>
+                          <th className="text-center pb-3 font-medium">이번 달</th>
+                          <th className="text-center pb-3 font-medium">전체</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr className="border-t border-gray-50">
+                          <td className="py-2.5 text-xs font-bold text-gray-500">체험</td>
+                          <td className="py-2.5 text-center font-bold text-gray-700">{dashboard.trial.today}</td>
+                          <td className="py-2.5 text-center font-bold text-gray-700">{dashboard.trial.week}</td>
+                          <td className="py-2.5 text-center font-bold text-gray-700">{dashboard.trial.month}</td>
+                          <td className="py-2.5 text-center font-bold text-gray-400">{dashboard.trial.total}</td>
+                        </tr>
+                        <tr className="border-t border-gray-50">
+                          <td className="py-2.5 text-xs font-bold text-[#2D6A4F]">가입</td>
+                          <td className="py-2.5 text-center font-bold text-[#2D6A4F]">{dashboard.registered.today}</td>
+                          <td className="py-2.5 text-center font-bold text-[#2D6A4F]">{dashboard.registered.week}</td>
+                          <td className="py-2.5 text-center font-bold text-[#2D6A4F]">{dashboard.registered.month}</td>
+                          <td className="py-2.5 text-center font-bold text-gray-400">{dashboard.registered.total}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
                 <div className="bg-white rounded-2xl border border-gray-200 p-4">
                   <div className="flex justify-between text-xs text-gray-400">
                     <span>해지됨: {dashboard.cancelled}</span>

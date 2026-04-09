@@ -233,18 +233,48 @@ export const adminDashboard = onRequest(
         else if (d.status === "expired") { expired++; }
       });
 
-      // Total registered users from Firebase Auth
-      const listResult = await getAuth().listUsers(1);
-      const totalUsers = listResult.users.length > 0 ? (await getAuth().listUsers(1000)).users.length : 0;
+      // Collect all users from Firebase Auth
+      const allUsers: Array<{ email: string; isAnonymous: boolean; createdAt: Date }> = [];
+      let nextToken: string | undefined;
+      do {
+        const result = await getAuth().listUsers(1000, nextToken);
+        for (const u of result.users) {
+          allUsers.push({
+            email: u.email || "",
+            isAnonymous: !u.email,
+            createdAt: u.metadata.creationTime ? new Date(u.metadata.creationTime) : new Date(0),
+          });
+        }
+        nextToken = result.pageToken;
+      } while (nextToken);
+
+      // Segment: Google accounts vs anonymous (trial)
+      const googleUsers = allUsers.filter(u => !u.isAnonymous);
+      const trialUsers = allUsers.filter(u => u.isAnonymous);
+
+      // Time ranges
+      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const weekStart = new Date(todayStart);
+      weekStart.setDate(weekStart.getDate() - weekStart.getDay()); // Sunday
+      const monthStartDate = new Date(now.getFullYear(), now.getMonth(), 1);
+
+      const countByRange = (users: typeof allUsers) => ({
+        today: users.filter(u => u.createdAt >= todayStart).length,
+        week: users.filter(u => u.createdAt >= weekStart).length,
+        month: users.filter(u => u.createdAt >= monthStartDate).length,
+        total: users.length,
+      });
 
       res.status(200).json({
-        totalUsers,
+        totalUsers: allUsers.length,
         active,
-        free: totalUsers - active - cancelled - expired,
+        free: googleUsers.length - active - cancelled - expired,
         cancelled,
         expired,
         expiringIn3Days,
         monthlyRevenue,
+        trial: countByRange(trialUsers),
+        registered: countByRange(googleUsers),
       });
     } catch (error) {
       console.error("adminDashboard error:", error);
@@ -271,15 +301,16 @@ export const adminListUsers = onRequest(
     const { status, page = 1, limit = 20 } = req.body;
 
     try {
-      // 1. Firebase Auth 전체 유저 수집 (미구독자 포함)
+      // 1. Firebase Auth — Google 계정 유저만 수집 (익명/체험 유저 제외)
       const authUsers: Array<{ uid: string; email: string; displayName: string; createdAtMs: number }> = [];
       let nextPageToken: string | undefined;
       do {
         const result = await getAuth().listUsers(1000, nextPageToken);
         for (const u of result.users) {
+          if (!u.email) continue; // 익명(체험) 유저 제외
           authUsers.push({
             uid: u.uid,
-            email: u.email || "",
+            email: u.email,
             displayName: u.displayName || "",
             createdAtMs: u.metadata.creationTime ? new Date(u.metadata.creationTime).getTime() : 0,
           });
