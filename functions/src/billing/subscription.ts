@@ -40,6 +40,14 @@ export const subscribe = onRequest(
           if (subData.status === "active") {
             return { blocked: true, error: "이미 활성 구독이 있습니다." };
           }
+          if (subData.status === "processing") {
+            // Check if stuck (>5 min = stale, release it)
+            const updatedAt = subData.updatedAt?.toDate?.();
+            if (updatedAt && (Date.now() - updatedAt.getTime()) < 5 * 60 * 1000) {
+              return { blocked: true, error: "결제가 이미 처리 중입니다. 잠시 후 다시 시도해주세요." };
+            }
+            // Stale processing state — allow retry
+          }
         }
         // Mark as "processing" to block concurrent requests
         if (subDoc.exists) {
@@ -67,23 +75,33 @@ export const subscribe = onRequest(
         return;
       }
 
-      // 0b. Verify billing key ownership
-      const verifyRes = await fetch(`${PORTONE_API_BASE}/billing-keys/${billingKey}`, {
-        headers: { "Authorization": `PortOne ${secret}` },
-      });
-      if (verifyRes.ok) {
+      // 0b. Verify billing key ownership (fail-closed: block on any error)
+      try {
+        const verifyRes = await fetch(`${PORTONE_API_BASE}/billing-keys/${billingKey}`, {
+          headers: { "Authorization": `PortOne ${secret}` },
+        });
+        if (!verifyRes.ok) {
+          await subRef.update({ status: "free", updatedAt: FieldValue.serverTimestamp() });
+          res.status(400).json({ error: "빌링키 검증에 실패했습니다." });
+          return;
+        }
         const bkData = await verifyRes.json();
         if (bkData.customer?.id && bkData.customer.id !== uid) {
           await subRef.update({ status: "free", updatedAt: FieldValue.serverTimestamp() });
           res.status(403).json({ error: "빌링키 소유자가 일치하지 않습니다." });
           return;
         }
+      } catch (verifyErr) {
+        console.error("Billing key verification failed:", verifyErr);
+        await subRef.update({ status: "free", updatedAt: FieldValue.serverTimestamp() });
+        res.status(500).json({ error: "빌링키 검증 중 오류가 발생했습니다." });
+        return;
       }
 
       const now_ = new Date();
       const dateStr = `${now_.getFullYear()}${String(now_.getMonth() + 1).padStart(2, "0")}${String(now_.getDate()).padStart(2, "0")}`;
-      const seq = String(now_.getTime()).slice(-6);
-      const paymentId = `OHUNJAL-${dateStr}-${seq}`;
+      const rand = require("crypto").randomBytes(4).toString("hex");
+      const paymentId = `OHUNJAL-${dateStr}-${rand}`;
 
       // 1. Process payment with billing key
       const payRes = await fetch(`${PORTONE_API_BASE}/payments/${paymentId}/billing-key`, {

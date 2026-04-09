@@ -26,16 +26,19 @@ export const planSession = onRequest(
       return;
     }
 
-    // Server-side guest trial limit (IP-based, survives cache clear)
+    // Server-side usage limits
+    const FREE_PLAN_LIMIT = 4;
     try {
       const userRecord = await getAuth().getUser(uid);
       const isAnonymous = !userRecord.email;
 
       if (isAnonymous) {
+        // Guest: IP-based trial limit (survives cache clear)
         const ip = (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim()
           || req.socket?.remoteAddress || "unknown";
+        const ipHash = require("crypto").createHash("sha256").update(ip).digest("hex").slice(0, 16);
 
-        const trialRef = db.collection("trial_ips").doc(ip.replace(/[./]/g, "_"));
+        const trialRef = db.collection("trial_ips").doc(ipHash);
         const trialDoc = await trialRef.get();
         const currentCount = trialDoc.exists ? (trialDoc.data()?.count || 0) : 0;
 
@@ -44,14 +47,26 @@ export const planSession = onRequest(
           return;
         }
 
-        // Increment after successful generation (moved to after workout gen below)
-        // Store IP ref for later increment
         (req as any)._trialRef = trialRef;
         (req as any)._trialCount = currentCount;
         (req as any)._isGuest = true;
+      } else {
+        // Logged-in free user: enforce plan limit server-side (CRITICAL: prevents paywall bypass)
+        const subDoc = await db.collection("subscriptions").doc(uid).get();
+        const subStatus = subDoc.exists ? subDoc.data()?.status : "free";
+
+        if (subStatus !== "active") {
+          const profileDoc = await db.collection("users").doc(uid).get();
+          const planCount = profileDoc.exists ? (profileDoc.data()?.planCount || 0) : 0;
+
+          if (planCount >= FREE_PLAN_LIMIT) {
+            res.status(403).json({ error: "무료 플랜 생성 한도에 도달했습니다. 프리미엄 구독 후 이용해주세요.", code: "FREE_LIMIT" });
+            return;
+          }
+        }
       }
     } catch {
-      // Auth lookup failed — proceed anyway
+      // Auth lookup failed — proceed anyway (don't block legitimate requests)
     }
 
     const {
