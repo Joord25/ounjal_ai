@@ -848,7 +848,7 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ user, on
                           {(status === "active" || status === "cancelled") && (
                             <button
                               onClick={() => { setRefundStep(1); setRefundReason(""); setError(null); }}
-                              className="mt-3 w-full py-2.5 rounded-xl text-xs font-bold text-[#2D6A4F] bg-emerald-50 border border-emerald-200 active:scale-[0.98] transition-all"
+                              className="mt-3 w-full py-2.5 rounded-xl text-xs font-bold text-gray-500 bg-gray-100 border border-gray-200 active:scale-[0.98] transition-all"
                             >
                               {t("sub.refundRequest.submit")}
                             </button>
