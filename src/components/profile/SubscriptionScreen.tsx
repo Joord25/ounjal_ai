@@ -702,7 +702,7 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ user, on
                 </div>
               </div>
               <div className="flex flex-col gap-2.5 text-left">
-                {[t("sub.feature.unlimited"), t("sub.feature.prediction"), t("sub.feature.levelAnalysis"), t("sub.feature.sessionReport"), t("sub.feature.adaptive")].map((feature) => (
+                {[t("sub.feature.unlimited"), t("sub.feature.prediction"), t("sub.feature.levelAnalysis"), t("sub.feature.sessionReport"), t("sub.feature.nutritionCoach")].map((feature) => (
                   <div key={feature} className="flex items-center gap-2">
                     <svg width="18" height="18" viewBox="0 0 18 18" fill="none" className="shrink-0">
                       <path d="M4 9L7.5 12.5L14 6" stroke="#2D6A4F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
