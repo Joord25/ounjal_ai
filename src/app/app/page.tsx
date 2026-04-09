@@ -509,6 +509,8 @@ export default function Home() {
   const handleConditionComplete = async (condition: UserCondition, goal: WorkoutGoal, session?: SessionSelection) => {
     // 비로그인 게스트 체험 제한 — 홈으로 돌려보내고 로그인 모달 표시
     if (!isLoggedIn && getGuestTrialCount() >= GUEST_TRIAL_LIMIT) {
+      trackEvent("guest_trial_exhausted", { limit: GUEST_TRIAL_LIMIT });
+      trackEvent("login_modal_view", { trigger: "trial_limit" });
       setView("home");
       setShowLoginModal(true);
       return;
@@ -860,13 +862,15 @@ export default function Home() {
             userName={getDisplayName(user, "")}
             onStartWorkout={() => {
               if (!isLoggedIn && getGuestTrialCount() >= GUEST_TRIAL_LIMIT) {
+                trackEvent("guest_trial_exhausted", { limit: GUEST_TRIAL_LIMIT });
+                trackEvent("login_modal_view", { trigger: "trial_limit_home" });
                 setShowLoginModal(true);
                 return;
               }
               setView("condition_check");
             }}
             onShowPrediction={() => {
-              if (!isLoggedIn) { setShowLoginModal(true); return; }
+              if (!isLoggedIn) { trackEvent("login_modal_view", { trigger: "prediction" }); setShowLoginModal(true); return; }
               setPredictionReturnTab("home");
               setView("prediction_report");
             }}
@@ -983,6 +987,7 @@ export default function Home() {
                 onClick={async () => {
                   try {
                     await signInWithPopup(auth, googleProvider);
+                    trackEvent("guest_to_login", { trial_count: getGuestTrialCount() });
                     handleLogin();
                   } catch (err: any) {
                     if (err.code !== "auth/popup-closed-by-user") {

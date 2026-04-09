@@ -27,7 +27,10 @@ type FunnelEvent =
   | "paywall_view"
   | "paywall_tap_subscribe"
   | "paywall_dismiss"
-  | "subscription_complete";
+  | "subscription_complete"
+  | "guest_to_login"
+  | "guest_trial_exhausted"
+  | "login_modal_view";
 
 export function trackEvent(event: FunnelEvent, params?: Record<string, string | number | boolean>) {
   try {
