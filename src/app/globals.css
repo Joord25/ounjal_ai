@@ -252,6 +252,11 @@ body {
   100% { transform: translateX(-50%); }
 }
 
+@keyframes scroll-right {
+  0% { transform: translateX(-50%); }
+  100% { transform: translateX(0); }
+}
+
 /* Landing hero animations */
 @keyframes hero-orb-1 {
   0%, 100% { transform: translate(0, 0) scale(1); }

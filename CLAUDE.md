@@ -57,18 +57,11 @@ Cloud Functions use `GEMINI_API_KEY` (server-side, set via Firebase config).
 
 ### Key Directories
 
-- **`src/components/`** — 6 domain directories:
-  - **`layout/`** — PhoneFrame, BottomTabs, LanguageSelector, LoginScreen
-  - **`plan/`** — ConditionCheck, MasterPlanPreview, PlanShareCard, PlanLoadingOverlay, Tutorial
-  - **`workout/`** — WorkoutSession, FitScreen, AiCoachChat, GpsPermissionDialog
-  - **`report/`** — WorkoutReport, RunningReportBody, ShareCard, ExpTierCard, RpgResultCard, ReportHelpModal
-  - **`dashboard/`** — HomeScreen, ProofTab, WorkoutHistory, FitnessReading, FitnessTest, charts, modals
-  - **`profile/`** — MyProfileTab, SubscriptionScreen
-  - Root: SwipeToDelete, PullToRefresh
-- **`src/constants/`** — workout.ts (types + exercise pools), theme.ts, exerciseVideos.ts
-- **`src/utils/`** — gemini.ts, workoutHistory.ts, workoutMetrics.ts, userProfile.ts, exerciseName.ts, runningStats.ts, runningFormat.ts
-- **`src/hooks/`** — useSafeArea.ts, useTranslation.tsx, useGpsTracker.ts, useAlarmSynthesizer.ts
-- **`src/locales/`** — ko.json, en.json
+- **`src/components/`** — 6 domain directories: `layout/`, `plan/`, `workout/`, `report/`, `dashboard/`, `profile/`
+- **`src/constants/`** — Types, exercise pools, theme, exercise video mappings
+- **`src/utils/`** — Gemini client, workout history/metrics, user profile, exercise names, running stats
+- **`src/hooks/`** — Safe area, i18n, GPS tracking, alarm synthesizer
+- **`src/locales/`** — ko.json, en.json (must always be updated together)
 
 ### Authentication
 

@@ -5,8 +5,6 @@ import React, { useState, useRef, useEffect } from "react";
 const LANGUAGES = [
   { code: "/", label: "한국어", flag: "🇰🇷" },
   { code: "/en", label: "English", flag: "🇺🇸" },
-  { code: "/ja", label: "日本語", flag: "🇯🇵" },
-  { code: "/zh", label: "中文", flag: "🇨🇳" },
 ];
 
 export function LanguageSelector({ current }: { current: string }) {

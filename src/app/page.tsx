@@ -1,5 +1,13 @@
 import type { Metadata } from "next";
-import LandingContent from "./LandingContent";
+import { Instrument_Sans } from "next/font/google";
+import LandingContent from "./landing/LandingContent";
+
+const instrumentSans = Instrument_Sans({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-instrument",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "운동 루틴 추천 오운잘 AI - 헬스 루틴부터 홈트 러닝까지 한 번에",
@@ -17,5 +25,9 @@ export const metadata: Metadata = {
 };
 
 export default function LandingPage() {
-  return <LandingContent />;
+  return (
+    <div className={instrumentSans.variable}>
+      <LandingContent locale="ko" />
+    </div>
+  );
 }
