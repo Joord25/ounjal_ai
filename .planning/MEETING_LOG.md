@@ -2,6 +2,50 @@
 
 ---
 
+### 회의 52: DA 전수조사 + 스키마 리팩토링 설계
+**참석:** 대표(임주용), 기획자, 평가자, 이화식(엔코아), 박서진(Toss FE Head), 황보현우(한남대), 프론트엔드 개발자, 백엔드 개발자
+**장기 출석(간접):** Thomas Davenport, Bill Inmon (DA 자문단)
+**일자:** 2026-04-11
+
+**배경:**
+- 론칭 1일차, 유저 315명, 활성 ~50명, 유료 0명
+- Firestore workout_history 문서에서 `totalDurationSec: 79초 / totalReps: 303회` 등 물리적으로 불가능한 데이터 발견
+- 이화식 전문가가 "4개 엔티티가 한 문서에 혼재" 지적
+- 대표님 판단: "유료 100명 이후 리팩토링"은 ROI 거꾸로 계산, 지금이 가장 싼 시점
+
+**평가자 전수조사 주요 발견:**
+1. Cloud Functions는 workout_history 건드리지 않음 → 백엔드 변경 0
+2. Dual-source 아키텍처 이미 존재 (Firestore + localStorage)
+3. 직접 localStorage 접근 19지점 × 7개 파일 → 접근 통일 필요
+4. Service Worker network-first → 구버전 JS 캐시 위험 낮음
+5. MasterPlanPreview는 handleIntensityChange/Regenerate로 unmount 안 됨 → abandon 이벤트는 명시적 exit path 발화로 가야 함 (unmount cleanup 부적절)
+6. `saveWorkoutHistory`는 await 없이 fire-and-forget + 직후 localStorage 재읽기 → 취약 패턴
+7. `stripUndefined`, 마이그레이션 유틸 이미 존재 → Strangler Fig에 재사용 가능
+
+**결정:**
+- 3개 트랙으로 분리 진행:
+  - **트랙 A** (이벤트 보강): `condition_check_abandon`, `plan_preview_reject`, `setAnalyticsUserId`
+  - **트랙 B** (접근 통일): 19지점을 `getCachedWorkoutHistory()` 등 유틸 경유로 + ESLint 규칙
+  - **트랙 C** (스키마 분리): Strangler Fig 5단계로 workout_history → sessions + daily_snapshots + next_recommendations
+- 각 트랙/Phase 후 대표님 체크포인트 → 버그 없음 확인 → 다음 진입
+- Gemini 관여 범위 정정: 영양(getNutritionGuide, nutritionChat)만 Gemini, 운동 분석은 룰베이스
+
+**장기 숙제 (본 리팩토링 이후):**
+1. 서버사이드 stats 재계산 — 79초/303회 같은 조작 데이터 차단 (백엔드 개발자)
+2. 사용자 피드백 루프 — 운동 완료 후 👍👎 (Davenport)
+3. 코치 멘트 프롬프트 버전 실험 (Davenport)
+
+**중요 이슈 기록:**
+- Claude가 회의 도중 성급하게 구현 착수 → 대표님 지적 → 즉시 2개 파일 롤백 → 설계 회의부터 다시 시작
+- 교훈: feedback_confirm_before_implement 메모리 준수 필요, 전체 그림 합의 후 실행
+
+**메모리 업데이트:**
+- `project_team_roster.md`에 "데이터 아키텍처 자문단" 섹션 신설 (이화식, Davenport, 황보현우, Inmon)
+
+**상세:** .planning/da-refactor-design.md
+
+---
+
 ### 회의 51: 랜딩페이지 — 후킹/스토리/제안 전면 평가
 **참석:** 대표(임주용), 기획자, UX 디자이너, 카피라이터, 그로스 마케터, 콘텐츠 MD, SEO 전문가, 프론트엔드 개발자, 평가자, 페르소나 유저 4명 (00-05 Gen Z)
 **일자:** 2026-04-10

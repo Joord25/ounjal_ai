@@ -6,6 +6,7 @@ import { updateWeight, updateGender, updateBirthYear } from "@/utils/userProfile
 import { getIntensityRecommendation, type IntensityLevel } from "@/utils/workoutMetrics";
 import { CoachTooltip } from "./Tutorial";
 import { trackEvent } from "@/utils/analytics";
+import { getCachedWorkoutHistory } from "@/utils/workoutHistory";
 import { useTranslation } from "@/hooks/useTranslation";
 import { WheelPicker } from "@/components/layout/WheelPicker";
 
@@ -71,18 +72,18 @@ export const ConditionCheck: React.FC<ConditionCheckProps> = ({ onComplete, onBa
   });
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // 이탈 추적: complete 없이 root step에서 뒤로가기 시 abandon 발화 (회의 52)
+  const completedRef = useRef(false);
+
   useEffect(() => { trackEvent("condition_check_start"); }, []);
 
-  // Load recent history for intensity recommendation
+  // Load recent history for intensity recommendation (회의 52: 유틸 경유)
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem("ohunjal_workout_history");
-      if (raw) {
-        const all: WorkoutHistory[] = JSON.parse(raw);
-        const cutoff = Date.now() - 90 * 24 * 60 * 60 * 1000;
-        setRecentHistory(all.filter(h => new Date(h.date).getTime() > cutoff));
-      }
-    } catch { /* ignore */ }
+    const all = getCachedWorkoutHistory();
+    if (all.length > 0) {
+      const cutoff = Date.now() - 90 * 24 * 60 * 60 * 1000;
+      setRecentHistory(all.filter(h => new Date(h.date).getTime() > cutoff));
+    }
   }, []);
 
   const savedBirthYear = (() => {
@@ -137,6 +138,10 @@ export const ConditionCheck: React.FC<ConditionCheckProps> = ({ onComplete, onBa
     if (idx > 0) {
       goTo(stepOrder[idx - 1]);
     } else if (onBack) {
+      // 루트 스텝에서 뒤로 = condition check 이탈 (회의 52)
+      if (!completedRef.current) {
+        trackEvent("condition_check_abandon", { last_step: step });
+      }
       onBack();
     }
   };
@@ -176,6 +181,7 @@ export const ConditionCheck: React.FC<ConditionCheckProps> = ({ onComplete, onBa
       goTo("goal_select");
     } else if (step === "goal_select" && selectedGoal) {
       trackEvent("condition_check_complete", { goal: selectedGoal });
+      completedRef.current = true;
       setGoal(selectedGoal);
       const weightNum = parseFloat(bodyWeight);
       const birthYearNum = parseInt(birthYear);

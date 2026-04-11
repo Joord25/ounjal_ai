@@ -6,7 +6,7 @@ import { RunningReportBody } from "@/components/report/RunningReportBody";
 import { detectRunningType } from "@/utils/runningFormat";
 import { buildWorkoutMetrics, estimateTrainingLevel, getOptimalLoadBand, getBig4FromHistory, classifySessionIntensity, getIntensityRecommendation, getWeeklyIntensityTarget } from "@/utils/workoutMetrics";
 import { ShareCard } from "./ShareCard";
-import { loadRecentHistory as loadRecentHistoryFromStore, updateCoachMessages } from "@/utils/workoutHistory";
+import { loadRecentHistory as loadRecentHistoryFromStore, updateCoachMessages, getCachedWorkoutHistory, updateReportTabs } from "@/utils/workoutHistory";
 import { type ExpLogEntry, sumExp, getOrRebuildSeasonExp } from "@/utils/questSystem";
 import { calcSessionCalories } from "@/utils/predictionUtils";
 import { trackEvent } from "@/utils/analytics";
@@ -140,17 +140,11 @@ interface WorkoutReportProps {
 }
 
 // Sync load of recent history from localStorage (initial render), then async update from Firestore
+// (회의 52: 유틸 경유)
 function getRecentHistorySync(): WorkoutHistory[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = localStorage.getItem("ohunjal_workout_history");
-    if (!raw) return [];
-    const all: WorkoutHistory[] = JSON.parse(raw);
-    const cutoff = Date.now() - 90 * 24 * 60 * 60 * 1000;
-    return all.filter(h => new Date(h.date).getTime() > cutoff);
-  } catch {
-    return [];
-  }
+  const all = getCachedWorkoutHistory();
+  const cutoff = Date.now() - 90 * 24 * 60 * 60 * 1000;
+  return all.filter(h => new Date(h.date).getTime() > cutoff);
 }
 
 function get28dAvgVolume(history: WorkoutHistory[]): { avgVolume28d: number; sessionCount: number } | null {
@@ -266,13 +260,11 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
           });
           const nutritionData = await res.json();
           setCachedNutritionGuide(nutritionData);
-          // Firestore 업데이트
-          const history = JSON.parse(localStorage.getItem("ohunjal_workout_history") || "[]");
+          // Firestore 업데이트 (회의 52: 유틸 경유, 중복 localStorage write 제거)
+          const history = getCachedWorkoutHistory();
           const lastEntry = history[history.length - 1];
           if (lastEntry?.reportTabs) {
             lastEntry.reportTabs.nutrition = nutritionData;
-            localStorage.setItem("ohunjal_workout_history", JSON.stringify(history));
-            const { updateReportTabs } = await import("@/utils/workoutHistory");
             updateReportTabs(lastEntry.id, lastEntry.reportTabs);
           }
         } catch {}
@@ -548,18 +540,14 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
               cachedGuide={cachedNutritionGuide as Parameters<typeof NutritionTab>[0]["cachedGuide"]}
               onGuideLoaded={(g) => {
                 setCachedNutritionGuide(g);
-                // 영양 데이터 Firestore 업데이트
+                // 영양 데이터 Firestore 업데이트 (회의 52: 유틸 경유, 중복 localStorage write 제거)
                 if (onReportTabsSaved && !sessionDate) {
                   try {
-                    const history = JSON.parse(localStorage.getItem("ohunjal_workout_history") || "[]");
+                    const history = getCachedWorkoutHistory();
                     const lastEntry = history[history.length - 1];
                     if (lastEntry?.reportTabs) {
                       lastEntry.reportTabs.nutrition = g;
-                      localStorage.setItem("ohunjal_workout_history", JSON.stringify(history));
-                      // Firestore도 업데이트
-                      import("@/utils/workoutHistory").then(({ updateReportTabs }) => {
-                        updateReportTabs(lastEntry.id, lastEntry.reportTabs);
-                      });
+                      updateReportTabs(lastEntry.id, lastEntry.reportTabs);
                     }
                   } catch {}
                 }
@@ -759,7 +747,7 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
                   const match = recentHistory.find(h => h.id && h.coachMessages && h.coachMessages.length > 0 && h.sessionData.exercises.map(e => e.name).join(",") === sessionData.exercises.map(e => e.name).join(","));
                   return match?.coachMessages;
                 })()}
-                onCoachMessagesLoaded={(msgs) => { try { const history = JSON.parse(localStorage.getItem("ohunjal_workout_history") || "[]") as WorkoutHistory[]; const latest = history[history.length - 1]; if (latest) updateCoachMessages(latest.id, msgs); } catch {} }}
+                onCoachMessagesLoaded={(msgs) => { try { const history = getCachedWorkoutHistory(); const latest = history[history.length - 1]; if (latest) updateCoachMessages(latest.id, msgs); } catch {} }}
                 runningStats={runningStats}
                 hideExpCard={isRunningReport}
               />

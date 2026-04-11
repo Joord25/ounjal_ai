@@ -13,7 +13,7 @@ import { MyProfileTab } from "@/components/profile/MyProfileTab";
 import type { WorkoutSessionData, UserCondition, WorkoutGoal, ExerciseLog, WorkoutHistory, RunningStats } from "@/constants/workout";
 import { generateAIWorkoutPlan } from "@/utils/gemini";
 import { buildWorkoutMetrics, getIntensityRecommendation } from "@/utils/workoutMetrics";
-import { saveWorkoutHistory, updateWorkoutAnalysis, updateReportTabs } from "@/utils/workoutHistory";
+import { saveWorkoutHistory, updateWorkoutAnalysis, updateReportTabs, getCachedWorkoutHistory } from "@/utils/workoutHistory";
 import { auth, googleProvider } from "@/lib/firebase";
 import { onAuthStateChanged, signOut, signInWithPopup, signInAnonymously, User } from "firebase/auth";
 import { SubscriptionScreen } from "@/components/profile/SubscriptionScreen";
@@ -24,7 +24,7 @@ import { Onboarding } from "@/components/layout/Onboarding";
 import { loadUserProfile, getPlanCount, incrementPlanCount, loadPlanCount } from "@/utils/userProfile";
 import { syncExpFromFirestore, processWorkoutCompletion, getOrRebuildSeasonExp, type ExpLogEntry } from "@/utils/questSystem";
 import { useSafeArea } from "@/hooks/useSafeArea";
-import { trackEvent } from "@/utils/analytics";
+import { trackEvent, setAnalyticsUserId } from "@/utils/analytics";
 import { I18nProvider, useTranslation } from "@/hooks/useTranslation";
 
 const getDisplayName = (user: import("firebase/auth").User | null, fallback = "회원") => {
@@ -309,6 +309,8 @@ export default function Home() {
       if (firebaseUser) {
         setIsLoggedIn(true);
         localStorage.setItem("auth_logged_in", "1");
+        // GA4 user_id 매핑 — BigQuery에서 GA 이벤트 ↔ Firestore 조인 (회의 52)
+        setAnalyticsUserId(firebaseUser.uid);
 
         // Check subscription status (bypass in dev)
         if (process.env.NODE_ENV === "development") {
@@ -530,13 +532,12 @@ export default function Home() {
     setCurrentGoal(goal);
     setCurrentSession(session || null);
 
-    // Compute intensity recommendation from recent history
+    // Compute intensity recommendation from recent history (회의 52: 유틸 경유)
     let intensityCtx = null;
     let resolvedIntensity: "high" | "moderate" | "low" | null = null;
     try {
-      const raw = localStorage.getItem("ohunjal_workout_history");
-      if (raw) {
-        const all: WorkoutHistory[] = JSON.parse(raw);
+      const all = getCachedWorkoutHistory();
+      if (all.length > 0) {
         const cutoff = Date.now() - 90 * 24 * 60 * 60 * 1000;
         const recent = all.filter(h => new Date(h.date).getTime() > cutoff);
         if (recent.length > 0) {
@@ -644,6 +645,7 @@ export default function Home() {
     allKeys.forEach(k => localStorage.removeItem(k));
     setIsLoggedIn(false);
     setUser(null);
+    setAnalyticsUserId(null); // GA4 user_id 해제 (회의 52)
     setView("login");
     setCompletedRitualIds([]);
     setCurrentWorkoutSession(null);
@@ -690,8 +692,8 @@ export default function Home() {
             isPremium={subStatus === "active"}
             resultOnly
             onBack={() => { setActiveTab(predictionReturnTab); setView("home"); }}
-            workoutCount={(() => { try { return JSON.parse(localStorage.getItem("ohunjal_workout_history") || "[]").length; } catch { return 0; } })()}
-            workoutHistory={(() => { try { return JSON.parse(localStorage.getItem("ohunjal_workout_history") || "[]"); } catch { return []; } })()}
+            workoutCount={getCachedWorkoutHistory().length}
+            workoutHistory={getCachedWorkoutHistory()}
             weightLog={(() => { try { return JSON.parse(localStorage.getItem("ohunjal_weight_log") || "[]"); } catch { return []; } })()}
             onEdit1RM={() => { setAutoEdit1RM(true); setActiveTab("my"); setView("home"); }}
           />
@@ -713,7 +715,10 @@ export default function Home() {
           <MasterPlanPreview
             sessionData={currentWorkoutSession}
             onStart={(modifiedData) => { trackEvent("plan_preview_start"); incrementPlanCount(); setCurrentWorkoutSession(modifiedData); setView("workout_session"); }}
-            onBack={() => setView("condition_check")}
+            onBack={() => {
+              trackEvent("plan_preview_reject", { exercise_count: currentWorkoutSession?.exercises.length ?? 0 });
+              setView("condition_check");
+            }}
             onRegenerate={handleRegenerate}
             onIntensityChange={handleIntensityChange}
             currentIntensity={recommendedIntensity}
@@ -760,8 +765,8 @@ export default function Home() {
 
               saveWorkoutHistory(historyEntry);
 
-              // Process EXP once at completion (NOT in WorkoutReport render)
-              const recentHist: WorkoutHistory[] = (() => { try { return JSON.parse(localStorage.getItem("ohunjal_workout_history") || "[]"); } catch { return []; } })();
+              // Process EXP once at completion (NOT in WorkoutReport render) — 회의 52: 유틸 경유
+              const recentHist: WorkoutHistory[] = getCachedWorkoutHistory();
               const prevSeasonState = getOrRebuildSeasonExp(recentHist, currentCondition?.birthYear, currentCondition?.gender);
               const expGained = processWorkoutCompletion(historyEntry, [...recentHist, historyEntry], currentCondition?.birthYear, currentCondition?.gender);
               setLastPrevExp(prevSeasonState.totalExp);
@@ -790,7 +795,7 @@ export default function Home() {
             isPremium={subStatus === "active"}
             onReportTabsSaved={(tabs) => {
               try {
-                const history = JSON.parse(localStorage.getItem("ohunjal_workout_history") || "[]");
+                const history = getCachedWorkoutHistory();
                 const lastEntry = history[history.length - 1];
                 if (lastEntry?.id) {
                   updateReportTabs(lastEntry.id, tabs);
@@ -807,9 +812,9 @@ export default function Home() {
               setActiveTab("proof");
             }}
             onAnalysisComplete={(analysis) => {
-                // Update the latest history entry with analysis data
+                // Update the latest history entry with analysis data (회의 52: 유틸 경유)
                 try {
-                    const history = JSON.parse(localStorage.getItem("ohunjal_workout_history") || "[]");
+                    const history = getCachedWorkoutHistory();
                     if (history.length > 0) {
                         const lastEntry = history[history.length - 1];
                         updateWorkoutAnalysis(lastEntry.id, analysis);
@@ -856,12 +861,12 @@ export default function Home() {
                  setView("condition_check");
                }}
                initialAnalysis={currentWorkoutSession ?
-                 // Try to find analysis from history if available
+                 // Try to find analysis from history if available (회의 52: 유틸 경유)
                  (() => {
                     try {
-                        const history = JSON.parse(localStorage.getItem("ohunjal_workout_history") || "[]");
+                        const history = getCachedWorkoutHistory();
                         const todayStr = new Date().toDateString();
-                        const todayEntry = history.find((h: any) => new Date(h.date).toDateString() === todayStr);
+                        const todayEntry = history.find(h => new Date(h.date).toDateString() === todayStr);
                         return todayEntry?.analysis || null;
                     } catch { return null; }
                  })()
@@ -874,7 +879,7 @@ export default function Home() {
         // 홈 화면: 로그인/비로그인 모두 진입 가능
         return (
           <HomeScreen
-            key={(() => { try { return JSON.parse(localStorage.getItem("ohunjal_workout_history") || "[]").length; } catch { return 0; } })()}
+            key={getCachedWorkoutHistory().length}
             userName={getDisplayName(user, "")}
             onStartWorkout={() => {
               if (!isLoggedIn && getGuestTrialCount() >= GUEST_TRIAL_LIMIT) {

@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
 
 import { WorkoutHistory as WorkoutHistoryType } from "@/constants/workout";
-import { loadWorkoutHistory, deleteWorkoutHistory } from "@/utils/workoutHistory";
+import { loadWorkoutHistory, deleteWorkoutHistory, replaceCachedWorkoutHistory } from "@/utils/workoutHistory";
 
 import { estimateTrainingLevelDetailed, detectAchievements } from "@/utils/workoutMetrics";
 import { SwipeToDelete } from "@/components/SwipeToDelete";
@@ -198,7 +198,7 @@ export const ProofTab: React.FC<ProofTabProps> = ({ onShowPrediction }) => {
         onDelete={() => {
           const updated = history.filter(h => h.id !== selectedHistory.id);
           setHistory(updated);
-          localStorage.setItem("ohunjal_workout_history", JSON.stringify(updated));
+          replaceCachedWorkoutHistory(updated);
           deleteWorkoutHistory([selectedHistory.id]).catch(() => {});
           // Rebuild EXP from remaining history
           const rebuilt = rebuildFromHistory(updated, !isNaN(savedBirthYear) ? savedBirthYear : undefined, savedGender);
@@ -206,14 +206,14 @@ export const ProofTab: React.FC<ProofTabProps> = ({ onShowPrediction }) => {
           setView(reportReturnView);
         }}
         onAnalysisComplete={(analysis) => {
-            // Update history in localStorage and state
+            // Update history in localStorage and state (회의 52: 유틸 경유)
             try {
-                const updatedHistory = history.map(h => 
+                const updatedHistory = history.map(h =>
                     h.id === selectedHistory.id ? { ...h, analysis } : h
                 );
                 setHistory(updatedHistory);
-                localStorage.setItem("ohunjal_workout_history", JSON.stringify(updatedHistory));
-                
+                replaceCachedWorkoutHistory(updatedHistory);
+
                 // Update selectedHistory as well to reflect changes immediately if needed
                 setSelectedHistory({ ...selectedHistory, analysis });
             } catch (e) {

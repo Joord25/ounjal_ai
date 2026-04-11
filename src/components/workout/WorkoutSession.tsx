@@ -3,8 +3,9 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { FitScreen, FeedbackType } from "./FitScreen";
 import type { RunningStats } from "@/constants/workout";
-import { WorkoutSessionData, ExerciseStep, ExerciseLog, ExerciseTiming, WorkoutHistory, LABELED_EXERCISE_POOLS } from "@/constants/workout";
+import { WorkoutSessionData, ExerciseStep, ExerciseLog, ExerciseTiming, LABELED_EXERCISE_POOLS } from "@/constants/workout";
 import { trackEvent } from "@/utils/analytics";
+import { getCachedWorkoutHistory } from "@/utils/workoutHistory";
 import { useTranslation } from "@/hooks/useTranslation";
 import { getExerciseName } from "@/utils/exerciseName";
 
@@ -64,12 +65,11 @@ export const WorkoutSession: React.FC<WorkoutSessionProps> = ({
   const currentExercise = exercises[currentExerciseIndex];
   const totalExercises = exercises.length;
 
-  // 지난 세션에서 같은 운동의 기록 조회
+  // 지난 세션에서 같은 운동의 기록 조회 (회의 52: 유틸 경유)
   const lastSessionRecord = React.useMemo(() => {
     try {
-      const raw = localStorage.getItem("ohunjal_workout_history");
-      if (!raw) return null;
-      const history: WorkoutHistory[] = JSON.parse(raw);
+      const history = getCachedWorkoutHistory();
+      if (history.length === 0) return null;
       // 최근 기록부터 검색 (오늘 제외)
       const todayStr = new Date().toDateString();
       for (let i = history.length - 1; i >= 0; i--) {

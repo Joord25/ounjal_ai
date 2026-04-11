@@ -18,8 +18,10 @@ type FunnelEvent =
   | "condition_check_start"
   | "condition_check_step"
   | "condition_check_complete"
+  | "condition_check_abandon"
   | "plan_preview_view"
   | "plan_preview_start"
+  | "plan_preview_reject"
   | "workout_start"
   | "workout_complete"
   | "workout_abandon"
@@ -37,5 +39,18 @@ export function trackEvent(event: FunnelEvent, params?: Record<string, string | 
     window.gtag?.("event", event, params);
   } catch {
     // 트래킹 실패해도 앱 동작에 영향 없음
+  }
+}
+
+/**
+ * GA4 user_id 설정 — 로그인 시 Firebase uid를 GA4에 전달
+ * BigQuery에서 GA 이벤트 ↔ Firestore 문서 조인 가능해짐
+ * null 전달 시 user_id 해제 (로그아웃)
+ */
+export function setAnalyticsUserId(userId: string | null) {
+  try {
+    window.gtag?.("set", { user_id: userId });
+  } catch {
+    // 실패해도 앱 동작 영향 없음
   }
 }

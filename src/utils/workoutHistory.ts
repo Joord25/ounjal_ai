@@ -264,6 +264,30 @@ function loadFromLocalStorage(): WorkoutHistory[] {
   }
 }
 
+/**
+ * 동기 캐시 조회 — localStorage에 이미 저장된 데이터만 즉시 반환 (회의 52).
+ * Firestore fetch 없음. 네트워크 호출 불필요한 sync context에서 사용.
+ * SSR(Node) 환경에서는 빈 배열 반환.
+ * 기존 `JSON.parse(localStorage.getItem("ohunjal_workout_history") || "[]")` 패턴 대체.
+ */
+export function getCachedWorkoutHistory(): WorkoutHistory[] {
+  if (typeof window === "undefined") return [];
+  return loadFromLocalStorage();
+}
+
+/**
+ * 캐시 전체 교체 — ProofTab 등에서 삭제/편집 후 localStorage 동기화용 (회의 52).
+ * 주의: Firestore 동기화는 이 함수 범위 밖. 문서 삭제는 deleteWorkoutHistory(),
+ * 업데이트는 updateReportTabs/updateCoachMessages 등 개별 유틸 사용할 것.
+ */
+export function replaceCachedWorkoutHistory(history: WorkoutHistory[]): void {
+  try {
+    localStorage.setItem("ohunjal_workout_history", JSON.stringify(history));
+  } catch (e) {
+    console.error("Failed to replace cached workout history", e);
+  }
+}
+
 function loadRecentFromLocalStorage(): WorkoutHistory[] {
   const all = loadFromLocalStorage();
   const cutoff = Date.now() - 90 * 24 * 60 * 60 * 1000;

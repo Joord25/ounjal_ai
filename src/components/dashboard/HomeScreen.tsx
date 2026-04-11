@@ -5,6 +5,7 @@ import type { WorkoutHistory, WorkoutGoal } from "@/constants/workout";
 import { getOrCreateWeeklyQuests, getCurrentWeekQuestWindow, type QuestDefinition, type QuestProgress } from "@/utils/questSystem";
 import { getIntensityRecommendation } from "@/utils/workoutMetrics";
 import { calcE1RMTrendByExercise, calcVolumeGrowthRate, calcCalorieBalanceTrend, linearRegression, calcSessionCalories } from "@/utils/predictionUtils";
+import { getCachedWorkoutHistory } from "@/utils/workoutHistory";
 import { useTranslation } from "@/hooks/useTranslation";
 import {
   type FitnessCategory,
@@ -103,8 +104,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onStartWorkout
 
   useEffect(() => {
     try {
-      const raw = localStorage.getItem("ohunjal_workout_history");
-      const all: WorkoutHistory[] = raw ? JSON.parse(raw) : [];
+      const all = getCachedWorkoutHistory();
       setHistory(all);
 
       const birthYear = parseInt(localStorage.getItem("ohunjal_birth_year") || "");
