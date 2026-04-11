@@ -142,46 +142,14 @@ export default function LandingContent({ locale = "ko" }: { locale?: LandingLoca
     return () => observer.disconnect();
   }, []);
 
+  // 회의 58 후속: 모바일은 각 스텝이 자기 폰 프레임을 가지는 순차 레이아웃.
+  // activeDemo는 데스크톱 auto-cycle + 클릭 전용.
   const [activeDemo, setActiveDemo] = useState(0);
-  // 회의 58: auto-cycle은 데스크톱 전용. 모바일은 sticky scroll + IntersectionObserver가 트리거.
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    const mq = window.matchMedia("(min-width: 640px)");
-    let intervalId: ReturnType<typeof setInterval> | null = null;
-    const startOrStop = () => {
-      if (intervalId) { clearInterval(intervalId); intervalId = null; }
-      if (mq.matches) {
-        intervalId = setInterval(() => {
-          setActiveDemo((prev) => (prev + 1) % t.howItWorks.steps.length);
-        }, 3000);
-      }
-    };
-    startOrStop();
-    mq.addEventListener("change", startOrStop);
-    return () => {
-      if (intervalId) clearInterval(intervalId);
-      mq.removeEventListener("change", startOrStop);
-    };
-  }, [t.howItWorks.steps.length]);
-
-  // 회의 58: 모바일 sticky scroll — 각 스텝 카드 뷰포트 중앙 진입 시 activeDemo 자동 설정
-  const mobileStepRefs = useRef<(HTMLDivElement | null)[]>([]);
-  useEffect(() => {
-    if (typeof window === "undefined" || !("IntersectionObserver" in window)) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach(entry => {
-          if (entry.isIntersecting) {
-            const idx = Number(entry.target.getAttribute("data-step-idx"));
-            if (!isNaN(idx)) setActiveDemo(idx);
-          }
-        });
-      },
-      { rootMargin: "-35% 0px -35% 0px", threshold: 0 } // 뷰포트 중앙 30% 트리거 존
-    );
-    const refs = mobileStepRefs.current;
-    refs.forEach(ref => { if (ref) observer.observe(ref); });
-    return () => observer.disconnect();
+    const interval = setInterval(() => {
+      setActiveDemo((prev) => (prev + 1) % t.howItWorks.steps.length);
+    }, 3000);
+    return () => clearInterval(interval);
   }, [t.howItWorks.steps.length]);
 
   const stat0 = useCountUp(STAT_VALUES[0] * 10, "", 1000);
@@ -343,55 +311,38 @@ export default function LandingContent({ locale = "ko" }: { locale?: LandingLoca
             </div>
           </div>
 
-          {/* 모바일 (sm 미만): 회의 58 — Sticky scroll 레이아웃 */}
-          <div className="sm:hidden">
-            {/* Sticky 폰 프레임 — 스크롤 시 상단 고정 (aspect 9/16으로 짧게 조정해 step 카드 공간 확보) */}
-            <div className="sticky top-4 z-10 mx-auto w-[75%] max-w-[300px] mb-6">
-              <div className="relative">
-                <div className="rounded-[30px] border-[3px] border-white/10 bg-[#1a1a1a] shadow-2xl overflow-hidden aspect-[9/16]">
-                  <div className="relative w-full h-full">
-                    {/* 4개 이미지 absolute 스택 → opacity crossfade */}
-                    {[0, 1, 2, 3].map((idx) => (
-                      <img
-                        key={idx}
-                        src={locale === "ko" ? `/how it works ${idx + 1}.png` : `/how it works${idx + 1}_en.png`}
-                        alt={t.howItWorks.steps[idx]?.title}
-                        className={`absolute inset-0 w-full h-full object-cover object-top transition-opacity duration-500 motion-reduce:duration-0 ${
-                          activeDemo === idx ? "opacity-100" : "opacity-0"
-                        }`}
-                      />
-                    ))}
+          {/* 모바일 (sm 미만): 회의 58 후속 — 각 스텝 독립 유닛 순차 배치 */}
+          <div className="sm:hidden space-y-16">
+            {t.howItWorks.steps.map((step, i) => (
+              <RevealOnScroll key={i}>
+                <div>
+                  {/* 폰 프레임 — 해당 스텝 이미지 */}
+                  <div className="mx-auto w-[80%] max-w-[320px] mb-6">
+                    <div className="relative">
+                      <div className="rounded-[30px] border-[3px] border-white/10 bg-[#1a1a1a] shadow-2xl overflow-hidden aspect-[9/19.5]">
+                        <img
+                          src={locale === "ko" ? `/how it works ${i + 1}.png` : `/how it works${i + 1}_en.png`}
+                          alt={step.title}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="absolute -inset-4 rounded-[38px] -z-10 opacity-40 blur-2xl bg-[#059669]/20" />
+                    </div>
                   </div>
-                </div>
-                <div className="absolute -inset-4 rounded-[38px] -z-10 opacity-40 blur-2xl bg-[#059669]/20" />
-              </div>
-            </div>
 
-            {/* 스텝 카드 세로 스택 — 각 50vh로 스크롤 페이싱 확보 */}
-            <div className="pt-4 pb-10">
-              {t.howItWorks.steps.map((step, i) => (
-                <div
-                  key={i}
-                  ref={(el) => { mobileStepRefs.current[i] = el; }}
-                  data-step-idx={i}
-                  className="min-h-[50vh] flex items-center"
-                >
-                  <div className={`w-full flex items-start gap-4 p-4 rounded-2xl transition-all duration-300 ${
-                    activeDemo === i ? "bg-white/5 border border-white/10" : "bg-transparent border border-transparent"
-                  }`}>
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 font-black text-sm transition-colors duration-300 ${
-                      activeDemo === i ? "bg-[#059669] text-white" : "bg-white/5 text-white/30"
-                    }`}>
+                  {/* 텍스트 — 해당 스텝 설명 */}
+                  <div className="flex items-start gap-4 px-2">
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 font-black text-sm bg-[#059669] text-white">
                       {String(i + 1).padStart(2, "0")}
                     </div>
                     <div>
-                      <h3 className={`text-lg font-bold transition-colors duration-300 ${activeDemo === i ? "text-white" : "text-white/40"}`}>{step.title}</h3>
-                      <p className={`text-sm mt-1 transition-colors duration-300 ${activeDemo === i ? "text-white/60" : "text-white/20"}`}>{step.desc}</p>
+                      <h3 className="text-lg font-bold text-white">{step.title}</h3>
+                      <p className="text-sm mt-1 text-white/60">{step.desc}</p>
                     </div>
                   </div>
                 </div>
-              ))}
-            </div>
+              </RevealOnScroll>
+            ))}
           </div>
         </div>
       </section>
