@@ -259,11 +259,14 @@ export const adminDashboard = onRequest(
       const kstDate = kstNow.getUTCDate();
       const kstDay = kstNow.getUTCDay();
       const todayStart = new Date(Date.UTC(kstYear, kstMonth, kstDate) - 9 * 60 * 60 * 1000);
+      const yesterdayStart = new Date(todayStart.getTime() - 24 * 60 * 60 * 1000);
       const weekStart = new Date(todayStart.getTime() - kstDay * 24 * 60 * 60 * 1000);
       const monthStartDate = new Date(Date.UTC(kstYear, kstMonth, 1) - 9 * 60 * 60 * 1000);
 
       const countByRange = (users: typeof allUsers) => ({
         today: users.filter(u => u.createdAt >= todayStart).length,
+        // 어제: yesterdayStart 이상 AND todayStart 미만
+        yesterday: users.filter(u => u.createdAt >= yesterdayStart && u.createdAt < todayStart).length,
         week: users.filter(u => u.createdAt >= weekStart).length,
         month: users.filter(u => u.createdAt >= monthStartDate).length,
         total: users.length,

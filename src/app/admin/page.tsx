@@ -16,6 +16,7 @@ type Tab = "dashboard" | "users" | "cancel" | "refund" | "history";
 
 interface UserStats {
   today: number;
+  yesterday: number;
   week: number;
   month: number;
   total: number;
@@ -392,6 +393,7 @@ export default function AdminPage() {
                         <tr className="text-xs text-gray-400">
                           <th className="text-left pb-3 font-medium"></th>
                           <th className="text-center pb-3 font-medium">오늘</th>
+                          <th className="text-center pb-3 font-medium">어제</th>
                           <th className="text-center pb-3 font-medium">이번 주</th>
                           <th className="text-center pb-3 font-medium">이번 달</th>
                           <th className="text-center pb-3 font-medium">전체</th>
@@ -401,6 +403,7 @@ export default function AdminPage() {
                         <tr className="border-t border-gray-50">
                           <td className="py-2.5 text-xs font-bold text-gray-500">체험</td>
                           <td className="py-2.5 text-center font-bold text-gray-700">{dashboard.trial.today}</td>
+                          <td className="py-2.5 text-center font-bold text-gray-600">{dashboard.trial.yesterday ?? 0}</td>
                           <td className="py-2.5 text-center font-bold text-gray-700">{dashboard.trial.week}</td>
                           <td className="py-2.5 text-center font-bold text-gray-700">{dashboard.trial.month}</td>
                           <td className="py-2.5 text-center font-bold text-gray-400">{dashboard.trial.total}</td>
@@ -408,6 +411,7 @@ export default function AdminPage() {
                         <tr className="border-t border-gray-50">
                           <td className="py-2.5 text-xs font-bold text-[#2D6A4F]">가입</td>
                           <td className="py-2.5 text-center font-bold text-[#2D6A4F]">{dashboard.registered.today}</td>
+                          <td className="py-2.5 text-center font-bold text-[#2D6A4F]/80">{dashboard.registered.yesterday ?? 0}</td>
                           <td className="py-2.5 text-center font-bold text-[#2D6A4F]">{dashboard.registered.week}</td>
                           <td className="py-2.5 text-center font-bold text-[#2D6A4F]">{dashboard.registered.month}</td>
                           <td className="py-2.5 text-center font-bold text-gray-400">{dashboard.registered.total}</td>
