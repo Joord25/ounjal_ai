@@ -1899,15 +1899,9 @@ export const FitScreen: React.FC<FitScreenProps> = ({
               </div>
             )}
 
-            {/* 2. 세트 진행 카드 (NEW) */}
-            <div className="mb-3 bg-emerald-50 border border-emerald-100 rounded-2xl px-5 py-3.5 flex items-center justify-between gap-3">
-              <div className="shrink-0">
-                <p className="text-[9px] font-black text-[#2D6A4F]/50 uppercase tracking-[0.2em]">{t("fit.progressLabel")}</p>
-                <p className="text-xl font-black text-[#1B4332] mt-0.5 tracking-tight">
-                  {setInfo.current}/{setInfo.total}
-                </p>
-              </div>
-              <p className="text-[11px] font-bold text-[#2D6A4F]/70 text-right leading-snug">
+            {/* 2. 세트 진행 카드 — 큰 글씨 가운데 정렬 (회의: PROGRESS 라벨/1/3 제거) */}
+            <div className="mb-3 bg-emerald-50 border border-emerald-100 rounded-2xl px-5 py-4 text-center">
+              <p className="text-xl font-black text-[#1B4332] tracking-tight leading-snug">
                 {setInfo.current >= setInfo.total
                   ? t("fit.lastSetNext")
                   : setInfo.current >= setInfo.total - 1
@@ -1916,43 +1910,38 @@ export const FitScreen: React.FC<FitScreenProps> = ({
               </p>
             </div>
 
-            {/* 3. REST 카드 (타이머 + -15/+15 + 휴식 종료) */}
-            <div className="mb-4 bg-[#1B4332] rounded-2xl px-5 py-4">
-              {/* Row 1: REST 라벨 + -15s / 타이머 / +15s */}
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-xs font-bold text-emerald-300/70 uppercase tracking-[0.15em]">REST</p>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={handleRestMinus15}
-                    disabled={localRestSec <= 0}
-                    className="w-11 h-11 rounded-full bg-white/10 text-white text-[11px] font-bold active:scale-95 transition-all disabled:opacity-30"
-                  >
-                    {t("fit.minus15sec")}
-                  </button>
-                  <div className="min-w-[72px] text-center text-3xl font-black text-white tracking-tighter tabular-nums">
-                    {localRestSec}s
-                  </div>
-                  <button
-                    onClick={handleRestPlus15}
-                    className="w-11 h-11 rounded-full bg-white/10 text-white text-[11px] font-bold active:scale-95 transition-all"
-                  >
-                    {t("fit.plus15sec")}
-                  </button>
+            {/* 3. REST 카드 — 한 줄 레이아웃 (REST · -15s · 타이머 · +15s · 휴식 종료) */}
+            <div className="mb-4 bg-[#1B4332] rounded-2xl px-3 py-3">
+              <div className="flex items-center gap-1.5">
+                <p className="text-[10px] font-bold text-emerald-300/70 uppercase tracking-wider shrink-0 pl-1">REST</p>
+                <button
+                  onClick={handleRestMinus15}
+                  disabled={localRestSec <= 0}
+                  className="w-9 h-9 rounded-full bg-white/10 text-white text-[10px] font-bold shrink-0 active:scale-95 transition-all disabled:opacity-30"
+                >
+                  {t("fit.minus15sec")}
+                </button>
+                <div className="min-w-[52px] text-center text-2xl font-black text-white tracking-tighter tabular-nums shrink-0">
+                  {localRestSec}s
                 </div>
+                <button
+                  onClick={handleRestPlus15}
+                  className="w-9 h-9 rounded-full bg-white/10 text-white text-[10px] font-bold shrink-0 active:scale-95 transition-all"
+                >
+                  {t("fit.plus15sec")}
+                </button>
+                <button
+                  onClick={handleEndRest}
+                  disabled={!hasSelection}
+                  className={`flex-1 py-2.5 rounded-xl font-bold text-xs tracking-wide transition-all ml-0.5 ${
+                    hasSelection
+                      ? "bg-emerald-500 text-white shadow-md shadow-emerald-500/30 hover:bg-emerald-400 active:scale-[0.98] animate-pulse"
+                      : "bg-white/10 text-white/40 cursor-not-allowed"
+                  }`}
+                >
+                  {hasSelection ? `${t("fit.endRest")} →` : t("fit.endRestDisabled")}
+                </button>
               </div>
-
-              {/* Row 2: 휴식 종료 버튼 (disabled → enabled+pulse) */}
-              <button
-                onClick={handleEndRest}
-                disabled={!hasSelection}
-                className={`w-full mt-4 py-3.5 rounded-xl font-bold text-sm tracking-wide transition-all ${
-                  hasSelection
-                    ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/30 hover:bg-emerald-400 active:scale-[0.98] animate-pulse"
-                    : "bg-white/10 text-white/30 cursor-not-allowed"
-                }`}
-              >
-                {hasSelection ? `${t("fit.endRest")} →` : t("fit.endRestDisabled")}
-              </button>
             </div>
 
             {/* 4. 피드백 영역: 선택 전엔 3옵션, 선택 후엔 '다시 선택' 링크 */}
