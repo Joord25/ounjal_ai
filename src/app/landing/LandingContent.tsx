@@ -360,26 +360,48 @@ export default function LandingContent({ locale = "ko" }: { locale?: LandingLoca
           </div>
         </div>
 
-        {/* User reviews — 회의 53: 가상 리뷰 제거, 실제 후기 수집까지 "Coming soon" */}
+        {/* User reviews — 모바일: 터치 스와이프 / 데스크톱: 자동 무한 스크롤 */}
         {t.reviews.length > 0 ? (
-          <div className="overflow-hidden mt-12 sm:mt-16">
-            <div className="flex items-stretch w-max gap-4 sm:gap-6 px-6" style={{ animation: "scroll-right 35s linear infinite" }}>
-              {[...Array(2)].map((_, setIdx) => (
-                <div key={setIdx} className="flex items-stretch shrink-0 gap-4 sm:gap-6">
-                  {t.reviews.map((r, i) => (
-                    <div key={`${setIdx}-${i}`} className="w-[280px] sm:w-[320px] shrink-0 bg-white rounded-2xl border border-gray-100 p-5 sm:p-6 flex flex-col">
-                      <div className="flex items-center gap-0.5 mb-2">
-                        {Array.from({ length: 5 }).map((_, s) => <StarSvg key={s} filled={s < r.stars} />)}
-                      </div>
-                      <p className="font-bold text-[#1B4332] text-sm mb-1.5">{r.title}</p>
-                      <p className="text-sm text-gray-500 leading-relaxed flex-1">{r.review}</p>
-                      <p className="text-xs text-gray-400 mt-3">{r.name}</p>
+          <>
+            {/* Mobile: swipeable with snap */}
+            <div className="sm:hidden mt-12 overflow-x-auto scrollbar-hide snap-x snap-mandatory">
+              <div className="flex items-stretch w-max gap-4 px-6">
+                {t.reviews.map((r, i) => (
+                  <div
+                    key={i}
+                    className="snap-center w-[280px] shrink-0 bg-white rounded-2xl border border-gray-100 p-5 flex flex-col"
+                  >
+                    <div className="flex items-center gap-0.5 mb-2">
+                      {Array.from({ length: 5 }).map((_, s) => <StarSvg key={s} filled={s < r.stars} />)}
                     </div>
-                  ))}
-                </div>
-              ))}
+                    <p className="font-bold text-[#1B4332] text-sm mb-1.5">{r.title}</p>
+                    <p className="text-sm text-gray-500 leading-relaxed flex-1">{r.review}</p>
+                    <p className="text-xs text-gray-400 mt-3">{r.name}</p>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
+
+            {/* Desktop: infinite auto scroll (기존 유지) */}
+            <div className="hidden sm:block overflow-hidden mt-16">
+              <div className="flex items-stretch w-max gap-6 px-6" style={{ animation: "scroll-right 35s linear infinite" }}>
+                {[...Array(2)].map((_, setIdx) => (
+                  <div key={setIdx} className="flex items-stretch shrink-0 gap-6">
+                    {t.reviews.map((r, i) => (
+                      <div key={`${setIdx}-${i}`} className="w-[320px] shrink-0 bg-white rounded-2xl border border-gray-100 p-6 flex flex-col">
+                        <div className="flex items-center gap-0.5 mb-2">
+                          {Array.from({ length: 5 }).map((_, s) => <StarSvg key={s} filled={s < r.stars} />)}
+                        </div>
+                        <p className="font-bold text-[#1B4332] text-sm mb-1.5">{r.title}</p>
+                        <p className="text-sm text-gray-500 leading-relaxed flex-1">{r.review}</p>
+                        <p className="text-xs text-gray-400 mt-3">{r.name}</p>
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </>
         ) : (
           <div className="mt-12 sm:mt-16 max-w-md mx-auto px-6">
             <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6 text-center">
