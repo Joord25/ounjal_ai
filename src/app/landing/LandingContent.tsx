@@ -225,15 +225,12 @@ export default function LandingContent({ locale = "ko" }: { locale?: LandingLoca
               {typeof t.hero.sub === "string" ? (
                 t.hero.sub
               ) : (
-                <>
-                  {t.hero.sub.prefix}
-                  <span className="text-[#34d399] font-semibold">{t.hero.sub.highlight1}</span>
-                  {t.hero.sub.middle}
-                  {t.hero.sub.highlight2 && (
-                    <span className="text-[#34d399] font-semibold">{t.hero.sub.highlight2}</span>
-                  )}
-                  {t.hero.sub.suffix}
-                </>
+                t.hero.sub.map((line, i) => (
+                  <React.Fragment key={i}>
+                    {line}
+                    {i < (t.hero.sub as string[]).length - 1 && <br />}
+                  </React.Fragment>
+                ))
               )}
             </p>
           </RevealOnScroll>
