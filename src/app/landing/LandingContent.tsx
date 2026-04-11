@@ -499,7 +499,11 @@ export default function LandingContent({ locale = "ko" }: { locale?: LandingLoca
         <div className="max-w-5xl mx-auto">
           <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-10 sm:gap-8 mb-16 sm:mb-20">
             <div className="text-center sm:text-left">
-              <img src="/login-logo-Eng.png" alt="ohunjal" className="h-16 sm:h-24 mb-4 mx-auto sm:mx-0 brightness-[1.5] saturate-[1.2] hue-rotate-[15deg]" />
+              {locale === "ko" ? (
+                <img src="/logo.png" alt="오운잘 AI" className="h-16 sm:h-24 mb-4 mx-auto sm:mx-0" />
+              ) : (
+                <img src="/login-logo-Eng.png" alt="ohunjal" className="h-16 sm:h-24 mb-4 mx-auto sm:mx-0 brightness-[1.5] saturate-[1.2] hue-rotate-[15deg]" />
+              )}
               <p className="text-sm text-white/40">{t.footer.mission}</p>
             </div>
             <div className="text-sm leading-relaxed space-y-1 text-white/30 text-center sm:text-right">
