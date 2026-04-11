@@ -416,10 +416,17 @@ export default function AdminPage() {
           <div>
             {dashboard ? (
               <>
-                {/* 회의 57 Tier 1: "오늘 할 일" 섹션 — 박충환 교수 제안 */}
-                {(todayActions.pendingRefunds > 0 || todayActions.expiringSoon > 0 || todayActions.newCancels > 0) && (
-                  <div className="bg-gradient-to-br from-[#1B4332] to-[#2D6A4F] rounded-2xl p-5 mb-4 text-white">
-                    <p className="text-xs font-black uppercase tracking-[0.2em] text-emerald-300/70 mb-3">📌 오늘 처리할 일</p>
+                {/* 회의 57 Tier 1: "오늘 할 일" 섹션 — 박충환 교수 제안 + Inbox Zero 원칙 (항상 표시) */}
+                <div className="bg-gradient-to-br from-[#1B4332] to-[#2D6A4F] rounded-2xl p-5 mb-4 text-white">
+                  <p className="text-xs font-black uppercase tracking-[0.2em] text-emerald-300/70 mb-3">📌 오늘 처리할 일</p>
+                  {(todayActions.pendingRefunds === 0 && todayActions.expiringSoon === 0 && todayActions.newCancels === 0) ? (
+                    // Empty state — 축하 메시지 (Inbox Zero)
+                    <div className="text-center py-4">
+                      <p className="text-2xl mb-1">🎉</p>
+                      <p className="text-sm font-bold text-white">모두 처리됐어요!</p>
+                      <p className="text-[11px] text-emerald-300/60 mt-1">여유로운 하루 되세요</p>
+                    </div>
+                  ) : (
                     <div className="space-y-2">
                       {todayActions.pendingRefunds > 0 && (
                         <button
@@ -458,8 +465,8 @@ export default function AdminPage() {
                         </button>
                       )}
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
 
                 {/* 회의 57 Tier 1: 숫자 카드 → drill-down 가능 */}
                 <div className="grid grid-cols-2 gap-3 mb-4">
