@@ -20,8 +20,12 @@ export const adminActivate = onRequest(
       return;
     }
 
-    const { email, months = 1 } = req.body;
+    const { email } = req.body;
     if (!email) { res.status(400).json({ error: "Missing email" }); return; }
+
+    // 회의: months 범위 검증 (1 ~ 60개월 clamp, 음수/huge/NaN 차단)
+    const rawMonths = Number(req.body.months);
+    const months = Number.isFinite(rawMonths) ? Math.max(1, Math.min(60, Math.floor(rawMonths))) : 1;
 
     try {
       // 이메일로 유저 UID 조회
@@ -440,7 +444,12 @@ export const adminListUsers = onRequest(
       return;
     }
 
-    const { status, page = 1, limit = 20, q } = req.body;
+    // 회의: limit 상한 100, page 하한 1 (DoS 방지)
+    const { status, q } = req.body;
+    const rawLimit = Number(req.body.limit);
+    const limit = Number.isFinite(rawLimit) ? Math.max(1, Math.min(100, Math.floor(rawLimit))) : 20;
+    const rawPage = Number(req.body.page);
+    const page = Number.isFinite(rawPage) ? Math.max(1, Math.floor(rawPage)) : 1;
 
     try {
       // 1. Firebase Auth — Google 계정 유저만 수집 (익명/체험 유저 제외)
