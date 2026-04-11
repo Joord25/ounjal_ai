@@ -435,8 +435,8 @@ export default function LandingContent({ locale = "ko" }: { locale?: LandingLoca
                 <p className="text-lg font-bold text-[#1B4332] mb-1">{t.pricing.premium.name}</p>
                 <p className="text-sm text-gray-400 mb-4">{t.pricing.premium.desc}</p>
                 <div className="mb-3 flex items-end justify-center relative h-[200px] sm:h-[130px]">
-                  <img src="/price.png" alt="Premium 1" className="absolute left-1/2 -translate-x-[75%] bottom-0 w-[55%] sm:w-[45%] rounded-xl shadow-lg z-10" />
-                  <img src="/price2.png" alt="Premium 2" className="absolute left-1/2 -translate-x-[25%] bottom-0 w-[55%] sm:w-[45%] rounded-xl shadow-lg z-20" />
+                  <img src={locale === "ko" ? "/price.png" : "/price_en1.png"} alt="Premium 1" className="absolute left-1/2 -translate-x-[75%] bottom-0 w-[55%] sm:w-[45%] rounded-xl shadow-lg z-10" />
+                  <img src={locale === "ko" ? "/price2.png" : "/price_en2.png"} alt="Premium 2" className="absolute left-1/2 -translate-x-[25%] bottom-0 w-[55%] sm:w-[45%] rounded-xl shadow-lg z-20" />
                 </div>
                 <div className="mb-6">
                   <div className="flex items-baseline gap-2">
