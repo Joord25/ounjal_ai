@@ -157,10 +157,7 @@ const en: LandingTexts = {
     line1b: "Build Muscle",
     line2: "Run Further",
     line3: "No PT needed",
-    sub: [
-      "AI builds your day in 3 seconds",
-      "AI builds your daily personalized plan",
-    ],
+    sub: "Your daily workout, built by AI in 3 seconds",
     stats: [
       { prefix: "", suffix: "x", label: "Avg. weekly sessions" },
       { prefix: "", suffix: "%", label: "Completion rate" },
