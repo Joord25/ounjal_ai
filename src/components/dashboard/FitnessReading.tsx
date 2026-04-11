@@ -36,25 +36,25 @@ interface Props {
 }
 
 /* ─── constants ─── */
-const FREQ_OPTIONS = [
-  { value: 0, label: "안 해봤어요", sub: "처음이에요" },
-  { value: 2, label: "주 1~2회", sub: "가볍게" },
-  { value: 3, label: "주 3~4회", sub: "꾸준히" },
-  { value: 5, label: "주 5회+", sub: "열심히" },
+const FREQ_OPTIONS: { value: number; labelKey: string; subKey: string }[] = [
+  { value: 0, labelKey: "growth.reading.frequency.never.label", subKey: "growth.reading.frequency.never.sub" },
+  { value: 2, labelKey: "growth.reading.frequency.light.label", subKey: "growth.reading.frequency.light.sub" },
+  { value: 3, labelKey: "growth.reading.frequency.regular.label", subKey: "growth.reading.frequency.regular.sub" },
+  { value: 5, labelKey: "growth.reading.frequency.intense.label", subKey: "growth.reading.frequency.intense.sub" },
 ];
 
-const TIME_OPTIONS = [
-  { value: 30, label: "30분-" },
-  { value: 50, label: "50분" },
-  { value: 60, label: "60분" },
-  { value: 90, label: "90분+" },
+const TIME_OPTIONS: { value: number; labelKey: string }[] = [
+  { value: 30, labelKey: "growth.reading.time.30" },
+  { value: 50, labelKey: "growth.reading.time.50" },
+  { value: 60, labelKey: "growth.reading.time.60" },
+  { value: 90, labelKey: "growth.reading.time.90" },
 ];
 
-const GOAL_OPTIONS: { value: FitnessProfile["goal"]; label: string }[] = [
-  { value: "fat_loss", label: "체지방 감량" },
-  { value: "muscle_gain", label: "근력 증가" },
-  { value: "endurance", label: "기초 체력" },
-  { value: "health", label: "건강 유지" },
+const GOAL_OPTIONS: { value: FitnessProfile["goal"] }[] = [
+  { value: "fat_loss" },
+  { value: "muscle_gain" },
+  { value: "endurance" },
+  { value: "health" },
 ];
 
 /* ─── Phase 기반 예측 항목 ─── */
@@ -108,7 +108,7 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
   const [squat1RM, setSquat1RM] = useState(savedProfile?.squat1RM?.toString() || "");
   const [deadlift1RM, setDeadlift1RM] = useState(savedProfile?.deadlift1RM?.toString() || "");
 
-  const displayName = userName || "회원";
+  const displayName = userName || t("home.defaultName");
 
   /* ─── back navigation ─── */
   const getStepOrder = (): Step[] => {
@@ -183,10 +183,10 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
 
   /* ─── fake analysis animation ─── */
   const analysisMessages = [
-    `${displayName}님의 훈련 환경을 분석하고 있습니다`,
-    "운동 과학 데이터를 매칭하고 있습니다",
-    "성장 가능성을 계산하고 있습니다",
-    "패턴 리딩을 준비하고 있습니다",
+    t("growth.reading.analyzing.step1", { name: displayName }),
+    t("growth.reading.analyzing.step2"),
+    t("growth.reading.analyzing.step3"),
+    t("growth.reading.analyzing.step4"),
   ];
 
   useEffect(() => {
@@ -258,7 +258,7 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
       className="self-start mb-4 text-[#6B7280] text-sm flex items-center gap-1"
     >
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
-      이전
+      {t("onboarding.back")}
     </button>
   );
 
@@ -322,7 +322,7 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
             >
               <img
                 src={locale === "ko" ? "/login-logo-kor2.png" : "/login-logo-Eng.png"}
-                alt="오운잘"
+                alt="Ohunjal"
                 className="h-24 object-contain"
               />
             </div>
@@ -333,7 +333,7 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
                 welcomeVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
               }`}
             >
-              {displayName}님, 환영합니다
+              {t("growth.reading.welcome.greeting", { name: displayName })}
             </h1>
 
             {/* Message */}
@@ -343,16 +343,16 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
               }`}
             >
               <p className="text-[#6B7280] text-sm leading-loose">
-                오운잘 AI는 미래 예측 모델인
+                {t("growth.reading.welcome.desc1")}
               </p>
               <p className="text-[#6B7280] text-sm leading-loose">
-                <button onClick={() => setShowMLTooltip(true)} className="text-[#1B4332] font-semibold underline decoration-dotted underline-offset-2"> 회귀분석 기반 머신러닝</button> 기술로
+                <button onClick={() => setShowMLTooltip(true)} className="text-[#1B4332] font-semibold underline decoration-dotted underline-offset-2"> {t("growth.reading.welcome.desc2.link")}</button> {t("growth.reading.welcome.desc2.rest")}
               </p>
               <p className="text-[#6B7280] text-sm leading-loose mt-2">
-                당신의 <span className="text-[#1B4332] font-semibold">운동 패턴을 분석</span>하고
+                {t("growth.reading.welcome.desc3.prefix")} <span className="text-[#1B4332] font-semibold">{t("growth.reading.welcome.desc3.highlight")}</span>{t("growth.reading.welcome.desc3.suffix")}
               </p>
               <p className="text-[#6B7280] text-sm leading-loose">
-                <span className="text-[#1B4332] font-semibold">더 나은 미래의 모습</span>을 안내드립니다
+                <span className="text-[#1B4332] font-semibold">{t("growth.reading.welcome.desc4.highlight")}</span>{t("growth.reading.welcome.desc4.suffix")}
               </p>
             </div>
 
@@ -363,7 +363,7 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
                 welcomeVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
               }`}
             >
-              준비되었습니다
+              {t("growth.reading.welcome.cta")}
             </button>
 
           </div>
@@ -375,11 +375,11 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
         <div className="flex-1 flex flex-col px-6 pt-6">
           {backButton()}
           {renderStepIndicator()}
-          {questionTitle("기본 정보를 알려주세요")}
+          {questionTitle(t("growth.reading.profile.title"))}
           <div className="w-full space-y-4">
             {/* Gender */}
             <div className="bg-white rounded-2xl border-2 border-gray-100 p-5">
-              <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] mb-3">성별</p>
+              <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] mb-3">{t("growth.reading.profile.sex")}</p>
               <div className="flex gap-3">
                 <button
                   onClick={() => setGender("male")}
@@ -387,7 +387,7 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
                     gender === "male" ? "bg-[#1B4332] text-white" : "bg-gray-100 text-gray-500"
                   }`}
                 >
-                  남성
+                  {t("my.gender.male")}
                 </button>
                 <button
                   onClick={() => setGender("female")}
@@ -395,14 +395,14 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
                     gender === "female" ? "bg-[#1B4332] text-white" : "bg-gray-100 text-gray-500"
                   }`}
                 >
-                  여성
+                  {t("my.gender.female")}
                 </button>
               </div>
             </div>
 
             {/* Birth Year */}
             <div className="bg-white rounded-2xl border-2 border-gray-100 p-5">
-              <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] mb-3">출생연도</p>
+              <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] mb-3">{t("growth.reading.profile.birthYear")}</p>
               <input
                 type="number"
                 inputMode="numeric"
@@ -417,7 +417,7 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
 
             {/* Height */}
             <div className="bg-white rounded-2xl border-2 border-gray-100 p-5">
-              <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] mb-3">키</p>
+              <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] mb-3">{t("growth.reading.profile.height")}</p>
               <div className="flex items-end justify-center gap-1">
                 <input
                   type="number"
@@ -435,7 +435,7 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
 
             {/* Body Weight */}
             <div className="bg-white rounded-2xl border-2 border-gray-100 p-5">
-              <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] mb-3">체중</p>
+              <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] mb-3">{t("growth.reading.profile.weight")}</p>
               <div className="flex items-end justify-center gap-1">
                 <input
                   type="number"
@@ -453,7 +453,7 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
           </div>
 
           <p className="text-[11px] text-gray-500 text-center font-medium mt-4">
-            성별·연령·키·체중 기반 예측 모델에 활용됩니다
+            {t("growth.reading.profile.note")}
           </p>
 
           {/* Fixed CTA */}
@@ -463,7 +463,7 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
               disabled={!gender || !birthYear.trim() || !height.trim() || !bodyWeight.trim()}
               className="w-full py-4 rounded-2xl font-bold text-lg transition-all active:scale-[0.98] bg-[#2D6A4F] text-white hover:bg-[#1B4332] disabled:opacity-30 disabled:active:scale-100"
             >
-              다음
+              {t("common.next")}
             </button>
           </div>
         </div>
@@ -474,13 +474,13 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
         <div className="flex-1 flex flex-col px-6 pt-6">
           {backButton()}
           {renderStepIndicator()}
-          {questionTitle(`${displayName}님,\n일주일에 몇 번 운동해 오셨나요?`)}
+          {questionTitle(t("growth.reading.frequency.title", { name: displayName }))}
           <div className="w-full space-y-3">
             {FREQ_OPTIONS.map((o) =>
               optionButton(profile.weeklyFrequency === o.value, () => handleFrequency(o.value), (
                 <div className="flex items-center justify-between">
-                  <span className="font-semibold">{o.label}</span>
-                  <span className="text-xs text-gray-400">{o.sub}</span>
+                  <span className="font-semibold">{t(o.labelKey)}</span>
+                  <span className="text-xs text-gray-400">{t(o.subKey)}</span>
                 </div>
               ), String(o.value))
             )}
@@ -492,7 +492,7 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
         <div className="flex-1 flex flex-col px-6 pt-6">
           {backButton()}
           {renderStepIndicator()}
-          {questionTitle("1회 운동 시간은\n어느 정도인가요?")}
+          {questionTitle(t("growth.reading.time.title"))}
           <div className="w-full grid grid-cols-2 gap-3">
             {TIME_OPTIONS.map((o) => (
               <button
@@ -504,7 +504,7 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
                     : "border-gray-100 bg-white text-gray-700 hover:border-gray-200"
                 }`}
               >
-                {o.label}
+                {t(o.labelKey)}
               </button>
             ))}
           </div>
@@ -515,7 +515,7 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
         <div className="flex-1 flex flex-col px-6 pt-6">
           {backButton()}
           {renderStepIndicator()}
-          {questionTitle("가장 원하는 변화는\n무엇인가요?")}
+          {questionTitle(t("growth.reading.goal.title"))}
           <div className="w-full space-y-3">
             {GOAL_OPTIONS.map((o) =>
               optionButton(profile.goal === o.value, () => handleGoal(o.value), (
@@ -531,18 +531,18 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
         <div className="flex-1 flex flex-col px-6 pt-6">
           {backButton()}
           {renderStepIndicator()}
-          {questionTitle("3대 운동 1RM을\n알고 계시면 입력해주세요")}
+          {questionTitle(t("growth.reading.onerm.title"))}
           <p className="text-[#6B7280] text-xs mb-5 -mt-3">
-            모르면 비워두셔도 됩니다. 운동 데이터가 쌓이면 자동 추정됩니다.
+            {t("growth.reading.onerm.note")}
           </p>
           <div className="w-full space-y-4">
             {[
-              { label: "벤치프레스", value: bench1RM, setter: setBench1RM },
-              { label: "스쿼트", value: squat1RM, setter: setSquat1RM },
-              { label: "데드리프트", value: deadlift1RM, setter: setDeadlift1RM },
+              { label: t("growth.reading.onerm.bench"), value: bench1RM, setter: setBench1RM },
+              { label: t("growth.reading.onerm.squat"), value: squat1RM, setter: setSquat1RM },
+              { label: t("growth.reading.onerm.deadlift"), value: deadlift1RM, setter: setDeadlift1RM },
             ].map((lift) => (
               <div key={lift.label} className="bg-white rounded-2xl border-2 border-gray-100 p-5">
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] mb-3">{lift.label} 1RM</p>
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] mb-3">{t("growth.reading.onerm.liftLabel", { lift: lift.label })}</p>
                 <div className="flex items-end justify-center gap-1">
                   <input
                     type="number"
@@ -561,7 +561,7 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
           </div>
 
           <p className="text-[11px] text-gray-500 text-center font-medium mt-4">
-            ExRx/NSCA 강도 기준표 기반 수준 평가에 활용됩니다
+            {t("growth.reading.onerm.footer")}
           </p>
 
           <div className="absolute bottom-0 left-0 right-0 bg-white px-6 pb-6 pt-3 border-t border-gray-100">
@@ -569,7 +569,7 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
               onClick={handle1RMNext}
               className="w-full py-4 rounded-2xl font-bold text-lg transition-all active:scale-[0.98] bg-[#2D6A4F] text-white hover:bg-[#1B4332]"
             >
-              {bench1RM || squat1RM || deadlift1RM ? "분석 시작" : "건너뛰기"}
+              {bench1RM || squat1RM || deadlift1RM ? t("growth.reading.onerm.ctaStart") : t("growth.reading.onerm.ctaSkip")}
             </button>
           </div>
         </div>
@@ -591,7 +591,7 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
 
           {/* Title */}
           <p className="text-lg font-bold text-[#1B4332] text-center">
-            {displayName}님의 데이터를 분석하고 있어요
+            {t("growth.reading.analyzing.title", { name: displayName })}
           </p>
 
           {/* Step checklist */}
@@ -647,18 +647,19 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
                   showResult ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
                 }`}
               >
-                {locale === "en" ? `${displayName}'s Growth Prediction` : `${displayName}님의 성장 예측`}
+                {t("growth.reading.result.title", { name: displayName })}
               </h1>
               <p
                 className={`text-[#6B7280] text-sm transition-all duration-700 delay-100 ${
                   showResult ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
                 }`}
               >
-                {locale === "en"
-                  ? `${fp.weeklyFrequency}x per week, ${fp.sessionMinutes} min each — ${fp.weeklyFrequency >= 3 ? "great consistency!" : "keep it up!"}`
-                  : fp.weeklyFrequency >= 3
-                    ? `주 ${fp.weeklyFrequency}회, ${fp.sessionMinutes}분씩 꾸준히 하고 계시네요`
-                    : `주 ${fp.weeklyFrequency}회, ${fp.sessionMinutes}분씩 운동 중이에요`}
+                {t(
+                  fp.weeklyFrequency >= 3
+                    ? "growth.reading.result.subConsistent"
+                    : "growth.reading.result.subLight",
+                  { freq: String(fp.weeklyFrequency), min: String(fp.sessionMinutes) },
+                )}
               </p>
             </div>
             <div className="flex-1 overflow-y-auto px-6 pb-6">
@@ -793,7 +794,7 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
                 const myLevel: UserLevel = fp.weeklyFrequency <= 2 ? "beginner" : "advanced";
                 const myGoalData = PREDICTIONS_BY_GOAL[fp.goal];
                 const myItems = fp.goal === "muscle_gain" ? getMuscleGainItems(fp, workoutHistory) : (myGoalData?.[myLevel] || []);
-                const levelLabel = myLevel === "beginner" ? (locale === "en" ? "Beginner" : "입문자") : (locale === "en" ? "Advanced" : "상급자");
+                const levelLabel = myLevel === "beginner" ? t("growth.reading.result.levelBeginner") : t("growth.reading.result.levelAdvanced");
 
                 return (
                   <>
@@ -845,10 +846,10 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
                               </div>
                               <span className="text-[#6B7280] text-[11px]">{(() => {
                                 const c = activeReading.condition;
-                                if (c === "growth.condition.notStarted") return locale === "en" ? "After starting" : "운동 시작 후 측정";
+                                if (c === "growth.condition.notStarted") return t("growth.reading.result.conditionNotStarted");
                                 if (c.startsWith("growth.condition.active:")) {
                                   const [, min, freq] = c.split(":");
-                                  return locale === "en" ? `${min} min/day, ${freq}x/week` : `하루 ${min}분, 주 ${freq}회 기준`;
+                                  return t("growth.reading.result.conditionActive", { min, freq });
                                 }
                                 return c;
                               })()}</span>
@@ -978,20 +979,20 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
                                     <span className="text-[#1B4332] text-sm font-medium">{easyLabel}</span>
                                     <div className="flex items-center gap-1.5">
                                       {!isUnlocked ? (
-                                        <span className="text-[10px] text-[#2D6A4F] font-bold">{locale === "en" ? `${Math.max(0, threshold - workoutCount)} more to unlock` : `${Math.max(0, threshold - workoutCount)}회 더 하면 열려요`}</span>
+                                        <span className="text-[10px] text-[#2D6A4F] font-bold">{t("growth.reading.result.unlockMore", { n: String(Math.max(0, threshold - workoutCount)) })}</span>
                                       ) : (
-                                        <span className="text-[10px] text-amber-600 font-bold">프리미엄</span>
+                                        <span className="text-[10px] text-amber-600 font-bold">{t("growth.reading.result.premiumTag")}</span>
                                       )}
                                     </div>
                                   </div>
                                   <p className="text-[10px] text-gray-400 leading-relaxed">
                                     {(() => {
                                       const label = (easyLabel || "").toLowerCase();
-                                      if (/체중|감량/.test(label)) return "해금되면: 목표까지 몇 주 걸리는지 알려드려요";
-                                      if (/1rm|중량|근력/.test(label)) return "해금되면: 근력 성장 추이를 예측해드려요";
-                                      if (/칼로리/.test(label)) return "해금되면: 칼로리 밸런스를 분석해드려요";
-                                      if (/체력|who/.test(label)) return "해금되면: 체력 변화를 추적해드려요";
-                                      return locale === "en" ? "Unlock for detailed predictions" : "해금되면: 상세 예측을 확인할 수 있어요";
+                                      if (/체중|감량|weight|loss/.test(label)) return t("growth.reading.result.unlockWeightLoss");
+                                      if (/1rm|중량|근력|strength/.test(label)) return t("growth.reading.result.unlockStrength");
+                                      if (/칼로리|calorie/.test(label)) return t("growth.reading.result.unlockCalorie");
+                                      if (/체력|who/.test(label)) return t("growth.reading.result.unlockFitness");
+                                      return t("growth.reading.result.unlockGeneric");
                                     })()}
                                   </p>
                                 </div>
@@ -1008,7 +1009,7 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
                             onClick={() => setShowChart(!showChart)}
                             className="w-full flex items-center justify-center gap-1.5 mt-3 py-2 rounded-xl bg-[#2D6A4F]/5 active:bg-[#2D6A4F]/10 transition-all"
                           >
-                            <span className="text-[11px] font-bold text-[#2D6A4F]">{showChart ? (locale === "en" ? "Hide graph" : "그래프 접기") : (locale === "en" ? "View analysis graph" : "데이터 분석 그래프 보기")}</span>
+                            <span className="text-[11px] font-bold text-[#2D6A4F]">{showChart ? t("growth.reading.result.chartCollapse") : t("growth.reading.result.chartExpand")}</span>
                             <span className={`text-[10px] text-[#2D6A4F] transition-transform ${showChart ? "rotate-180" : ""}`}>▼</span>
                           </button>
                           {showChart && (
@@ -1028,13 +1029,13 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
                           {/* 블러 오버레이 (프리미엄 아닌 다른 목표) */}
                           {!canAccess && (
                             <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-2xl bg-white/60 backdrop-blur-[1px]">
-                              <p className="text-[15px] font-black text-[#1B4332] mb-1">프리미엄으로 모든 목표 예측 보기</p>
-                              <p className="text-[11px] text-gray-400 mb-4">구독하면 모든 목표의 성장 예측을 확인할 수 있어요</p>
+                              <p className="text-[15px] font-black text-[#1B4332] mb-1">{t("growth.reading.result.blurTitle")}</p>
+                              <p className="text-[11px] text-gray-400 mb-4">{t("growth.reading.result.blurSub")}</p>
                               <button
                                 onClick={() => onPremium?.()}
                                 className="px-6 py-2.5 rounded-2xl bg-[#1B4332] text-white text-sm font-bold active:scale-95 transition-all"
                               >
-                                구독하기
+                                {t("growth.reading.result.blurCta")}
                               </button>
                             </div>
                           )}
@@ -1051,13 +1052,13 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
             {!resultOnly && (
               <div className="shrink-0 bg-[#FAFBF9] px-6 pb-6 pt-3 border-t border-gray-100">
                 <p className="text-[#6B7280] text-xs text-center mb-3">
-                  운동 데이터가 쌓일수록 예측이 정교해집니다
+                  {t("growth.reading.result.footer")}
                 </p>
                 <button
                   onClick={() => onComplete(profile as FitnessProfile)}
                   className="w-full py-4 rounded-2xl font-bold text-white bg-[#2D6A4F] active:scale-95 transition-all"
                 >
-                  {locale === "ko" ? "첫 운동 시작하기" : "Start First Workout"}
+                  {t("growth.reading.result.ctaFirst")}
                 </button>
               </div>
             )}
@@ -1070,16 +1071,16 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
         <div className="absolute inset-0 z-[60] flex items-center justify-center animate-fade-in" onClick={() => setShowOtherGoals(false)}>
           <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px]" />
           <div className="bg-white rounded-2xl px-5 py-5 shadow-2xl mx-6 relative z-10" onClick={(e) => e.stopPropagation()}>
-            <p className="text-emerald-600 text-[11px] font-bold tracking-wider uppercase mb-2">PREMIUM</p>
-            <p className="text-[15px] font-black text-[#1B4332] leading-snug mb-1">전체 예측 리포트를 열어보세요</p>
-            <p className="text-[12.5px] text-gray-600 leading-relaxed mt-1.5">
-              AI 예측 모델이 분석한 모든 목표의{"\n"}성장 예측과 레벨별 상세 리포트를 확인하세요
+            <p className="text-emerald-600 text-[11px] font-bold tracking-wider uppercase mb-2">{t("growth.reading.premium.label")}</p>
+            <p className="text-[15px] font-black text-[#1B4332] leading-snug mb-1">{t("growth.reading.premium.title")}</p>
+            <p className="text-[12.5px] text-gray-600 leading-relaxed mt-1.5 whitespace-pre-line">
+              {t("growth.reading.premium.desc")}
             </p>
 
             <div className="mt-4 space-y-2">
-              {Object.entries(PREDICTIONS_BY_GOAL).filter(([k]) => k !== (profile as FitnessProfile).goal).map(([key, goalData]) => (
+              {Object.entries(PREDICTIONS_BY_GOAL).filter(([k]) => k !== (profile as FitnessProfile).goal).map(([key]) => (
                 <div key={key} className="flex items-center justify-between">
-                  <span className="text-[#1B4332] text-[13px] font-medium">{goalData.title} 예측</span>
+                  <span className="text-[#1B4332] text-[13px] font-medium">{t("growth.reading.premium.goalPrediction", { goal: t(`growth.goal.${key}`) })}</span>
                   <svg className="w-3.5 h-3.5 text-gray-300" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
                   </svg>
@@ -1087,7 +1088,7 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
               ))}
               <div className="flex items-center justify-between">
                 <span className="text-[#1B4332] text-[13px] font-medium">
-                  {(profile as FitnessProfile).weeklyFrequency <= 2 ? "상급자" : "입문자"} 레벨 분석
+                  {t("growth.reading.premium.levelAnalysis", { level: (profile as FitnessProfile).weeklyFrequency <= 2 ? t("growth.reading.result.levelAdvanced") : t("growth.reading.result.levelBeginner") })}
                 </span>
                 <svg className="w-3.5 h-3.5 text-gray-300" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
@@ -1102,9 +1103,9 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
               }}
               className="w-full mt-5 py-3.5 rounded-2xl font-black text-sm text-amber-300 bg-[#1B4332] active:scale-[0.98] transition-all shadow-[0_0_20px_rgba(251,191,36,0.15)]"
             >
-              프리미엄 구독하기
+              {t("growth.reading.premium.cta")}
             </button>
-            <p className="text-[10px] text-gray-400 mt-3 font-medium text-center">탭하여 닫기</p>
+            <p className="text-[10px] text-gray-400 mt-3 font-medium text-center">{t("growth.reading.premium.tapToClose")}</p>
           </div>
         </div>
       )}
@@ -1114,19 +1115,19 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
         <div className="absolute inset-0 z-[60] flex items-center justify-center animate-fade-in" onClick={() => setShowMLTooltip(false)}>
           <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px]" />
           <div className="bg-white rounded-2xl px-5 py-5 shadow-2xl mx-6 relative z-10">
-            <p className="text-emerald-600 text-[11px] font-bold tracking-wider uppercase mb-2">예측 모델 안내</p>
-            <p className="text-[15px] font-black text-[#1B4332] leading-snug">회귀분석 기반 머신러닝이란?</p>
-            <p className="text-[12.5px] text-gray-600 leading-relaxed mt-1.5">
-              오운잘 AI는 당신의 운동 데이터에서{"\n"}총볼륨(중량x횟수), 세트수, 운동시간,{"\n"}빈도, 체중 등 다양한 입력값을 수집합니다.
+            <p className="text-emerald-600 text-[11px] font-bold tracking-wider uppercase mb-2">{t("growth.reading.ml.label")}</p>
+            <p className="text-[15px] font-black text-[#1B4332] leading-snug">{t("growth.reading.ml.title")}</p>
+            <p className="text-[12.5px] text-gray-600 leading-relaxed mt-1.5 whitespace-pre-line">
+              {t("growth.reading.ml.desc1")}
             </p>
-            <p className="text-[12.5px] text-gray-600 leading-relaxed mt-2">
-              이 데이터를 XGBoost(트리 기반 앙상블) 모델과{"\n"}논문 검증된 회귀분석에 적용하여{"\n"}칼로리 소모, 근력 성장, 볼륨 추세를 예측합니다.
+            <p className="text-[12.5px] text-gray-600 leading-relaxed mt-2 whitespace-pre-line">
+              {t("growth.reading.ml.desc2")}
             </p>
-            <p className="text-[12.5px] text-gray-600 leading-relaxed mt-2">
-              데이터가 쌓일수록 당신만의 패턴을 학습해{"\n"}예측 정밀도가 높아집니다.
+            <p className="text-[12.5px] text-gray-600 leading-relaxed mt-2 whitespace-pre-line">
+              {t("growth.reading.ml.desc3")}
             </p>
 
-            <p className="text-[10px] text-gray-400 mt-3 font-medium">탭하여 닫기</p>
+            <p className="text-[10px] text-gray-400 mt-3 font-medium">{t("growth.reading.ml.tapToClose")}</p>
           </div>
         </div>
       )}

@@ -372,11 +372,35 @@ export const adminDashboard = onRequest(
       });
       const trialIpsTotal = trialUsed1 + trialUsed2 + trialExhausted;
 
-      // 로그인 무료 유저 — users.planCount (active 구독자 제외)
+      // 회의: freePlan 집계 SSOT를 Auth(Google 로그인)로 고정
+      // 이유: Firestore users/* 에는 익명·삭제된 고아 문서가 섞여 있어
+      //       기존 방식은 179명 처럼 실제 Google 계정(34명)보다 과대 집계됨.
+      //       adminListUsers 의 paywall_hit 필터(이메일 있는 유저)와 카운트가 일치해야 함.
+      const allAuthUsers: Array<{ uid: string; email: string; isAnonymous: boolean; createdAt: Date }> = [];
+      {
+        let nextToken: string | undefined;
+        do {
+          const result = await getAuth().listUsers(1000, nextToken);
+          for (const u of result.users) {
+            allAuthUsers.push({
+              uid: u.uid,
+              email: u.email || "",
+              isAnonymous: !u.email,
+              createdAt: u.metadata.creationTime ? new Date(u.metadata.creationTime) : new Date(0),
+            });
+          }
+          nextToken = result.pageToken;
+        } while (nextToken);
+      }
+      const googleUids = new Set(allAuthUsers.filter(u => !u.isAnonymous).map(u => u.uid));
+
+      // 로그인 무료 유저 — users.planCount (Google 계정만, active 구독자 제외)
       const usersSnap = await db.collection("users").get();
       let free0 = 0, free1 = 0, free2 = 0, free3 = 0, freeExhausted = 0;
       usersSnap.forEach(doc => {
         const uid = doc.id;
+        // 익명/고아 문서 제외 — Auth 의 Google 계정만 카운트 (SSOT 정렬)
+        if (!googleUids.has(uid)) return;
         const subStatus = uidToSubStatus.get(uid) || "free";
         // active 구독자 제외 — 이미 결제해서 소진 관점 무의미
         if (subStatus === "active") return;
@@ -386,6 +410,15 @@ export const adminDashboard = onRequest(
         else if (planCount === 2) free2++;
         else if (planCount === 1) free1++;
         else free0++;
+      });
+      // 회의: users/* 에 문서가 없는 Google 계정은 "한 번도 플랜 생성 안 한" 상태 — free0 에 포함
+      const usersDocUids = new Set<string>();
+      usersSnap.forEach(doc => usersDocUids.add(doc.id));
+      allAuthUsers.forEach(u => {
+        if (u.isAnonymous) return;
+        if (usersDocUids.has(u.uid)) return;
+        if ((uidToSubStatus.get(u.uid) || "free") === "active") return;
+        free0++;
       });
       const freeUsersTotal = free0 + free1 + free2 + free3 + freeExhausted;
 
@@ -443,20 +476,8 @@ export const adminDashboard = onRequest(
       });
       const paidUniqueUsers = paidUserIds.size;
 
-      // Collect all users from Firebase Auth
-      const allUsers: Array<{ email: string; isAnonymous: boolean; createdAt: Date }> = [];
-      let nextToken: string | undefined;
-      do {
-        const result = await getAuth().listUsers(1000, nextToken);
-        for (const u of result.users) {
-          allUsers.push({
-            email: u.email || "",
-            isAnonymous: !u.email,
-            createdAt: u.metadata.creationTime ? new Date(u.metadata.creationTime) : new Date(0),
-          });
-        }
-        nextToken = result.pageToken;
-      } while (nextToken);
+      // Auth 유저 수집은 상단 freePlan 집계에서 이미 수행됨 (allAuthUsers 재사용)
+      const allUsers = allAuthUsers;
 
       // Segment: Google accounts vs anonymous (trial)
       const googleUsers = allUsers.filter(u => !u.isAnonymous);
