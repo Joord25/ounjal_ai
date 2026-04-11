@@ -122,6 +122,12 @@ export default function AdminPage() {
   const [refundRequests, setRefundRequests] = useState<RefundRequest[]>([]);
   const [loadingFeedback, setLoadingFeedback] = useState(false);
 
+  // 회의 57 Tier 1: 환불 확장 컨텍스트 (유저 정보) + 2단계 확인 모달
+  const [expandedRefund, setExpandedRefund] = useState<string | null>(null);
+  const [refundUserContext, setRefundUserContext] = useState<Record<string, UserInfo>>({});
+  const [loadingRefundContext, setLoadingRefundContext] = useState<string | null>(null);
+  const [confirmRefund, setConfirmRefund] = useState<{ id: string; action: "approve" | "reject"; email: string; amount: number } | null>(null);
+
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
       setUser(u);
@@ -136,10 +142,12 @@ export default function AdminPage() {
   }, [user]);
 
   // Load data when admin confirmed
+  // 회의 57 Tier 1: "오늘 할 일" 섹션 때문에 refund/cancel도 최초 로드
   useEffect(() => {
     if (isAdmin) {
       loadDashboard();
       loadLogs();
+      loadFeedback(); // 환불/해지 피드백도 대시보드에 요약으로 필요
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAdmin]);
@@ -148,11 +156,6 @@ export default function AdminPage() {
     if (isAdmin && tab === "users") loadUserList();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAdmin, tab, userFilter, userPage]);
-
-  useEffect(() => {
-    if (isAdmin && (tab === "cancel" || tab === "refund")) loadFeedback();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAdmin, tab]);
 
   const loadDashboard = async () => {
     try {
@@ -305,21 +308,72 @@ export default function AdminPage() {
     } catch (e: unknown) { alert(e instanceof Error ? e.message : "실패"); }
   };
 
-  const handleRefundAction = async (requestId: string, action: "approve" | "reject") => {
+  // 회의 57 Tier 1: 2단계 확인 모달 경유 (confirmRefund state로 중간 단계 거침)
+  const handleRefundAction = (requestId: string, action: "approve" | "reject") => {
+    const req = refundRequests.find(r => r.id === requestId);
+    if (!req) return;
+    setConfirmRefund({ id: requestId, action, email: req.email, amount: req.amount });
+  };
+
+  // 모달에서 "정말 실행" 눌렀을 때
+  const executeRefundAction = async () => {
+    if (!confirmRefund) return;
+    const { id, action } = confirmRefund;
     const actionLabel = action === "approve" ? "승인" : "거부";
-    if (!confirm(`이 환불 요청을 ${actionLabel}하시겠습니까?`)) return;
     try {
       const token = await getToken();
       const res = await fetch("/api/adminProcessRefund", {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-        body: JSON.stringify({ requestId, action }),
+        body: JSON.stringify({ requestId: id, action }),
       });
       if (!res.ok) throw new Error((await res.json()).error);
+      setConfirmRefund(null);
       alert(`환불 요청 ${actionLabel} 완료`);
       loadFeedback();
     } catch (e: unknown) { alert(e instanceof Error ? e.message : "처리 실패"); }
   };
+
+  // 회의 57 Tier 1: 환불 카드 확장 — 유저 컨텍스트 on-demand 로드
+  const toggleRefundExpand = async (requestId: string, email: string) => {
+    if (expandedRefund === requestId) {
+      setExpandedRefund(null);
+      return;
+    }
+    setExpandedRefund(requestId);
+    if (refundUserContext[requestId]) return; // 이미 로드됨
+    setLoadingRefundContext(requestId);
+    try {
+      const token = await getToken();
+      const res = await fetch("/api/adminCheckUser", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+        body: JSON.stringify({ email }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setRefundUserContext(prev => ({ ...prev, [requestId]: data }));
+      }
+    } catch { /* ignore */ }
+    setLoadingRefundContext(null);
+  };
+
+  // 회의 57 Tier 1: 카드 drill-down — 유저 탭으로 이동 + 필터 자동 적용
+  const drilldownToUsers = (filter: string) => {
+    setUserFilter(filter);
+    setUserPage(1);
+    setTab("users");
+  };
+
+  // 회의 57 Tier 1: "오늘 할 일" 집계
+  const todayActions = (() => {
+    const pendingRefunds = refundRequests.filter(r => r.status === "pending").length;
+    const expiringSoon = dashboard?.expiringIn3Days ?? 0;
+    // 최근 7일 내 해지 피드백
+    const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    const newCancels = cancelFeedbacks.filter(fb => fb.date && new Date(fb.date).getTime() >= cutoff).length;
+    return { pendingRefunds, expiringSoon, newCancels };
+  })();
 
   const statusLabel = (s: string) => s === "active" ? "구독중" : s === "free" ? "무료" : s === "cancelled" ? "해지됨" : s === "expired" ? "만료됨" : s;
   const statusColor = (s: string) => s === "active" ? "bg-emerald-100 text-emerald-700" : s === "cancelled" ? "bg-amber-100 text-amber-700" : s === "expired" ? "bg-red-100 text-red-700" : "bg-gray-100 text-gray-600";
@@ -362,23 +416,69 @@ export default function AdminPage() {
           <div>
             {dashboard ? (
               <>
+                {/* 회의 57 Tier 1: "오늘 할 일" 섹션 — 박충환 교수 제안 */}
+                {(todayActions.pendingRefunds > 0 || todayActions.expiringSoon > 0 || todayActions.newCancels > 0) && (
+                  <div className="bg-gradient-to-br from-[#1B4332] to-[#2D6A4F] rounded-2xl p-5 mb-4 text-white">
+                    <p className="text-xs font-black uppercase tracking-[0.2em] text-emerald-300/70 mb-3">📌 오늘 처리할 일</p>
+                    <div className="space-y-2">
+                      {todayActions.pendingRefunds > 0 && (
+                        <button
+                          onClick={() => setTab("refund")}
+                          className="w-full flex items-center justify-between bg-white/10 hover:bg-white/15 active:bg-white/20 rounded-xl px-4 py-3 transition-colors"
+                        >
+                          <span className="text-sm font-bold">환불 요청 대기</span>
+                          <span className="flex items-center gap-2">
+                            <span className="text-lg font-black text-amber-300">{todayActions.pendingRefunds}건</span>
+                            <span className="text-xs text-emerald-300/60">→</span>
+                          </span>
+                        </button>
+                      )}
+                      {todayActions.expiringSoon > 0 && (
+                        <button
+                          onClick={() => drilldownToUsers("expiring_soon")}
+                          className="w-full flex items-center justify-between bg-white/10 hover:bg-white/15 active:bg-white/20 rounded-xl px-4 py-3 transition-colors"
+                        >
+                          <span className="text-sm font-bold">3일 내 만료</span>
+                          <span className="flex items-center gap-2">
+                            <span className="text-lg font-black text-amber-300">{todayActions.expiringSoon}명</span>
+                            <span className="text-xs text-emerald-300/60">→</span>
+                          </span>
+                        </button>
+                      )}
+                      {todayActions.newCancels > 0 && (
+                        <button
+                          onClick={() => setTab("cancel")}
+                          className="w-full flex items-center justify-between bg-white/10 hover:bg-white/15 active:bg-white/20 rounded-xl px-4 py-3 transition-colors"
+                        >
+                          <span className="text-sm font-bold">최근 7일 해지 피드백</span>
+                          <span className="flex items-center gap-2">
+                            <span className="text-lg font-black text-amber-300">{todayActions.newCancels}건</span>
+                            <span className="text-xs text-emerald-300/60">→</span>
+                          </span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* 회의 57 Tier 1: 숫자 카드 → drill-down 가능 */}
                 <div className="grid grid-cols-2 gap-3 mb-4">
-                  <div className="bg-white rounded-2xl border border-gray-200 p-4 text-center">
+                  <button onClick={() => drilldownToUsers("all")} className="bg-white rounded-2xl border border-gray-200 hover:border-[#1B4332] active:scale-[0.98] p-4 text-center transition-all">
                     <p className="text-3xl font-black text-[#1B4332]">{dashboard.totalUsers}</p>
-                    <p className="text-xs text-gray-400 mt-1">전체 유저</p>
-                  </div>
-                  <div className="bg-white rounded-2xl border border-emerald-200 p-4 text-center">
+                    <p className="text-xs text-gray-400 mt-1">전체 유저 <span className="text-[9px]">→</span></p>
+                  </button>
+                  <button onClick={() => drilldownToUsers("active")} className="bg-white rounded-2xl border border-emerald-200 hover:border-emerald-400 active:scale-[0.98] p-4 text-center transition-all">
                     <p className="text-3xl font-black text-emerald-600">{dashboard.active}</p>
-                    <p className="text-xs text-gray-400 mt-1">구독중</p>
-                  </div>
-                  <div className="bg-white rounded-2xl border border-gray-200 p-4 text-center">
+                    <p className="text-xs text-gray-400 mt-1">구독중 <span className="text-[9px]">→</span></p>
+                  </button>
+                  <button onClick={() => drilldownToUsers("free")} className="bg-white rounded-2xl border border-gray-200 hover:border-[#1B4332] active:scale-[0.98] p-4 text-center transition-all">
                     <p className="text-3xl font-black text-gray-500">{dashboard.free}</p>
-                    <p className="text-xs text-gray-400 mt-1">무료 유저</p>
-                  </div>
-                  <div className="bg-white rounded-2xl border border-amber-200 p-4 text-center">
+                    <p className="text-xs text-gray-400 mt-1">무료 유저 <span className="text-[9px]">→</span></p>
+                  </button>
+                  <button onClick={() => drilldownToUsers("expiring_soon")} className="bg-white rounded-2xl border border-amber-200 hover:border-amber-400 active:scale-[0.98] p-4 text-center transition-all">
                     <p className="text-3xl font-black text-amber-600">{dashboard.expiringIn3Days}</p>
-                    <p className="text-xs text-gray-400 mt-1">3일 내 만료</p>
-                  </div>
+                    <p className="text-xs text-gray-400 mt-1">3일 내 만료 <span className="text-[9px]">→</span></p>
+                  </button>
                 </div>
                 <div className="bg-white rounded-2xl border border-gray-200 p-5 mb-4">
                   <p className="text-xs text-gray-400 mb-1">이번 달 매출</p>
@@ -586,7 +686,11 @@ export default function AdminPage() {
                     <p className="text-xs text-gray-400">환불 요청이 없습니다</p>
                   ) : (
                     <div className="space-y-2">
-                      {refundRequests.map((req, i) => (
+                      {refundRequests.map((req, i) => {
+                        const isExpanded = expandedRefund === req.id;
+                        const userCtx = refundUserContext[req.id];
+                        const isLoadingCtx = loadingRefundContext === req.id;
+                        return (
                         <div key={req.id || i} className="py-2.5 border-b border-gray-50 last:border-0">
                           <div className="flex items-center justify-between mb-1">
                             <p className="text-sm font-medium text-gray-800 truncate">{req.email}</p>
@@ -620,17 +724,59 @@ export default function AdminPage() {
                                 {req.planUsed ? "사용함" : "미사용"}
                               </span>
                             </div>
-                            {req.status === "pending" && (
-                              <div className="flex gap-1.5 shrink-0 ml-2">
-                                <button onClick={() => handleRefundAction(req.id, "approve")}
-                                  className="px-2 py-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 rounded-lg hover:bg-emerald-100">승인</button>
-                                <button onClick={() => handleRefundAction(req.id, "reject")}
-                                  className="px-2 py-1 text-[10px] font-bold text-red-500 bg-red-50 rounded-lg hover:bg-red-100">거부</button>
-                              </div>
-                            )}
+                            <div className="flex gap-1.5 shrink-0 ml-2">
+                              <button
+                                onClick={() => toggleRefundExpand(req.id, req.email)}
+                                className="px-2 py-1 text-[10px] font-bold text-gray-500 bg-gray-100 rounded-lg hover:bg-gray-200"
+                              >
+                                {isExpanded ? "닫기" : "상세"}
+                              </button>
+                              {req.status === "pending" && (
+                                <>
+                                  <button onClick={() => handleRefundAction(req.id, "approve")}
+                                    className="px-2 py-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 rounded-lg hover:bg-emerald-100">승인</button>
+                                  <button onClick={() => handleRefundAction(req.id, "reject")}
+                                    className="px-2 py-1 text-[10px] font-bold text-red-500 bg-red-50 rounded-lg hover:bg-red-100">거부</button>
+                                </>
+                              )}
+                            </div>
                           </div>
+
+                          {/* 회의 57 Tier 1: 유저 컨텍스트 패널 */}
+                          {isExpanded && (
+                            <div className="mt-2.5 bg-gray-50 rounded-xl p-3 text-[11px] text-gray-600 space-y-1.5">
+                              {isLoadingCtx ? (
+                                <p className="text-gray-400">유저 정보 불러오는 중...</p>
+                              ) : userCtx ? (
+                                <>
+                                  {userCtx.displayName && (
+                                    <div className="flex justify-between"><span className="text-gray-400">이름</span><span className="font-bold">{userCtx.displayName}</span></div>
+                                  )}
+                                  <div className="flex justify-between"><span className="text-gray-400">상태</span>
+                                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${statusColor(userCtx.status)}`}>{statusLabel(userCtx.status)}</span>
+                                  </div>
+                                  {userCtx.plan && (
+                                    <div className="flex justify-between"><span className="text-gray-400">플랜</span><span className="font-bold">{userCtx.plan}</span></div>
+                                  )}
+                                  {userCtx.expiresAt && (
+                                    <div className="flex justify-between"><span className="text-gray-400">만료일</span><span className="font-bold">{new Date(userCtx.expiresAt).toLocaleDateString("ko-KR")}</span></div>
+                                  )}
+                                  {userCtx.lastPaymentAt && (
+                                    <div className="flex justify-between"><span className="text-gray-400">마지막 결제</span><span className="font-bold">{new Date(userCtx.lastPaymentAt).toLocaleDateString("ko-KR")}</span></div>
+                                  )}
+                                  {userCtx.amount !== null && userCtx.amount !== undefined && userCtx.amount > 0 && (
+                                    <div className="flex justify-between"><span className="text-gray-400">결제 금액</span><span className="font-bold">₩{userCtx.amount.toLocaleString()}</span></div>
+                                  )}
+                                  <div className="flex justify-between"><span className="text-gray-400">결제 수단</span><span className="font-bold">{userCtx.billingKey || "-"}</span></div>
+                                </>
+                              ) : (
+                                <p className="text-gray-400">유저 정보를 불러올 수 없습니다</p>
+                              )}
+                            </div>
+                          )}
                         </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </div>
@@ -664,6 +810,58 @@ export default function AdminPage() {
           </div>
         )}
       </div>
+
+      {/* 회의 57 Tier 1: 환불 승인/거부 2단계 확인 모달 */}
+      {confirmRefund && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setConfirmRefund(null)}>
+          <div className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-black text-[#1B4332] mb-2">
+              환불 요청 {confirmRefund.action === "approve" ? "승인" : "거부"}
+            </h3>
+            <div className="bg-gray-50 rounded-xl p-4 space-y-2 text-sm mb-5">
+              <div className="flex justify-between">
+                <span className="text-gray-400">유저</span>
+                <span className="font-bold text-gray-800">{confirmRefund.email}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-400">금액</span>
+                <span className="font-black text-[#1B4332] text-base">
+                  {confirmRefund.amount ? `₩${confirmRefund.amount.toLocaleString()}` : "-"}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-400">처리</span>
+                <span className={`font-bold ${confirmRefund.action === "approve" ? "text-emerald-600" : "text-red-500"}`}>
+                  {confirmRefund.action === "approve" ? "✓ 승인 (실제 환불 실행)" : "✕ 거부"}
+                </span>
+              </div>
+            </div>
+            <p className="text-xs text-red-500 mb-4 leading-relaxed">
+              ⚠ {confirmRefund.action === "approve"
+                ? "승인 시 포트원 API를 통해 실제 환불이 실행되며 되돌릴 수 없습니다."
+                : "거부 시 요청자는 환불 불가 안내를 받습니다."}
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setConfirmRefund(null)}
+                className="flex-1 py-3 rounded-xl bg-gray-100 text-gray-600 font-bold text-sm hover:bg-gray-200"
+              >
+                취소
+              </button>
+              <button
+                onClick={executeRefundAction}
+                className={`flex-1 py-3 rounded-xl text-white font-bold text-sm ${
+                  confirmRefund.action === "approve"
+                    ? "bg-emerald-600 hover:bg-emerald-700"
+                    : "bg-red-500 hover:bg-red-600"
+                }`}
+              >
+                {confirmRefund.action === "approve" ? "정말 승인" : "정말 거부"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

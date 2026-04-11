@@ -351,13 +351,28 @@ export const adminListUsers = onRequest(
         };
       });
 
-      // 4. 상태 필터
-      const filtered = status && status !== "all"
-        ? merged.filter(u => u.status === status)
-        : merged;
+      // 4. 상태 필터 (회의 57: expiring_soon 특수 필터 — 3일 내 만료 예정)
+      let filtered;
+      if (!status || status === "all") {
+        filtered = merged;
+      } else if (status === "expiring_soon") {
+        const nowMs = Date.now();
+        const threeDaysMs = 3 * 24 * 60 * 60 * 1000;
+        filtered = merged.filter(u => {
+          if (u.status !== "active" || !u.expiresAt) return false;
+          const expMs = new Date(u.expiresAt).getTime();
+          return expMs > nowMs && expMs <= nowMs + threeDaysMs;
+        });
+      } else {
+        filtered = merged.filter(u => u.status === status);
+      }
 
-      // 5. 최근순 정렬
-      filtered.sort((a, b) => b.sortKey - a.sortKey);
+      // 5. 최근순 정렬 (expiring_soon은 만료일 가까운 순)
+      if (status === "expiring_soon") {
+        filtered.sort((a, b) => new Date(a.expiresAt || 0).getTime() - new Date(b.expiresAt || 0).getTime());
+      } else {
+        filtered.sort((a, b) => b.sortKey - a.sortKey);
+      }
 
       // 6. 페이지네이션
       const total = filtered.length;
