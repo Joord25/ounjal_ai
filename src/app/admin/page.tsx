@@ -82,6 +82,23 @@ interface DashboardData {
     paidUniqueUsers: number;
     totalRevenue: number;
   };
+  // 체험/무료 풀 소진 현황
+  usage?: {
+    guestTrial: {
+      total: number;
+      used1: number;
+      used2: number;
+      exhausted: number;
+    };
+    freePlan: {
+      total: number;
+      used0: number;
+      used1: number;
+      used2: number;
+      used3: number;
+      exhausted: number;
+    };
+  };
 }
 
 interface ListUser {
@@ -93,6 +110,7 @@ interface ListUser {
   lastPaymentAt: string | null;
   amount: number;
   billingKey: string;
+  planCount?: number;
 }
 
 interface UserInfo {
@@ -842,6 +860,92 @@ export default function AdminPage() {
                   </div>
                 )}
 
+                {/* 무료 풀 소진 현황 카드 — 회의: 체험/무료 lifetime 사용량 분포 */}
+                {dashboard.usage && (
+                  <div className="bg-white rounded-2xl border border-gray-200 p-5 mb-4">
+                    <div className="flex items-baseline justify-between mb-3">
+                      <p className="font-bold text-[#1B4332]">무료 풀 소진 현황</p>
+                      <p className="text-[10px] text-gray-400">누적 lifetime 한도 기준</p>
+                    </div>
+
+                    {/* 비로그인 체험 (3회 한도) */}
+                    <div className="mb-4">
+                      <div className="flex items-baseline justify-between mb-2">
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">비로그인 체험 · 3회 한도</p>
+                        <p className="text-[10px] text-gray-400">총 {dashboard.usage.guestTrial.total} IP</p>
+                      </div>
+                      {(() => {
+                        const total = dashboard.usage.guestTrial.total || 1;
+                        const { used1, used2, exhausted } = dashboard.usage.guestTrial;
+                        const pct = (n: number) => Math.round((n / total) * 100);
+                        const bar = (n: number, color: string, label: string) => (
+                          <div className="mb-1.5">
+                            <div className="flex items-center justify-between text-[11px] mb-0.5">
+                              <span className="text-gray-500">{label}</span>
+                              <span className="font-bold text-gray-700">{n} IP <span className="text-gray-400">({pct(n)}%)</span></span>
+                            </div>
+                            <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                              <div className={`h-full rounded-full transition-all ${color}`} style={{ width: `${pct(n)}%` }} />
+                            </div>
+                          </div>
+                        );
+                        return (
+                          <>
+                            {bar(used1, "bg-emerald-300", "1회 사용")}
+                            {bar(used2, "bg-amber-400", "2회 사용")}
+                            {bar(exhausted, "bg-red-500", "3회 소진 (페이월 hit)")}
+                          </>
+                        );
+                      })()}
+                    </div>
+
+                    <div className="h-px bg-gray-100 my-3" />
+
+                    {/* 로그인 무료 (4회 한도) */}
+                    <div>
+                      <div className="flex items-baseline justify-between mb-2">
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">로그인 무료 · 4회 한도</p>
+                        <p className="text-[10px] text-gray-400">총 {dashboard.usage.freePlan.total}명 (active 제외)</p>
+                      </div>
+                      {(() => {
+                        const total = dashboard.usage.freePlan.total || 1;
+                        const { used0, used1, used2, used3, exhausted } = dashboard.usage.freePlan;
+                        const pct = (n: number) => Math.round((n / total) * 100);
+                        const bar = (n: number, color: string, label: string, clickable?: boolean) => (
+                          <div className="mb-1.5">
+                            <div className="flex items-center justify-between text-[11px] mb-0.5">
+                              {clickable ? (
+                                <button onClick={() => drilldownToUsers("paywall_hit")} className="text-gray-500 hover:text-[#1B4332] underline-offset-2 hover:underline">
+                                  {label} →
+                                </button>
+                              ) : (
+                                <span className="text-gray-500">{label}</span>
+                              )}
+                              <span className="font-bold text-gray-700">{n}명 <span className="text-gray-400">({pct(n)}%)</span></span>
+                            </div>
+                            <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                              <div className={`h-full rounded-full transition-all ${color}`} style={{ width: `${pct(n)}%` }} />
+                            </div>
+                          </div>
+                        );
+                        return (
+                          <>
+                            {bar(used0, "bg-gray-300", "0회 (미시작)")}
+                            {bar(used1, "bg-emerald-300", "1회 사용")}
+                            {bar(used2, "bg-emerald-400", "2회 사용")}
+                            {bar(used3, "bg-amber-400", "3회 사용")}
+                            {bar(exhausted, "bg-red-500", "4회 소진 (페이월 hit)", true)}
+                          </>
+                        );
+                      })()}
+                    </div>
+
+                    <p className="text-[9px] text-gray-400 mt-3 leading-relaxed">
+                      ⓘ 페이월 hit = 무료 한도 소진 + 결제 없음. &quot;페이월 hit&quot; 글자 클릭 → 해당 유저 리스트로 이동
+                    </p>
+                  </div>
+                )}
+
                 {/* User Segment Stats + 회의 57 Tier 2: 증감률 */}
                 {dashboard.trial && dashboard.registered && (() => {
                   // 증감률 계산: 지난주/지난달 대비
@@ -1026,7 +1130,7 @@ export default function AdminPage() {
             {/* Filter + CSV Export — 회의 57 Tier 2 */}
             <div className="flex items-center justify-between gap-2 mb-3">
               <div className="flex gap-1 flex-wrap">
-                {[["all","전체"],["active","구독중"],["free","무료"],["expired","만료"],["expiring_soon","만료 임박"]].map(([v, l]) => (
+                {[["all","전체"],["active","구독중"],["free","무료"],["expired","만료"],["expiring_soon","만료 임박"],["paywall_hit","페이월 hit"]].map(([v, l]) => (
                   <button key={v} onClick={() => { setUserFilter(v); setUserPage(1); setSelectedUids(new Set()); }}
                     className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${userFilter === v ? "bg-[#1B4332] text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}>
                     {l}
@@ -1083,6 +1187,11 @@ export default function AdminPage() {
                             <p className="text-xs text-gray-400">
                               {u.expiresAt ? `만료: ${new Date(u.expiresAt).toLocaleDateString("ko-KR")}` : "구독 없음"}
                               {u.billingKey !== "-" ? ` · ${u.billingKey}` : ""}
+                              {u.status !== "active" && typeof u.planCount === "number" && (
+                                <span className={`ml-2 font-bold ${u.planCount >= 4 ? "text-red-500" : u.planCount >= 3 ? "text-amber-600" : "text-gray-400"}`}>
+                                  · 무료 {u.planCount}/4
+                                </span>
+                              )}
                             </p>
                             <div className="flex gap-1.5 shrink-0 ml-2">
                               <button onClick={() => handleQuickActivate(u.email)}

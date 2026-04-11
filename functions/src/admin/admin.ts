@@ -346,8 +346,10 @@ export const adminDashboard = onRequest(
       // 1) subscriptions 상위 문서 → 구독 상태 카운트만 (매출은 분리)
       const subsSnap = await db.collection("subscriptions").get();
       let active = 0, cancelled = 0, expired = 0, expiringIn3Days = 0;
+      const uidToSubStatus = new Map<string, string>();
       subsSnap.forEach(doc => {
         const d = doc.data();
+        uidToSubStatus.set(doc.id, d.status || "free");
         if (d.status === "active") {
           active++;
           if (d.expiresAt) {
@@ -357,6 +359,35 @@ export const adminDashboard = onRequest(
         } else if (d.status === "cancelled") { cancelled++; }
         else if (d.status === "expired") { expired++; }
       });
+
+      // 1b) 체험/무료 풀 사용 분포 (회의: 소진 현황)
+      // 비로그인 체험 — trial_ips 컬렉션
+      const trialIpsSnap = await db.collection("trial_ips").get();
+      let trialUsed1 = 0, trialUsed2 = 0, trialExhausted = 0;
+      trialIpsSnap.forEach(doc => {
+        const count = Number(doc.data().count || 0);
+        if (count >= 3) trialExhausted++;
+        else if (count === 2) trialUsed2++;
+        else if (count >= 1) trialUsed1++;
+      });
+      const trialIpsTotal = trialUsed1 + trialUsed2 + trialExhausted;
+
+      // 로그인 무료 유저 — users.planCount (active 구독자 제외)
+      const usersSnap = await db.collection("users").get();
+      let free0 = 0, free1 = 0, free2 = 0, free3 = 0, freeExhausted = 0;
+      usersSnap.forEach(doc => {
+        const uid = doc.id;
+        const subStatus = uidToSubStatus.get(uid) || "free";
+        // active 구독자 제외 — 이미 결제해서 소진 관점 무의미
+        if (subStatus === "active") return;
+        const planCount = Number(doc.data().planCount || 0);
+        if (planCount >= 4) freeExhausted++;
+        else if (planCount === 3) free3++;
+        else if (planCount === 2) free2++;
+        else if (planCount === 1) free1++;
+        else free0++;
+      });
+      const freeUsersTotal = free0 + free1 + free2 + free3 + freeExhausted;
 
       // 2) payments 서브컬렉션 → 실제 결제 기록 기반 매출 집계 (SSOT)
       let monthlyRevenue = 0;
@@ -512,6 +543,23 @@ export const adminDashboard = onRequest(
           paidUniqueUsers,          // 유니크 결제 유저 수
           totalRevenue,             // 누적 총 매출
         },
+        // 회의: 체험/무료 풀 소진 현황
+        usage: {
+          guestTrial: {
+            total: trialIpsTotal,
+            used1: trialUsed1,
+            used2: trialUsed2,
+            exhausted: trialExhausted,  // >= 3회 사용 (소진)
+          },
+          freePlan: {
+            total: freeUsersTotal,
+            used0: free0,    // 등록만 하고 아직 안 씀
+            used1: free1,
+            used2: free2,
+            used3: free3,
+            exhausted: freeExhausted,  // >= 4회 사용 (소진 = 페이월 hit)
+          },
+        },
       });
     } catch (error) {
       console.error("adminDashboard error:", error);
@@ -565,6 +613,11 @@ export const adminListUsers = onRequest(
       const subsMap = new Map<string, FirebaseFirestore.DocumentData>();
       subsSnap.forEach(doc => subsMap.set(doc.id, doc.data()));
 
+      // 2b. users.planCount Map 생성 (paywall_hit 필터용)
+      const usersSnap = await db.collection("users").get();
+      const planCountMap = new Map<string, number>();
+      usersSnap.forEach(doc => planCountMap.set(doc.id, Number(doc.data().planCount || 0)));
+
       // 3. Auth 유저 기준으로 머지 — 구독 문서 없으면 free
       const merged = authUsers.map(u => {
         const sub = subsMap.get(u.uid);
@@ -578,6 +631,7 @@ export const adminListUsers = onRequest(
           lastPaymentAt: sub?.lastPaymentAt || null,
           amount: sub?.amount || 0,
           billingKey: sub?.billingKey === "manual_admin" ? "수동" : sub?.billingKey ? "카카오페이" : "-",
+          planCount: planCountMap.get(u.uid) || 0,
           sortKey: updatedAtMs || u.createdAtMs,
         };
       });
@@ -593,7 +647,7 @@ export const adminListUsers = onRequest(
         );
       }
 
-      // 4. 상태 필터 (회의 57: expiring_soon 특수 필터 — 3일 내 만료 예정)
+      // 4. 상태 필터 (회의 57: expiring_soon + paywall_hit 특수 필터)
       let filtered;
       if (!status || status === "all") {
         filtered = searchFiltered;
@@ -605,13 +659,19 @@ export const adminListUsers = onRequest(
           const expMs = new Date(u.expiresAt).getTime();
           return expMs > nowMs && expMs <= nowMs + threeDaysMs;
         });
+      } else if (status === "paywall_hit") {
+        // 회의: 무료 4회 소진 후 결제 안 한 유저 (페이월 hit)
+        filtered = searchFiltered.filter(u => u.status !== "active" && u.planCount >= 4);
       } else {
         filtered = searchFiltered.filter(u => u.status === status);
       }
 
-      // 5. 최근순 정렬 (expiring_soon은 만료일 가까운 순)
+      // 5. 최근순 정렬 (특수 필터는 자체 정렬)
       if (status === "expiring_soon") {
         filtered.sort((a, b) => new Date(a.expiresAt || 0).getTime() - new Date(b.expiresAt || 0).getTime());
+      } else if (status === "paywall_hit") {
+        // 가장 많이 쓴 순 (hit 가장 최근일수록 위)
+        filtered.sort((a, b) => b.planCount - a.planCount || b.sortKey - a.sortKey);
       } else {
         filtered.sort((a, b) => b.sortKey - a.sortKey);
       }
@@ -628,6 +688,7 @@ export const adminListUsers = onRequest(
         lastPaymentAt: u.lastPaymentAt,
         amount: u.amount,
         billingKey: u.billingKey,
+        planCount: u.planCount,
       }));
 
       res.status(200).json({ users: pageUsers, total, page, limit, totalPages: Math.ceil(total / limit) });

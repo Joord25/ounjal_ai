@@ -113,7 +113,7 @@ const ko: LandingTexts = {
       desc: "부담 없이 시작",
       price: "0원",
       unit: "/월",
-      features: ["비로그인 1회 체험", "하루 4회 AI 운동 플랜", "운동 기록 저장"],
+      features: ["비로그인 3회 체험", "무료 4회 AI 운동 플랜", "운동 기록 저장"],
     },
     premium: {
       badge: "초기 특가",
@@ -193,7 +193,7 @@ const en: LandingTexts = {
       desc: "No commitment",
       price: "$0",
       unit: "/mo",
-      features: ["1 free trial without sign-up", "4 AI workout plans per day", "Workout history saved"],
+      features: ["3 free trials without sign-up", "4 free AI workout plans", "Workout history saved"],
     },
     premium: {
       badge: "Early Bird",
