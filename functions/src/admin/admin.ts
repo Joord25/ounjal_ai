@@ -89,6 +89,89 @@ export const adminActivate = onRequest(
 );
 
 /**
+ * POST /adminListPayments
+ * Admin only: 결제 내역 목록 (회의 57 Tier 2 후속)
+ * Firestore `subscriptions/{uid}/payments` 서브컬렉션 전체 collectionGroup 조회
+ * 주의: PortOne 직접 취소분은 Firestore에 없을 수 있음 (future: PortOne API 동기화)
+ */
+export const adminListPayments = onRequest(
+  { cors: true },
+  async (req, res) => {
+    if (req.method !== "POST") { res.status(405).json({ error: "Method not allowed" }); return; }
+    try { await verifyAdmin(req.headers.authorization); } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Unauthorized";
+      res.status(msg.includes("Forbidden") ? 403 : 401).json({ error: msg });
+      return;
+    }
+
+    try {
+      const { limit = 100 } = req.body || {};
+
+      // collectionGroup query — 모든 payments 서브컬렉션 통합
+      const snap = await db.collectionGroup("payments").limit(500).get();
+
+      type PaymentRow = {
+        paymentId: string;
+        uid: string;
+        amount: number;
+        plan: string;
+        status: string;
+        paidAt: string | null;
+        periodStart: string | null;
+        periodEnd: string | null;
+      };
+
+      const rowsRaw: PaymentRow[] = snap.docs.map(doc => {
+        const data = doc.data();
+        const uid = doc.ref.parent.parent?.id || "";
+        return {
+          paymentId: data.paymentId || doc.id,
+          uid,
+          amount: Number(data.amount || 0),
+          plan: data.plan || "",
+          status: data.status || "paid",
+          paidAt: data.paidAt || null,
+          periodStart: data.periodStart || null,
+          periodEnd: data.periodEnd || null,
+        };
+      }).filter(r => r.paidAt);
+
+      // 최신순 정렬 후 상위 N개 추출
+      rowsRaw.sort((a, b) => new Date(b.paidAt!).getTime() - new Date(a.paidAt!).getTime());
+      const topRows = rowsRaw.slice(0, limit);
+
+      // 배치로 이메일 조회 (getUsers, 최대 100개씩)
+      const uniqueUids = Array.from(new Set(topRows.map(r => r.uid).filter(Boolean)));
+      const uidToEmail = new Map<string, string>();
+      for (let i = 0; i < uniqueUids.length; i += 100) {
+        const chunk = uniqueUids.slice(i, i + 100);
+        try {
+          const result = await getAuth().getUsers(chunk.map(uid => ({ uid })));
+          result.users.forEach(u => uidToEmail.set(u.uid, u.email || ""));
+        } catch { /* 일부 유저 삭제됐을 수 있음 */ }
+      }
+
+      const enriched = topRows.map(r => ({
+        ...r,
+        email: uidToEmail.get(r.uid) || "(unknown)",
+      }));
+
+      // 집계 요약
+      const totalAmount = topRows.reduce((sum, r) => sum + r.amount, 0);
+
+      res.status(200).json({
+        payments: enriched,
+        total: enriched.length,
+        totalAmount,
+      });
+    } catch (error) {
+      console.error("adminListPayments error:", error);
+      res.status(500).json({ error: "결제 목록 조회 실패" });
+    }
+  }
+);
+
+/**
  * POST /adminCheckSelf
  * Admin only: 현재 로그인 유저가 어드민인지 확인 (프론트 게이트키퍼용)
  * 회의 57 Tier 3: ADMIN_UIDS 하드코딩 제거 — Firestore admins 기반 권한 확인

@@ -22,7 +22,19 @@ function useBodyScroll() {
     return () => { document.body.style.overflow = ""; };
   }, []);
 }
-type Tab = "dashboard" | "users" | "cancel" | "refund" | "history";
+type Tab = "dashboard" | "users" | "payments" | "cancel" | "refund" | "history";
+
+interface PaymentRecord {
+  paymentId: string;
+  uid: string;
+  email: string;
+  amount: number;
+  plan: string;
+  status: string;
+  paidAt: string | null;
+  periodStart: string | null;
+  periodEnd: string | null;
+}
 
 interface UserStats {
   today: number;
@@ -163,6 +175,12 @@ export default function AdminPage() {
   const [userSearchQuery, setUserSearchQuery] = useState("");
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
 
+  // 매출 상세 (payments 탭) — Firestore payments 서브컬렉션 기반
+  const [payments, setPayments] = useState<PaymentRecord[]>([]);
+  const [paymentsTotal, setPaymentsTotal] = useState(0);
+  const [paymentsTotalAmount, setPaymentsTotalAmount] = useState(0);
+  const [loadingPayments, setLoadingPayments] = useState(false);
+
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
       setUser(u);
@@ -206,6 +224,11 @@ export default function AdminPage() {
     if (isAdmin && tab === "users") loadUserList();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAdmin, tab, userFilter, userPage, debouncedSearchQuery]);
+
+  useEffect(() => {
+    if (isAdmin && tab === "payments") loadPayments();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAdmin, tab]);
 
   // 회의 57 Tier 3: 검색 debounce (300ms) — 타이핑마다 API 치지 않도록
   useEffect(() => {
@@ -283,6 +306,26 @@ export default function AdminPage() {
       }
     } catch { /* ignore */ }
     setLoadingFeedback(false);
+  };
+
+  // 결제 내역 로드 — Firestore payments 서브컬렉션 collectionGroup 기반
+  const loadPayments = async () => {
+    setLoadingPayments(true);
+    try {
+      const token = await getToken();
+      const res = await fetch("/api/adminListPayments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+        body: JSON.stringify({ limit: 100 }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setPayments(data.payments || []);
+        setPaymentsTotal(data.total || 0);
+        setPaymentsTotalAmount(data.totalAmount || 0);
+      }
+    } catch { /* ignore */ }
+    setLoadingPayments(false);
   };
 
   const handleSearch = async () => {
@@ -581,7 +624,7 @@ export default function AdminPage() {
 
         {/* Tabs */}
         <div className="flex gap-1 mb-6 bg-gray-100 rounded-xl p-1">
-          {([["dashboard","대시보드"],["users","유저"],["cancel","취소"],["refund","환불"],["history","이력"]] as [Tab,string][]).map(([t, label]) => (
+          {([["dashboard","대시보드"],["users","유저"],["payments","결제"],["cancel","취소"],["refund","환불"],["history","이력"]] as [Tab,string][]).map(([t, label]) => (
             <button key={t} onClick={() => setTab(t)}
               className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-colors ${tab === t ? "bg-white text-[#1B4332] shadow-sm" : "text-gray-400"}`}
             >{label}</button>
@@ -943,6 +986,61 @@ export default function AdminPage() {
                     </div>
                   </div>
                 </>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Payments Tab — 결제 내역 (Firestore payments 서브컬렉션 기반) */}
+        {tab === "payments" && (
+          <div>
+            {/* 요약 카드 */}
+            <div className="grid grid-cols-2 gap-3 mb-4">
+              <div className="bg-white rounded-2xl border border-gray-200 p-4 text-center">
+                <p className="text-xs text-gray-400 mb-1">최근 100건 합계</p>
+                <p className="text-xl font-black text-[#1B4332]">₩{paymentsTotalAmount.toLocaleString()}</p>
+              </div>
+              <div className="bg-white rounded-2xl border border-gray-200 p-4 text-center">
+                <p className="text-xs text-gray-400 mb-1">건수</p>
+                <p className="text-xl font-black text-[#1B4332]">{paymentsTotal}건</p>
+              </div>
+            </div>
+
+            {/* 주의사항 배너 */}
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4">
+              <p className="text-[11px] text-amber-800 leading-relaxed">
+                ⚠ 이 목록은 Firestore 기반입니다. PortOne에서 직접 취소한 건은 여기 반영되지 않을 수 있어요. 정확한 매출 정합성이 필요하면 PortOne 대시보드를 참조하세요.
+              </p>
+            </div>
+
+            {/* 결제 리스트 */}
+            <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+              {loadingPayments ? (
+                <p className="text-center text-gray-400 py-10 text-sm">로딩 중...</p>
+              ) : payments.length === 0 ? (
+                <p className="text-center text-gray-400 py-10 text-sm">결제 내역이 없습니다</p>
+              ) : (
+                <div>
+                  {payments.map((p, i) => (
+                    <div key={p.paymentId || i} className={`px-4 py-3 ${i < payments.length - 1 ? "border-b border-gray-50" : ""}`}>
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="text-sm font-medium text-gray-800 truncate flex-1 min-w-0">{p.email}</p>
+                        <span className="text-sm font-black text-[#1B4332] shrink-0 ml-2">₩{p.amount.toLocaleString()}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-[11px] text-gray-400 gap-2">
+                        <span className="shrink-0">
+                          {p.paidAt ? new Date(p.paidAt).toLocaleString("ko-KR", { year: "2-digit", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }) : "-"}
+                        </span>
+                        <span className="font-mono text-[9px] text-gray-300 truncate">{p.paymentId}</span>
+                      </div>
+                      {p.periodStart && p.periodEnd && (
+                        <p className="text-[10px] text-gray-400 mt-1">
+                          {p.plan || "구독"} · {new Date(p.periodStart).toLocaleDateString("ko-KR")} ~ {new Date(p.periodEnd).toLocaleDateString("ko-KR")}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
           </div>
