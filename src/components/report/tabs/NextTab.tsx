@@ -4,6 +4,7 @@ import React from "react";
 import { useTranslation } from "@/hooks/useTranslation";
 import { WorkoutHistory } from "@/constants/workout";
 import { classifySessionIntensity, getWeeklyIntensityTarget } from "@/utils/workoutMetrics";
+import { translateDesc } from "../reportUtils";
 
 export interface NextTabProps {
   todayBodyPart?: string;
@@ -259,7 +260,8 @@ export const NextTab: React.FC<NextTabProps> = ({
       if (d >= monday && d <= now) {
         const idx = d.getDay() === 0 ? 6 : d.getDay() - 1;
         const desc = h.sessionData.description || h.sessionData.title || "";
-        const partLabel = desc.split("·")[0]?.trim() || (ko ? "운동" : "Workout");
+        const rawLabel = desc.split("·")[0]?.trim() || (ko ? "운동" : "Workout");
+        const partLabel = translateDesc(rawLabel, locale);
         let intensity = "";
         if (h.logs && h.sessionData?.exercises) {
           const lvl = classifySessionIntensity(h.sessionData.exercises, h.logs).level;
@@ -270,7 +272,8 @@ export const NextTab: React.FC<NextTabProps> = ({
     }
     // 오늘도 포함
     const todayIdx = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-    const todayDesc = sessionDesc?.split("·")[0]?.trim() || (ko ? "운동" : "Workout");
+    const todayRawDesc = sessionDesc?.split("·")[0]?.trim() || (ko ? "운동" : "Workout");
+    const todayDesc = translateDesc(todayRawDesc, locale);
     const todayAlready = thisWeekSessions.some(s => s.dayIdx === todayIdx);
     if (!todayAlready) {
       let todayIntensityLabel = "";

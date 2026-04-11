@@ -2,6 +2,7 @@
 
 import React from "react";
 import { useTranslation } from "@/hooks/useTranslation";
+import { translateDesc } from "../reportUtils";
 
 // ── 음식 비유 풀 ──
 const FOOD_KO = [
@@ -128,7 +129,7 @@ export const TodayTab: React.FC<TodayTabProps> = ({
 
   // 부위·시간 한줄 (세트 수는 description에 포함)
   const summaryLine = [
-    sessionDesc || (ko ? "운동" : "Workout"),
+    sessionDesc ? translateDesc(sessionDesc, locale) : (ko ? "운동" : "Workout"),
     `${minutes}${ko ? "분" : "min"}`,
   ].filter(Boolean).join(" · ");
 
