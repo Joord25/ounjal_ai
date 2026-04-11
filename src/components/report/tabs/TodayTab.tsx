@@ -4,41 +4,17 @@ import React from "react";
 import { useTranslation } from "@/hooks/useTranslation";
 import { translateDesc } from "../reportUtils";
 
-// ── 음식 비유 풀 ──
-const FOOD_KO = [
-  { food: "치킨 한 조각", cal: 250 },
-  { food: "밥 한 공기", cal: 300 },
-  { food: "라면 한 그릇", cal: 500 },
-  { food: "삼겹살 1인분", cal: 500 },
-  { food: "떡볶이 1인분", cal: 450 },
-  { food: "마라탕 반 그릇", cal: 350 },
-  { food: "아이스 아메리카노 7잔", cal: 280 },
-];
-const FOOD_EN = [
-  { food: "a slice of pizza", cal: 270 },
-  { food: "a bowl of rice", cal: 300 },
-  { food: "a cheeseburger", cal: 350 },
-  { food: "a bowl of ramen", cal: 500 },
-  { food: "a serving of fries", cal: 365 },
-];
+// 회의 55: 칼로리 환산 기준 = 햇반 일반공기 210g ≈ 310 kcal
+// 모든 식품 pool 대신 "밥 N공기"로 일원화 (박충환 교수 제안 — 한국인 친숙도, 건강 관련성)
+const RICE_BOWL_KCAL = 310;
 
 function getFoodAnalogy(cal: number, locale: string): string {
-  if (cal < 100) return ""; // 100kcal 미만은 음식 비유 의미 없음
-  const pool = locale === "ko" ? FOOD_KO : FOOD_EN;
-  let best: typeof pool[0] | null = null;
-  let bestDiff = Infinity;
-  for (const item of pool) {
-    const n = Math.round(cal / item.cal);
-    if (n >= 1 && n <= 4) {
-      const diff = Math.abs(cal - item.cal * n);
-      if (diff < bestDiff) { bestDiff = diff; best = item; }
-    }
-  }
-  if (!best) return ""; // 매칭 실패
-  const n = Math.max(1, Math.round(cal / best.cal));
-  if (n === 1) return best.food;
-  if (locale === "ko") return `${best.food} ${n}개분`;
-  return `${n}x ${best.food}`;
+  if (cal < 100) return ""; // 100kcal 미만은 환산 의미 없음
+  const bowls = cal / RICE_BOWL_KCAL;
+  // 0.1 단위로 반올림, 정수면 소수점 제거
+  const rounded = Math.round(bowls * 10) / 10;
+  const display = Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
+  return locale === "ko" ? `밥 ${display}공기` : `${display} rice bowls`;
 }
 
 function estimateCalories(cat: string, sec: number, bw: number): number {

@@ -210,9 +210,13 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
         const last = prev[prev.length - 1];
         if (last?.stats?.totalVolume) volChange = Math.round(((m.totalVolume - last.stats.totalVolume) / last.stats.totalVolume) * 100);
       }
-      const met = m.sessionCategory === "cardio" ? 8 : 4.5;
+      // 회의 55: 레거시 단순 공식 → calcSessionCalories 통일 (EPOC + 볼륨 강도 + 활동시간)
       const bw = bodyWeightKg ?? 70;
-      const calBurned = Math.round(met * bw * (m.totalDurationSec / 3600));
+      const calBurned = calcSessionCalories({
+        sessionData, logs,
+        stats: { totalVolume: m.totalVolume, totalSets: metrics.totalSets, totalReps: metrics.totalReps, totalDurationSec: savedDurationSec || m.totalDurationSec },
+        date: "", id: "",
+      } as WorkoutHistory, bw);
       const recoveryH = m.fatigueDrop === null ? "24" : m.fatigueDrop >= 0 ? "12" : m.fatigueDrop > -15 ? "24" : m.fatigueDrop > -25 ? "48" : "48~72";
       // 퀘스트 진행률 계산
       let questProgress: NonNullable<WorkoutHistory["reportTabs"]>["next"]["questProgress"];
@@ -1345,9 +1349,13 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
                       const last = prev[prev.length - 1];
                       if (last?.stats?.totalVolume) volChange = Math.round(((totalVolume - last.stats.totalVolume) / last.stats.totalVolume) * 100);
                     }
-                    const met = sessionCategory === "cardio" ? 8 : 4.5;
+                    // 회의 55: 레거시 단순 공식 → calcSessionCalories 통일
                     const bw = bodyWeightKg ?? 70;
-                    const calBurned = Math.round(met * bw * (totalDurationSec / 3600));
+                    const calBurned = calcSessionCalories({
+                      sessionData, logs,
+                      stats: { totalVolume, totalSets: metrics.totalSets, totalReps: metrics.totalReps, totalDurationSec: savedDurationSec || totalDurationSec },
+                      date: "", id: "",
+                    } as WorkoutHistory, bw);
                     const recoveryH = fatigueDrop === null ? "24" : fatigueDrop >= 0 ? "12" : fatigueDrop > -15 ? "24" : fatigueDrop > -25 ? "48" : "48~72";
                     const nutritionData = cachedNutritionGuide ? {
                       ...(cachedNutritionGuide as { dailyCalorie: number; goalBasis: string; macros: { protein: number; carb: number; fat: number }; meals: { time: string; menu: string }[]; keyTip: string }),
