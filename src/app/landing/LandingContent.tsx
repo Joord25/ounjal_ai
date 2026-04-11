@@ -271,7 +271,7 @@ export default function LandingContent({ locale = "ko" }: { locale?: LandingLoca
 
           {/* 데스크톱 (sm+): 기존 좌우 분할 레이아웃 */}
           <div className="hidden sm:flex flex-row items-center gap-16">
-            <RevealOnScroll className="w-full max-w-[300px] shrink-0">
+            <RevealOnScroll className="w-full max-w-[320px] shrink-0">
               <div className="relative">
                 <div className="rounded-[36px] border-[4px] border-white/10 bg-[#1a1a1a] shadow-2xl overflow-hidden aspect-[9/19.5]">
                   <div className="w-full h-full transition-all duration-500">
