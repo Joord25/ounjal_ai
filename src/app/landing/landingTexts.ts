@@ -105,7 +105,7 @@ const ko: LandingTexts = {
   ],
   pricing: {
     label: "PRICING",
-    headingDim: "PT 월 660,000원",
+    headingDim: "기존 운동앱 월 19,800원",
     headingBright: "오운잘은 월 6,900원",
     sub: "먼저 써보고, 결정은 그 다음에.",
     free: {
@@ -185,7 +185,7 @@ const en: LandingTexts = {
   reviews: [],
   pricing: {
     label: "PRICING",
-    headingDim: "Personal training: $500/mo",
+    headingDim: "Other fitness apps: $15.99/mo",
     headingBright: "Ohunjal: $4.99/mo",
     sub: "Try it first, decide later.",
     free: {
