@@ -396,74 +396,99 @@ export async function replaceCachedWorkoutHistory(history: WorkoutHistory[]): Pr
 
 ## 5. 트랙 C — 스키마 리팩토링 (상세 설계)
 
-### 5.1 신규 스키마 설계 (이화식 제안)
+### 5.1 신규 스키마 설계 (이화식 제안, 회의 52 Q2 정정 반영)
+
+**정정 배경:** 초안에서 `next_recommendations/current` 단일 문서로 제안했으나, 현재 UX는
+ProofTab에서 과거 세션 클릭 시 "다음" 탭으로 **그 당시의 추천**을 조회할 수 있음.
+단일 문서 구조는 기능 회귀를 유발하므로 **세션별 스냅샷**으로 변경.
+같은 이유로 `today` 탭도 세션별 스냅샷임.
+
+**최종 구조:**
+- **sessions** — 세션 엔티티 + 세션별 스냅샷(today/next/goal)
+- **daily_snapshots** — 일일 유저 상태(fitness/nutrition) — 하루 1개
+- ~~next_recommendations~~ — **폐기** (sessions.reportSnapshot.next로 이관)
 
 #### 5.1.1 `users/{uid}/sessions/{sessionId}` — 세션 엔티티
+
+**Doc ID 규칙:** 기존 `workout_history.id` 그대로 재사용 (이화식 권고: 1:1 매핑 보장, 검증/롤백 쉬움)
+
 ```typescript
-interface WorkoutSession {
-  id: string;
-  createdAt: Timestamp;
-  date: string;  // ISO
-  
+interface WorkoutSessionV2 {
+  id: string;                  // = 기존 workout_history.id
+  createdAt: number;           // ms epoch
+  date: string;                // ISO, 로컬 타임존 자정 기준 (기존 규칙 유지)
+
   meta: {
     title: string;
     description: string;
     intendedIntensity?: "high" | "moderate" | "low";
-    goal?: WorkoutGoal;
-    durationSec: number;
+    goal?: string;             // workout_history.reportTabs.goal에서 이관
+    durationSec: number;       // stats.totalDurationSec 미러
   };
-  
-  exercises: ExerciseSnapshot[];   // 명시적 order, 배열
-  executions: ExecutionLog[];       // 평면 배열, exerciseOrder FK
-  stats: WorkoutStats;              // 기존과 동일 구조 유지
-  
+
+  exercises: ExerciseSnapshotV2[];   // 명시적 order
+  executions: ExecutionLogV2[];      // 평면 배열, exerciseOrder FK
+  stats: {...};                      // 기존 구조 유지
   runningStats?: RunningStats;
   coachMessages?: string[];
-  
+
+  /** 세션별 리포트 스냅샷 — 과거 세션 열람 시 "그 당시 추천" 복원용
+      기존 reportTabs.today + reportTabs.next + reportTabs.goal 이관
+      기존 reportTabs.status + reportTabs.nutrition은 dailySnapshot으로 이관 */
+  reportSnapshot?: {
+    today?: { volumeChangePercent, caloriesBurned, foodAnalogy, recoveryHours, stimulusMessage };
+    next?: { message, recommendedPart, recommendedIntensity, weightGoal?, questProgress?, weekSessions? };
+    goal?: string;
+  };
+
   dataQuality: {
     isValid: boolean;
-    reasons?: string[];  // e.g. ["duration_too_short"]
+    reasons?: string[];  // ["duration_too_short", "missing_timings", ...]
   };
 }
 
-interface ExerciseSnapshot {
-  order: number;              // 명시적 순서 (0-indexed)
+interface ExerciseSnapshotV2 {
+  order: number;              // 0-indexed, 배열 인덱스와 일치
   name: string;
   phase: ExercisePhase;
   type: ExerciseType;
   targetSets: number;
   targetReps: number;
-  targetWeight?: number;      // 숫자로 통일 (null 가능)
-  targetWeightLabel?: string; // "10회가 힘든 무게" 같은 문자열은 여기로
+  targetWeight?: number;      // 숫자 정규화 ("10" → 10)
+  targetWeightLabel?: string; // "10회가 힘든 무게" 같은 가이드 문자열
   tempoGuide?: string;
-  durationSec: number;        // 기존 exerciseTimings를 여기 흡수
+  durationSec: number;        // 기존 exerciseTimings 흡수
 }
 
-interface ExecutionLog {
-  exerciseOrder: number;      // FK to ExerciseSnapshot.order
+interface ExecutionLogV2 {
+  exerciseOrder: number;      // FK to ExerciseSnapshotV2.order
   setNumber: number;
   repsCompleted: number;
-  weightUsed?: number;        // 숫자로 통일
-  weightUsedLabel?: string;   // 문자열은 여기
+  weightUsed?: number;        // 숫자 정규화
+  weightUsedLabel?: string;
   feedback: "fail" | "target" | "easy" | "too_easy";
-  completedAt?: number;       // ms epoch
+  completedAt?: number;
 }
 ```
 
 #### 5.1.2 `users/{uid}/daily_snapshots/{yyyy-mm-dd}` — 일일 유저 상태
+
+**Doc ID 규칙:** `yyyy-mm-dd` (로컬 타임존 기준 — 기존 `workout_history.date` 규칙과 동일)
+**중요:** 같은 날 여러 세션이 있어도 문서는 1개. 마지막 세션의 최신 snapshot이 덮어씀.
+
 ```typescript
-interface DailySnapshot {
-  date: string;               // doc ID와 동일
-  updatedAt: Timestamp;
-  
+interface DailySnapshotV2 {
+  date: string;              // "yyyy-mm-dd", doc id와 동일
+  updatedAt: number;         // ms epoch
+
   fitness: {
-    percentiles: Percentile[];
+    percentiles: { category: string; rank: number; percentile: number; hasData: boolean }[];
     overallRank: number;
     fitnessAge: number;
     ageGroupLabel: string;
     genderLabel: string;
-  };
-  
+  } | null;
+
   nutrition: {
     dailyCalorie: number;
     goalBasis: string;
@@ -472,29 +497,13 @@ interface DailySnapshot {
     keyTip: string;
     chatHistory?: { role: "user" | "assistant"; content: string }[];
   } | null;
-  
-  today: {
-    volumeChangePercent: number | null;
-    caloriesBurned: number;
-    foodAnalogy: string;
-    recoveryHours: string;
-    stimulusMessage: string;
-  };
 }
 ```
 
-#### 5.1.3 `users/{uid}/next_recommendations/current` — 최신 추천 (단일 문서)
-```typescript
-interface NextRecommendation {
-  updatedAt: Timestamp;
-  message: string;
-  recommendedPart: string;
-  recommendedIntensity: string;
-  weightGoal?: { exerciseName: string; targetWeight: number };
-  questProgress?: {...};
-  weekSessions?: {...}[];
-}
-```
+#### 5.1.3 ~~`next_recommendations`~~ — **폐기** (Q2 정정)
+
+회의 52 Q2 답변에 따라 세션별 스냅샷(5.1.1의 `reportSnapshot.next`)으로 이관.
+별도 컬렉션 불필요.
 
 ### 5.2 Phase 0 — 선행 조건
 트랙 B 완료가 선행 조건. 트랙 B 없이 트랙 C 진입 금지.

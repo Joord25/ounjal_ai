@@ -46,6 +46,40 @@
 
 ---
 
+### 회의 52 후속: 트랙 A 프로덕션 검증 + 트랙 C Step 3 완료
+**참석:** 대표(임주용), 이화식, 황보현우, 평가자
+**일자:** 2026-04-11
+
+**트랙 A 프로덕션 검증 (실사이트 ohunjal.com/app, Chrome DevTools):**
+- ✅ `setAnalyticsUserId` → GA4 `uid` 파라미터에 Firebase uid 전달 확인
+  (예: `uid=jDkXqeAFCMgJj8cFbRZITpokS2H2`)
+- ✅ `condition_check_abandon` + `ep.last_step=body_check` 발화 확인
+- ✅ `plan_preview_reject` + `epn.exercise_count=12` 발화 확인
+- ✅ 기존 이벤트(start/step/complete/view) regression 없음
+- ✅ 트랙 B 접근 통일 — 모든 화면 정상 렌더, 콘솔 에러 0
+
+**트랙 C Step 3 (transformToNewSchema 순수 유틸) 완료:**
+- 신규 파일 3개: workoutV2.ts(타입), workoutHistoryV2.fixture.ts(0cFhit3 샘플 마스킹),
+  workoutHistoryV2.ts(순수 변환 함수 + 14개 검증 케이스)
+- 로컬 검증: 14/14 PASS (tsx로 실행)
+- 주요 검증: dataQuality.isValid=false on 79초/303회 오염 데이터,
+  logs Record→executions Array 변환, weight 문자열 숫자 정규화,
+  reportTabs→session.reportSnapshot + dailySnapshot 분리
+- 설계 문서 §5.1 Q2 정정 반영 (next_recommendations 컬렉션 폐기,
+  reportSnapshot을 sessions 문서에 포함 — 기능 회귀 방지)
+
+**중요 관찰 (황보현우):**
+- BigQuery export가 어제 켜진 상태 + GA4 user_id 매핑 확보
+- 24시간 후부터 "신규 유저 N3Q (7일 3회 운동 완료)" 같은 코호트 쿼리 가능
+- 지금이 진짜 데이터 기반 의사결정 시작점
+
+**다음 단계:**
+- 트랙 C Phase 1 (dual write) 설계 세션 — 이화식 주도
+- 기존 saveWorkoutHistory 등에 try-catch로 신규 스키마 병행 쓰기 추가
+- Firestore security rules에 sessions/daily_snapshots 추가 필요
+
+---
+
 ### 회의 51: 랜딩페이지 — 후킹/스토리/제안 전면 평가
 **참석:** 대표(임주용), 기획자, UX 디자이너, 카피라이터, 그로스 마케터, 콘텐츠 MD, SEO 전문가, 프론트엔드 개발자, 평가자, 페르소나 유저 4명 (00-05 Gen Z)
 **일자:** 2026-04-10
