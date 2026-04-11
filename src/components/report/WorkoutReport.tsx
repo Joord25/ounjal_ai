@@ -407,10 +407,10 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
                 <div className="flex items-center gap-1.5">
                   <span className="text-[10px] font-bold text-[#1B4332]/70">
                     {trial.stage === "guest"
-                      ? `${locale === "ko" ? "체험" : "Trial"} ${trial.currentCompleted}/${trial.currentLimit}`
+                      ? `${locale === "ko" ? "무료 체험" : "Free trial"} ${trial.currentCompleted}/${trial.currentLimit}`
                       : trial.stage === "exhausted"
-                      ? (locale === "ko" ? "무료 완료" : "Free done")
-                      : `${locale === "ko" ? "무료" : "Free"} ${trial.currentCompleted}/${trial.currentLimit}`}
+                      ? (locale === "ko" ? "무료 체험 완료" : "Free trial done")
+                      : `${locale === "ko" ? "무료 체험" : "Free trial"} ${trial.currentCompleted}/${trial.currentLimit}`}
                   </span>
                   <div className="flex gap-0.5">
                     {Array.from({ length: trial.currentLimit }).map((_, i) => (

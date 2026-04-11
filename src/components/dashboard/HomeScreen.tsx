@@ -636,15 +636,15 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onStartWorkout
               <p className="text-[11px] font-bold text-[#1B4332] flex-1 truncate">
                 {locale === "ko"
                   ? (trial.stage === "guest"
-                      ? `체험 ${trial.currentCompleted}/${trial.currentLimit}${trial.remaining === 0 ? " · 로그인 안내가 있어요" : trial.remaining === 1 ? " · 1회 남았어요" : ""}`
+                      ? `무료 체험 ${trial.currentCompleted}/${trial.currentLimit}${trial.remaining === 0 ? " · 로그인 안내가 있어요" : trial.remaining === 1 ? " · 1회 남았어요" : ""}`
                       : trial.stage === "exhausted"
                       ? "무료 체험 완료 · 프리미엄으로 계속해요"
-                      : `무료 ${trial.currentCompleted}/${trial.currentLimit}${trial.remaining === 1 ? " · 1회 남았어요" : ""}`)
+                      : `무료 체험 ${trial.currentCompleted}/${trial.currentLimit}${trial.remaining === 1 ? " · 1회 남았어요" : ""}`)
                   : (trial.stage === "guest"
-                      ? `Trial ${trial.currentCompleted}/${trial.currentLimit}${trial.remaining === 0 ? " · sign in next" : trial.remaining === 1 ? " · 1 left" : ""}`
+                      ? `Free trial ${trial.currentCompleted}/${trial.currentLimit}${trial.remaining === 0 ? " · sign in next" : trial.remaining === 1 ? " · 1 left" : ""}`
                       : trial.stage === "exhausted"
                       ? "Free trial done · continue with premium"
-                      : `Free ${trial.currentCompleted}/${trial.currentLimit}${trial.remaining === 1 ? " · 1 left" : ""}`)}
+                      : `Free trial ${trial.currentCompleted}/${trial.currentLimit}${trial.remaining === 1 ? " · 1 left" : ""}`)}
               </p>
             </div>
           );

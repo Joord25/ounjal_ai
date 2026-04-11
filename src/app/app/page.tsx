@@ -14,7 +14,6 @@ import type { WorkoutSessionData, UserCondition, WorkoutGoal, ExerciseLog, Worko
 import { generateAIWorkoutPlan } from "@/utils/gemini";
 import { buildWorkoutMetrics, getIntensityRecommendation } from "@/utils/workoutMetrics";
 import { saveWorkoutHistory, updateWorkoutAnalysis, updateReportTabs, getCachedWorkoutHistory } from "@/utils/workoutHistory";
-import { detectPersona } from "@/utils/personaSystem";
 import { auth, googleProvider } from "@/lib/firebase";
 import { onAuthStateChanged, signOut, signInWithPopup, signInAnonymously, User } from "firebase/auth";
 import { SubscriptionScreen } from "@/components/profile/SubscriptionScreen";
@@ -291,6 +290,8 @@ export default function Home() {
   const FREE_PLAN_LIMIT = 4;
   const GUEST_TRIAL_LIMIT = 3; // 비로그인 체험 횟수 (전문가 합의: 3회면 앱 가치 체감)
   const [showLoginModal, setShowLoginModal] = useState(false);
+  // 회의 53: 모달을 띄운 이유 — trial_exhausted = 무료 체험 3회 완료, generic = 그 외
+  const [loginModalReason, setLoginModalReason] = useState<"trial_exhausted" | "generic">("generic");
   const [predictionReturnTab, setPredictionReturnTab] = useState<"home" | "proof" | "my">("home");
 
   // Firebase Auth listener
@@ -527,6 +528,7 @@ export default function Home() {
       trackEvent("guest_trial_exhausted", { limit: GUEST_TRIAL_LIMIT });
       trackEvent("login_modal_view", { trigger: "trial_limit" });
       setView("home");
+      setLoginModalReason("trial_exhausted");
       setShowLoginModal(true);
       return;
     }
@@ -585,6 +587,7 @@ export default function Home() {
         trackEvent("guest_trial_exhausted", { limit: GUEST_TRIAL_LIMIT });
         trackEvent("login_modal_view", { trigger: "server_trial_limit" });
         setView("home");
+        setLoginModalReason("trial_exhausted");
         setShowLoginModal(true);
         return;
       }
@@ -894,13 +897,14 @@ export default function Home() {
               if (!isLoggedIn && getGuestTrialCount() >= GUEST_TRIAL_LIMIT) {
                 trackEvent("guest_trial_exhausted", { limit: GUEST_TRIAL_LIMIT });
                 trackEvent("login_modal_view", { trigger: "trial_limit_home" });
+                setLoginModalReason("trial_exhausted");
                 setShowLoginModal(true);
                 return;
               }
               setView("condition_check");
             }}
             onShowPrediction={() => {
-              if (!isLoggedIn) { trackEvent("login_modal_view", { trigger: "prediction" }); setShowLoginModal(true); return; }
+              if (!isLoggedIn) { trackEvent("login_modal_view", { trigger: "prediction" }); setLoginModalReason("generic"); setShowLoginModal(true); return; }
               setPredictionReturnTab("home");
               setView("prediction_report");
             }}
@@ -980,6 +984,7 @@ export default function Home() {
           >
             <BottomTabs active={activeTab} onChange={(id) => {
               if (!isLoggedIn && (id === "proof" || id === "my")) {
+                setLoginModalReason("generic");
                 setShowLoginModal(true);
                 return;
               }
@@ -988,44 +993,22 @@ export default function Home() {
           </div>
         )}
 
-        {/* Login Modal — 비로그인 게이트*/}
+        {/* Login Modal — 비로그인 게이트 */}
         {showLoginModal && (
           <div className="absolute inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fade-in">
-            <div className="bg-white rounded-2xl p-6 mx-6 shadow-xl max-w-[340px] w-full">
+            <div className="bg-white rounded-2xl p-6 mx-6 shadow-xl max-w-[320px] w-full">
               <div className="flex flex-col items-center gap-1 mb-5">
-                <img src={locale === "ko" ? "/login-logo-kor2.png" : "/login-logo-Eng.png"} alt="Ohunjal AI" className="w-28 h-auto mb-2" />
-                {!isLoggedIn && getGuestTrialCount() >= GUEST_TRIAL_LIMIT ? (() => {
-                
-                  const persona = detectPersona(getCachedWorkoutHistory());
-                  return (
-                    <>
-                      <p className="text-center text-[10px] font-black text-[#2D6A4F] uppercase tracking-[0.2em] mb-1">
-                        {locale === "ko" ? "★ 3회 운동 완료 ★" : "★ 3 workouts done ★"}
-                      </p>
-                      <p className="text-center text-[#1B4332] font-black text-lg leading-tight">
-                        {locale === "ko"
-                          ? <>3번의 운동으로 드러난<br />당신의 운동 스타일</>
-                          : <>3 workouts revealed<br />your training style</>}
-                      </p>
-                      <div className="w-full my-3 px-4 py-3 rounded-xl bg-gradient-to-br from-[#2D6A4F]/10 to-[#2D6A4F]/5 border border-[#2D6A4F]/20 text-center">
-                        <p className="text-[11px] font-bold text-[#2D6A4F]/70 mb-0.5">
-                          {locale === "ko" ? "당신은" : "You are"}
-                        </p>
-                        <p className="text-[#1B4332] font-black text-xl">
-                          {locale === "ko" ? `${persona.name}형` : persona.nameEn}
-                        </p>
-                        <p className="text-[11px] font-medium text-gray-600 mt-1">
-                          {locale === "ko" ? persona.tagline : persona.taglineEn}
-                        </p>
-                      </div>
-                      <p className="text-center text-gray-600 text-[13px] leading-relaxed">
-                        {locale === "ko"
-                          ? <>이 기록과 정체성은 당신만의 것이에요.<br />로그인하면 영구 저장되고 운동 4회가 더 열려요.</>
-                          : <>This record and identity is yours.<br />Sign in to keep it and unlock 4 more workouts.</>}
-                      </p>
-                    </>
-                  );
-                })() : (
+                <img src={locale === "ko" ? "/login-logo-kor2.png" : "/login-logo-Eng.png"} alt="Ohunjal AI" className="w-32 h-auto mb-2" />
+                {loginModalReason === "trial_exhausted" ? (
+                  <>
+                    <p className="text-center text-gray-800 font-bold text-base">
+                      {locale === "ko" ? "무료 체험 3회 완료" : "Free trial complete"}
+                    </p>
+                    <p className="text-center text-gray-500 text-sm">
+                      {locale === "ko" ? <>로그인하고 계속 이용해 주세요</> : <>Sign in to continue</>}
+                    </p>
+                  </>
+                ) : (
                   <>
                     <p className="text-center text-gray-800 font-bold text-base">
                       {locale === "ko" ? "로그인하고 계속하기" : "Sign in to continue"}
