@@ -49,11 +49,10 @@ Cloud Functions use `GEMINI_API_KEY` (server-side, set via Firebase config).
 - `/admin` — Admin panel
 - `/privacy`, `/terms` — Legal pages
 
-### Three Codebases in One Repo
+### Two Codebases in One Repo
 
 1. **Next.js frontend** (root `src/`) — the main app
 2. **`functions/`** — Firebase Cloud Functions (Node 22, v6). Active codebase.
-3. **`ohunjal/`** — Separate CF codebase (Node 24, v7). **Legacy, not actively deployed.**
 
 ### Key Directories
 
