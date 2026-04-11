@@ -171,9 +171,8 @@ export const FitScreen: React.FC<FitScreenProps> = ({
     }
   }
 
-  // Reset easyExtraReps when set changes + 세트 전환 애니메이션
-  const [setTransition, setSetTransition] = useState(false);
-  const [setFlash, setSetFlash] = useState(false);
+  // Reset easyExtraReps when set changes
+  // 회의: 세트 전환 깜빡임/페이드 효과 제거 — 피드백 시트가 모든 전환을 커버하므로 버그처럼 보임
   const prevSetRef = useRef(setInfo.current);
   useEffect(() => {
     if (setInfo.current !== prevSetRef.current) {
@@ -181,11 +180,6 @@ export const FitScreen: React.FC<FitScreenProps> = ({
       setEasyExtraReps(2);
       setView("active");
       setIsDoneAnimating(false);
-      // 세트 전환 시각 피드백: 다음 프레임에서 트리거해야 CSS transition 작동
-      requestAnimationFrame(() => {
-        setSetTransition(true);
-        setSetFlash(true);
-      });
     }
   }, [setInfo.current]);
 
@@ -662,18 +656,7 @@ export const FitScreen: React.FC<FitScreenProps> = ({
     }
   }, [exerciseIndex]);
 
-  // 세트 전환 애니메이션 타이머 (페이드 150ms + 플래시 500ms)
-  useEffect(() => {
-    if (!setTransition) return;
-    const t = setTimeout(() => setSetTransition(false), 300);
-    return () => clearTimeout(t);
-  }, [setTransition]);
-
-  useEffect(() => {
-    if (!setFlash) return;
-    const t = setTimeout(() => setSetFlash(false), 600);
-    return () => clearTimeout(t);
-  }, [setFlash]);
+  // 회의: 세트 전환 애니메이션 effect 제거 (피드백 시트가 대신 전환 커버)
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -1135,8 +1118,8 @@ export const FitScreen: React.FC<FitScreenProps> = ({
 
         <div className="absolute inset-x-16 top-0 bottom-0 flex flex-col items-center justify-center pt-[max(2rem,env(safe-area-inset-top))] pb-1 pointer-events-none z-0">
           <span
-            className={`text-2xl tracking-widest uppercase font-black px-4 py-1 rounded-xl transition-colors duration-500 ${setFlash ? "bg-[#2D6A4F] text-white" : ""}`}
-            style={setFlash ? undefined : { color: THEME.textMain }}
+            className="text-2xl tracking-widest uppercase font-black px-4 py-1 rounded-xl"
+            style={{ color: THEME.textMain }}
           >
             SET {setInfo.current} / {setInfo.total}
           </span>
@@ -1158,8 +1141,8 @@ export const FitScreen: React.FC<FitScreenProps> = ({
         {!isTimerMode && <div className="w-10" />}
       </div>
 
-      {/* Main Content — justify-evenly로 3그룹 균등 배치 + 세트 전환 페이드 */}
-      <div className={`flex-1 flex flex-col items-center justify-evenly px-6 text-center overflow-hidden transition-all duration-150 ${setTransition ? "opacity-0 scale-95" : "opacity-100 scale-100"}`}>
+      {/* Main Content — justify-evenly로 3그룹 균등 배치 */}
+      <div className="flex-1 flex flex-col items-center justify-evenly px-6 text-center overflow-hidden">
         {/* 그룹1: 운동 이름 + 영상 */}
         <div className="flex flex-col items-center gap-1 shrink-0">
           {(() => {
