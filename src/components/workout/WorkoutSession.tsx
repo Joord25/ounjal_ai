@@ -138,22 +138,20 @@ export const WorkoutSession: React.FC<WorkoutSessionProps> = ({
     setLogs(updatedLogs);
 
     // 2. Adaptive rep logic — 무게는 세션 내에서 변경하지 않고 렙 수만 조절
-    //    무게 추천은 다음 세션 시작 시 별도로 제공
+    //    회의 (2026-04-12): FitScreen이 계산한 reps를 그대로 사용
+    //    - easy/too_easy: adjustedReps + easyExtraReps (사용자가 선택한 "+N" 반영)
+    //    - fail: failedReps (사용자가 실제로 실패한 지점)
+    //    - target: 유지 (변경 없음)
     if (currentSet < currentExercise.sets) {
       const updatedExercises = exercises.map((ex, i) =>
         i === currentExerciseIndex ? { ...ex } : ex
       );
       const exercise = updatedExercises[currentExerciseIndex];
-      const currentReps = exercise.reps || 12;
 
-      if (feedback === "too_easy") {
-        exercise.reps = currentReps + 5;
-      } else if (feedback === "easy") {
-        exercise.reps = currentReps + 2;
-      } else if (feedback === "fail") {
-        exercise.reps = Math.max(1, reps);
+      if (feedback === "too_easy" || feedback === "easy" || feedback === "fail") {
+        exercise.reps = Math.max(1, safeReps);
       }
-      // "target" (RIR 2-3): maintain (no change)
+      // "target": 유지 (no change)
 
       setExercises(updatedExercises);
 

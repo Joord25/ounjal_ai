@@ -1899,9 +1899,9 @@ export const FitScreen: React.FC<FitScreenProps> = ({
               </div>
             )}
 
-            {/* 2. 세트 진행 카드 — 큰 글씨 가운데 정렬 (회의: PROGRESS 라벨/1/3 제거) */}
-            <div className="mb-3 bg-emerald-50 border border-emerald-100 rounded-2xl px-5 py-4 text-center">
-              <p className="text-xl font-black text-[#1B4332] tracking-tight leading-snug">
+            {/* 2. 세트 진행 카드 — 한 줄 가운데 정렬 (wrap 방지) */}
+            <div className="mb-3 bg-emerald-50 border border-emerald-100 rounded-2xl px-4 py-3.5 text-center">
+              <p className="text-lg font-black text-[#1B4332] tracking-tight whitespace-nowrap">
                 {setInfo.current >= setInfo.total
                   ? t("fit.lastSetNext")
                   : setInfo.current >= setInfo.total - 1
