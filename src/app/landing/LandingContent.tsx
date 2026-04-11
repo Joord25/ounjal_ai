@@ -328,35 +328,18 @@ export default function LandingContent({ locale = "ko" }: { locale?: LandingLoca
           </RevealOnScroll>
         </div>
 
-        {/* Logos — 모바일: 터치 스와이프 / 데스크톱: 자동 무한 스크롤 */}
-        <div className="mb-12 sm:mb-16">
-          {/* Mobile: swipeable with snap */}
-          <div className="sm:hidden overflow-x-auto scrollbar-hide snap-x snap-mandatory">
-            <div className="flex items-center w-max px-6">
-              {LOGOS.map((item) => (
-                <div
-                  key={item.name}
-                  className="snap-center flex items-center justify-center w-[180px] h-14 flex-shrink-0 mx-3"
-                >
-                  <img src={item.logo} alt={item.name} className="max-h-full max-w-full object-contain" />
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Desktop: infinite auto scroll (기존 유지) */}
-          <div className="hidden sm:block overflow-hidden">
-            <div className="flex items-center w-max" style={{ animation: "scroll-left 35s linear infinite" }}>
-              {[...Array(2)].map((_, setIdx) => (
-                <div key={setIdx} className="flex items-center shrink-0">
-                  {LOGOS.map((item) => (
-                    <div key={`${setIdx}-${item.name}`} className="flex items-center justify-center w-[380px] h-24 flex-shrink-0 mx-8">
-                      <img src={item.logo} alt={item.name} className="max-h-full max-w-full object-contain" />
-                    </div>
-                  ))}
-                </div>
-              ))}
-            </div>
+        {/* Infinite scroll logos (모바일/데스크톱 공통 자동 스크롤) */}
+        <div className="overflow-hidden mb-12 sm:mb-16">
+          <div className="flex items-center w-max" style={{ animation: "scroll-left 35s linear infinite" }}>
+            {[...Array(2)].map((_, setIdx) => (
+              <div key={setIdx} className="flex items-center shrink-0">
+                {LOGOS.map((item) => (
+                  <div key={`${setIdx}-${item.name}`} className="flex items-center justify-center w-[180px] sm:w-[380px] h-14 sm:h-24 flex-shrink-0 mx-3 sm:mx-8">
+                    <img src={item.logo} alt={item.name} className="max-h-full max-w-full object-contain" />
+                  </div>
+                ))}
+              </div>
+            ))}
           </div>
         </div>
 
