@@ -191,9 +191,6 @@ export default function LandingContent({ locale = "ko" }: { locale?: LandingLoca
 
       {/* ═══ Section 1: Hero ═══ */}
       <section className="relative min-h-screen flex flex-col items-center justify-center px-6 pt-20 pb-16" style={{ background: "linear-gradient(to bottom, #0a1a14 0%, #0f2a1f 30%, #143728 60%, #1B4332 85%, #111111 100%)" }}>
-        <video autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover" poster="">
-          {/* <source src="/hero-bg.mp4" type="video/mp4" /> */}
-        </video>
         <div className="absolute inset-0 bg-black/60" />
 
         <div className="relative z-10 text-center max-w-2xl mx-auto">
