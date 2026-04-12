@@ -441,7 +441,14 @@ export default function LandingContent({ locale = "ko" }: { locale?: LandingLoca
           <RevealOnScroll>
             <p className="text-sm text-[#34d399] font-bold tracking-wide mb-3">{t.pricing.label}</p>
             <h2 className="text-2xl sm:text-4xl font-black text-white mb-4">
-              <span className="block text-white/40">{t.pricing.headingDim}</span>
+              <span className="block text-white/40">{(() => {
+                // 가격 숫자 부분만 line-through — KO: "19,800원", EN: "$15.99/mo"
+                const dim = t.pricing.headingDim;
+                const m = dim.match(/^(.*?)(\$?\d[\d,.]*.*)$/);
+                if (!m) return dim;
+                const [, prefix, price] = m;
+                return <>{prefix}<span className="line-through" style={{ color: "#6c6c6c", textDecorationColor: "#6c6c6c" }}>{price}</span></>;
+              })()}</span>
               <span className="block text-white mt-3 sm:mt-4">{t.pricing.headingBright}</span>
             </h2>
             <p className="text-base text-white/40 mb-12">{t.pricing.sub}</p>
