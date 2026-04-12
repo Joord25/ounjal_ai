@@ -261,24 +261,30 @@ function getExerciseMET(name: string, type: string): number {
  * 회의 55 (2026-04-12): 칼로리 로직 재설계
  *
  * 새 공식 = 기본 MET 계산 × 볼륨 강도 보정 × EPOC 보정
- *   1. 활동 시간 = 기록 시간 × 60% (휴식 40% 제외)
- *   2. 기본 kcal = MET × 체중 × 활동시간 (운동별 타이밍 있으면 정밀 계산)
- *   3. 볼륨 강도 보정: volumeIntensity = totalVolume / (BW × 활동분)
+ *   1. 기본 kcal = MET × 체중 × 전체시간 (MET 자체가 세트간 휴식 포함 대사율)
+ *   2. 볼륨 강도 보정: volumeIntensity = totalVolume / (BW × 활동분)
+ *      - 활동분 = 전체시간 × 60% (휴식 제외, 강도 밀도 계산용)
  *      - > 1.5 (고강도): × 1.25
  *      - 1.0~1.5 (중강도): × 1.10
  *      - < 1.0 (저강도): × 1.00
- *   4. EPOC 보정 × 1.15 (근력 세션 후 48h 추가 소모, Schuenke 2002 / Paoli 2012)
+ *   3. EPOC 보정 × 1.15 (근력 세션 후 48h 추가 소모, Schuenke 2002 / Paoli 2012)
  *
  * 폴백 제거: 5분 미만 45분 폴백 삭제. 실제 시간 우선, 누락 시 세트 × 90초 추정.
  *
  * 목표 레퍼런스 — 30대 남자 75kg / 5500kg 볼륨 / 45분:
  *   기존 309 kcal → 새 로직 ≈ 420 kcal (+36%, 성취감 ↑)
+ *
+ * 버그 수정 (2026-04-12):
+ *   - ACTIVITY_TIME_RATIO는 volumeIntensity 분모에만 적용 (base MET에 미적용)
+ *   - exerciseTimings 경로: 개별 타이밍 합 대신 wall-clock 전체 시간 사용
  */
 const EPOC_MULTIPLIER = 1.15;
-const ACTIVITY_TIME_RATIO = 0.6; // 전체 세션 시간 중 순수 활동 비율 (휴식 40% 제외)
+const ACTIVITY_TIME_RATIO = 0.6; // 볼륨 강도 계산용 — base MET에는 미적용
 
-function computeIntensityMultiplier(totalVolume: number, bodyWeightKg: number, activityMin: number): number {
-  if (activityMin <= 0 || bodyWeightKg <= 0) return 1.0;
+function computeIntensityMultiplier(totalVolume: number, bodyWeightKg: number, totalMin: number): number {
+  if (totalMin <= 0 || bodyWeightKg <= 0) return 1.0;
+  // 활동 밀도 = 볼륨 / (체중 × 순수 활동 시간)
+  const activityMin = totalMin * ACTIVITY_TIME_RATIO;
   const volumeIntensity = totalVolume / (bodyWeightKg * activityMin);
   if (volumeIntensity > 1.5) return 1.25;
   if (volumeIntensity > 1.0) return 1.10;
@@ -290,7 +296,6 @@ export function calcSessionCalories(
   bodyWeightKg: number
 ): number {
   const exercises = session.sessionData?.exercises || [];
-  const timings = (session as { exerciseTimings?: { durationSec: number }[] }).exerciseTimings;
   const rawDuration = session.stats.totalDurationSec || 0;
   const totalSets = session.stats.totalSets || 0;
   const totalVolume = session.stats.totalVolume || 0;
@@ -310,31 +315,21 @@ export function calcSessionCalories(
   const baseDurationSec = rawDuration > 0 ? rawDuration : totalSets * 90;
   if (baseDurationSec <= 0 || bodyWeightKg <= 0) return 0;
 
-  // 활동 시간 (휴식 제외)
-  const activityTimeH = (baseDurationSec * ACTIVITY_TIME_RATIO) / 3600;
-  const activityMin = activityTimeH * 60;
+  // 전체 시간 (MET는 세트간 휴식 포함 대사율이므로 wall-clock 그대로 사용)
+  const totalTimeH = baseDurationSec / 3600;
+  const totalMin = baseDurationSec / 60;
 
-  // 1. 기본 MET 계산
+  // 1. 기본 MET 계산 — wall-clock 전체 시간 기준
   let baseKcal: number;
-  if (timings && timings.length === exercises.length && exercises.length > 0) {
-    // 운동별 정밀 계산 — 각 운동의 실제 시간에 활동 비율 적용
-    baseKcal = 0;
-    exercises.forEach((ex, i) => {
-      const met = getExerciseMET(ex.name, ex.type);
-      const durationH = ((timings[i].durationSec || 0) * ACTIVITY_TIME_RATIO) / 3600;
-      baseKcal += met * bodyWeightKg * durationH;
-    });
-  } else if (exercises.length > 0) {
-    // 평균 MET × 활동시간
+  if (exercises.length > 0) {
     const avgMET = exercises.reduce((sum, ex) => sum + getExerciseMET(ex.name, ex.type), 0) / exercises.length;
-    baseKcal = avgMET * bodyWeightKg * activityTimeH;
+    baseKcal = avgMET * bodyWeightKg * totalTimeH;
   } else {
-    // 운동 리스트 없는 edge case — 저강도 기본값 (MET 4.5)
-    baseKcal = 4.5 * bodyWeightKg * activityTimeH;
+    baseKcal = 4.5 * bodyWeightKg * totalTimeH;
   }
 
-  // 2. 볼륨 강도 보정 (하드 세션에 보상)
-  const intensityMult = computeIntensityMultiplier(totalVolume, bodyWeightKg, activityMin);
+  // 2. 볼륨 강도 보정 (ACTIVITY_TIME_RATIO는 여기 분모에만 적용)
+  const intensityMult = computeIntensityMultiplier(totalVolume, bodyWeightKg, totalMin);
 
   // 3. EPOC 보정
   const totalKcal = baseKcal * intensityMult * EPOC_MULTIPLIER;

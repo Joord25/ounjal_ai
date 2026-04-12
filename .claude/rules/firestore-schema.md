@@ -35,12 +35,12 @@ globs: src/utils/workoutHistory.ts, functions/src/**
 
 ## localStorage Keys
 
-- `alpha_workout_history` — cached workout history
-- `alpha_body_weight`, `alpha_gender`, `alpha_birth_year` — user profile
-- `alpha_weight_{exerciseName}` — per-exercise last-used weight
-- `alpha_fitness_profile` — FitnessReading profile data
-- `alpha_language` — locale (ko/en)
-- `alpha_settings_sound` — sound on/off (default: true)
-- `alpha_settings_vibration` — vibration on/off (default: true)
-- `alpha_weight_log` — weight tracking log
-- `alpha_season_exp` — season EXP data
+- `ohunjal_workout_history` — cached workout history
+- `ohunjal_body_weight`, `ohunjal_gender`, `ohunjal_birth_year` — user profile
+- `ohunjal_weight_{exerciseName}` — per-exercise last-used weight
+- `ohunjal_fitness_profile` — FitnessReading profile data
+- `ohunjal_language` — locale (ko/en)
+- `ohunjal_settings_sound` — sound on/off (default: true)
+- `ohunjal_settings_vibration` — vibration on/off (default: true)
+- `ohunjal_weight_log` — weight tracking log
+- `ohunjal_season_exp` — season EXP data

@@ -911,7 +911,7 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ user, on
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50" onClick={() => setShowTerms(false)}>
           <div className="bg-white rounded-2xl mx-4 w-full max-h-[85vh] flex flex-col shadow-xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-              <h2 className="text-base font-bold text-[#1B4332]">이용약관</h2>
+              <h2 className="text-base font-bold text-[#1B4332]">{locale === "en" ? "Terms of Service" : "이용약관"}</h2>
               <button type="button" onClick={() => setShowTerms(false)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors">
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M12 4L4 12M4 4l8 8" stroke="#666" strokeWidth="2" strokeLinecap="round"/></svg>
               </button>

@@ -7,20 +7,22 @@ globs: functions/**/*
 
 ```
 functions/src/
-├── index.ts              ← Re-exports only (11 lines)
+├── index.ts              ← Re-exports only
 ├── helpers.ts            ← verifyAuth, verifyAdmin, app, db
 ├── gemini.ts             ← getGemini(), GEMINI_MODEL
 ├── coachMessages.ts      ← Rule-based fallback messages (Gemini failure backup)
 ├── workoutEngine.ts      ← generateAdaptiveWorkout (server-side only, security)
 ├── ai/
 │   ├── coach.ts          ← getCoachMessage — Gemini 3-bubble coach feedback
+│   ├── nutrition.ts      ← getNutritionGuide, nutritionChat — Gemini nutrition AI
 │   └── workout.ts        ← generateWorkout, analyzeWorkout — Gemini AI
 ├── plan/
-│   └── session.ts        ← planSession — rule-based plan generation
+│   └── session.ts        ← planSession, getGuestTrialStatus — rule-based plan + guest trial
 ├── billing/
-│   └── subscription.ts   ← subscribe, getSubscription, cancelSubscription
+│   ├── subscription.ts   ← subscribe, getSubscription, cancelSubscription, submitRefundRequest
+│   └── selfDelete.ts     ← selfDeleteAccount
 └── admin/
-    └── admin.ts          ← adminActivate, adminCheckUser, etc.
+    └── admin.ts          ← adminActivate, adminCheckUser, adminRefundRequests, adminProcessRefund, etc.
 ```
 
 ## Firebase Rewrites
@@ -29,8 +31,11 @@ Frontend calls Cloud Functions via `/api/*` paths, rewritten in `firebase.json`:
 - `/api/generateWorkout`, `/api/analyzeWorkout` → AI functions (Gemini)
 - `/api/planSession` → Rule-based plan generation (server-side)
 - `/api/getCoachMessage` → AI coach 3-bubble feedback (Gemini)
-- `/api/getSubscription`, `/api/subscribe`, `/api/cancelSubscription` → subscription functions
-- `/api/admin*` → Admin functions
+- `/api/getNutritionGuide`, `/api/nutritionChat` → Nutrition AI (Gemini)
+- `/api/getSubscription`, `/api/subscribe`, `/api/cancelSubscription`, `/api/submitRefundRequest` → billing functions
+- `/api/getGuestTrialStatus` → Guest trial tracking
+- `/api/selfDeleteAccount` → Account self-deletion
+- `/api/admin*` → Admin functions (including `/api/adminRefundRequests`, `/api/adminProcessRefund`)
 
 ## Security Architecture
 

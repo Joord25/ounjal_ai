@@ -22,7 +22,7 @@ firebase deploy --only functions     # Deploy functions only
 
 There is no test suite configured.
 
-Deployed to Firebase Hosting (project: `ohunjal`). CI/CD via GitHub Actions auto-deploys on push to main.
+Deployed to Firebase Hosting (project: `ohunjal`, region: `us-central1`). CI/CD via GitHub Actions auto-deploys on push to main.
 
 ### Required Environment Variables (`.env.local`)
 

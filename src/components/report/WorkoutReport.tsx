@@ -203,10 +203,17 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
       const m = buildWorkoutMetrics(sessionData.exercises, logs, bodyWeightKg, savedDurationSec);
       const userGoal = fp.goal || "health";
       let volChange: number | null = null;
-      const hist = recentHistory;
+      // 최신 localStorage에서 직접 읽기 (Firestore 동기화 전 stale state 방지)
+      const hist = getRecentHistorySync();
       if ((m.sessionCategory === "strength" || m.sessionCategory === "mixed") && m.totalVolume > 0 && hist.length > 0) {
         const cid = sessionData.exercises.map(e => e.name).join(",");
-        const prev = hist.filter(h => h.sessionData.exercises.map((e: {name:string}) => e.name).join(",") !== cid || h.stats.totalVolume !== m.totalVolume);
+        // 같은 카테고리(strength/mixed) 세션 중 현재 세션 제외
+        const prev = hist.filter(h => {
+          const hId = h.sessionData.exercises.map((e: {name:string}) => e.name).join(",");
+          if (hId === cid && h.stats.totalVolume === m.totalVolume) return false;
+          const hVol = h.stats?.totalVolume || 0;
+          return hVol > 0; // 볼륨 있는 strength/mixed 세션만
+        });
         const last = prev[prev.length - 1];
         if (last?.stats?.totalVolume) volChange = Math.round(((m.totalVolume - last.stats.totalVolume) / last.stats.totalVolume) * 100);
       }
@@ -214,7 +221,7 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
       const bw = bodyWeightKg ?? 70;
       const calBurned = calcSessionCalories({
         sessionData, logs,
-        stats: { totalVolume: m.totalVolume, totalSets: metrics.totalSets, totalReps: metrics.totalReps, totalDurationSec: savedDurationSec || m.totalDurationSec },
+        stats: { totalVolume: m.totalVolume, totalSets: metrics.totalSets, totalReps: metrics.totalReps, totalDurationSec: savedDurationSec || m.totalDurationSec || 2700 },
         date: "", id: "",
       } as WorkoutHistory, bw);
       const recoveryH = m.fatigueDrop === null ? "24" : m.fatigueDrop >= 0 ? "12" : m.fatigueDrop > -15 ? "24" : m.fatigueDrop > -25 ? "48" : "48~72";
@@ -492,9 +499,11 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
           let volumeChangePercent: number | null = null;
           if (isStrengthSession && totalVolume > 0 && recentHistory.length > 0) {
             const currentId = sessionData.exercises.map(e => e.name).join(",");
+            // 같은 카테고리 세션 중 현재 세션 제외, 볼륨 있는 것만
             const prevSessions = recentHistory.filter(h => {
               const hId = h.sessionData.exercises.map((e: { name: string }) => e.name).join(",");
-              return hId !== currentId || h.stats.totalVolume !== totalVolume;
+              if (hId === currentId && h.stats.totalVolume === totalVolume) return false;
+              return (h.stats?.totalVolume || 0) > 0;
             });
             const lastSession = prevSessions[prevSessions.length - 1];
             const lastVol = lastSession?.stats?.totalVolume || 0;
@@ -1339,11 +1348,15 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
                     const fp = JSON.parse(localStorage.getItem("ohunjal_fitness_profile") || "{}");
                     const userAge = birthYear ? new Date().getFullYear() - birthYear : 30;
                     const userGoal = fp.goal || "health";
-                    // 볼륨 변화
+                    // 볼륨 변화 — 같은 카테고리 세션끼리 비교
                     let volChange: number | null = null;
                     if (isStrengthSession && totalVolume > 0 && recentHistory.length > 0) {
                       const cid = sessionData.exercises.map(e => e.name).join(",");
-                      const prev = recentHistory.filter(h => h.sessionData.exercises.map((e: {name:string}) => e.name).join(",") !== cid || h.stats.totalVolume !== totalVolume);
+                      const prev = recentHistory.filter(h => {
+                        const hId = h.sessionData.exercises.map((e: {name:string}) => e.name).join(",");
+                        if (hId === cid && h.stats.totalVolume === totalVolume) return false;
+                        return (h.stats?.totalVolume || 0) > 0;
+                      });
                       const last = prev[prev.length - 1];
                       if (last?.stats?.totalVolume) volChange = Math.round(((totalVolume - last.stats.totalVolume) / last.stats.totalVolume) * 100);
                     }
@@ -1351,7 +1364,7 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
                     const bw = bodyWeightKg ?? 70;
                     const calBurned = calcSessionCalories({
                       sessionData, logs,
-                      stats: { totalVolume, totalSets: metrics.totalSets, totalReps: metrics.totalReps, totalDurationSec: savedDurationSec || totalDurationSec },
+                      stats: { totalVolume, totalSets: metrics.totalSets, totalReps: metrics.totalReps, totalDurationSec: savedDurationSec || totalDurationSec || 2700 },
                       date: "", id: "",
                     } as WorkoutHistory, bw);
                     const recoveryH = fatigueDrop === null ? "24" : fatigueDrop >= 0 ? "12" : fatigueDrop > -15 ? "24" : fatigueDrop > -25 ? "48" : "48~72";

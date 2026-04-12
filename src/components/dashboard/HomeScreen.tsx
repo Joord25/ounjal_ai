@@ -156,22 +156,20 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onStartWorkout
     loadWorkoutHistory().then(applyHistoryData).catch(() => { /* network fail 시 캐시 유지 */ });
   }, []);
 
-  // 연속 운동일 계산 (이번 달 범위만)
+  // 연속 운동일 계산 (월경계 무관, 최대 90일 탐색)
   const streak = (() => {
     if (history.length === 0) return 0;
     let count = 0;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
     const dayMs = 24 * 60 * 60 * 1000;
-    for (let i = 0; ; i++) {
+    for (let i = 0; i < 90; i++) {
       const checkDate = new Date(today.getTime() - i * dayMs);
-      if (checkDate < monthStart) break;
       const checkStr = checkDate.toDateString();
       if (history.some(h => new Date(h.date).toDateString() === checkStr)) {
         count++;
       } else if (i === 0) {
-        continue;
+        continue; // 오늘 아직 안 했으면 어제부터 체크
       } else {
         break;
       }
@@ -331,14 +329,15 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onStartWorkout
     const pick = <T,>(arr: T[]): T => arr[daySeed % arr.length];
     const hour = new Date().getHours();
 
-    // 마지막 운동으로부터 며칠 지났는지
+    // 마지막 운동으로부터 며칠 지났는지 (history는 desc 정렬 — [0]이 최신)
     const daysSinceLast = history.length > 0
-      ? Math.floor((Date.now() - new Date(history[history.length - 1].date).getTime()) / (24 * 60 * 60 * 1000))
+      ? Math.floor((Date.now() - new Date(history[0].date).getTime()) / (24 * 60 * 60 * 1000))
       : 999;
 
     // 최근 3개에서 안 한 부위 추출
     const allParts = [t("home.bodyPart.chest"), t("home.bodyPart.back"), t("home.bodyPart.shoulder"), t("home.bodyPart.arm"), t("home.bodyPart.lower"), t("home.bodyPart.core"), t("home.bodyPart.cardio")];
-    const recentTitles = history.slice(-3).map(h => (h.sessionData.title + " " + h.sessionData.description).toLowerCase());
+    // history는 desc 정렬 — slice(0,3)이 최근 3개
+    const recentTitles = history.slice(0, 3).map(h => (h.sessionData.title + " " + h.sessionData.description).toLowerCase());
     const doneParts = new Set<string>();
     for (const title of recentTitles) {
       if (/가슴|푸시|chest|push|벤치/.test(title)) doneParts.add(t("home.bodyPart.chest"));
@@ -438,13 +437,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onStartWorkout
       return { hasData: false, gender, age, bodyWeightKg };
     }
 
-    // 최근 세션의 exercises/logs (hexagon용)
-    const lastSession = history[history.length - 1];
-    const exercises = lastSession.sessionData?.exercises || [];
-    const logs = lastSession.logs || {};
-
-    // 회의 56: 홈화면은 최근 90일 기준 (전체 히스토리 아님)
-    const bestByCategory = getCategoryBestBwRatio(exercises, logs, history, bodyWeightKg, { rangeDays: 90 });
+    // 회의 56: 홈화면은 최근 90일 히스토리 전체에서 베스트 (별도 "오늘 세션" 없음)
+    const bestByCategory = getCategoryBestBwRatio([], {}, history, bodyWeightKg, { rangeDays: 90 });
 
     const bestPace = getBestRunningPace(history, 90);
 

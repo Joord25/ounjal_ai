@@ -202,8 +202,11 @@ export const WorkoutSession: React.FC<WorkoutSessionProps> = ({
     
     if (currentSet > 1) {
       setCurrentSet((prev) => prev - 1);
-      // Remove last log? Ideally yes, but for simplicity let's keep append-only or replace logic needed
-      // For now, just going back in UI.
+      // 마지막 로그 제거 (중복 방지)
+      const exLogs = logs[currentExerciseIndex] || [];
+      if (exLogs.length > 0) {
+        setLogs({ ...logs, [currentExerciseIndex]: exLogs.slice(0, -1) });
+      }
     } else if (currentExerciseIndex > 0) {
       setCurrentIndex((prev) => prev - 1);
       // We need to know how many sets the previous exercise had to go to the last set

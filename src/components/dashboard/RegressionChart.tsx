@@ -154,7 +154,7 @@ export function RegressionChart({ goal, history, weightLog, profile }: {
           <div className="absolute inset-0 bg-black/50 backdrop-blur-[2px]" />
           <div className="bg-white rounded-2xl p-5 shadow-2xl mx-8 relative z-10 max-w-[320px]" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-3">
-              <p className="text-sm font-bold text-[#1B4332]">그래프 읽는 법</p>
+              <p className="text-sm font-bold text-[#1B4332]">{locale === "en" ? "How to read" : "그래프 읽는 법"}</p>
               <button onClick={() => setShowHelp(false)} className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center">
                 <span className="text-xs text-gray-400">✕</span>
               </button>
@@ -163,20 +163,20 @@ export function RegressionChart({ goal, history, weightLog, profile }: {
             <div className="flex flex-col gap-2.5">
               <div className="flex items-center gap-3">
                 <span className="w-3 h-3 rounded-full bg-[#2D6A4F] inline-block shrink-0" />
-                <span className="text-[11px] text-[#1B4332] font-medium">실제 데이터 (운동 기록)</span>
+                <span className="text-[11px] text-[#1B4332] font-medium">{locale === "en" ? "Actual data" : "실제 데이터 (운동 기록)"}</span>
               </div>
               <div className="flex items-center gap-3">
                 <span className="w-5 h-0 border-t-2 border-[#2D6A4F]/60 inline-block shrink-0" />
-                <span className="text-[11px] text-[#1B4332] font-medium">추세선</span>
+                <span className="text-[11px] text-[#1B4332] font-medium">{locale === "en" ? "Trend line" : "추세선"}</span>
               </div>
               <div className="flex items-center gap-3">
                 <span className="w-5 h-0 border-t-2 border-dashed border-[#2D6A4F]/40 inline-block shrink-0" />
-                <span className="text-[11px] text-[#1B4332] font-medium">4주 후 예측</span>
+                <span className="text-[11px] text-[#1B4332] font-medium">{locale === "en" ? "4-week prediction" : "4주 후 예측"}</span>
               </div>
               {targetLine && (
                 <div className="flex items-center gap-3">
                   <span className="w-5 h-0 border-t border-dashed border-emerald-600/50 inline-block shrink-0" />
-                  <span className="text-[11px] text-[#1B4332] font-medium">목표 라인</span>
+                  <span className="text-[11px] text-[#1B4332] font-medium">{locale === "en" ? "Goal line" : "목표 라인"}</span>
                 </div>
               )}
             </div>

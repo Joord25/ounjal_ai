@@ -620,21 +620,30 @@ export default function Home() {
     }
   };
 
+  // 레이스 컨디션 방지: 마지막 요청만 반영
+  const generateRequestId = useRef(0);
+
   const handleIntensityChange = async (level: "high" | "moderate" | "low") => {
     setRecommendedIntensity(level);
     if (!currentCondition || !currentGoal) return;
     const dayIndex = new Date().getDay();
     const scheduleIndex = dayIndex === 0 ? 6 : dayIndex - 1;
-    const session = await lazyGenerateWorkout(scheduleIndex, currentCondition, currentGoal, undefined, level, currentSession?.sessionMode, currentSession?.targetMuscle, currentSession?.runType);
-    setCurrentWorkoutSession(session);
+    const reqId = ++generateRequestId.current;
+    try {
+      const session = await lazyGenerateWorkout(scheduleIndex, currentCondition, currentGoal, undefined, level, currentSession?.sessionMode, currentSession?.targetMuscle, currentSession?.runType);
+      if (reqId === generateRequestId.current) setCurrentWorkoutSession(session);
+    } catch { /* lazyGenerateWorkout 내부에서 에러 처리 */ }
   };
 
   const handleRegenerate = async () => {
     if (!currentCondition || !currentGoal) return;
     const dayIndex = new Date().getDay();
     const scheduleIndex = dayIndex === 0 ? 6 : dayIndex - 1;
-    const session = await lazyGenerateWorkout(scheduleIndex, currentCondition, currentGoal, undefined, recommendedIntensity, currentSession?.sessionMode, currentSession?.targetMuscle, currentSession?.runType);
-    setCurrentWorkoutSession(session);
+    const reqId = ++generateRequestId.current;
+    try {
+      const session = await lazyGenerateWorkout(scheduleIndex, currentCondition, currentGoal, undefined, recommendedIntensity, currentSession?.sessionMode, currentSession?.targetMuscle, currentSession?.runType);
+      if (reqId === generateRequestId.current) setCurrentWorkoutSession(session);
+    } catch { /* lazyGenerateWorkout 내부에서 에러 처리 */ }
   };
 
   // 로그아웃 시 삭제할 localStorage 키 — 유저별 데이터만.
@@ -776,7 +785,7 @@ export default function Home() {
               // Save to Workout History
               const historyEntry: WorkoutHistory = {
                 id: Date.now().toString(),
-                date: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString(),
+                date: new Date().toISOString(),
                 sessionData: completedData,
                 logs: logs,
                 stats: {
@@ -1009,8 +1018,9 @@ export default function Home() {
                   pollCount++;
                   setTimeout(checkReady, 500);
                 } else {
-                  // 타임아웃 — 로딩 종료
+                  // 타임아웃 — 로딩 종료, 컨디션 체크로 복귀
                   setIsLoading(false);
+                  setView("condition_check");
                 }
               };
               checkReady();

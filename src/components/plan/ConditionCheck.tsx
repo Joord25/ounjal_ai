@@ -184,13 +184,14 @@ export const ConditionCheck: React.FC<ConditionCheckProps> = ({ onComplete, onBa
       completedRef.current = true;
       setGoal(selectedGoal);
       const weightNum = parseFloat(bodyWeight);
+      const effectiveWeight = !isNaN(weightNum) && weightNum > 0 ? weightNum : bodyWeightNum;
       const birthYearNum = parseInt(birthYear);
       const energyFromBodyPart = bodyPart === "full_fatigue" ? 2 : bodyPart === "good" ? 4 : 3;
       onComplete({
         bodyPart: bodyPart!,
         energyLevel: energyFromBodyPart as 1|2|3|4|5,
         availableTime: 50,
-        bodyWeightKg: !isNaN(weightNum) && weightNum > 0 ? weightNum : undefined,
+        bodyWeightKg: effectiveWeight > 0 ? effectiveWeight : undefined,
         gender: gender || undefined,
         birthYear: !isNaN(birthYearNum) && birthYearNum > 1900 ? birthYearNum : undefined,
       }, selectedGoal, session);

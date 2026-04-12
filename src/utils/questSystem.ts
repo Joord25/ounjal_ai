@@ -603,8 +603,14 @@ export function loadSeasonExp(seasonKey?: string): SeasonExpState {
     const raw = localStorage.getItem(STORAGE_KEY_EXP);
     if (!raw) return { seasonKey: key, totalExp: 0, expLog: [] };
     const parsed: SeasonExpState = JSON.parse(raw);
-    // If different season, return fresh
-    if (parsed.seasonKey !== key) return { seasonKey: key, totalExp: 0, expLog: [] };
+    // If different season, archive previous and return fresh
+    if (parsed.seasonKey !== key) {
+      try {
+        const archiveKey = `ohunjal_season_exp_archive_${parsed.seasonKey}`;
+        localStorage.setItem(archiveKey, JSON.stringify(parsed));
+      } catch { /* 아카이브 실패 무시 — 공간 부족 등 */ }
+      return { seasonKey: key, totalExp: 0, expLog: [] };
+    }
     return parsed;
   } catch { return { seasonKey: key, totalExp: 0, expLog: [] }; }
 }
