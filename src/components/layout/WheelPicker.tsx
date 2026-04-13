@@ -15,14 +15,14 @@ export const WheelPicker: React.FC<WheelPickerProps> = ({
   selected,
   onChange,
   suffix = "",
-  itemHeight = 48,
+  itemHeight = 72,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const isScrollingRef = useRef(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout>>(null);
   const [initialized, setInitialized] = useState(false);
 
-  const visibleItems = 5;
+  const visibleItems = 3;
   const containerHeight = itemHeight * visibleItems;
   const centerOffset = Math.floor(visibleItems / 2) * itemHeight;
 
@@ -63,11 +63,11 @@ export const WheelPicker: React.FC<WheelPickerProps> = ({
   }, []);
 
   return (
-    <div className="relative flex items-center justify-center">
+    <div className="relative flex items-center justify-center w-full">
       <div
         ref={containerRef}
         onScroll={handleScroll}
-        className="overflow-y-scroll scrollbar-hide relative z-10"
+        className="overflow-y-scroll scrollbar-hide relative z-10 w-full"
         style={{
           height: containerHeight,
           scrollSnapType: "y mandatory",
@@ -78,7 +78,12 @@ export const WheelPicker: React.FC<WheelPickerProps> = ({
         <div style={{ height: centerOffset }} />
 
         {values.map((v) => {
-          const isSelected = v === selected;
+          const idx = values.indexOf(v);
+          const selectedIdx = values.indexOf(selected);
+          const distance = Math.abs(idx - selectedIdx);
+          const isSelected = distance === 0;
+          // 거리에 따라 opacity 감소
+          const opacity = isSelected ? 1 : distance === 1 ? 0.55 : distance === 2 ? 0.25 : 0.12;
           return (
             <div
               key={v}
@@ -89,15 +94,16 @@ export const WheelPicker: React.FC<WheelPickerProps> = ({
               className="flex items-center justify-center"
             >
               <span
-                className={`transition-all duration-150 font-black ${
+                className={`transition-all duration-200 ${
                   isSelected
-                    ? "text-3xl text-[#1B4332]"
-                    : "text-lg text-gray-300"
+                    ? "text-4xl font-black text-[#1B4332]"
+                    : "text-xl font-medium text-gray-700"
                 }`}
+                style={{ opacity, fontVariantNumeric: "tabular-nums" }}
               >
                 {v}
                 {isSelected && suffix && (
-                  <span className="text-base font-bold text-gray-400 ml-1">{suffix}</span>
+                  <span className="text-lg font-bold text-gray-400 ml-1">{suffix}</span>
                 )}
               </span>
             </div>
@@ -108,13 +114,19 @@ export const WheelPicker: React.FC<WheelPickerProps> = ({
         <div style={{ height: centerOffset }} />
       </div>
 
-      {/* Selection highlight */}
+      {/* 상단/하단 가로선 */}
       <div
-        className="absolute left-1/2 -translate-x-1/2 border-2 border-gray-200 rounded-xl pointer-events-none"
+        className="absolute left-1/2 -translate-x-1/2 h-px bg-[#2D6A4F] pointer-events-none"
         style={{
-          width: 120,
-          height: itemHeight + 8,
-          top: centerOffset - 4,
+          width: 140,
+          top: centerOffset,
+        }}
+      />
+      <div
+        className="absolute left-1/2 -translate-x-1/2 h-px bg-[#2D6A4F] pointer-events-none"
+        style={{
+          width: 140,
+          top: centerOffset + itemHeight,
         }}
       />
     </div>

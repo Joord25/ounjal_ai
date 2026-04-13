@@ -104,6 +104,10 @@
   "home.prediction.noData": "첫 운동 후 성장 예측이 시작돼요",
 
   "condition.step.prefix": "AI 분석 • 단계",
+  "condition.step.format": "{current} / {total}",
+  "condition.title.bodyCheck.sub": "오늘 컨디션에 맞게 운동을 조정해요",
+  "condition.title.weightInput.sub": "오늘 무게에 맞는 추천 중량을 계산해요",
+  "condition.title.goalSelect.sub": "목표에 따라 강도와 부위가 달라져요",
   "condition.suffix.name": "님,",
   "condition.title.bodyCheck": "오늘 몸 상태는 어때요?",
   "condition.title.weightInput": "오늘 체중을 알려주세요",
@@ -457,6 +461,11 @@
 
   "my.profile": "프로필",
   "my.bodyInfo": "Body Info",
+  "my.reset.button": "내 정보 초기화",
+  "my.reset.title": "내 정보를 초기화할까요?",
+  "my.reset.desc": "성별/나이/키/체중/목표/1RM이 모두 삭제되고 온보딩을 다시 진행해요.\n운동 기록과 시즌 EXP는 그대로 유지됩니다.",
+  "my.reset.cancel": "취소",
+  "my.reset.confirm": "초기화",
   "my.gender": "성별",
   "my.birthYear": "출생연도",
   "my.height": "키",

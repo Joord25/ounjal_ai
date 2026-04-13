@@ -104,6 +104,10 @@
   "home.prediction.noData": "Growth predictions start after your first workout",
 
   "condition.step.prefix": "AI Analysis • Step",
+  "condition.step.format": "{current} of {total}",
+  "condition.title.bodyCheck.sub": "We'll adjust your workout based on today's condition",
+  "condition.title.weightInput.sub": "Recommended weights will match your body today",
+  "condition.title.goalSelect.sub": "Intensity and focus areas change by goal",
   "condition.suffix.name": ",",
   "condition.title.bodyCheck": "How does your body feel today?",
   "condition.title.weightInput": "Enter your weight",
@@ -457,6 +461,11 @@
 
   "my.profile": "Profile",
   "my.bodyInfo": "Body Info",
+  "my.reset.button": "Reset my info",
+  "my.reset.title": "Reset your info?",
+  "my.reset.desc": "Gender, age, height, weight, goal, and 1RM will be cleared. You'll go through onboarding again.\nWorkout history and season EXP will be kept.",
+  "my.reset.cancel": "Cancel",
+  "my.reset.confirm": "Reset",
   "my.gender": "Gender",
   "my.birthYear": "Birth Year",
   "my.height": "Height",

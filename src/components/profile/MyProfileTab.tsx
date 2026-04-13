@@ -5,7 +5,7 @@ import { User, updateProfile } from "firebase/auth";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { storage, auth } from "@/lib/firebase";
 import { SubscriptionScreen, TERMS_TEXT, PRIVACY_TEXT, REFUND_TEXT } from "./SubscriptionScreen";
-import { updateGender, updateBirthYear, saveUserProfile } from "@/utils/userProfile";
+import { updateGender, updateBirthYear, saveUserProfile, resetUserBodyInfo } from "@/utils/userProfile";
 import { useTranslation } from "@/hooks/useTranslation";
 import { getTierFromExp, getOrRebuildSeasonExp, getCurrentSeason } from "@/utils/questSystem";
 import { loadWorkoutHistory } from "@/utils/workoutHistory";
@@ -269,6 +269,7 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout, auto
   const [showTerms, setShowTerms] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
   const [showRefund, setShowRefund] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [tierInfo, setTierInfo] = useState(() => getTierFromExp(0));
   const [seasonLabel, setSeasonLabel] = useState(() => getCurrentSeason().label);
 
@@ -790,6 +791,15 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout, auto
               ))}
             </div>
           </div>
+
+          {/* 내 정보 초기화 */}
+          <div className="h-px bg-gray-100" />
+          <button
+            onClick={() => setShowResetConfirm(true)}
+            className="w-full py-2.5 text-sm font-bold text-red-500 active:opacity-60 transition-opacity"
+          >
+            {t("my.reset.button")}
+          </button>
         </div>
         )}
         </div>
@@ -900,6 +910,37 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout, auto
       </div>
 
       {/* Terms Modal */}
+      {/* 내 정보 초기화 확인 모달 */}
+      {showResetConfirm && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50" onClick={() => setShowResetConfirm(false)}>
+          <div className="bg-white rounded-2xl mx-6 max-w-sm w-full p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-base font-black text-[#1B4332] mb-2">{t("my.reset.title")}</h3>
+            <p className="text-sm text-gray-500 mb-6 whitespace-pre-line leading-relaxed">{t("my.reset.desc")}</p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowResetConfirm(false)}
+                className="flex-1 py-3 rounded-xl bg-gray-100 text-gray-600 font-bold text-sm active:scale-95 transition-all"
+              >
+                {t("my.reset.cancel")}
+              </button>
+              <button
+                onClick={async () => {
+                  await resetUserBodyInfo();
+                  setShowResetConfirm(false);
+                  // 온보딩으로 재진입하도록 전체 리로드
+                  if (typeof window !== "undefined") {
+                    window.location.reload();
+                  }
+                }}
+                className="flex-1 py-3 rounded-xl bg-red-500 text-white font-bold text-sm active:scale-95 transition-all"
+              >
+                {t("my.reset.confirm")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showTerms && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50" onClick={() => setShowTerms(false)}>
           <div className="bg-white rounded-2xl mx-4 w-full max-h-[70vh] flex flex-col shadow-xl mb-24" onClick={(e) => e.stopPropagation()}>

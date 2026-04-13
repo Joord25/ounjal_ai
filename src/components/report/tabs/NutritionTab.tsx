@@ -203,6 +203,38 @@ export const NutritionTab: React.FC<NutritionTabProps> = ({
     );
   }
 
+  /** 간단 마크다운 → JSX 렌더러 (bold, 리스트, 줄바꿈) */
+  const renderFormattedText = (text: string) => {
+    const lines = text.split("\n");
+    return lines.map((line, li) => {
+      const trimmed = line.trim();
+      if (!trimmed) return <br key={li} />;
+
+      // 리스트 아이템 (* 또는 - 시작)
+      const isBullet = /^[*\-]\s+/.test(trimmed);
+      const content = isBullet ? trimmed.replace(/^[*\-]\s+/, "") : trimmed;
+
+      // **bold** 처리
+      const parts = content.split(/(\*\*[^*]+\*\*)/g);
+      const rendered = parts.map((part, pi) => {
+        const boldMatch = part.match(/^\*\*(.+)\*\*$/);
+        if (boldMatch) return <strong key={pi} className="font-bold">{boldMatch[1]}</strong>;
+        return <span key={pi}>{part}</span>;
+      });
+
+      if (isBullet) {
+        return (
+          <div key={li} className="flex gap-1.5 mt-1.5 first:mt-0">
+            <span className="text-[#2D6A4F] shrink-0 mt-px">&#8226;</span>
+            <span>{rendered}</span>
+          </div>
+        );
+      }
+
+      return <p key={li} className={li > 0 ? "mt-1.5" : ""}>{rendered}</p>;
+    });
+  };
+
   if (!guide) return null;
 
   const totalMacroCal = guide.macros.protein * 4 + guide.macros.carb * 4 + guide.macros.fat * 9;
@@ -290,7 +322,7 @@ export const NutritionTab: React.FC<NutritionTabProps> = ({
         </div>
 
         {/* 채팅 메시지 */}
-        <div className="px-4 py-4 bg-gray-50/50 max-h-64 overflow-y-auto">
+        <div className="px-4 py-4 bg-gray-50/50 max-h-[400px] overflow-y-auto">
           {chatMessages.length === 0 && (
             <div className="flex gap-2.5">
               <img src="/favicon_backup.png" alt="AI" className="w-6 h-6 rounded-full shrink-0 mt-0.5" />
@@ -306,12 +338,12 @@ export const NutritionTab: React.FC<NutritionTabProps> = ({
               {msg.role === "assistant" && (
                 <img src="/favicon_backup.png" alt="AI" className="w-6 h-6 rounded-full shrink-0 mt-0.5" />
               )}
-              <div className={`max-w-[80%] px-3.5 py-2.5 shadow-sm ${
+              <div className={`max-w-[85%] px-3.5 py-2.5 shadow-sm ${
                 msg.role === "user"
                   ? "bg-[#1B4332] text-white rounded-2xl rounded-tr-md text-sm"
-                  : "bg-white rounded-2xl rounded-tl-md border border-gray-100 text-[#1B4332] text-sm"
+                  : "bg-white rounded-2xl rounded-tl-md border border-gray-100 text-[#1B4332] text-[13px] leading-relaxed"
               }`}>
-                {msg.content}
+                {msg.role === "assistant" ? renderFormattedText(msg.content) : msg.content}
               </div>
             </div>
           ))}

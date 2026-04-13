@@ -5,6 +5,7 @@ import { updateGender, updateBirthYear, updateWeight, saveUserProfile } from "@/
 import { trackEvent } from "@/utils/analytics";
 import { useTranslation } from "@/hooks/useTranslation";
 import { WheelPicker } from "./WheelPicker";
+import { RulerPicker } from "./RulerPicker";
 import type { FitnessProfile } from "@/components/dashboard/fitnessTypes";
 
 interface OnboardingProps {
@@ -24,7 +25,6 @@ const GOAL_OPTIONS: { value: FitnessProfile["goal"]; key: string; descKey: strin
 // Pre-generate value arrays
 const BIRTH_YEARS = Array.from({ length: 80 }, (_, i) => 2010 - i); // 2010 ~ 1931
 const HEIGHTS = Array.from({ length: 81 }, (_, i) => 120 + i);       // 120 ~ 200 cm
-const WEIGHTS = Array.from({ length: 131 }, (_, i) => 30 + i);       // 30 ~ 160 kg
 
 const STEP_ORDER: Step[] = ["welcome", "gender", "birth_year", "height", "weight", "goal", "done"];
 
@@ -169,28 +169,30 @@ export const Onboarding: React.FC<OnboardingProps> = ({ userName, onComplete }) 
           <h2 className="text-xl font-black text-[#1B4332] text-center mb-2">
             {t("onboarding.gender.title")}
           </h2>
-          <p className="text-sm text-gray-400 text-center mb-10">{t("onboarding.gender.sub")}</p>
-          <div className="flex gap-4 justify-center">
-            {(["male", "female"] as const).map((g) => (
-              <button
-                key={g}
-                onClick={() => handleGender(g)}
-                className={`w-32 h-32 rounded-2xl border-2 flex flex-col items-center justify-center gap-2 transition-all duration-200 active:scale-95 ${
-                  gender === g ? "border-[#2D6A4F] bg-emerald-50" : "border-gray-200 bg-white"
-                }`}
-              >
-                <svg className="w-12 h-12 text-[#2D6A4F]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                  {g === "male" ? (
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0" />
-                  ) : (
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0" />
-                  )}
-                </svg>
-                <span className="text-base font-bold text-[#1B4332]">
-                  {t(`condition.gender.${g}`)}
-                </span>
-              </button>
-            ))}
+          <p className="text-sm text-gray-400 text-center">{t("onboarding.gender.sub")}</p>
+          <div className="flex-1 flex items-center justify-center">
+            <div className="flex gap-4 justify-center">
+              {(["male", "female"] as const).map((g) => (
+                <button
+                  key={g}
+                  onClick={() => handleGender(g)}
+                  className={`w-32 h-32 rounded-2xl border-2 flex flex-col items-center justify-center gap-2 transition-all duration-200 active:scale-95 ${
+                    gender === g ? "border-[#2D6A4F] bg-emerald-50" : "border-gray-200 bg-white"
+                  }`}
+                >
+                  <svg className="w-12 h-12 text-[#2D6A4F]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    {g === "male" ? (
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0" />
+                    ) : (
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0" />
+                    )}
+                  </svg>
+                  <span className="text-base font-bold text-[#1B4332]">
+                    {t(`condition.gender.${g}`)}
+                  </span>
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       )}
@@ -251,7 +253,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({ userName, onComplete }) 
           </h2>
           <p className="text-sm text-gray-400 text-center mb-6">{t("onboarding.weight.sub")}</p>
           <div className="flex-1 flex items-center justify-center">
-            <WheelPicker values={WEIGHTS} selected={bodyWeight} onChange={setBodyWeight} suffix="kg" />
+            <RulerPicker min={30} max={160} value={bodyWeight} onChange={setBodyWeight} suffix="kg" />
           </div>
           <div className="px-6 pb-6 pt-3">
             <button

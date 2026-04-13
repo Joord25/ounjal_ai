@@ -6,9 +6,11 @@ Detailed rules are in `.claude/rules/` (auto-loaded by glob pattern).
 ## Build & Development Commands
 
 ```bash
-npm run dev       # Start dev server (Next.js with Turbopack)
-npm run build     # Production build
-npm run lint      # ESLint check
+npm run dev        # Start dev server (Next.js with Turbopack)
+npm run build      # Production build
+npm run lint       # ESLint check
+npm run test       # Run tests (Vitest)
+npm run test:watch # Run tests in watch mode
 ```
 
 **Cloud Functions** (separate npm project in `functions/`):
@@ -20,7 +22,7 @@ firebase deploy --only functions     # Deploy functions only
 
 **⚠ Local Development:** `npm run dev` alone will NOT work for plan generation or coach messages. Cloud Functions must run locally via `cd functions && npm run serve` in a separate terminal.
 
-There is no test suite configured.
+Tests use **Vitest** with `@/` path alias. Run a single test file: `npx vitest run src/path/to/test.ts`.
 
 Deployed to Firebase Hosting (project: `ohunjal`, region: `us-central1`). CI/CD via GitHub Actions auto-deploys on push to main.
 

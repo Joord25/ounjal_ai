@@ -138,6 +138,44 @@ export async function updateBirthYear(birthYear: number): Promise<void> {
   await saveUserProfile({ birthYear });
 }
 
+/**
+ * 신체 정보 초기화 — 프로필/신체 데이터만 삭제, 운동 히스토리/시즌 EXP/인증은 유지
+ * - Firestore: gender/birthYear/bodyWeight/weightLog/fitnessProfile null로 클리어
+ * - localStorage: 온보딩/프로필 관련 키 제거
+ */
+export async function resetUserBodyInfo(): Promise<void> {
+  // 1. Firestore 프로필 필드 null 처리
+  const ref = getUserDocRef();
+  if (ref) {
+    try {
+      await setDoc(ref, {
+        gender: null,
+        birthYear: null,
+        bodyWeight: null,
+        weightLog: [],
+        fitnessProfile: null,
+        updatedAt: Timestamp.now(),
+      }, { merge: true });
+    } catch (e) {
+      console.error("Failed to reset user profile in Firestore", e);
+    }
+  }
+
+  // 2. localStorage 프로필 관련 키 제거 (운동 히스토리/EXP는 유지)
+  const keysToRemove = [
+    "ohunjal_gender",
+    "ohunjal_birth_year",
+    "ohunjal_body_weight",
+    "ohunjal_weight_log",
+    "ohunjal_fitness_profile",
+    "ohunjal_onboarding_done",
+    "ohunjal_fitness_reading_done",
+    "ohunjal_prev_weight",
+    "ohunjal_tip_condition",
+  ];
+  keysToRemove.forEach(k => localStorage.removeItem(k));
+}
+
 /** Get plan count from localStorage (fast, for UI) */
 export function getPlanCount(): number {
   return parseInt(localStorage.getItem("ohunjal_plan_count") || "0", 10);

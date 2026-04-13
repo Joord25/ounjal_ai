@@ -539,79 +539,12 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onStartWorkout
     );
   }
 
-  // 퀘스트 타입별 과학적 맥락
-  const questScienceNote: Record<string, string> = {
-    intensity_high: t("home.quest.highDesc"),
-    intensity_moderate: t("home.quest.modDesc"),
-    intensity_low: t("home.quest.lowDesc"),
-    consistency: t("home.quest.consistencyDesc"),
-    bonus_streak: t("home.quest.streakDesc"),
-    bonus_new_exercise: t("home.quest.newExDesc"),
-  };
-
-  // 퀘스트 헬퍼 (축약 2개 + 전체 펼치기)
-  const renderQuestPreview = () => {
-    if (!questData) return null;
-    const { questDefs, questState: qs } = questData;
-    const doneCount = qs.quests.filter(q => q.completed).length;
-    const prog = (qDef: QuestDefinition): QuestProgress =>
-      qs.quests.find(p => p.questId === qDef.id) || { questId: qDef.id, current: 0, completed: false };
-
-    // 미완료 우선, 진행률 높은 순 정렬
-    const sorted = [...questDefs].sort((a, b) => {
-      const pa = prog(a);
-      const pb = prog(b);
-      if (pa.completed !== pb.completed) return pa.completed ? 1 : -1;
-      return (pb.current / b.target) - (pa.current / a.target);
-    });
-    const visible = showAllQuests ? sorted : sorted.slice(0, 2);
-
-    return (
-      <div className="rounded-2xl bg-white border border-gray-100 shadow-sm p-4">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-[13px] font-black text-[#1B4332]">{t("home.quest.title")}</h3>
-          <span className="text-[11px] font-bold text-[#2D6A4F] bg-[#2D6A4F]/10 px-2 py-0.5 rounded-full">{doneCount}/{questDefs.length} {t("home.quest.done")}</span>
-        </div>
-        <div className="space-y-2.5">
-          {visible.map(q => {
-            const p = prog(q);
-            const pct = Math.min(p.current / q.target, 1);
-            return (
-              <div key={q.id}>
-                <div className="flex items-center justify-between mb-1">
-                  <span className={`text-[12px] font-bold ${p.completed ? "text-[#2D6A4F]" : q.isBonus ? "text-gray-500" : "text-gray-700"}`}>
-                    {p.completed ? "✓ " : ""}{tq(q.label)}
-                  </span>
-                  <span className="text-[10px] font-bold text-gray-400">{p.current}/{q.target}</span>
-                </div>
-                <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                  <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct * 100}%`, backgroundColor: p.completed ? "#2D6A4F" : q.isBonus ? "#d1d5db" : "#a7f3d0" }} />
-                </div>
-                {p.completed && questScienceNote[q.type] && (
-                  <p className="text-[10px] text-[#2D6A4F]/70 mt-1">{questScienceNote[q.type]}</p>
-                )}
-              </div>
-            );
-          })}
-        </div>
-        {questDefs.length > 2 && (
-          <button
-            onClick={() => setShowAllQuests(v => !v)}
-            className="w-full mt-3 pt-3 border-t border-gray-100 text-[12px] font-bold text-[#2D6A4F] text-center"
-          >
-            {showAllQuests ? t("home.quest.collapse") : t("home.quest.showAll", { count: String(questDefs.length) })}
-          </button>
-        )}
-      </div>
-    );
-  };
-
   // 퀘스트 완료 수 요약
-  const questSummaryText = (() => {
+  const questSummaryData = (() => {
     if (!questData) return null;
     const { questDefs, questState: qs } = questData;
     const doneCount = qs.quests.filter(q => q.completed).length;
-    return `${t("home.checklist.quest")} ${doneCount}/${questDefs.length}`;
+    return { text: `${t("home.checklist.quest")} ${doneCount}/${questDefs.length}`, doneCount, total: questDefs.length };
   })();
 
   // nutritionProps는 early return 위에서 선언됨 (hooks 순서 보장)
@@ -725,17 +658,52 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onStartWorkout
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="text-gray-300"><path d="M6 4l4 4-4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
               </button>
 
-              {questSummaryText && (
-                <>
-                  <div className="h-px bg-gray-100 my-1" />
-                  <div className="flex items-center gap-3 py-2.5">
-                    <div className="w-5 h-5 rounded-md bg-[#2D6A4F]/10 flex items-center justify-center shrink-0">
-                      <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1L7.5 4.5L11 5L8.5 7.5L9 11L6 9.5L3 11L3.5 7.5L1 5L4.5 4.5L6 1Z" fill="#2D6A4F"/></svg>
-                    </div>
-                    <p className="text-[13px] font-bold text-gray-500">{questSummaryText}</p>
-                  </div>
-                </>
-              )}
+              {questSummaryData && questData && (() => {
+                const { questDefs, questState: qs } = questData;
+                const prog = (qDef: QuestDefinition): QuestProgress =>
+                  qs.quests.find(p => p.questId === qDef.id) || { questId: qDef.id, current: 0, completed: false };
+                const sorted = [...questDefs].sort((a, b) => {
+                  const pa = prog(a); const pb = prog(b);
+                  if (pa.completed !== pb.completed) return pa.completed ? 1 : -1;
+                  return (pb.current / b.target) - (pa.current / a.target);
+                });
+                return (
+                  <>
+                    <div className="h-px bg-gray-100 my-1" />
+                    <button
+                      onClick={() => setShowAllQuests(v => !v)}
+                      className="w-full flex items-center gap-3 py-2.5"
+                    >
+                      <div className="w-5 h-5 rounded-md bg-[#2D6A4F]/10 flex items-center justify-center shrink-0">
+                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1L7.5 4.5L11 5L8.5 7.5L9 11L6 9.5L3 11L3.5 7.5L1 5L4.5 4.5L6 1Z" fill="#2D6A4F"/></svg>
+                      </div>
+                      <p className="text-[13px] font-bold text-gray-500 flex-1 text-left">{questSummaryData.text}</p>
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className={`text-gray-300 transition-transform duration-200 ${showAllQuests ? "rotate-90" : ""}`}><path d="M6 4l4 4-4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    </button>
+                    {showAllQuests && (
+                      <div className="pb-2 space-y-2 pl-8">
+                        {sorted.map(q => {
+                          const p = prog(q);
+                          const pct = Math.min(p.current / q.target, 1);
+                          return (
+                            <div key={q.id}>
+                              <div className="flex items-center justify-between mb-0.5">
+                                <span className={`text-[11px] font-bold ${p.completed ? "text-[#2D6A4F]" : q.isBonus ? "text-gray-400" : "text-gray-600"}`}>
+                                  {p.completed ? "✓ " : ""}{tq(q.label)}
+                                </span>
+                                <span className="text-[10px] font-bold text-gray-400">{p.current}/{q.target}</span>
+                              </div>
+                              <div className="h-1 bg-gray-100 rounded-full overflow-hidden">
+                                <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct * 100}%`, backgroundColor: p.completed ? "#2D6A4F" : q.isBonus ? "#d1d5db" : "#a7f3d0" }} />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
 
               {/* CTA 버튼 — 체크리스트 안 하단 */}
               <button
@@ -865,8 +833,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onStartWorkout
               );
             })()}
 
-            {/* 주간 퀘스트 */}
-            {renderQuestPreview()}
           </>
         ) : (
           /* === 영양 탭 === */

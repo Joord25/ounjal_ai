@@ -9,6 +9,7 @@ import { trackEvent } from "@/utils/analytics";
 import { getCachedWorkoutHistory } from "@/utils/workoutHistory";
 import { useTranslation } from "@/hooks/useTranslation";
 import { WheelPicker } from "@/components/layout/WheelPicker";
+import { RulerPicker } from "@/components/layout/RulerPicker";
 
 export interface SessionSelection {
   goal: WorkoutGoal;
@@ -27,19 +28,16 @@ interface ConditionCheckProps {
 type Step = "body_check" | "gender_select" | "birth_year" | "weight_input" | "goal_select";
 
 const BIRTH_YEARS = Array.from({ length: 80 }, (_, i) => 2010 - i); // 2010 ~ 1931
-const WEIGHTS = Array.from({ length: 131 }, (_, i) => 30 + i);       // 30 ~ 160 kg
 
 export const ConditionCheck: React.FC<ConditionCheckProps> = ({ onComplete, onBack, userName, isGuest }) => {
   const { t } = useTranslation();
   const displayName = userName || t("home.defaultName");
   const [step, setStep] = useState<Step>("body_check");
   const [direction, setDirection] = useState<"forward" | "backward">("forward");
-  const [animKey, setAnimKey] = useState(0);
 
   // State
   const [bodyPart, setBodyPart] = useState<UserCondition["bodyPart"] | null>(null);
   const [goal, setGoal] = useState<WorkoutGoal | null>(null);
-  const [showWeightEdit, setShowWeightEdit] = useState(false);
   const [bodyWeight, setBodyWeight] = useState<string>(() => {
     if (isGuest || typeof window === "undefined") return "";
     return localStorage.getItem("ohunjal_body_weight") || "";
@@ -125,13 +123,8 @@ export const ConditionCheck: React.FC<ConditionCheckProps> = ({ onComplete, onBa
     const curIdx = stepOrder.indexOf(step);
     const nextIdx = stepOrder.indexOf(next);
     setDirection(nextIdx > curIdx ? "forward" : "backward");
-    setAnimKey(k => k + 1);
     setStep(next);
   };
-
-  const animClass = direction === "forward"
-    ? "animate-[slideInRight_0.3s_ease-out]"
-    : "animate-[slideInLeft_0.3s_ease-out]";
 
   const handleBack = () => {
     const idx = stepOrder.indexOf(step);
@@ -198,53 +191,72 @@ export const ConditionCheck: React.FC<ConditionCheckProps> = ({ onComplete, onBa
     }
   };
 
+  const animClass = direction === "forward"
+    ? "animate-[slideInRight_0.3s_ease-out]"
+    : "animate-[slideInLeft_0.3s_ease-out]";
+
   return (
-    <div ref={containerRef} className="flex flex-col h-full p-6 animate-fade-in relative">
-      {/* Progress Dots */}
-      <div className="flex justify-center gap-2 pt-2 pb-1">
-        {stepOrder.map((s, i) => (
-          <div
-            key={s}
-            className={`h-2 rounded-full transition-all duration-300 ${
-              s === step ? "w-6 bg-[#2D6A4F]" : i < stepOrder.indexOf(step) ? "w-2 bg-[#2D6A4F]" : "w-2 bg-gray-200"
-            }`}
-          />
-        ))}
+    <div ref={containerRef} className="flex flex-col h-full animate-fade-in relative">
+      {/* 고정 헤더 영역 */}
+      <div className="shrink-0 px-6 pt-6 pb-4 bg-[#FAFBF9] z-20">
+        {/* Step Indicator */}
+        <div className="flex justify-center pb-3">
+          <span
+            className="text-[11px] font-medium text-gray-400 tracking-wider"
+            style={{ fontVariantNumeric: "tabular-nums" }}
+          >
+            {t("condition.step.format", {
+              current: String(stepOrder.indexOf(step) + 1),
+              total: String(stepOrder.length),
+            })}
+          </span>
+        </div>
+        {/* Back + Title + Subtext */}
+        <button
+          onClick={handleBack}
+          className="text-gray-400 hover:text-gray-600 active:scale-90 transition-all -ml-1 p-1 mb-2"
+        >
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+        <h1 className="text-3xl font-black leading-tight text-[#1B4332] whitespace-pre-line">
+          {step === "body_check" ? `${displayName}${t("condition.suffix.name")}\n${t("condition.title.bodyCheck")}` : step === "gender_select" ? t("condition.title.genderSelect") : step === "birth_year" ? t("condition.title.birthYear") : step === "weight_input" ? (hasProfile ? `${displayName}${t("condition.suffix.name")}\n${t("condition.title.weightInput")}` : t("condition.title.weightFirst")) : `${displayName}${t("condition.suffix.name")}\n${t("condition.title.goalSelect")}`}
+        </h1>
+        {step === "body_check" && (
+          <p className="text-sm text-gray-400 mt-2">{t("condition.title.bodyCheck.sub")}</p>
+        )}
+        {step === "gender_select" && (
+          <p className="text-sm text-gray-400 mt-2">{t("condition.title.genderSelect.sub")}</p>
+        )}
+        {step === "birth_year" && (
+          <p className="text-sm text-gray-400 mt-2">{t("condition.title.birthYear.sub")}</p>
+        )}
+        {step === "weight_input" && (
+          <p className="text-sm text-gray-400 mt-2">
+            {hasProfile ? t("condition.title.weightInput.sub") : t("condition.title.weightFirst.sub")}
+          </p>
+        )}
+        {step === "goal_select" && (
+          <p className="text-sm text-gray-400 mt-2">{t("condition.title.goalSelect.sub")}</p>
+        )}
+
+        {/* 컨디션 기반 AI 코치 안내 (goal_select에서만, 고정 영역) */}
+        {step === "goal_select" && (bodyPart === "full_fatigue" || bodyPart === "upper_stiff" || bodyPart === "lower_heavy") && (
+          <div className="bg-[#2D6A4F]/5 rounded-xl px-4 py-3 flex items-center gap-2 mt-4">
+            <img src="/favicon_backup.png" alt="AI" className="w-5 h-5 rounded-full shrink-0" />
+            <p className="text-[12px] font-bold text-[#2D6A4F]">
+              {bodyPart === "full_fatigue" ? t("condition.tip.fatigue") : bodyPart === "upper_stiff" ? t("condition.tip.upper") : t("condition.tip.lower")}
+            </p>
+          </div>
+        )}
       </div>
 
-      <div key={`${step}-${animKey}`} className={`flex-1 flex flex-col gap-6 overflow-y-auto pb-24 scrollbar-hide ${step !== "body_check" ? animClass : "animate-fade-in"}`}>
-        <div className="pt-4 pb-2 shrink-0">
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleBack}
-              className="text-gray-400 hover:text-gray-600 active:scale-90 transition-all -ml-1 p-1"
-            >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-            <span className="text-[#2D6A4F] font-bold tracking-[0.2em] uppercase text-xs">
-              {t("condition.step.prefix")} {stepOrder.indexOf(step) + 1}
-            </span>
-          </div>
-          <h1 className="text-3xl font-black mt-2 leading-tight text-[#1B4332] whitespace-pre-line">
-            {step === "body_check" ? `${displayName}${t("condition.suffix.name")}\n${t("condition.title.bodyCheck")}` : step === "gender_select" ? t("condition.title.genderSelect") : step === "birth_year" ? t("condition.title.birthYear") : step === "weight_input" ? (hasProfile ? `${displayName}${t("condition.suffix.name")}\n${t("condition.title.weightInput")}` : t("condition.title.weightFirst")) : `${displayName}${t("condition.suffix.name")}\n${t("condition.title.goalSelect")}`}
-          </h1>
-          {step === "gender_select" && (
-            <p className="text-sm text-gray-400 mt-1">{t("condition.title.genderSelect.sub")}</p>
-          )}
-          {step === "birth_year" && (
-            <p className="text-sm text-gray-400 mt-1">{t("condition.title.birthYear.sub")}</p>
-          )}
-          {step === "weight_input" && !hasProfile && (
-            <p className="text-sm text-gray-400 mt-1">{t("condition.title.weightFirst.sub")}</p>
-          )}
-        </div>
+      {/* 스크롤 가능한 콘텐츠 영역 */}
+      <div key={step} className={`flex-1 flex flex-col gap-6 overflow-y-auto px-6 pb-24 scrollbar-hide ${animClass}`}>
         {step === "body_check" ? (
-          <>
-            {/* Coach tip placeholder — overlay rendered below */}
-            {/* Body Condition Selection */}
-            <div className="flex flex-col gap-3">
+          <div className="flex-1 flex items-center">
+            <div className="w-full flex flex-col gap-3">
               <ConditionCard
                 selected={bodyPart === "upper_stiff"}
                 onClick={() => handleNext("upper_stiff")}
@@ -274,7 +286,7 @@ export const ConditionCheck: React.FC<ConditionCheckProps> = ({ onComplete, onBa
                 delay={0.2}
               />
             </div>
-          </>
+          </div>
         ) : step === "gender_select" ? (
           /* Gender Selection — two large square buttons, auto-advance */
           <div className="flex-1 flex flex-col items-center justify-center">
@@ -311,97 +323,31 @@ export const ConditionCheck: React.FC<ConditionCheckProps> = ({ onComplete, onBa
             </button>
           </div>
         ) : step === "weight_input" ? (
-          <div className="flex flex-col gap-5">
-            {!hasProfile ? (
-              /* 초기: 체중 WheelPicker만 (성별+출생연도는 이전 스텝에서 완료) */
-              <div className="flex flex-col flex-1">
-                <div className="flex-1 flex items-center justify-center">
-                  <WheelPicker
-                    values={WEIGHTS}
-                    selected={bodyWeightNum}
-                    onChange={(v) => { setBodyWeightNum(v); setBodyWeight(String(v)); }}
-                    suffix="kg"
-                  />
-                </div>
-                <button
-                  onClick={() => handleNext()}
-                  className="w-full py-4 rounded-2xl font-bold text-lg bg-[#1B4332] text-white active:scale-[0.98] transition-all hover:bg-[#2D6A4F]"
-                >
-                  {t("common.next")}
-                </button>
-              </div>
-            ) : (
-              /* 재방문: "어제랑 같아요" 원탭 + 변경 옵션 */
-              showWeightEdit ? (
-                <div className="animate-card-enter" style={{ animationDelay: "0.05s", animationFillMode: "forwards" }}>
-                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] mb-3 text-center">{t("condition.weight.edit")}</p>
-                  <WheelPicker
-                    values={Array.from({ length: 131 }, (_, i) => 30 + i)}
-                    selected={bodyWeightNum}
-                    onChange={(v) => { setBodyWeightNum(v); setBodyWeight(String(v)); }}
-                    suffix="kg"
-                  />
-                </div>
-              ) : (
-                <button
-                  onClick={() => handleNext()}
-                  className="w-full bg-white rounded-2xl border-2 border-gray-100 p-6 animate-card-enter active:scale-[0.98] transition-all text-center"
-                  style={{ animationDelay: "0.05s", animationFillMode: "forwards" }}
-                >
-                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] mb-2">{t("condition.prevWeight")}</p>
-                  <p className="text-4xl font-black text-[#1B4332]">{bodyWeight || "—"}<span className="text-lg font-bold text-gray-400 ml-1">kg</span></p>
-                  {(() => {
-                    const prevWeight = recentHistory.length > 0 && recentHistory[recentHistory.length - 1].stats
-                      ? parseFloat(localStorage.getItem("ohunjal_prev_weight") || "0") : 0;
-                    const currentW = parseFloat(bodyWeight || "0");
-                    if (prevWeight > 0 && currentW > 0 && prevWeight !== currentW) {
-                      const diff = Math.round((currentW - prevWeight) * 10) / 10;
-                      return <p className={`text-[12px] font-bold mt-1 ${diff < 0 ? "text-[#2D6A4F]" : "text-gray-400"}`}>{t("condition.weightDiff", { diff: `${diff > 0 ? "+" : ""}${diff}` })}</p>;
-                    }
-                    return null;
-                  })()}
-                  <p className="text-sm font-bold text-[#2D6A4F] mt-3">{t("condition.weight.same")}</p>
-                </button>
-              )
-            )}
-
-            {hasProfile && (
-              <p className="text-[11px] text-gray-500 text-center font-medium">
-                {showWeightEdit ? t("condition.weight.recording") : <button onClick={() => setShowWeightEdit(true)} className="underline underline-offset-2">{t("condition.weight.changed")}</button>}
-              </p>
-            )}
-
-            {hasProfile && showWeightEdit && (
-              <button
-                onClick={() => handleNext()}
-                className="w-full py-4 rounded-2xl font-bold text-lg transition-all active:scale-[0.98] bg-[#1B4332] text-white hover:bg-[#2D6A4F]"
-              >
-                {t("common.next")}
-              </button>
-            )}
+          /* 체중 입력: 초기/재방문 통합 — RulerPicker 단일 */
+          <div className="flex flex-col flex-1">
+            <div className="flex-1 flex items-center justify-center">
+              <RulerPicker
+                min={30}
+                max={160}
+                value={bodyWeightNum}
+                onChange={(v) => { setBodyWeightNum(v); setBodyWeight(String(v)); }}
+                suffix="kg"
+              />
+            </div>
+            <button
+              onClick={() => handleNext()}
+              className="w-full py-4 rounded-2xl font-bold text-lg bg-[#1B4332] text-white active:scale-[0.98] transition-all hover:bg-[#2D6A4F]"
+            >
+              {t("common.next")}
+            </button>
           </div>
         ) : (
           /* Goal Selection */
-          <>
-            {/* 컨디션 기반 AI 코치 안내 */}
-            {(bodyPart === "full_fatigue" || bodyPart === "upper_stiff" || bodyPart === "lower_heavy") && (
-              <div className="bg-[#2D6A4F]/5 rounded-xl px-4 py-3 flex items-center gap-2 -mt-2 mb-1">
-                <img src="/favicon_backup.png" alt="AI" className="w-5 h-5 rounded-full shrink-0" />
-                <p className="text-[12px] font-bold text-[#2D6A4F]">
-                  {bodyPart === "full_fatigue" ? t("condition.tip.fatigue") : bodyPart === "upper_stiff" ? t("condition.tip.upper") : t("condition.tip.lower")}
-                </p>
-              </div>
-            )}
-            <GoalSelection
-              goal={goal}
-              onSelect={(g, session) => handleNext(undefined, g, session)}
-            />
-          </>
+          <GoalSelection
+            goal={goal}
+            onSelect={(g, session) => handleNext(undefined, g, session)}
+          />
         )}
-      </div>
-
-      <div className="absolute bottom-8 left-6 right-6">
-        {/* Next Button Removed */}
       </div>
 
       {showCoachTip && step === "body_check" && (
