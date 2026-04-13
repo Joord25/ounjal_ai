@@ -4,6 +4,8 @@ import React, { useState, useMemo } from "react";
 import { WorkoutHistory as WorkoutHistoryType } from "@/constants/workout";
 import { SwipeToDelete } from "@/components/SwipeToDelete";
 import { useTranslation } from "@/hooks/useTranslation";
+import { useUnits } from "@/hooks/useUnits";
+import { kgToLb } from "@/utils/units";
 import { translateDesc } from "@/components/report/reportUtils";
 
 interface WorkoutHistoryProps {
@@ -36,6 +38,8 @@ export const WorkoutHistory: React.FC<WorkoutHistoryProps> = ({
   onDelete
 }) => {
   const { locale } = useTranslation();
+  const { system: unitSystem, labels: unitLabels } = useUnits();
+  const toDisplayWeight = (kg: number) => unitSystem === "imperial" ? kgToLb(kg) : kg;
   const [isEditing, setIsEditing] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -218,7 +222,7 @@ export const WorkoutHistory: React.FC<WorkoutHistoryProps> = ({
                   </div>
                   <div className="flex flex-col items-end gap-1 shrink-0">
                      <span className="text-lg font-black text-[#2D6A4F]">
-                       {session.stats?.totalVolume?.toLocaleString() || 0} <span className="text-xs text-gray-400">kg</span>
+                       {Math.round(toDisplayWeight(session.stats?.totalVolume || 0)).toLocaleString()} <span className="text-xs text-gray-400">{unitLabels.weight}</span>
                      </span>
                      <span className="text-xs font-bold text-gray-400">
                        {session.stats?.totalSets || 0} Sets

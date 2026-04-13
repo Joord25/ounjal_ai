@@ -4,6 +4,8 @@ import React, { useRef, useState } from "react";
 import { WorkoutSessionData, ExerciseLog, WorkoutAnalysis, WorkoutHistory, RunningStats } from "@/constants/workout";
 import { WorkoutMetrics } from "@/utils/workoutMetrics";
 import { useTranslation } from "@/hooks/useTranslation";
+import { useUnits } from "@/hooks/useUnits";
+import { kgToLb } from "@/utils/units";
 import { getExerciseName } from "@/utils/exerciseName";
 import { formatPace, formatRunDistanceKm, formatRunDuration, detectRunningType, getRunningTypeShareLabel } from "@/utils/runningFormat";
 
@@ -67,6 +69,9 @@ export const ShareCard: React.FC<ShareCardProps> = ({
   onClose,
 }) => {
   const { locale, t } = useTranslation();
+  const { system: unitSystem, labels: unitLabels } = useUnits();
+  const U = unitLabels.weight;
+  const toDispW = (kg: number) => unitSystem === "imperial" ? Math.round(kgToLb(kg) * 10) / 10 : kg;
   const [currentCard, setCurrentCard] = useState(0);
   const [isCapturing, setIsCapturing] = useState(false);
   const [mode, setMode] = useState<"transparent" | "filled">("transparent");
@@ -285,8 +290,8 @@ export const ShareCard: React.FC<ShareCardProps> = ({
                   <div>
                     <p style={{ color: labelColor, fontSize: 10, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase" as const, marginBottom: 4 }}>Volume</p>
                     <p style={{ color: "white", fontSize: 28, fontWeight: 900, lineHeight: 1, textShadow: shadow }}>
-                      {totalVolume.toLocaleString()}
-                      <span style={{ fontSize: 14, color: "rgba(255,255,255,0.5)", marginLeft: 2 }}>kg</span>
+                      {Math.round(toDispW(totalVolume)).toLocaleString()}
+                      <span style={{ fontSize: 14, color: "rgba(255,255,255,0.5)", marginLeft: 2 }}>{U}</span>
                     </p>
                   </div>
                 )}
@@ -423,10 +428,10 @@ export const ShareCard: React.FC<ShareCardProps> = ({
                       </p>
                       <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
                         <span style={{ color: "white", fontSize: 40, fontWeight: 900, lineHeight: 1, textShadow: shadow }}>
-                          {Math.round(topPR.value)}
+                          {Math.round(toDispW(topPR.value))}
                         </span>
-                        <span style={{ color: labelColor, fontSize: 16, fontWeight: 700 }}>kg</span>
-                        <span style={{ color: "#FCD34D", fontSize: 14, fontWeight: 800, marginLeft: 4 }}>+{improvement}</span>
+                        <span style={{ color: labelColor, fontSize: 16, fontWeight: 700 }}>{U}</span>
+                        <span style={{ color: "#FCD34D", fontSize: 14, fontWeight: 800, marginLeft: 4 }}>+{Math.round(toDispW(typeof improvement === "number" ? improvement : parseFloat(String(improvement))))}</span>
                       </div>
                     </div>
 
@@ -437,10 +442,10 @@ export const ShareCard: React.FC<ShareCardProps> = ({
                         </p>
                         <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
                           <span style={{ color: "white", fontSize: 28, fontWeight: 900, lineHeight: 1, textShadow: shadow }}>
-                            {Math.round(pr.value)}
+                            {Math.round(toDispW(pr.value))}
                           </span>
-                          <span style={{ color: labelColor, fontSize: 14, fontWeight: 700 }}>kg</span>
-                          <span style={{ color: "#FCD34D", fontSize: 12, fontWeight: 800, marginLeft: 4 }}>+{Math.round(pr.value - pr.prevBest)}</span>
+                          <span style={{ color: labelColor, fontSize: 14, fontWeight: 700 }}>{U}</span>
+                          <span style={{ color: "#FCD34D", fontSize: 12, fontWeight: 800, marginLeft: 4 }}>+{Math.round(toDispW(pr.value - pr.prevBest))}</span>
                         </div>
                       </div>
                     ))}
@@ -472,7 +477,7 @@ export const ShareCard: React.FC<ShareCardProps> = ({
                   <div style={{ textAlign: "center" }}>
                     <p style={{ color: labelColor, fontSize: 11, fontWeight: 600, marginBottom: 4 }}>Volume</p>
                     <p style={{ color: "white", fontSize: 40, fontWeight: 900, lineHeight: 1, textShadow: shadow }}>
-                      {totalVolume.toLocaleString()}<span style={{ color: labelColor, fontSize: 16, fontWeight: 700, marginLeft: 4 }}>kg</span>
+                      {Math.round(toDispW(totalVolume)).toLocaleString()}<span style={{ color: labelColor, fontSize: 16, fontWeight: 700, marginLeft: 4 }}>{U}</span>
                     </p>
                   </div>
                 )}

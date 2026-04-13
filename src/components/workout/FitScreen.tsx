@@ -6,6 +6,8 @@ import { ExerciseStep, getAlternativeExercises, LABELED_EXERCISE_POOLS, RunningS
 import { AiCoachChat } from "./AiCoachChat";
 import { getVideoEmbedUrl, getYoutubeSearchUrl } from "@/constants/exerciseVideos";
 import { useTranslation } from "@/hooks/useTranslation";
+import { useUnits } from "@/hooks/useUnits";
+import { kgToLb } from "@/utils/units";
 import { getExerciseName, translateWeightGuide } from "@/utils/exerciseName";
 import { useGpsTracker } from "@/hooks/useGpsTracker";
 import { useAlarmSynthesizer } from "@/hooks/useAlarmSynthesizer";
@@ -72,6 +74,8 @@ export const FitScreen: React.FC<FitScreenProps> = ({
   onRunningStatsComputed,
 }) => {
   const { t, locale } = useTranslation();
+  const { system: unitSystem, labels: unitLabels } = useUnits();
+  const displayWeight = (kg: number) => unitSystem === "imperial" ? Math.round(kgToLb(kg)) : kg;
   const [showSwapMenu, setShowSwapMenu] = useState(false);
   const [swapSearch, setSwapSearch] = useState("");
   const [swapFilter, setSwapFilter] = useState<string | null>(null);
@@ -895,8 +899,8 @@ export const FitScreen: React.FC<FitScreenProps> = ({
                 -
               </button>
               <div className="w-36 flex items-baseline justify-center">
-                <span className="text-7xl font-black text-[#1B4332] tabular-nums">{selectedWeight}</span>
-                <span className="text-xl font-bold text-gray-400 ml-1">kg</span>
+                <span className="text-7xl font-black text-[#1B4332] tabular-nums">{displayWeight(selectedWeight)}</span>
+                <span className="text-xl font-bold text-gray-400 ml-1">{unitLabels.weight}</span>
               </div>
               <button
                 onPointerDown={() => startLongPress("up")}
@@ -914,7 +918,7 @@ export const FitScreen: React.FC<FitScreenProps> = ({
                   onClick={() => setSelectedWeight(w)}
                   className="px-4 py-2 rounded-xl text-sm font-bold bg-gray-100 text-gray-600 transition-all duration-200 active:scale-95 shrink-0"
                 >
-                  {w}kg
+                  {displayWeight(w)}{unitLabels.weight}
                 </button>
               ))}
             </div>
@@ -1430,8 +1434,8 @@ export const FitScreen: React.FC<FitScreenProps> = ({
                     onClick={() => setShowWeightEdit(true)}
                     className="flex items-baseline gap-1 active:opacity-60 transition-all"
                   >
-                    <span className={`${valueSize} font-black`} style={{ color: THEME.textMain }}>{selectedWeight}</span>
-                    <span className={`${unitSize} font-bold text-gray-400`}>kg</span>
+                    <span className={`${valueSize} font-black`} style={{ color: THEME.textMain }}>{displayWeight(selectedWeight)}</span>
+                    <span className={`${unitSize} font-bold text-gray-400`}>{unitLabels.weight}</span>
                   </button>
                 )}
                 {!hasWeight && exercise.weight && (
@@ -1713,8 +1717,8 @@ export const FitScreen: React.FC<FitScreenProps> = ({
                 -
               </button>
               <div className="w-40 flex items-baseline justify-center">
-                <span className="text-5xl font-black text-[#1B4332] tabular-nums">{selectedWeight}</span>
-                <span className="text-lg text-gray-400 ml-1">kg</span>
+                <span className="text-5xl font-black text-[#1B4332] tabular-nums">{displayWeight(selectedWeight)}</span>
+                <span className="text-lg text-gray-400 ml-1">{unitLabels.weight}</span>
               </div>
               <button
                 onPointerDown={() => startLongPress("up")}
@@ -1732,7 +1736,7 @@ export const FitScreen: React.FC<FitScreenProps> = ({
                   onClick={() => setSelectedWeight(w)}
                   className="px-4 py-2 rounded-xl text-sm font-bold bg-gray-100 text-gray-600 transition-all duration-200 active:scale-95 shrink-0"
                 >
-                  {w}kg
+                  {displayWeight(w)}{unitLabels.weight}
                 </button>
               ))}
             </div>

@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useTranslation } from "@/hooks/useTranslation";
+import { useUnits } from "@/hooks/useUnits";
+import { kgToLb } from "@/utils/units";
 import { getExerciseName } from "@/utils/exerciseName";
 
 interface SessionRecord {
@@ -46,6 +48,8 @@ function buildAdvice(record: SessionRecord, gender: "male" | "female" = "male", 
 
 export const AiCoachChat: React.FC<AiCoachChatProps> = ({ record, exerciseName, gender, onClose }) => {
   const { t, locale } = useTranslation();
+  const { system: unitSystem, labels: unitLabels } = useUnits();
+  const toDispW = (kg: number) => unitSystem === "imperial" ? Math.round(kgToLb(kg) * 10) / 10 : kg;
   const hasRecord = !!record;
   const sets = record ? record.weights.map((w, i) => ({ weight: w, reps: record.reps[i] ?? 0 })) : [];
   const displayName = exerciseName ? getExerciseName(exerciseName, locale) : "";
@@ -144,7 +148,7 @@ export const AiCoachChat: React.FC<AiCoachChatProps> = ({ record, exerciseName, 
                           {sets.map((s, i) => (
                             <div key={i} className="flex items-center gap-2">
                               <span className="text-[10px] font-bold text-gray-400 w-10">{t("coach.setLabel", { n: String(i + 1) })}</span>
-                              <span className="text-[13px] font-black text-[#1B4332]">{s.weight}kg</span>
+                              <span className="text-[13px] font-black text-[#1B4332]">{toDispW(s.weight)}{unitLabels.weight}</span>
                               <span className="text-[11px] text-gray-400">×</span>
                               <span className="text-[13px] font-bold text-[#2D6A4F]">{t("coach.repsLabel", { r: String(s.reps) })}</span>
                             </div>

@@ -3,6 +3,8 @@
 import React from "react";
 import { WorkoutHistory } from "@/constants/workout";
 import { useTranslation } from "@/hooks/useTranslation";
+import { useUnits } from "@/hooks/useUnits";
+import { kgToLb } from "@/utils/units";
 import { linearRegression, dateToDayIndex, calcCalorieBalanceTrend } from "@/utils/predictionUtils";
 import { type FitnessProfile } from "./fitnessTypes";
 
@@ -13,6 +15,7 @@ export function RegressionChart({ goal, history, weightLog, profile }: {
   profile: FitnessProfile;
 }) {
   const { locale } = useTranslation();
+  const { system: unitSystem, labels: unitLabels } = useUnits();
   // 목표별 데이터 포인트 + 회귀선 + 예측 구간 생성
   const chartData = React.useMemo(() => {
     const sorted = [...history].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
@@ -263,8 +266,12 @@ export function RegressionChart({ goal, history, weightLog, profile }: {
       <p className="text-[9px] text-gray-400 mt-1 text-right">
         {(() => {
           const arrow = reg.slope > 0 ? "▲" : reg.slope < 0 ? "▼" : "—";
-          const val = (goal === "muscle_gain" ? "+" : "") + (Math.round(reg.slope * 7 * 10) / 10);
-          const unit = goal === "fat_loss" || goal === "muscle_gain" ? "kg" : (locale === "en" ? "x" : "회");
+          const slopeRaw = Math.round(reg.slope * 7 * 10) / 10;
+          const slopeDisp = (goal === "fat_loss" || goal === "muscle_gain") && unitSystem === "imperial"
+            ? Math.round(kgToLb(slopeRaw) * 10) / 10
+            : slopeRaw;
+          const val = (goal === "muscle_gain" ? "+" : "") + slopeDisp;
+          const unit = goal === "fat_loss" || goal === "muscle_gain" ? unitLabels.weight : (locale === "en" ? "x" : "회");
           // 회의 22: trend 라벨 locale 반영
           return locale === "en"
             ? `${arrow} ${val}${unit}/wk`

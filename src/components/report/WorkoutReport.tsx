@@ -14,6 +14,8 @@ import { type ExpLogEntry, sumExp, getOrRebuildSeasonExp } from "@/utils/questSy
 import { calcSessionCalories } from "@/utils/predictionUtils";
 import { trackEvent } from "@/utils/analytics";
 import { useTranslation } from "@/hooks/useTranslation";
+import { useUnits } from "@/hooks/useUnits";
+import { kgToLb } from "@/utils/units";
 import { getExerciseName } from "@/utils/exerciseName";
 
 import { ExpTierCard, type RpgInsight } from "./ExpTierCard";
@@ -48,6 +50,8 @@ function detectMicroPR(
   history: WorkoutHistory[],
   t: (key: string, vars?: Record<string, string>) => string,
   locale: string,
+  toDispW: (kg: number) => number,
+  U: string,
 ): HeroData | null {
   const historyBest: Record<string, { maxWeight: number; maxRepsAtWeight: Record<number, number>; maxVolume: number; count: number }> = {};
   for (const h of history) {
@@ -81,7 +85,7 @@ function detectMicroPR(
       const w = parseFloat(l.weightUsed || "0");
       if (w > 0 && w > best.maxWeight && best.maxWeight > 0) {
         const displayName = getExerciseName(ex.name, locale).split("(")[0].trim();
-        return { type: "weightPR", label: t("report.hero.pr"), isDark: true, bigNumber: `${best.maxWeight} → ${w} kg`, subText: displayName, exerciseName: ex.name, exerciseType: ex.type, vars: { name: displayName, weight: String(w), prev: String(best.maxWeight) } };
+        return { type: "weightPR", label: t("report.hero.pr"), isDark: true, bigNumber: `${toDispW(best.maxWeight)} → ${toDispW(w)} ${U}`, subText: displayName, exerciseName: ex.name, exerciseType: ex.type, vars: { name: displayName, weight: String(toDispW(w)), prev: String(toDispW(best.maxWeight)) } };
       }
     }
   }
@@ -95,7 +99,7 @@ function detectMicroPR(
       if (w > 0 && best.maxRepsAtWeight[w] && l.repsCompleted > best.maxRepsAtWeight[w]) {
         const displayName = getExerciseName(ex.name, locale).split("(")[0].trim();
         const diff = l.repsCompleted - best.maxRepsAtWeight[w];
-        return { type: "repsPR", label: t("report.hero.pr"), isDark: true, bigNumber: `${best.maxRepsAtWeight[w]} → ${l.repsCompleted}`, subText: `${displayName} · ${w}kg`, exerciseName: ex.name, exerciseType: ex.type, vars: { name: displayName, diff: String(diff), prev: String(best.maxRepsAtWeight[w]), current: String(l.repsCompleted) } };
+        return { type: "repsPR", label: t("report.hero.pr"), isDark: true, bigNumber: `${best.maxRepsAtWeight[w]} → ${l.repsCompleted}`, subText: `${displayName} · ${toDispW(w)}${U}`, exerciseName: ex.name, exerciseType: ex.type, vars: { name: displayName, diff: String(diff), prev: String(best.maxRepsAtWeight[w]), current: String(l.repsCompleted) } };
       }
     }
   }
@@ -108,7 +112,7 @@ function detectMicroPR(
     for (const l of exLogs) todayVol += (parseFloat(l.weightUsed || "0") || 0) * l.repsCompleted;
     if (todayVol > best.maxVolume && best.maxVolume > 0) {
       const displayName = getExerciseName(ex.name, locale).split("(")[0].trim();
-      return { type: "volumePR", label: t("report.hero.sessionRecord"), isDark: true, bigNumber: `${best.maxVolume.toLocaleString()} → ${todayVol.toLocaleString()} kg`, subText: displayName, exerciseName: ex.name, exerciseType: ex.type, vars: { name: displayName } };
+      return { type: "volumePR", label: t("report.hero.sessionRecord"), isDark: true, bigNumber: `${Math.round(toDispW(best.maxVolume)).toLocaleString()} → ${Math.round(toDispW(todayVol)).toLocaleString()} ${U}`, subText: displayName, exerciseName: ex.name, exerciseType: ex.type, vars: { name: displayName } };
     }
   }
   return null;
@@ -193,6 +197,9 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
   const [cachedChatHistory, setCachedChatHistory] = useState<{ role: "user" | "assistant"; content: string }[]>([]);
 
   const { t, locale } = useTranslation();
+  const { system: unitSystem, labels: unitLabels } = useUnits();
+  const U = unitLabels.weight;
+  const toDispW = (kg: number) => unitSystem === "imperial" ? Math.round(kgToLb(kg) * 10) / 10 : kg;
   useEffect(() => { trackEvent("report_view"); }, []);
 
   // 리포트 열리자마자 reportTabs 저장 (영양 제외 — 영양은 Gemini 응답 후 별도 업데이트)
@@ -513,7 +520,7 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
           let userGoal: string | undefined;
           try { userGoal = JSON.parse(localStorage.getItem("ohunjal_fitness_profile") || "{}").goal; } catch {}
           // PR 감지 (기존 detectMicroPR 재활용)
-          const microPR = detectMicroPR(sessionData.exercises, logs, recentHistory, t, locale);
+          const microPR = detectMicroPR(sessionData.exercises, logs, recentHistory, t, locale, toDispW, U);
           const prInfo = microPR ? { exerciseName: microPR.subText || "", value: microPR.bigNumber } : null;
           return (
             <TodayTab
@@ -747,7 +754,7 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
             }
           }
 
-          const microPR = detectMicroPR(sessionData.exercises, logs, recentHistory, t, locale);
+          const microPR = detectMicroPR(sessionData.exercises, logs, recentHistory, t, locale, toDispW, U);
           const heroStreak = (() => {
             if (recentHistory.length === 0) return 0;
             let count = 0;
@@ -767,7 +774,7 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
             if (isRunning) return { type: "running" as HeroType, label: t("report.hero.todaysWork"), bigNumber: formatDuration(totalDurationSec), subText: translateDesc(sessionData.description || "", locale), isDark: false };
             if (successRate >= 100 && isStrengthSession) return { type: "perfect" as HeroType, label: t("report.hero.perfectSession"), bigNumber: t("report.hero.perfectDesc"), isDark: false };
             if (heroStreak >= 3) return { type: "streak" as HeroType, label: t("report.hero.streakLabel", { days: String(heroStreak) }), bigNumber: t("report.hero.streakDesc"), isDark: false, vars: { days: String(heroStreak) } };
-            if (totalVolume > 0) return { type: "volume" as HeroType, label: t("report.hero.todaysWork"), bigNumber: `${totalVolume.toLocaleString()} kg`, subText: t("report.hero.totalVolume"), isDark: false };
+            if (totalVolume > 0) return { type: "volume" as HeroType, label: t("report.hero.todaysWork"), bigNumber: `${Math.round(toDispW(totalVolume)).toLocaleString()} ${U}`, subText: t("report.hero.totalVolume"), isDark: false };
             return { type: "volume" as HeroType, label: t("report.hero.todaysWork"), bigNumber: formatDuration(totalDurationSec), subText: translateDesc(sessionData.description || "", locale), isDark: false };
           })();
 
@@ -893,7 +900,7 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
                         <p className="text-2xl font-black text-[#1B4332] leading-none">
                           {currentBwRatio !== null
                             ? t("report.card.bwTimes", { ratio: currentBwRatio.toFixed(1) })
-                            : current ? `${Math.round(current.value)}kg` : "-"}
+                            : current ? `${Math.round(toDispW(current.value))}${U}` : "-"}
                         </p>
                         {currentBwRatio !== null && (
                           <span className={`text-[10px] font-black px-1.5 py-0.5 rounded ${
@@ -910,7 +917,7 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
                       <div className="flex items-center justify-between mt-1.5">
                         <p className="text-[9px] text-gray-400 font-medium leading-tight truncate flex-1">
                           {current
-                            ? `${getExerciseName(current.exerciseName, locale)} ${Math.round(current.value)}kg`
+                            ? `${getExerciseName(current.exerciseName, locale)} ${Math.round(toDispW(current.value))}${U}`
                             : "-"}
                         </p>
                         {big4Combined.length > 1 && (
@@ -1107,7 +1114,7 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
             <>
               <div className="flex-1 bg-white rounded-xl border border-gray-100 py-3 px-3 text-center shadow-sm">
                 <p className="text-[9px] font-bold text-gray-400 uppercase">{t("report.summary.totalVolume")}</p>
-                <p className="text-base font-black text-[#1B4332]">{totalVolume.toLocaleString()}<span className="text-[10px] text-gray-400 ml-0.5">kg</span></p>
+                <p className="text-base font-black text-[#1B4332]">{Math.round(toDispW(totalVolume)).toLocaleString()}<span className="text-[10px] text-gray-400 ml-0.5">{U}</span></p>
               </div>
               <div className="flex-1 bg-white rounded-xl border border-gray-100 py-3 px-3 text-center shadow-sm">
                 <p className="text-[9px] font-bold text-gray-400 uppercase">{t("report.summary.totalSets")}</p>
@@ -1233,7 +1240,7 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
                                 >
                                   {isActive && (
                                     <span className="absolute -top-7 text-[10px] font-black text-gray-700 bg-white px-1.5 py-0.5 rounded shadow-sm border border-gray-100 z-20 whitespace-nowrap pointer-events-none">
-                                      {log.weightUsed}kg
+                                      {toDispW(parseFloat(log.weightUsed || "0"))}{U}
                                     </span>
                                   )}
                                   <div className={`w-2.5 h-2.5 bg-white border-[2.5px] rounded-full transition-transform ${isActive ? "scale-150" : ""} ${weightColor}`} />

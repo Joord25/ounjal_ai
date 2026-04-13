@@ -2,6 +2,8 @@
 
 import React, { useState } from "react";
 import { useTranslation } from "@/hooks/useTranslation";
+import { useUnits } from "@/hooks/useUnits";
+import { kgToLb } from "@/utils/units";
 import { WorkoutHistory as WorkoutHistoryType } from "@/constants/workout";
 
 interface VolumeTrendChartProps {
@@ -10,6 +12,8 @@ interface VolumeTrendChartProps {
 
 export const VolumeTrendChart: React.FC<VolumeTrendChartProps> = ({ monthHistory }) => {
   const { t, locale } = useTranslation();
+  const { system: unitSystem, labels: unitLabels } = useUnits();
+  const toDisp = (kg: number) => unitSystem === "imperial" ? kgToLb(kg) : kg;
   const [activeVolumeDot, setActiveVolumeDot] = useState<number | null>(null);
 
   const sessionsWithVolume = monthHistory
@@ -133,7 +137,7 @@ export const VolumeTrendChart: React.FC<VolumeTrendChartProps> = ({ monthHistory
             >
               {isActive && (
                 <span className="absolute -top-7 text-[10px] font-black text-gray-700 bg-white px-1.5 py-0.5 rounded shadow-sm border border-gray-100 z-20 whitespace-nowrap pointer-events-none">
-                  {d.volume.toLocaleString()}kg
+                  {Math.round(toDisp(d.volume)).toLocaleString()}{unitLabels.weight}
                 </span>
               )}
               <div className={`rounded-full transition-transform ${isActive ? "scale-150" : ""} w-2 h-2 bg-white border-2 border-[#2D6A4F]`} />

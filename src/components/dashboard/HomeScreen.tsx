@@ -9,6 +9,8 @@ import { getCachedWorkoutHistory, loadWorkoutHistory } from "@/utils/workoutHist
 import { getTrialStatus } from "@/utils/trialStatus";
 import { getPlanCount } from "@/utils/userProfile";
 import { useTranslation } from "@/hooks/useTranslation";
+import { useUnits } from "@/hooks/useUnits";
+import { kgToLb } from "@/utils/units";
 import {
   type FitnessCategory,
   type CategoryPercentile,
@@ -60,6 +62,9 @@ const CATEGORIES: FitnessCategory[] = ["chest", "back", "shoulder", "legs", "cor
 
 export const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onStartWorkout, onShowPrediction, isPremium, isLoggedIn }) => {
   const { t, locale } = useTranslation();
+  const { system: unitSystem, labels: unitLabels } = useUnits();
+  const toDispKg = (kg: number) => unitSystem === "imperial" ? Math.round(kgToLb(kg) * 10) / 10 : kg;
+  const toDispKgInt = (kg: number) => Math.round(toDispKg(kg));
 
   // 내부 탭 상태
   const [homeTab, setHomeTab] = useState<"home" | "nutrition">("home");
@@ -255,8 +260,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onStartWorkout
         const lowConfidence = r2 < 0.5;
         const timelineMsg = isGrowing ? t("home.prediction.stronger", { label: ex.label }) : t("home.prediction.checkPace", { label: ex.label });
         previews.push({
-          current: `${ex.lastE1RM}kg`,
-          predicted: `${pred4w}kg`,
+          current: `${toDispKg(ex.lastE1RM)}${unitLabels.weight}`,
+          predicted: `${toDispKg(pred4w)}${unitLabels.weight}`,
           timeline: lowConfidence ? `${timelineMsg} (${t("home.prediction.lowData")})` : timelineMsg,
           label: ex.label,
         });
@@ -280,8 +285,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onStartWorkout
             const currentKgLoss = Math.round(Math.abs(currentCum) / 7700 * 10) / 10;
             const isLosing = pred4w < currentCum;
             previews.push({
-              current: `-${currentKgLoss}kg`,
-              predicted: `-${predKgLoss}kg`,
+              current: `-${toDispKg(currentKgLoss)}${unitLabels.weight}`,
+              predicted: `-${toDispKg(predKgLoss)}${unitLabels.weight}`,
               timeline: isLosing ? t("home.prediction.losing") : t("home.prediction.checkPaceGeneral"),
               label: t("home.prediction.weightLabel"),
             });
@@ -295,8 +300,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onStartWorkout
         const clampedPct = Math.max(-50, Math.min(50, volGrowth.growthPct));
         const pred4wVol = Math.round(Math.max(0, volGrowth.lastVolume * (1 + clampedPct / 100)));
         previews.push({
-          current: `${Math.round(volGrowth.lastVolume).toLocaleString()}kg`,
-          predicted: `${pred4wVol.toLocaleString()}kg`,
+          current: `${toDispKgInt(volGrowth.lastVolume).toLocaleString()}${unitLabels.weight}`,
+          predicted: `${toDispKgInt(pred4wVol).toLocaleString()}${unitLabels.weight}`,
           timeline: volGrowth.trend === "up" ? t("home.prediction.volumeUp") : t("home.prediction.volumeFlat"),
           label: t("home.prediction.volumeLabel"),
         });

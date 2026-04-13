@@ -4,6 +4,8 @@ import React, { useState, useEffect } from "react";
 import { updateGender, updateBirthYear, updateWeight, saveUserProfile } from "@/utils/userProfile";
 import { trackEvent } from "@/utils/analytics";
 import { useTranslation } from "@/hooks/useTranslation";
+import { useUnits } from "@/hooks/useUnits";
+import { cmToInches, inchesToCm, kgToLb, lbToKg } from "@/utils/units";
 import { WheelPicker } from "./WheelPicker";
 import { RulerPicker } from "./RulerPicker";
 import type { FitnessProfile } from "@/components/dashboard/fitnessTypes";
@@ -24,12 +26,15 @@ const GOAL_OPTIONS: { value: FitnessProfile["goal"]; key: string; descKey: strin
 
 // Pre-generate value arrays
 const BIRTH_YEARS = Array.from({ length: 80 }, (_, i) => 2010 - i); // 2010 ~ 1931
-const HEIGHTS = Array.from({ length: 81 }, (_, i) => 120 + i);       // 120 ~ 200 cm
+const HEIGHTS_CM = Array.from({ length: 81 }, (_, i) => 120 + i);   // 120 ~ 200 cm
+const HEIGHTS_IN = Array.from({ length: 34 }, (_, i) => 47 + i);    // 47 ~ 80 inches (≈ 119~203cm)
 
 const STEP_ORDER: Step[] = ["welcome", "gender", "birth_year", "height", "weight", "goal", "done"];
 
 export const Onboarding: React.FC<OnboardingProps> = ({ userName, onComplete }) => {
   const { t } = useTranslation();
+  const { system: unitSystem } = useUnits();
+  const isImperial = unitSystem === "imperial";
   const displayName = userName || t("home.defaultName");
   const [step, setStep] = useState<Step>("welcome");
   const [direction, setDirection] = useState<"forward" | "backward">("forward");
@@ -230,7 +235,16 @@ export const Onboarding: React.FC<OnboardingProps> = ({ userName, onComplete }) 
           </h2>
           <p className="text-sm text-gray-400 text-center mb-6">{t("onboarding.height.sub")}</p>
           <div className="flex-1 flex items-center justify-center">
-            <WheelPicker values={HEIGHTS} selected={height} onChange={setHeight} suffix="cm" />
+            {isImperial ? (
+              <WheelPicker
+                values={HEIGHTS_IN}
+                selected={Math.round(cmToInches(height))}
+                onChange={(v) => setHeight(Math.round(inchesToCm(v)))}
+                suffix="in"
+              />
+            ) : (
+              <WheelPicker values={HEIGHTS_CM} selected={height} onChange={setHeight} suffix="cm" />
+            )}
           </div>
           <div className="px-6 pb-6 pt-3">
             <button
@@ -253,7 +267,17 @@ export const Onboarding: React.FC<OnboardingProps> = ({ userName, onComplete }) 
           </h2>
           <p className="text-sm text-gray-400 text-center mb-6">{t("onboarding.weight.sub")}</p>
           <div className="flex-1 flex items-center justify-center">
-            <RulerPicker min={30} max={160} value={bodyWeight} onChange={setBodyWeight} suffix="kg" />
+            {isImperial ? (
+              <RulerPicker
+                min={66}
+                max={352}
+                value={Math.round(kgToLb(bodyWeight))}
+                onChange={(v) => setBodyWeight(Math.round(lbToKg(v) * 10) / 10)}
+                suffix="lb"
+              />
+            ) : (
+              <RulerPicker min={30} max={160} value={bodyWeight} onChange={setBodyWeight} suffix="kg" />
+            )}
           </div>
           <div className="px-6 pb-6 pt-3">
             <button

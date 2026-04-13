@@ -8,6 +8,8 @@ import { CoachTooltip } from "./Tutorial";
 import { trackEvent } from "@/utils/analytics";
 import { getCachedWorkoutHistory } from "@/utils/workoutHistory";
 import { useTranslation } from "@/hooks/useTranslation";
+import { useUnits } from "@/hooks/useUnits";
+import { kgToLb, lbToKg } from "@/utils/units";
 import { WheelPicker } from "@/components/layout/WheelPicker";
 import { RulerPicker } from "@/components/layout/RulerPicker";
 
@@ -31,6 +33,8 @@ const BIRTH_YEARS = Array.from({ length: 80 }, (_, i) => 2010 - i); // 2010 ~ 19
 
 export const ConditionCheck: React.FC<ConditionCheckProps> = ({ onComplete, onBack, userName, isGuest }) => {
   const { t } = useTranslation();
+  const { system: unitSystem } = useUnits();
+  const isImperial = unitSystem === "imperial";
   const displayName = userName || t("home.defaultName");
   const [step, setStep] = useState<Step>("body_check");
   const [direction, setDirection] = useState<"forward" | "backward">("forward");
@@ -326,13 +330,27 @@ export const ConditionCheck: React.FC<ConditionCheckProps> = ({ onComplete, onBa
           /* 체중 입력: 초기/재방문 통합 — RulerPicker 단일 */
           <div className="flex flex-col flex-1">
             <div className="flex-1 flex items-center justify-center">
-              <RulerPicker
-                min={30}
-                max={160}
-                value={bodyWeightNum}
-                onChange={(v) => { setBodyWeightNum(v); setBodyWeight(String(v)); }}
-                suffix="kg"
-              />
+              {isImperial ? (
+                <RulerPicker
+                  min={66}
+                  max={352}
+                  value={Math.round(kgToLb(bodyWeightNum))}
+                  onChange={(v) => {
+                    const kg = Math.round(lbToKg(v) * 10) / 10;
+                    setBodyWeightNum(kg);
+                    setBodyWeight(String(kg));
+                  }}
+                  suffix="lb"
+                />
+              ) : (
+                <RulerPicker
+                  min={30}
+                  max={160}
+                  value={bodyWeightNum}
+                  onChange={(v) => { setBodyWeightNum(v); setBodyWeight(String(v)); }}
+                  suffix="kg"
+                />
+              )}
             </div>
             <button
               onClick={() => handleNext()}

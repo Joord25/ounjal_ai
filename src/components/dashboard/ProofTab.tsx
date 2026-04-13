@@ -8,6 +8,8 @@ import { loadWorkoutHistory, deleteWorkoutHistory, replaceCachedWorkoutHistory }
 import { estimateTrainingLevelDetailed, detectAchievements } from "@/utils/workoutMetrics";
 import { SwipeToDelete } from "@/components/SwipeToDelete";
 import { useTranslation } from "@/hooks/useTranslation";
+import { useUnits } from "@/hooks/useUnits";
+import { kgToLb } from "@/utils/units";
 import { translateDesc } from "@/components/report/reportUtils";
 import { getCurrentSeason, getTierFromExp, getOrRebuildSeasonExp, rebuildFromHistory, saveSeasonExp } from "@/utils/questSystem";
 import { WorkoutReport } from "@/components/report/WorkoutReport";
@@ -61,6 +63,9 @@ function DaySessionItem({ session, timeStr, onTap, onDelete }: {
 
 export const ProofTab: React.FC<ProofTabProps> = ({ onShowPrediction }) => {
   const { t, locale } = useTranslation();
+  const { system: unitSystem, labels: unitLabels } = useUnits();
+  const isImperial = unitSystem === "imperial";
+  const toDisplayWeight = (kg: number) => isImperial ? kgToLb(kg) : kg;
   const [history, setHistory] = useState<WorkoutHistoryType[]>([]);
   const [view, setView] = useState<ViewState>("dashboard");
   const [selectedHistory, setSelectedHistory] = useState<WorkoutHistoryType | null>(null);
@@ -255,7 +260,7 @@ export const ProofTab: React.FC<ProofTabProps> = ({ onShowPrediction }) => {
             <div className="flex items-end gap-2 px-2 flex-nowrap">
               <h1 className="font-black text-[#1B4332] leading-none shrink-0" style={{ fontSize: "clamp(2.75rem, 12vw, 3rem)" }}>{monthHistory.length}<span className="font-bold text-[#2D6A4F]/50 ml-1" style={{ fontSize: "clamp(0.875rem, 4vw, 1rem)" }}>{t("proof.workoutCount")}</span></h1>
               <p className="text-[#2D6A4F]/50 ml-auto font-bold whitespace-nowrap" style={{ fontSize: "clamp(0.75rem, 3vw, 0.875rem)" }}>
-                <span className="font-black text-[#1B4332]" style={{ fontSize: "clamp(1.125rem, 4.5vw, 1.25rem)" }}>{Math.round(monthHistory.reduce((s, h) => s + (h.stats.totalVolume || 0), 0)).toLocaleString()}</span> kg · <span className="font-black text-[#1B4332]" style={{ fontSize: "clamp(1.125rem, 4.5vw, 1.25rem)" }}>{Math.round(monthHistory.reduce((s, h) => s + (h.stats.totalDurationSec || 0), 0) / 60)}</span> {locale === "ko" ? "분" : "min"} · <span className="font-black text-[#1B4332]" style={{ fontSize: "clamp(1.125rem, 4.5vw, 1.25rem)" }}>{monthHistory.reduce((s, h) => s + (h.stats.totalSets || 0), 0)}</span> {locale === "ko" ? "세트" : "sets"}
+                <span className="font-black text-[#1B4332]" style={{ fontSize: "clamp(1.125rem, 4.5vw, 1.25rem)" }}>{Math.round(toDisplayWeight(monthHistory.reduce((s, h) => s + (h.stats.totalVolume || 0), 0))).toLocaleString()}</span> {unitLabels.weight} · <span className="font-black text-[#1B4332]" style={{ fontSize: "clamp(1.125rem, 4.5vw, 1.25rem)" }}>{Math.round(monthHistory.reduce((s, h) => s + (h.stats.totalDurationSec || 0), 0) / 60)}</span> {locale === "ko" ? "분" : "min"} · <span className="font-black text-[#1B4332]" style={{ fontSize: "clamp(1.125rem, 4.5vw, 1.25rem)" }}>{monthHistory.reduce((s, h) => s + (h.stats.totalSets || 0), 0)}</span> {locale === "ko" ? "세트" : "sets"}
               </p>
             </div>
           ) : isCurrentMonth ? (
@@ -299,7 +304,9 @@ export const ProofTab: React.FC<ProofTabProps> = ({ onShowPrediction }) => {
                       {a.date.slice(0, 10).replace(/-/g, ".")}
                     </p>
                     <p className="text-sm font-black text-[#1B4332] leading-tight">
-                      {locale === "ko" ? a.title : a.titleEn}
+                      {a.type === "pr" && a.weightKg != null
+                        ? `${locale === "ko" ? (a.exerciseName || a.title) : (a.exerciseNameEn || a.titleEn)} ${Math.round(toDisplayWeight(a.weightKg))}${unitLabels.weight}`
+                        : (locale === "ko" ? a.title : a.titleEn)}
                     </p>
                     <p className={`text-[9px] font-bold mt-1 ${a.type === "pr" ? "text-amber-600/70" : "text-[#2D6A4F]/60"}`}>
                       {a.type === "pr" ? (locale === "ko" ? "신기록" : "PR") : a.type === "streak" ? (locale === "ko" ? "연속" : "Streak") : a.type === "milestone" ? (locale === "ko" ? "달성" : "Milestone") : (locale === "ko" ? "시작" : "First")}
@@ -607,7 +614,7 @@ export const ProofTab: React.FC<ProofTabProps> = ({ onShowPrediction }) => {
                             <p className="flex-1 min-w-0 text-[14px] text-gray-700 font-bold">{d.exercise.startsWith("big3.") ? t(d.exercise) : d.exercise}</p>
                             <div className="flex items-center gap-2">
                               <span className="text-[10px] text-gray-400 font-medium">{t("proof.maxWeight")}</span>
-                              <span className="text-[20px] font-black text-[#1B4332] leading-none">{d.value}</span>
+                              <span className="text-[20px] font-black text-[#1B4332] leading-none">{d.weightKg != null ? `${Math.round(toDisplayWeight(d.weightKg))}${unitLabels.weight}` : d.value}</span>
                               <span className={`text-[11px] font-black px-2.5 py-1 rounded-lg ${accent.split(" ").slice(1).join(" ")}`}>{nm}</span>
                             </div>
                           </div>

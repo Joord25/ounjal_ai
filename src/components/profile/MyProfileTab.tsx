@@ -7,6 +7,8 @@ import { storage, auth } from "@/lib/firebase";
 import { SubscriptionScreen, TERMS_TEXT, PRIVACY_TEXT, REFUND_TEXT } from "./SubscriptionScreen";
 import { updateGender, updateBirthYear, saveUserProfile, resetUserBodyInfo } from "@/utils/userProfile";
 import { useTranslation } from "@/hooks/useTranslation";
+import { useUnits } from "@/hooks/useUnits";
+import { cmToInches, inchesToCm, kgToLb, lbToKg } from "@/utils/units";
 import { getTierFromExp, getOrRebuildSeasonExp, getCurrentSeason } from "@/utils/questSystem";
 import { loadWorkoutHistory } from "@/utils/workoutHistory";
 
@@ -189,6 +191,8 @@ This Refund Policy shall be effective from March 1, 2026.`;
 
 export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout, autoEdit1RM, onCancelFlowChange }) => {
   const { t, locale, setLocale } = useTranslation();
+  const { system: unitSystem, setSystem: setUnitSystem, labels: unitLabels, fmt: unitFmt } = useUnits();
+  const isImperial = unitSystem === "imperial";
   const [showSubscription, setShowSubscription] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(() => {
     if (typeof window === "undefined") return true;
@@ -243,7 +247,7 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout, auto
     }
   }, [autoEdit1RM]);
 
-  // 1RM states
+  // 1RM states — 저장된 값은 항상 kg. 입력 시점엔 단위 기반 문자열.
   const [editing1RM, setEditing1RM] = useState(!!autoEdit1RM);
   const [bench1RM, setBench1RM] = useState(() => {
     if (typeof window === "undefined") return "";
@@ -266,6 +270,13 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout, auto
       return fp.deadlift1RM ? String(fp.deadlift1RM) : "";
     } catch { return ""; }
   });
+  /** kg 문자열 → 현재 단위 display 문자열 */
+  const display1RM = (kgStr: string): string => {
+    if (!kgStr) return "";
+    const n = parseFloat(kgStr);
+    if (isNaN(n)) return "";
+    return isImperial ? String(Math.round(kgToLb(n))) : String(n);
+  };
   const [showTerms, setShowTerms] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
   const [showRefund, setShowRefund] = useState(false);
@@ -319,8 +330,10 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout, auto
   };
 
   const handleHeightSave = () => {
-    const val = parseInt(heightInput.trim());
-    if (isNaN(val) || val < 100 || val > 250) return;
+    const raw = parseFloat(heightInput.trim());
+    if (isNaN(raw)) return;
+    const val = isImperial ? Math.round(inchesToCm(raw)) : Math.round(raw);
+    if (val < 100 || val > 250) return;
     setHeight(String(val));
     try {
       const fp = JSON.parse(localStorage.getItem("ohunjal_fitness_profile") || "{}");
@@ -341,7 +354,13 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout, auto
   };
 
   const handle1RMSave = () => {
-    const clamp1RM = (v: string) => { const n = parseFloat(v.trim()); return (!isNaN(n) && n > 0 && n <= 500) ? n : undefined; };
+    const clamp1RM = (v: string) => {
+      const raw = parseFloat(v.trim());
+      if (isNaN(raw) || raw <= 0) return undefined;
+      const kg = isImperial ? lbToKg(raw) : raw;
+      const rounded = Math.round(kg * 10) / 10;
+      return (rounded > 0 && rounded <= 500) ? rounded : undefined;
+    };
     const b = clamp1RM(bench1RM);
     const s = clamp1RM(squat1RM);
     const d = clamp1RM(deadlift1RM);
@@ -351,6 +370,10 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout, auto
       localStorage.setItem("ohunjal_fitness_profile", JSON.stringify(updated));
       saveUserProfile({ fitnessProfile: updated }).catch(() => {});
     } catch {}
+    // 편집 후 state를 kg로 재정규화 (imperial 편집 중엔 lb 값이 들어있을 수 있음)
+    setBench1RM(b != null ? String(b) : "");
+    setSquat1RM(s != null ? String(s) : "");
+    setDeadlift1RM(d != null ? String(d) : "");
     setEditing1RM(false);
   };
 
@@ -687,24 +710,29 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout, auto
                   value={heightInput}
                   onChange={(e) => setHeightInput(e.target.value)}
                   autoFocus
-                  min={100}
-                  max={250}
-                  placeholder="170"
+                  min={isImperial ? 40 : 100}
+                  max={isImperial ? 100 : 250}
+                  placeholder={isImperial ? "68" : "170"}
                   className="text-sm font-medium text-gray-900 bg-white border border-gray-200 rounded-lg px-3 py-1.5 w-[100px] outline-none focus:border-[#2D6A4F] transition-colors text-right"
                   onKeyDown={(e) => {
                     if (e.key === "Enter") handleHeightSave();
                     if (e.key === "Escape") { setIsEditingHeight(false); setHeightInput(height); }
                   }}
                 />
-                <span className="text-sm text-gray-400">cm</span>
+                <span className="text-sm text-gray-400">{isImperial ? "in" : "cm"}</span>
                 <button onClick={handleHeightSave} className="text-xs font-bold text-[#2D6A4F] active:opacity-60 shrink-0">{t("common.save")}</button>
               </div>
             ) : (
               <button
-                onClick={() => { setHeightInput(height); setIsEditingHeight(true); }}
+                onClick={() => {
+                  const cm = parseInt(height);
+                  const seed = height ? (isImperial && !isNaN(cm) ? String(Math.round(cmToInches(cm))) : height) : "";
+                  setHeightInput(seed);
+                  setIsEditingHeight(true);
+                }}
                 className="flex items-center gap-2 active:opacity-60"
               >
-                <span className="text-sm font-medium text-gray-900">{height ? `${height}cm` : t("my.notSet")}</span>
+                <span className="text-sm font-medium text-gray-900">{height ? unitFmt.height(parseInt(height)) : t("my.notSet")}</span>
                 <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                 </svg>
@@ -719,10 +747,20 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout, auto
             {editing1RM ? (
               <button onClick={handle1RMSave} className="text-xs font-bold text-[#2D6A4F] active:opacity-60">{t("common.save")}</button>
             ) : (
-              <button onClick={() => setEditing1RM(true)} className="flex items-center gap-2 active:opacity-60">
+              <button
+                onClick={() => {
+                  if (isImperial) {
+                    setBench1RM(display1RM(bench1RM));
+                    setSquat1RM(display1RM(squat1RM));
+                    setDeadlift1RM(display1RM(deadlift1RM));
+                  }
+                  setEditing1RM(true);
+                }}
+                className="flex items-center gap-2 active:opacity-60"
+              >
                 <span className="text-sm font-medium text-gray-900">
                   {bench1RM || squat1RM || deadlift1RM
-                    ? [bench1RM && `B${bench1RM}`, squat1RM && `S${squat1RM}`, deadlift1RM && `D${deadlift1RM}`].filter(Boolean).join(" / ")
+                    ? [bench1RM && `B${display1RM(bench1RM)}`, squat1RM && `S${display1RM(squat1RM)}`, deadlift1RM && `D${display1RM(deadlift1RM)}`].filter(Boolean).join(" / ")
                     : t("my.notSet")}
                 </span>
                 <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -747,7 +785,7 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout, auto
                     onChange={(e) => lift.setter(e.target.value)}
                     min={0}
                     max={500}
-                    placeholder="kg"
+                    placeholder={unitLabels.weight}
                     className="w-full text-sm font-medium text-gray-900 bg-white border border-gray-200 rounded-lg px-2 py-1.5 outline-none focus:border-[#2D6A4F] transition-colors text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     onKeyDown={(e) => { if (e.key === "Enter") handle1RMSave(); }}
                   />
@@ -845,6 +883,21 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout, auto
                     key={code}
                     onClick={() => setLocale(code)}
                     className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${locale === code ? "bg-[#2D6A4F] text-white" : "bg-gray-100 text-gray-500"}`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="h-px bg-gray-100" />
+            <div className="flex justify-between items-center">
+              <span className="text-sm font-bold text-gray-500">{t("my.units")}</span>
+              <div className="flex gap-1.5">
+                {([["metric", "kg/cm"], ["imperial", "lb/ft"]] as const).map(([code, label]) => (
+                  <button
+                    key={code}
+                    onClick={() => setUnitSystem(code)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${unitSystem === code ? "bg-[#2D6A4F] text-white" : "bg-gray-100 text-gray-500"}`}
                   >
                     {label}
                   </button>

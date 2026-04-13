@@ -5,6 +5,8 @@ import { useTranslation } from "@/hooks/useTranslation";
 import { ExerciseStep, deriveSetDetails, getExerciseMuscleGroups } from "@/constants/workout";
 import { getExerciseName } from "@/utils/exerciseName";
 import { getMuscleColor, translateMuscleGroup } from "./muscleColor";
+import { useUnits } from "@/hooks/useUnits";
+import { kgToLb, lbToKg } from "@/utils/units";
 import { getVideoEmbedUrl, getYoutubeSearchUrl } from "@/constants/exerciseVideos";
 
 interface PlanExerciseDetailProps {
@@ -30,6 +32,7 @@ export const PlanExerciseDetail: React.FC<PlanExerciseDetailProps> = ({
   canDelete, canSwap,
 }) => {
   const { locale, t } = useTranslation();
+  const { system: unitSystem, labels: unitLabels } = useUnits();
   const setDetails = deriveSetDetails(exercise);
   const muscleGroups = getExerciseMuscleGroups(exercise.name);
   const color = getMuscleColor(exercise.name);
@@ -102,22 +105,28 @@ export const PlanExerciseDetail: React.FC<PlanExerciseDetailProps> = ({
                 </span>
 
                 {/* weight pill (좌측) */}
-                {hasWeight && (
+                {hasWeight && (() => {
+                  const isImperial = unitSystem === "imperial";
+                  const displayValue = isImperial ? Math.round(kgToLb(weightKg)) : weightKg;
+                  const stepKg = isImperial ? lbToKg(5) : 2.5;
+                  const roundKg = (v: number) => Math.round(v * 100) / 100;
+                  return (
                   <>
                     <div className="flex-1 flex items-center justify-center">
                       <PillEditor
-                        value={weightKg}
-                        label="kg"
+                        value={displayValue}
+                        label={unitLabels.weight}
                         color="text-[#2D6A4F]"
                         active={!!weightActive}
                         onActivate={() => setActive({ setIdx: i, field: "weight" })}
-                        onDecrement={() => onUpdateSetDetail(globalIdx, i, { weight: `${Math.max(0, weightKg - 2.5)}kg` })}
-                        onIncrement={() => onUpdateSetDetail(globalIdx, i, { weight: `${weightKg + 2.5}kg` })}
+                        onDecrement={() => onUpdateSetDetail(globalIdx, i, { weight: `${roundKg(Math.max(0, weightKg - stepKg))}kg` })}
+                        onIncrement={() => onUpdateSetDetail(globalIdx, i, { weight: `${roundKg(weightKg + stepKg)}kg` })}
                       />
                     </div>
                     <span className="text-gray-300 text-xs shrink-0">×</span>
                   </>
-                )}
+                  );
+                })()}
 
                 {/* reps pill (우측) */}
                 <div className="flex-1 flex items-center justify-center">

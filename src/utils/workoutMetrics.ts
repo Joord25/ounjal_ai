@@ -213,7 +213,7 @@ export function getAgeMultiplier(birthYear?: number): number {
 export interface LevelEstimation {
   level: TrainingLevel;
   source: "big3" | "bodyweight" | "default";
-  details: { exercise: string; value: string; level: TrainingLevel }[];
+  details: { exercise: string; value: string; level: TrainingLevel; weightKg?: number }[];
   decayed?: boolean; // 최근 4주 미활동으로 한 단계 하향 조정됨
 }
 
@@ -318,7 +318,7 @@ export function estimateTrainingLevelDetailed(
       const advThresh = thresholds.advanced * genderMult;
       const lvl: TrainingLevel = ratio >= advThresh ? "advanced" : ratio >= intThresh ? "intermediate" : "beginner";
       const e1rm = big3.rawE1rm[cat];
-      details.push({ exercise: CATEGORY_LABELS[cat] || cat, value: e1rm ? `${Math.round(e1rm)}kg` : `${ratio.toFixed(2)}x`, level: lvl });
+      details.push({ exercise: CATEGORY_LABELS[cat] || cat, value: e1rm ? `${Math.round(e1rm)}kg` : `${ratio.toFixed(2)}x`, level: lvl, weightKg: e1rm || undefined });
       return lvl;
     });
     const counts = { beginner: 0, intermediate: 0, advanced: 0 };
@@ -951,6 +951,12 @@ export interface Achievement {
   titleEn: string;
   date: string;
   value?: string;
+  /** PR 타입일 때만: kg 원본 수치 (렌더 시점 단위 변환용) */
+  weightKg?: number;
+  /** PR 타입일 때만: 운동명 (kr) — 렌더 시점 제목 조립용 */
+  exerciseName?: string;
+  /** PR 타입일 때만: 운동명 (en) */
+  exerciseNameEn?: string;
 }
 
 /**
@@ -994,6 +1000,9 @@ export function detectAchievements(history: WorkoutHistory[]): Achievement[] {
       titleEn: `${best.nameEn} ${best.weight}kg`,
       date: best.date,
       value: `${best.weight}kg`,
+      weightKg: best.weight,
+      exerciseName: name,
+      exerciseNameEn: best.nameEn,
     });
   }
 

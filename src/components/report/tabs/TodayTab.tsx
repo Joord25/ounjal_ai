@@ -2,6 +2,8 @@
 
 import React from "react";
 import { useTranslation } from "@/hooks/useTranslation";
+import { useUnits } from "@/hooks/useUnits";
+import { kgToLb } from "@/utils/units";
 import { translateDesc } from "../reportUtils";
 
 // 회의 55: 칼로리 환산 기준 = 햇반 일반공기 210g ≈ 310 kcal
@@ -59,6 +61,8 @@ export const TodayTab: React.FC<TodayTabProps> = ({
   onHelpPress, calorieOverride,
 }) => {
   const { locale } = useTranslation();
+  const { system: unitSystem, labels: unitLabels } = useUnits();
+  const toDispW = (kg: number) => unitSystem === "imperial" ? kgToLb(kg) : kg;
   const ko = locale === "ko";
   // 그래프 점 인터랙션 제거 — 오늘 점만 표시
   const dur = totalDurationSec > 0 ? totalDurationSec : (savedDurationSec ?? 0);
@@ -350,7 +354,7 @@ export const TodayTab: React.FC<TodayTabProps> = ({
           totalVolume > 0 && (
             <div className="flex items-center justify-between">
               <span className="text-xs text-gray-500">{ko ? "총 볼륨" : "Volume"}</span>
-              <span className="text-sm font-bold text-[#1B4332]">{totalVolume.toLocaleString()}kg</span>
+              <span className="text-sm font-bold text-[#1B4332]">{Math.round(toDispW(totalVolume)).toLocaleString()}{unitLabels.weight}</span>
             </div>
           )
         )}

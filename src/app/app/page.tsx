@@ -26,6 +26,7 @@ import { syncExpFromFirestore, processWorkoutCompletion, getOrRebuildSeasonExp, 
 import { useSafeArea } from "@/hooks/useSafeArea";
 import { trackEvent, setAnalyticsUserId } from "@/utils/analytics";
 import { I18nProvider, useTranslation } from "@/hooks/useTranslation";
+import { UnitsProvider } from "@/hooks/useUnits";
 
 const getDisplayName = (user: import("firebase/auth").User | null, fallback = "회원") => {
   const raw = user?.displayName?.split(" ")[0] || fallback;
@@ -994,6 +995,7 @@ export default function Home() {
 
   return (
     <I18nProvider>
+    <UnitsProvider>
     <PhoneFrame pullToRefresh={view === "home"}>
       <div className="h-full w-full relative overflow-hidden">
         <div className={`h-full overflow-y-auto overflow-x-hidden scrollbar-hide ${view === "login" ? "" : ""}`} style={view === "login" || view === "workout_session" || view === "master_plan_preview" || view === "condition_check" ? undefined : { paddingBottom: "calc(80px + var(--safe-area-bottom, 0px))" }}>
@@ -1136,6 +1138,7 @@ export default function Home() {
         )}
       </div>
     </PhoneFrame>
+    </UnitsProvider>
     </I18nProvider>
   );
 }

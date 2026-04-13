@@ -2,6 +2,8 @@
 
 import React from "react";
 import { useTranslation } from "@/hooks/useTranslation";
+import { useUnits } from "@/hooks/useUnits";
+import { kgToLb } from "@/utils/units";
 
 interface WeightTrendChartProps {
   weightLog: { date: string; weight: number }[];
@@ -11,6 +13,8 @@ interface WeightTrendChartProps {
 
 export const WeightTrendChart: React.FC<WeightTrendChartProps> = ({ weightLog, onViewAll, embedded }) => {
   const { t } = useTranslation();
+  const { system: unitSystem, labels: unitLabels } = useUnits();
+  const toDisp = (kg: number) => unitSystem === "imperial" ? kgToLb(kg) : kg;
 
   const sorted = [...weightLog].sort((a, b) => a.date.localeCompare(b.date));
   const recent = sorted.slice(-30);
@@ -37,11 +41,11 @@ export const WeightTrendChart: React.FC<WeightTrendChartProps> = ({ weightLog, o
         )}
         <button
           type="button"
-          className="flex items-center gap-2 cursor-pointer active:scale-95 transition-transform"
+          className="flex items-center gap-2 cursor-pointer active:scale-95 transition-transform ml-auto"
           onClick={onViewAll}
         >
           <span className={`text-[10px] font-black ${diff > 0 ? "text-rose-400" : diff < 0 ? "text-sky-400" : "text-gray-400"}`}>
-            {diff > 0 ? "+" : ""}{diff.toFixed(1)}kg
+            {diff > 0 ? "+" : ""}{toDisp(diff).toFixed(1)}{unitLabels.weight}
           </span>
           <svg className="w-4 h-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
@@ -49,8 +53,8 @@ export const WeightTrendChart: React.FC<WeightTrendChartProps> = ({ weightLog, o
         </button>
       </div>
       <div className="flex items-baseline gap-1 mb-1 sm:mb-2">
-        <h3 className="text-2xl sm:text-3xl font-black text-[#1B4332]">{latestWeight.toFixed(1)}</h3>
-        <span className="text-base sm:text-lg text-[#2D6A4F]/50">kg</span>
+        <h3 className="text-2xl sm:text-3xl font-black text-[#1B4332]">{toDisp(latestWeight).toFixed(1)}</h3>
+        <span className="text-base sm:text-lg text-[#2D6A4F]/50">{unitLabels.weight}</span>
       </div>
       <p className="text-[12px] font-bold text-[#2D6A4F] mb-3">
         {diff <= -1 ? t("proof.weightMsg.losing") : diff <= -0.3 ? t("proof.weightMsg.starting") : diff >= 0.5 ? t("proof.weightMsg.gaining") : t("proof.weightMsg.steady")}

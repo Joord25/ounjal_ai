@@ -5,6 +5,8 @@ import { saveUserProfile, updateGender, updateBirthYear, updateWeight } from "@/
 import { WorkoutHistory } from "@/constants/workout";
 import { FitnessTest } from "./FitnessTest";
 import { useTranslation } from "@/hooks/useTranslation";
+import { useUnits } from "@/hooks/useUnits";
+import { kgToLb } from "@/utils/units";
 import { RegressionChart } from "./RegressionChart";
 import { Big3RegressionChart } from "./Big3RegressionChart";
 import {
@@ -73,6 +75,8 @@ const UNLOCK_THRESHOLDS = [0, 5, 10, 20];
 
 export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremium, isPremium, resultOnly, onBack, workoutCount = 0, workoutHistory, weightLog, onEdit1RM }) => {
   const { t, locale } = useTranslation();
+  const { system: unitSystem, labels: unitLabels } = useUnits();
+  const toDispKg = (kg: number) => unitSystem === "imperial" ? Math.round(kgToLb(kg) * 10) / 10 : kg;
   // Load saved profile
   const savedProfile = React.useMemo<FitnessProfile | null>(() => {
     try {
@@ -447,7 +451,7 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
                   placeholder="70"
                   className="w-full text-center text-3xl font-black text-[#5C795E] bg-transparent border-b-2 border-[#2D6A4F] outline-none pb-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 />
-                <span className="text-sm font-bold text-gray-400 pb-2">kg</span>
+                <span className="text-sm font-bold text-gray-400 pb-2">{unitLabels.weight}</span>
               </div>
             </div>
           </div>
@@ -554,7 +558,7 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
                     placeholder="—"
                     className="w-full text-center text-3xl font-black text-[#5C795E] bg-transparent border-b-2 border-[#2D6A4F] outline-none pb-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   />
-                  <span className="text-sm font-bold text-gray-400 pb-2">kg</span>
+                  <span className="text-sm font-bold text-gray-400 pb-2">{unitLabels.weight}</span>
                 </div>
               </div>
             ))}
@@ -693,40 +697,47 @@ export const FitnessReading: React.FC<Props> = ({ userName, onComplete, onPremiu
                     if (msg === "growth.coach.beginner") return t(msg);
 
                     if (msg.startsWith("growth.coach.fatLoss:")) {
-                      const [, w4, w8, weeksTo1kg] = msg.split(":");
+                      const [, w4Raw, w8Raw, weeksTo1kg] = msg.split(":");
+                      const w4 = toDispKg(parseFloat(w4Raw));
+                      const w8 = toDispKg(parseFloat(w8Raw));
+                      const U = unitLabels.weight;
                       return pick(isEn ? [
-                        `About ${w4}kg in 4 weeks at this pace!\nI've got the workouts — you handle the diet!`,
-                        `4 weeks → ${w4}kg, 8 weeks → ${w8}kg!\nWe're on track, keep going together!`,
-                        `About ${weeksTo1kg} weeks per 1kg — ${w4}kg by next month!\nI can already see the change!`,
-                        `${w8}kg in 2 months is within reach!\nEvery session is burning it away!`,
-                        `4 weeks to ${w4}kg! You eat clean, I'll make you sweat!`,
+                        `About ${w4}${U} in 4 weeks at this pace!\nI've got the workouts — you handle the diet!`,
+                        `4 weeks → ${w4}${U}, 8 weeks → ${w8}${U}!\nWe're on track, keep going together!`,
+                        `About ${weeksTo1kg} weeks per 1${U} — ${w4}${U} by next month!\nI can already see the change!`,
+                        `${w8}${U} in 2 months is within reach!\nEvery session is burning it away!`,
+                        `4 weeks to ${w4}${U}! You eat clean, I'll make you sweat!`,
                       ] : [
-                        `이 기세면 4주 뒤 약 ${w4}kg!\n운동은 제가 책임질게요, 식단만 더 신경쓰자!ㅎㅎ`,
-                        `4주 뒤 ${w4}kg, 8주 뒤 ${w8}kg!\n같이 달려가는 중이에요 우리!ㅎㅎ`,
-                        `약 ${weeksTo1kg}주에 1kg씩! 4주 뒤 ${w4}kg 목표!\n거울 앞에서 달라진 거 느끼실 거예요!`,
-                        `2달 뒤 ${w8}kg도 충분해요!\n매 운동이 지방을 태우고 있어요!`,
-                        `4주 뒤 ${w4}kg 향해 질주 중!\n맛있는 거 좀만 참으면 체중계가 웃어요!ㅎㅎ`,
+                        `이 기세면 4주 뒤 약 ${w4}${U}!\n운동은 제가 책임질게요, 식단만 더 신경쓰자!ㅎㅎ`,
+                        `4주 뒤 ${w4}${U}, 8주 뒤 ${w8}${U}!\n같이 달려가는 중이에요 우리!ㅎㅎ`,
+                        `약 ${weeksTo1kg}주에 1${U}씩! 4주 뒤 ${w4}${U} 목표!\n거울 앞에서 달라진 거 느끼실 거예요!`,
+                        `2달 뒤 ${w8}${U}도 충분해요!\n매 운동이 지방을 태우고 있어요!`,
+                        `4주 뒤 ${w4}${U} 향해 질주 중!\n맛있는 거 좀만 참으면 체중계가 웃어요!ㅎㅎ`,
                       ]);
                     }
 
                     if (msg.startsWith("growth.coach.muscleGain:")) {
-                      const [, total, levelKo, nextTarget, remaining] = msg.split(":");
-                      const hasNext = parseInt(nextTarget) > 0;
+                      const [, totalRaw, levelKo, nextTargetRaw, remainingRaw] = msg.split(":");
+                      const total = Math.round(toDispKg(parseFloat(totalRaw)));
+                      const nextTarget = Math.round(toDispKg(parseFloat(nextTargetRaw)));
+                      const remaining = Math.round(toDispKg(parseFloat(remainingRaw)));
+                      const hasNext = parseInt(nextTargetRaw) > 0;
+                      const U = unitLabels.weight;
                       // 회의 22: EN 모드에서 strength level 한글 라벨 영문 변환
                       const toEnStrengthLevel = (g: string) => g === "입문" ? "Novice" : g === "초급" ? "Beginner" : g === "중급" ? "Intermediate" : g === "상급" ? "Advanced" : g === "엘리트" ? "Elite" : g;
                       const level = isEn ? toEnStrengthLevel(levelKo) : levelKo;
                       return pick(isEn ? [
-                        `Big 3 total: ${total}kg! ${hasNext ? `${remaining}kg to ${level} level!` : `${level} level achieved!`}`,
-                        `${total}kg and climbing! ${hasNext ? `${nextTarget}kg is the next milestone!` : `You're at the top!`}`,
-                        `${total}kg total lift! ${hasNext ? `Just ${remaining}kg more to ${nextTarget}kg!` : `Elite status!`}\nWe're building this together!`,
-                        `Remember when we started? Now it's ${total}kg!\n${hasNext ? `${nextTarget}kg, here we come!` : `What a journey!`}`,
-                        `${total}kg! Every session adds plates!\n${hasNext ? `${level} → next level in sight!` : `${level} — legendary!`}`,
+                        `Big 3 total: ${total}${U}! ${hasNext ? `${remaining}${U} to ${level} level!` : `${level} level achieved!`}`,
+                        `${total}${U} and climbing! ${hasNext ? `${nextTarget}${U} is the next milestone!` : `You're at the top!`}`,
+                        `${total}${U} total lift! ${hasNext ? `Just ${remaining}${U} more to ${nextTarget}${U}!` : `Elite status!`}\nWe're building this together!`,
+                        `Remember when we started? Now it's ${total}${U}!\n${hasNext ? `${nextTarget}${U}, here we come!` : `What a journey!`}`,
+                        `${total}${U}! Every session adds plates!\n${hasNext ? `${level} → next level in sight!` : `${level} — legendary!`}`,
                       ] : [
-                        `3대 합계 추정 ${total}kg! ${hasNext ? `${level}까지 ${remaining}kg 남았어요!` : `${level} 달성!`}\n같이 가즈아!`,
-                        `${total}kg 돌파 중! ${hasNext ? `${nextTarget}kg이 다음 목표에요!` : `정상에 섰어요!`}\n같이 만든 기록이라 더 뿌듯!ㅎㅎ`,
-                        `${total}kg! ${hasNext ? `${nextTarget}kg까지 딱 ${remaining}kg!` : `엘리트 달성!`}\n이 기세 절대 놓치지 말자!`,
-                        `처음 시작할 때 생각하면 ${total}kg이 진짜 많이 온 거예요!\n${hasNext ? `${nextTarget}kg 향해 같이 달려요!` : `전설이에요 우리!`}`,
-                        `${total}kg 찍는 중! 매 세션이 무게를 쌓고 있어요!\n${hasNext ? `${level} 넘고 ${nextTarget}kg 가자!` : `${level}, 최고예요!`}ㅎㅎ`,
+                        `3대 합계 추정 ${total}${U}! ${hasNext ? `${level}까지 ${remaining}${U} 남았어요!` : `${level} 달성!`}\n같이 가즈아!`,
+                        `${total}${U} 돌파 중! ${hasNext ? `${nextTarget}${U}이 다음 목표에요!` : `정상에 섰어요!`}\n같이 만든 기록이라 더 뿌듯!ㅎㅎ`,
+                        `${total}${U}! ${hasNext ? `${nextTarget}${U}까지 딱 ${remaining}${U}!` : `엘리트 달성!`}\n이 기세 절대 놓치지 말자!`,
+                        `처음 시작할 때 생각하면 ${total}${U}이 진짜 많이 온 거예요!\n${hasNext ? `${nextTarget}${U} 향해 같이 달려요!` : `전설이에요 우리!`}`,
+                        `${total}${U} 찍는 중! 매 세션이 무게를 쌓고 있어요!\n${hasNext ? `${level} 넘고 ${nextTarget}${U} 가자!` : `${level}, 최고예요!`}ㅎㅎ`,
                       ]);
                     }
 

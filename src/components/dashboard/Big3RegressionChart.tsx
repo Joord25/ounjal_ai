@@ -3,11 +3,15 @@
 import React from "react";
 import { WorkoutHistory } from "@/constants/workout";
 import { useTranslation } from "@/hooks/useTranslation";
+import { useUnits } from "@/hooks/useUnits";
+import { kgToLb } from "@/utils/units";
 import { calcE1RMTrendByExercise } from "@/utils/predictionUtils";
 import { type FitnessProfile } from "./fitnessTypes";
 
 export function Big3RegressionChart({ history, profile }: { history: WorkoutHistory[]; profile: FitnessProfile }) {
   const { locale } = useTranslation();
+  const { system: unitSystem, labels: unitLabels } = useUnits();
+  const toDisp = (kg: number) => unitSystem === "imperial" ? kgToLb(kg) : kg;
   const byEx = calcE1RMTrendByExercise(history);
   const [activeIdx, setActiveIdx] = React.useState(0);
 
@@ -23,7 +27,7 @@ export function Big3RegressionChart({ history, profile }: { history: WorkoutHist
   const { regression: reg, points } = ex;
 
   const targetLine = profile.bodyWeight * 1.0;
-  const targetLabel = locale === "en" ? `Inter. ${Math.round(targetLine)}kg` : `중급 ${Math.round(targetLine)}kg`;
+  const targetLabel = locale === "en" ? `Inter. ${Math.round(toDisp(targetLine))}${unitLabels.weight}` : `중급 ${Math.round(toDisp(targetLine))}${unitLabels.weight}`;
   const lastX = points[points.length - 1].x;
   const lastY = points[points.length - 1].y;
   const predX = lastX + 28;
@@ -75,14 +79,14 @@ export function Big3RegressionChart({ history, profile }: { history: WorkoutHist
       )}
 
       <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ maxHeight: 180 }}>
-        <text x={PAD.left - 5} y={PAD.top - 6} textAnchor="end" className="fill-gray-400" fontSize="8">e1RM (kg)</text>
+        <text x={PAD.left - 5} y={PAD.top - 6} textAnchor="end" className="fill-gray-400" fontSize="8">e1RM ({unitLabels.weight})</text>
         {[0, 0.25, 0.5, 0.75, 1].map((pct, i) => {
           const y = PAD.top + (1 - pct) * chartH;
           const val = minY + pct * rangeY;
           return (
             <g key={i}>
               <line x1={PAD.left} y1={y} x2={W - PAD.right} y2={y} stroke="#e5e7eb" strokeWidth="0.5" />
-              <text x={PAD.left - 4} y={y + 3} textAnchor="end" className="fill-gray-400" fontSize="8">{Math.round(val)}</text>
+              <text x={PAD.left - 4} y={y + 3} textAnchor="end" className="fill-gray-400" fontSize="8">{Math.round(toDisp(val))}</text>
             </g>
           );
         })}
@@ -93,7 +97,7 @@ export function Big3RegressionChart({ history, profile }: { history: WorkoutHist
         <line x1={regLineStart.x} y1={regLineStart.y} x2={regLineEnd.x} y2={regLineEnd.y} stroke="#2D6A4F" strokeWidth="1.5" opacity="0.6" />
         <line x1={regLineEnd.x} y1={regLineEnd.y} x2={predLineEnd.x} y2={predLineEnd.y} stroke="#2D6A4F" strokeWidth="1.5" strokeDasharray="4 3" opacity="0.4" />
         <circle cx={predLineEnd.x} cy={predLineEnd.y} r="4" fill="none" stroke="#2D6A4F" strokeWidth="1.5" strokeDasharray="2 2" />
-        <text x={predLineEnd.x} y={predLineEnd.y - 8} textAnchor="middle" className="fill-emerald-700" fontSize="8" fontWeight="bold">{predY}</text>
+        <text x={predLineEnd.x} y={predLineEnd.y - 8} textAnchor="middle" className="fill-emerald-700" fontSize="8" fontWeight="bold">{Math.round(toDisp(predY))}</text>
         <text x={predLineEnd.x} y={H - 5} textAnchor="middle" className="fill-gray-400" fontSize="7">{locale === "en" ? "4 wks" : "4주 후"}</text>
         {dotPositions.map((d, i) => (
           <g key={i}>
@@ -111,7 +115,8 @@ export function Big3RegressionChart({ history, profile }: { history: WorkoutHist
           // 주간 변화량 클램핑: ±20kg/주 초과는 비현실적
           const clamped = Math.max(-20, Math.min(20, ex.growthPerWeek));
           const symbol = clamped > 0 ? "▲" : clamped < 0 ? "▼" : "—";
-          return locale === "en" ? `${symbol} ${clamped > 0 ? "+" : ""}${clamped}kg/wk` : `${symbol} 주간 ${clamped > 0 ? "+" : ""}${clamped}kg/주`;
+          const clampedDisp = Math.round(toDisp(clamped) * 10) / 10;
+          return locale === "en" ? `${symbol} ${clampedDisp > 0 ? "+" : ""}${clampedDisp}${unitLabels.weight}/wk` : `${symbol} 주간 ${clampedDisp > 0 ? "+" : ""}${clampedDisp}${unitLabels.weight}/주`;
         })()}
       </p>
     </div>

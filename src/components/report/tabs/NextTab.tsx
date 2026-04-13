@@ -2,6 +2,8 @@
 
 import React from "react";
 import { useTranslation } from "@/hooks/useTranslation";
+import { useUnits } from "@/hooks/useUnits";
+import { kgToLb } from "@/utils/units";
 import { WorkoutHistory } from "@/constants/workout";
 import { classifySessionIntensity, getWeeklyIntensityTarget } from "@/utils/workoutMetrics";
 import { translateDesc } from "../reportUtils";
@@ -229,6 +231,8 @@ export const NextTab: React.FC<NextTabProps> = ({
   weeklySchedule, streak, totalVolume, gender, sessionDesc, exercises, logs, birthYear,
 }) => {
   const { t, locale } = useTranslation();
+  const { system: unitSystem, labels: unitLabels } = useUnits();
+  const toDispW = (kg: number) => unitSystem === "imperial" ? Math.round(kgToLb(kg) * 10) / 10 : kg;
   const ko = locale === "ko";
 
   // todayBodyPart가 null이면 sessionDesc/exercises에서 추출
@@ -366,7 +370,7 @@ export const NextTab: React.FC<NextTabProps> = ({
             <div className="h-px bg-gray-100" />
             <div className="flex items-center justify-between">
               <span className="text-xs text-gray-500">{ko ? "무게 목표" : "Weight Goal"}</span>
-              <span className="text-sm font-bold text-[#2D6A4F]">{weightGoal.exerciseName} {weightGoal.targetWeight}kg</span>
+              <span className="text-sm font-bold text-[#2D6A4F]">{weightGoal.exerciseName} {toDispW(weightGoal.targetWeight)}{unitLabels.weight}</span>
             </div>
           </>}
         </div>
