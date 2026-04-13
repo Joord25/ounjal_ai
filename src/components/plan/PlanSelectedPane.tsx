@@ -20,6 +20,7 @@ interface PlanSelectedPaneProps {
   onSwap: (idx: number) => void;
   onDelete: (idx: number) => void;
   onFormGuide: (ex: ExerciseStep) => void;
+  onUpdateCount?: (idx: number, newCount: string) => void;
 }
 
 /**
@@ -41,6 +42,7 @@ export const PlanSelectedPane: React.FC<PlanSelectedPaneProps> = ({
   onSwap,
   onDelete,
   onFormGuide,
+  onUpdateCount,
 }) => {
   if (mode === "peek") {
     const color = exercise ? getMuscleColor(exercise.name) : null;
@@ -92,6 +94,7 @@ export const PlanSelectedPane: React.FC<PlanSelectedPaneProps> = ({
         onSwap={onSwap}
         onDelete={onDelete}
         onFormGuide={onFormGuide}
+        onUpdateCount={onUpdateCount}
         canDelete={canDelete}
         canSwap={canSwap}
       />

@@ -606,16 +606,15 @@ export const FitScreen: React.FC<FitScreenProps> = ({
         return 0;
     }
 
+    // "N초" / "N sec" / "N-M초" — 시간 단위 바로 앞 숫자 우선 매칭
+    const secMatch = countStr.match(/(\d+)(?:-\d+)?\s*(?:초|sec)/i);
+    if (secMatch) return parseInt(secMatch[1]) || 60;
+
+    const minMatch = countStr.match(/(\d+)(?:-\d+)?\s*(?:분|min)/i);
+    if (minMatch) return (parseInt(minMatch[1]) || 1) * 60;
+
     const match = countStr.match(/(\d+)/);
     const val = match ? parseInt(match[1]) : 0;
-
-    if (countStr.toLowerCase().includes('sec') || countStr.includes('초')) {
-        return val || 60;
-    }
-
-    if (countStr.toLowerCase().includes('min') || countStr.includes('분')) {
-        return (val || 1) * 60;
-    }
 
     if (countStr.includes('회') || countStr.toLowerCase().includes('reps') || countStr.includes('개')) {
         return 60;

@@ -103,10 +103,36 @@ function detectRunningVariant(exercises: ExerciseStep[]): RunningVariant | null 
   return null;
 }
 
+/** 플랭크·사이드 플랭크·할로우 홀드 등 정적 홀드 운동 판정 (reps를 초 단위로 저장) */
+function isHoldExercise(name: string, originalCount?: string): boolean {
+  if (/플랭크|plank|할로우|hollow\s?hold|사이드\s?플랭크|side\s?plank/i.test(name)) return true;
+  // 원본 count가 "초 유지" 패턴이면 홀드로 간주
+  if (originalCount && /\d+\s*초\s*유지|\d+\s*sec\s*hold/i.test(originalCount)) return true;
+  return false;
+}
+
 /** Rebuild count string from sets/reps to ensure consistency */
 function rebuildCount(ex: ExerciseStep, t?: (key: string, vars?: Record<string, string>) => string, locale?: string): string {
+  // 첫 set의 reps(시간값) 우선 사용, 없으면 count 추출 또는 ex.reps fallback
+  const firstSetTime = (unitMatch: RegExpMatchArray | null): number | null => {
+    const fromSets = ex.setDetails?.[0]?.reps;
+    if (fromSets && fromSets > 1) return fromSets;
+    if (unitMatch) return parseInt(unitMatch[2] || unitMatch[1], 10);
+    return ex.reps > 1 ? ex.reps : null;
+  };
   // Timer-based exercises (warmup, cardio, mobility with time-based counts)
   if (ex.type === "warmup" || ex.type === "cardio" || ex.type === "mobility") {
+    const m = ex.count.match(/(\d+)(?:-(\d+))?\s*(초|분|sec|min)/);
+    const hasIntervalMarker = /×|x\s*\d+/i.test(ex.count);
+    if (m && !hasIntervalMarker) {
+      const unit = m[3];
+      const time = firstSetTime(m) ?? parseInt(m[2] || m[1], 10);
+      const setsPrefix = ex.sets > 1 ? (locale && locale !== "ko" ? `${ex.sets} sets / ` : `${ex.sets}세트 / `) : "";
+      const unitOut = locale && locale !== "ko"
+        ? (unit === "초" ? "sec" : unit === "분" ? "min" : unit)
+        : unit;
+      return `${setsPrefix}${time}${unitOut}`;
+    }
     if (/분|초|min|sec/i.test(ex.count)) {
       if (locale && locale !== "ko") {
         return ex.count
@@ -119,6 +145,14 @@ function rebuildCount(ex: ExerciseStep, t?: (key: string, vars?: Record<string, 
       }
       return ex.count;
     }
+  }
+  // Static hold (plank etc.) — reps field holds seconds
+  if (ex.type === "core" && isHoldExercise(ex.name, ex.count) && ex.sets >= 1) {
+    const m = ex.count.match(/(\d+)(?:-(\d+))?\s*(초|sec)/);
+    const sec = firstSetTime(m) ?? ex.reps;
+    return locale && locale !== "ko"
+      ? `${ex.sets} sets / ${sec} sec hold`
+      : `${ex.sets}세트 / ${sec}초 유지`;
   }
   // Strength/core with sets >= 1
   if (ex.sets >= 1) {
@@ -496,6 +530,15 @@ export const MasterPlanPreview: React.FC<MasterPlanPreviewProps> = ({
                   const parts = getExerciseName(ex.name, locale).split('(');
                   const searchTerm = parts.length > 1 ? parts[1].replace(')', '').trim() : parts[0].trim();
                   window.open(`https://www.youtube.com/results?search_query=${encodeURIComponent(searchTerm + " exercise form guide")}`, "_blank");
+                }}
+                onUpdateCount={(idx, newCount) => {
+                  setLocalExercises(prev => prev.map((e, i) => {
+                    if (i !== idx) return e;
+                    // 홀드 운동이면 reps(=초)도 동기화
+                    const secMatch = newCount.match(/(\d+)\s*(?:초|sec)/);
+                    const newReps = secMatch ? parseInt(secMatch[1], 10) : e.reps;
+                    return { ...e, count: newCount, reps: newReps };
+                  }));
                 }}
               />
             }

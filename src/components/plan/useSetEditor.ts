@@ -30,9 +30,11 @@ export function useSetEditor(setLocalExercises: SetterFn, rebuildCount: RebuildC
       while (current.length < ex.sets) current.push({ reps: ex.reps, weight: ex.weight });
       if (setIdx < 0 || setIdx >= current.length) return ex;
       current[setIdx] = { ...current[setIdx], ...patch };
-      return { ...ex, setDetails: current };
+      const updated = { ...ex, setDetails: current };
+      updated.count = rebuildCount(updated);
+      return updated;
     }));
-  }, [setLocalExercises]);
+  }, [setLocalExercises, rebuildCount]);
 
   const addSet = useCallback((exerciseIdx: number) => {
     setLocalExercises(prev => prev.map((ex, i) => {

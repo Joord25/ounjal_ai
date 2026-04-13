@@ -18,6 +18,7 @@ interface PlanExerciseDetailProps {
   onSwap: (idx: number) => void;
   onDelete: (idx: number) => void;
   onFormGuide: (ex: ExerciseStep) => void;
+  onUpdateCount?: (idx: number, newCount: string) => void;
   canDelete: boolean;
   canSwap: boolean;
 }
@@ -28,7 +29,7 @@ type ActivePill = { setIdx: number; field: "reps" | "weight" } | null;
 export const PlanExerciseDetail: React.FC<PlanExerciseDetailProps> = ({
   exercise, globalIdx,
   onUpdateSetDetail, onAddSet, onRemoveSet,
-  onSwap, onDelete, onFormGuide,
+  onSwap, onDelete, onFormGuide, onUpdateCount,
   canDelete, canSwap,
 }) => {
   const { locale, t } = useTranslation();
@@ -38,6 +39,23 @@ export const PlanExerciseDetail: React.FC<PlanExerciseDetailProps> = ({
   const color = getMuscleColor(exercise.name);
   const hasWeight = exercise.type === "strength" || (exercise.weight && exercise.weight !== "Bodyweight" && exercise.weight !== "맨몸");
   const isTimeBased = exercise.type === "warmup" || exercise.type === "cardio" || /분|초|min|sec/i.test(exercise.count);
+  // 단순 시간 패턴 ("N초"/"N분"/"N-M초") + 인터벌 마커 없음 → 세트별 시간 편집 모드
+  const timeMatch = exercise.count.match(/(\d+)(?:-(\d+))?\s*(초|분|sec|min)/);
+  const timeUnit = timeMatch ? timeMatch[3] : null;
+  const timeBaseValue = timeMatch ? parseInt(timeMatch[2] || timeMatch[1], 10) : 0;
+  const hasIntervalMarker = /×|x\s*\d+/i.test(exercise.count);
+  const canEditSetTime = isTimeBased && !!timeUnit && !hasIntervalMarker;
+  const isStaticTime = isTimeBased && !canEditSetTime;
+  // 시간 단위별 step/min/max
+  const timeStep = timeUnit === "초" || timeUnit === "sec" ? 15 : 1;
+  const timeMinVal = timeUnit === "초" || timeUnit === "sec" ? 15 : 1;
+  const timeMaxVal = timeUnit === "초" || timeUnit === "sec" ? 600 : 120;
+  // 시간 모드에서 SET 값 도출: setDetails.reps 사용, 1 이하(초기값)면 count에서 추출한 값 사용
+  const effectiveTimeForSet = (i: number): number => {
+    const stored = setDetails[i]?.reps;
+    if (stored && stored > 1) return stored;
+    return timeBaseValue;
+  };
 
   const [active, setActive] = useState<ActivePill>(null);
   const cardRef = useRef<HTMLDivElement>(null);
@@ -91,13 +109,18 @@ export const PlanExerciseDetail: React.FC<PlanExerciseDetailProps> = ({
 
       <div className="h-px bg-gray-100 mx-4" />
 
-      {/* 세트 리스트 */}
-      {!isTimeBased && (
+      {/* 세트 리스트 — strength(reps) / time(초·분) 공통 */}
+      {!isStaticTime && (
         <div className="flex flex-col px-4 py-2">
           {setDetails.map((set, i) => {
             const weightKg = parseWeight(set.weight);
             const repsActive = isActive(i, "reps");
             const weightActive = isActive(i, "weight");
+            const displayReps = canEditSetTime ? effectiveTimeForSet(i) : set.reps;
+            const repsLabel = canEditSetTime ? (timeUnit as string) : t("plan.reps");
+            const repsMin = canEditSetTime ? timeMinVal : 1;
+            const repsMax = canEditSetTime ? timeMaxVal : 100;
+            const repsStep = canEditSetTime ? timeStep : 1;
             return (
               <div key={`${globalIdx}-set-${i}`} className="flex items-center py-3 gap-2 border-b border-gray-100 last:border-b-0">
                 <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] w-10 shrink-0">
@@ -128,16 +151,16 @@ export const PlanExerciseDetail: React.FC<PlanExerciseDetailProps> = ({
                   );
                 })()}
 
-                {/* reps pill (우측) */}
+                {/* reps(또는 time) pill */}
                 <div className="flex-1 flex items-center justify-center">
                   <PillEditor
-                    value={set.reps}
-                    label={t("plan.reps")}
+                    value={displayReps}
+                    label={repsLabel}
                     color="text-[#1B4332]"
                     active={!!repsActive}
                     onActivate={() => setActive({ setIdx: i, field: "reps" })}
-                    onDecrement={() => onUpdateSetDetail(globalIdx, i, { reps: Math.max(1, set.reps - 1) })}
-                    onIncrement={() => onUpdateSetDetail(globalIdx, i, { reps: Math.min(100, set.reps + 1) })}
+                    onDecrement={() => onUpdateSetDetail(globalIdx, i, { reps: Math.max(repsMin, displayReps - repsStep) })}
+                    onIncrement={() => onUpdateSetDetail(globalIdx, i, { reps: Math.min(repsMax, displayReps + repsStep) })}
                   />
                 </div>
 
@@ -170,14 +193,16 @@ export const PlanExerciseDetail: React.FC<PlanExerciseDetailProps> = ({
         </div>
       )}
 
-      {/* 시간 기반 */}
-      {isTimeBased && (
-        <div className="py-6 text-center">
-          <span className="font-plan-num text-2xl font-bold text-[#1B4332]">
-            {exercise.count}
-          </span>
-        </div>
-      )}
+      {/* 복잡한 인터벌 패턴 (×·sprint 등): 정적 표시 */}
+      {isStaticTime && (() => {
+        return (
+          <div className="py-6 text-center">
+            <span className="font-plan-num text-2xl font-bold text-[#1B4332]">
+              {exercise.count}
+            </span>
+          </div>
+        );
+      })()}
 
       <div className="h-px bg-gray-100" />
 
