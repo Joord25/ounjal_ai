@@ -996,7 +996,7 @@ export default function Home() {
     <I18nProvider>
     <PhoneFrame pullToRefresh={view === "home"}>
       <div className="h-full w-full relative overflow-hidden">
-        <div className={`h-full overflow-y-auto overflow-x-hidden scrollbar-hide ${view === "login" ? "" : ""}`} style={view === "login" || view === "workout_session" || view === "master_plan_preview" ? undefined : { paddingBottom: "calc(80px + var(--safe-area-bottom, 0px))" }}>
+        <div className={`h-full overflow-y-auto overflow-x-hidden scrollbar-hide ${view === "login" ? "" : ""}`} style={view === "login" || view === "workout_session" || view === "master_plan_preview" || view === "condition_check" ? undefined : { paddingBottom: "calc(80px + var(--safe-area-bottom, 0px))" }}>
           {renderContent()}
         </div>
         
@@ -1054,7 +1054,7 @@ export default function Home() {
           />
         )}
 
-        {view !== "login" && view !== "onboarding" && view !== "workout_session" && view !== "master_plan_preview" && !cancelFlowActive && (
+        {view !== "login" && view !== "onboarding" && view !== "workout_session" && view !== "master_plan_preview" && view !== "condition_check" && !cancelFlowActive && (
           <div
             className={`absolute bottom-0 left-0 right-0 z-40 transition-transform duration-300 ease-out ${
               tabsVisible ? "translate-y-0" : "translate-y-full"
