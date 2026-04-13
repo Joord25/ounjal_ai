@@ -1,13 +1,19 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
+import { useSetEditor } from "./useSetEditor";
 import { THEME } from "@/constants/theme";
-import { WorkoutSessionData, ExerciseStep, getAlternativeExercises, LABELED_EXERCISE_POOLS, WorkoutGoal } from "@/constants/workout";
+import { WorkoutSessionData, ExerciseStep, getAlternativeExercises, WorkoutGoal } from "@/constants/workout";
 import { PlanShareCard } from "./PlanShareCard";
+import { PlanHero } from "./PlanHero";
+import { PlanTutorialOverlays } from "./PlanTutorialOverlays";
+import { PlanBottomSheets } from "./PlanBottomSheets";
+import { PlanLibraryPane } from "./PlanLibraryPane";
+import { PlanSelectedPane } from "./PlanSelectedPane";
+import { PlanSplitShell, FocusedPane } from "./PlanSplitShell";
 import { trackEvent } from "@/utils/analytics";
 import { useTranslation } from "@/hooks/useTranslation";
-import { getExerciseName, translateWeightGuide } from "@/utils/exerciseName";
-import { translateDesc } from "@/components/report/reportUtils";
+import { getExerciseName } from "@/utils/exerciseName";
 
 interface MasterPlanPreviewProps {
   sessionData: WorkoutSessionData;
@@ -167,13 +173,24 @@ export const MasterPlanPreview: React.FC<MasterPlanPreviewProps> = ({
   // Sync when sessionData changes (e.g. after regenerate)
   useEffect(() => {
     setLocalExercises(sessionData.exercises.map(ex => ({ ...ex, count: rebuildCount(ex, t, locale) })));
-  }, [sessionData, t]);
+    // 운동 배열 재생성 시 선택 상태 안전 초기화
+    setSelectedIdx(null);
+    setFocusedPane("library");
+  }, [sessionData, t, locale]);
 
   const [isEditing, setIsEditing] = useState(false);
-  const [expandedCard, setExpandedCard] = useState<number | null>(null);
+  /** 상세 편집 대상 운동 인덱스 (null이면 빈 상태) */
+  const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
+  /** 8:2 ↔ 2:8 슬라이드 상태 */
+  const [focusedPane, setFocusedPane] = useState<FocusedPane>("library");
+  /** 하단 CTA 노출 여부 — 스크롤이 끝에 도달했을 때만 슬라이드업 */
+  const [ctaVisible, setCtaVisible] = useState(false);
+  const scrollEndRef = useRef<HTMLDivElement | null>(null);
+
+  // CTA 항상 노출 (대표님 지시 — 라이브러리/상세 어디서든 시작 버튼 접근 가능)
+  useEffect(() => { setCtaVisible(true); }, []);
 
 
-  const [guideExercise, setGuideExercise] = useState<ExerciseStep | null>(null);
   const [swapExercise, setSwapExercise] = useState<{ exercise: ExerciseStep; index: number; sameGroup: string[] } | null>(null);
   // 회의 36: 러닝 타입 교체 바텀시트
   const [showRunningSwap, setShowRunningSwap] = useState(false);
@@ -206,6 +223,8 @@ export const MasterPlanPreview: React.FC<MasterPlanPreviewProps> = ({
     const warmups = nonMain.filter((e) => e.phase === "warmup");
     const rest = nonMain.filter((e) => e.phase !== "warmup");
     setLocalExercises([...warmups, ...newMain, ...rest]);
+    setSelectedIdx(null);
+    setFocusedPane("library");
     setShowRunningSwap(false);
   };
   const [swapSearch, setSwapSearch] = useState("");
@@ -256,64 +275,46 @@ export const MasterPlanPreview: React.FC<MasterPlanPreviewProps> = ({
 
   useEffect(() => {
     if (!containerRef.current) return;
-    const containerRect = containerRef.current.getBoundingClientRect();
+    // 슬라이드 애니메이션(300ms) 완료 후 측정
+    const timer = setTimeout(() => {
+      if (!containerRef.current) return;
+      const containerRect = containerRef.current.getBoundingClientRect();
 
-    if (showIntroTip && descRef.current) {
-      const r = descRef.current.getBoundingClientRect();
-      setDescPos({
-        top: r.top - containerRect.top,
-        left: r.left - containerRect.left,
-        width: r.width,
-        height: r.height,
-      });
-    }
+      if (showIntroTip && descRef.current) {
+        const r = descRef.current.getBoundingClientRect();
+        setDescPos({
+          top: r.top - containerRect.top,
+          left: r.left - containerRect.left,
+          width: r.width,
+          height: r.height,
+        });
+      }
 
-    if (!showIntroTip && showTip && settingsBtnRef.current) {
-      const btnRect = settingsBtnRef.current.getBoundingClientRect();
-      setSettingsBtnPos({
-        top: btnRect.top - containerRect.top,
-        right: containerRect.right - btnRect.right,
-      });
-    }
+      if (!showIntroTip && showTip && settingsBtnRef.current) {
+        const btnRect = settingsBtnRef.current.getBoundingClientRect();
+        setSettingsBtnPos({
+          top: btnRect.top - containerRect.top,
+          right: containerRect.right - btnRect.right,
+        });
+      }
 
-    if (!showIntroTip && !showTip && showGuideTip && firstGuideRef.current) {
-      const btnRect = firstGuideRef.current.getBoundingClientRect();
-      setGuideBtnPos({
-        top: btnRect.top - containerRect.top,
-        left: btnRect.left - containerRect.left,
-        width: btnRect.width,
-        height: btnRect.height,
-      });
-    }
-  }, [showIntroTip, showTip, showGuideTip]);
+      // 가이드 팁은 LIBRARY full 모드에서만 (peek 시 firstGuideRef 미렌더)
+      if (!showIntroTip && !showTip && showGuideTip && focusedPane === "library" && firstGuideRef.current) {
+        const btnRect = firstGuideRef.current.getBoundingClientRect();
+        setGuideBtnPos({
+          top: btnRect.top - containerRect.top,
+          left: btnRect.left - containerRect.left,
+          width: btnRect.width,
+          height: btnRect.height,
+        });
+      }
+    }, 320);
+    return () => clearTimeout(timer);
+  }, [showIntroTip, showTip, showGuideTip, focusedPane]);
 
-  const adjustSets = (exerciseIndex: number, delta: number) => {
-    setLocalExercises(prev => prev.map((ex, i) => {
-      if (i !== exerciseIndex) return ex;
-      const newSets = Math.max(1, Math.min(10, ex.sets + delta));
-      if (newSets === ex.sets) return ex;
-      const updated = { ...ex, sets: newSets };
-      updated.count = rebuildCount(updated, t, locale);
-      return updated;
-    }));
-  };
-
-  const handleMoveExercise = (globalIdx: number, direction: "up" | "down", phaseExercises: ExerciseStep[]) => {
-    const ex = localExercises[globalIdx];
-    const phaseIndex = phaseExercises.indexOf(ex);
-    const targetPhaseIndex = direction === "up" ? phaseIndex - 1 : phaseIndex + 1;
-    if (targetPhaseIndex < 0 || targetPhaseIndex >= phaseExercises.length) return;
-    const targetGlobalIdx = localExercises.indexOf(phaseExercises[targetPhaseIndex]);
-    if (targetGlobalIdx === -1) return;
-
-    setLocalExercises(prev => {
-      const next = [...prev];
-      [next[globalIdx], next[targetGlobalIdx]] = [next[targetGlobalIdx], next[globalIdx]];
-      return next;
-    });
-    // 펼친 카드 따라가기
-    setExpandedCard(targetGlobalIdx);
-  };
+  const rebuildCountLocal = useCallback((ex: ExerciseStep) => rebuildCount(ex, t, locale), [t, locale]);
+  const { adjustSets, updateSetDetail: handleUpdateSetDetail, addSet: handleAddSet, removeSet: handleRemoveSet } =
+    useSetEditor(setLocalExercises, rebuildCountLocal);
 
   const handleDeleteExercise = (globalIdx: number) => {
     setLocalExercises(prev => {
@@ -328,7 +329,6 @@ export const MasterPlanPreview: React.FC<MasterPlanPreviewProps> = ({
       if (exPhase === "main" && samePhase.length === 0) return prev;
       return prev.filter((_, i) => i !== globalIdx);
     });
-    setExpandedCard(null);
   };
 
   const handleSwapExercise = (globalIdx: number, newName: string) => {
@@ -408,7 +408,7 @@ export const MasterPlanPreview: React.FC<MasterPlanPreviewProps> = ({
     <div ref={containerRef} className="flex flex-col h-full bg-[#FAFBF9] animate-fade-in relative overflow-hidden">
       {/* Header Bar */}
       <div className="pt-5 pb-3 px-6 flex items-center justify-between shrink-0 bg-[#FAFBF9]">
-        <button onClick={onBack} className="p-2 -ml-2">
+        <button onClick={selectedIdx !== null ? () => setSelectedIdx(null) : onBack} className="p-2 -ml-2">
           <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
           </svg>
@@ -427,280 +427,89 @@ export const MasterPlanPreview: React.FC<MasterPlanPreviewProps> = ({
         </button>
       </div>
 
-      {/* Scrollable Content */}
-      <div className="flex-1 overflow-y-auto px-6 scrollbar-hide" style={{ paddingBottom: "calc(90px + var(--safe-area-bottom, 0px))" }}>
-        {/* Hero Section */}
-        <div className="pt-2 pb-5">
-          {/* AI 코치 + 강도 */}
-          <div ref={descRef} className="flex items-center gap-2 mb-3">
-            <img src="/favicon_backup.png" alt="AI" className="w-5 h-5 rounded-full shrink-0" />
-            <span className="text-[11px] font-bold text-gray-400">{t("plan.ai_coach")}</span>
-            {currentIntensity && (
-              <span className={`text-[10px] font-black px-2 py-0.5 rounded ${
-                currentIntensity === "high" ? "bg-red-100 text-red-600"
-                  : currentIntensity === "moderate" ? "bg-amber-100 text-amber-700"
-                  : "bg-blue-100 text-blue-600"
-              }`}>
-                {t(`plan.intensity.${currentIntensity}`)}
-              </span>
-            )}
-          </div>
-
-          {/* 회의 36 v2: 제목 + 러닝 타입 교체 버튼 (제목 옆 빈공간 활용) */}
-          <div className="flex items-start justify-between gap-3 mb-2">
-            <h1 className="text-2xl font-black text-[#1B4332] leading-tight tracking-tight flex-1 min-w-0">
-              {t("plan.title")}
-            </h1>
-            {isRunningSession && currentRunningVariant && (
-              <div ref={runningSwapRef} className="relative shrink-0 mt-1">
-                <button
-                  onClick={() => setShowRunningSwap(v => !v)}
-                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-[10px] font-bold text-[#2D6A4F] active:scale-95 transition-all"
-                >
-                  <span>{t(`plan.running.${currentRunningVariant}.label`)}</span>
-                  <svg className={`w-3 h-3 opacity-60 transition-transform ${showRunningSwap ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-                {/* 회의 41 후속: 인라인 드롭다운 (버튼 바로 아래 펼침) */}
-                {showRunningSwap && (
-                  <div className="absolute right-0 top-full mt-1.5 w-64 bg-white rounded-2xl border border-gray-200 shadow-xl p-2 z-50 animate-fade-in">
-                    {(["walkrun", "tempo", "fartlek", "sprint"] as const).map((variant) => {
-                      const isCurrent = variant === currentRunningVariant;
-                      return (
-                        <button
-                          key={variant}
-                          onClick={() => handleRunningVariantSwap(variant)}
-                          className={`w-full text-left px-3 py-2.5 rounded-xl transition-all active:scale-[0.98] ${
-                            isCurrent ? "bg-emerald-50" : "hover:bg-gray-50"
-                          }`}
-                        >
-                          <div className="flex items-center justify-between mb-0.5">
-                            <span className={`text-[12px] font-black ${isCurrent ? "text-[#2D6A4F]" : "text-[#1B4332]"}`}>
-                              {t(`plan.running.${variant}.label`)}
-                            </span>
-                            {isCurrent && (
-                              <svg className="w-3.5 h-3.5 text-[#2D6A4F]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                              </svg>
-                            )}
-                          </div>
-                          <p className="text-[10px] text-gray-500 leading-snug">
-                            {t(`plan.running.${variant}.desc`)}
-                          </p>
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-          <p className="text-sm text-gray-500 leading-relaxed line-clamp-2 mb-2">
-            {translateDesc(sessionData.description, locale)}
-          </p>
-          {/* 회의 41 M-H: 러닝 타입 가이드 한 줄 (러닝 코치 권고) */}
-          {isRunningSession && currentRunningVariant && (
-            <p className="text-[13px] font-semibold text-[#1B4332]/80 leading-relaxed mb-2">
-              {t(`running.guide.${currentRunningVariant}`)}
-            </p>
-          )}
-          {/* 경험 메시지 — 목표 × 부위 매트릭스 (i18n) */}
-          <p className="text-[13px] font-bold text-[#2D6A4F] leading-relaxed">
-            {(() => {
-              const desc = (sessionData.description || "").toLowerCase();
-              const g = goal || "general_fitness";
-
-              let part = "default";
-              if (/가슴|푸시|chest|push|벤치/.test(desc)) part = "chest";
-              else if (/등|풀|back|pull|로우|랫/.test(desc)) part = "back";
-              else if (/하체|레그|스쿼트|leg|squat|런지|데드/.test(desc)) part = "lower";
-              else if (/코어|복근|core|ab|플랭크/.test(desc)) part = "core";
-              else if (/러닝|유산소|cardio|run|hiit|서킷/.test(desc)) part = "cardio";
-              else if (/모빌리티|회복|스트레칭/.test(desc)) part = "mobility";
-
-              return t(`exp.${g}.${part}`) !== `exp.${g}.${part}` ? t(`exp.${g}.${part}`) : t(`exp.general_fitness.${part}`);
-            })()}
-          </p>
-        </div>
-
-        {/* Exercise List */}
-        <div className="flex flex-col gap-6">
-          {phases.map((phase, phaseIdx) => (
-            <div key={phase.key} className="animate-slide-in-bottom" style={{ animationDelay: `${phaseIdx * 0.08}s` }}>
-              {/* Phase Header */}
-              <div className="flex items-center gap-2.5 mb-3">
-                <div className={`w-1.5 h-8 rounded-full ${phase.color}`} />
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-black text-gray-400 tracking-widest">{phase.num}</span>
-                  <span className={`text-[10px] font-black px-2 py-0.5 rounded ${phase.badge}`}>
-                    {phase.label}
-                  </span>
-                </div>
-              </div>
-
-              {/* Exercise Cards */}
-              <div className="flex flex-col gap-2 ml-4">
-                {phase.exercises.map((ex, i) => {
-                  const globalIdx = localExercises.indexOf(ex);
-                  const canAdjustSets = (ex.type === "strength" || ex.type === "core") && ex.sets > 0;
-                  const isExpanded = expandedCard === globalIdx;
-                  const hasSwap = getAlternativeExercises(ex.name).length > 0;
-                  return (
-                  <div
-                    key={globalIdx}
-                    ref={phaseIdx === 0 && i === 0 ? firstGuideRef : undefined}
-                    className={`rounded-2xl p-4 pt-3 bg-white border-2 relative transition-all ${
-                      phase.key === "main"
-                        ? "border-[#1B4332] shadow-[2px_2px_0px_0px_#1B4332] active:scale-[0.98]"
-                        : phase.key === "warmup"
-                        ? "border-gray-700 shadow-[2px_2px_0px_0px_#374151] active:scale-[0.98]"
-                        : phase.key === "core"
-                        ? "border-gray-600 shadow-[2px_2px_0px_0px_#4B5563] active:scale-[0.98]"
-                        : phase.key === "cardio"
-                        ? "border-emerald-500 shadow-[2px_2px_0px_0px_#10B981] active:scale-[0.98]"
-                        : "border-gray-300 shadow-[2px_2px_0px_0px_#D1D5DB] active:scale-[0.98]"
-                    }`}
-                    onClick={() => setExpandedCard(isExpanded ? null : globalIdx)}
-                  >
-                    {/* Delete button — visible only when card is expanded */}
-                    {isExpanded && (() => {
-                      const exPhase = ex.phase || (ex.type === "warmup" ? "warmup" : ex.type === "core" || ex.type === "mobility" ? "core" : ex.type === "cardio" ? "cardio" : "main");
-                      const isLastInPhase = exPhase === "main" && phase.exercises.length <= 1;
-                      if (isLastInPhase) return null;
-                      return (
-                        <button
-                          onClick={(e) => { e.stopPropagation(); handleDeleteExercise(globalIdx); }}
-                          className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-gray-400 flex items-center justify-center text-white hover:bg-gray-500 transition-colors z-10 shadow-sm animate-fade-in"
-                        >
-                          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                        </button>
-                      );
-                    })()}
-                    <div className="flex justify-between items-center gap-2">
-                      <div className="flex-1 min-w-0">
-                        <span className="text-sm font-bold block leading-snug text-gray-900">
-                          {getExerciseName(ex.name, locale)}
-                        </span>
-                        {ex.weight && ex.weight !== "Bodyweight" && ex.weight !== "맨몸" && (
-                          <span className="text-xs text-[#2D6A4F] font-bold mt-1 block">{translateWeightGuide(ex.weight, locale)}</span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-1.5 ml-2 shrink-0">
-                        {canAdjustSets && (
-                          <button
-                            onClick={(e) => { e.stopPropagation(); adjustSets(globalIdx, -1); }}
-                            disabled={ex.sets <= 1}
-                            className="w-6 h-6 rounded-lg bg-gray-100 flex items-center justify-center text-gray-500 active:scale-90 transition-all disabled:opacity-30"
-                          >
-                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                              <path strokeLinecap="round" d="M5 12h14" />
-                            </svg>
-                          </button>
-                        )}
-                        <span className={`text-[10px] font-black uppercase tracking-wide px-2 py-1 rounded-lg min-w-[40px] text-center ${
-                          phase.key === "main"
-                            ? "bg-[#1B4332] text-white"
-                            : phase.key === "warmup"
-                            ? "bg-gray-700 text-white"
-                            : phase.key === "core"
-                            ? "bg-gray-600 text-white"
-                            : phase.key === "cardio"
-                            ? "bg-emerald-500 text-white"
-                            : "bg-gray-200 text-gray-600"
-                        }`}>
-                          {ex.count}
-                        </span>
-                        {canAdjustSets && (
-                          <button
-                            onClick={(e) => { e.stopPropagation(); adjustSets(globalIdx, 1); }}
-                            disabled={ex.sets >= 10}
-                            className="w-6 h-6 rounded-lg bg-gray-100 flex items-center justify-center text-gray-500 active:scale-90 transition-all disabled:opacity-30"
-                          >
-                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                              <path strokeLinecap="round" d="M12 5v14M5 12h14" />
-                            </svg>
-                          </button>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Expanded Action Buttons */}
-                    {isExpanded && (
-                      <div className="flex gap-2 mt-3 pt-3 border-t border-gray-100">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            const parts = getExerciseName(ex.name, locale).split('(');
-                            const searchTerm = parts.length > 1 ? parts[1].replace(')', '').trim() : parts[0].trim();
-                            window.open(`https://www.youtube.com/results?search_query=${encodeURIComponent(searchTerm + " exercise form guide")}`, "_blank");
-                          }}
-                          className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white border border-gray-100 shadow-sm active:scale-95 transition-all"
-                        >
-                          <svg className="w-4 h-4 text-red-600 shrink-0" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
-                          </svg>
-                          <span className="text-xs font-bold text-gray-600">{t("plan.form_guide")}</span>
-                        </button>
-                        {hasSwap && (
-                          <button
-                            onClick={(e) => { e.stopPropagation(); openSwapSheet(ex, globalIdx); }}
-                            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-gray-100 text-gray-600 active:scale-95 transition-all"
-                          >
-                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
-                            </svg>
-                            <span className="text-xs font-bold">{t("plan.swap")}</span>
-                          </button>
-                        )}
-                        {phase.exercises.length > 1 && (
-                          <div className="flex gap-1">
-                            <button
-                              onClick={(e) => { e.stopPropagation(); handleMoveExercise(globalIdx, "up", phase.exercises); }}
-                              disabled={i === 0}
-                              className="w-9 h-9 rounded-xl bg-gray-100 flex items-center justify-center active:scale-90 transition-all disabled:opacity-30"
-                            >
-                              <svg className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
-                              </svg>
-                            </button>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); handleMoveExercise(globalIdx, "down", phase.exercises); }}
-                              disabled={i === phase.exercises.length - 1}
-                              className="w-9 h-9 rounded-xl bg-gray-100 flex items-center justify-center active:scale-90 transition-all disabled:opacity-30"
-                            >
-                              <svg className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                              </svg>
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                  );
-                })}
-
-                {/* Add Exercise Button */}
-                <button
-                  onClick={() => openAddSheet(phase.key)}
-                  className="w-full py-2.5 rounded-xl border-2 border-dashed border-gray-200 text-gray-400 hover:border-gray-300 hover:text-gray-500 active:scale-[0.98] transition-all flex items-center justify-center gap-1.5"
-                >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" d="M12 5v14M5 12h14" />
-                  </svg>
-                  <span className="text-[11px] font-bold">{t("plan.add_exercise")}</span>
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
+      {/* 고정 히어로 (스크롤 영역 밖) */}
+      <div className="shrink-0 px-6 bg-[#FAFBF9] border-b border-gray-200">
+        <PlanHero
+          description={sessionData.description}
+          goal={goal}
+          currentIntensity={currentIntensity}
+          isRunningSession={isRunningSession}
+          currentRunningVariant={currentRunningVariant}
+          onRunningVariantSwap={handleRunningVariantSwap}
+          showRunningSwap={showRunningSwap}
+          setShowRunningSwap={setShowRunningSwap}
+          descRef={descRef}
+          runningSwapRef={runningSwapRef}
+        />
       </div>
 
-      {/* Bottom CTA */}
-      <div className="absolute bottom-0 left-0 right-0 px-5 pt-8 pb-0 bg-gradient-to-t from-[#FAFBF9] via-[#FAFBF9] to-transparent z-20">
+      {(() => {
+        const selectedExercise = selectedIdx !== null ? localExercises[selectedIdx] ?? null : null;
+        let canDelete = false;
+        let canSwap = false;
+        if (selectedExercise && selectedIdx !== null) {
+          const exPhase = selectedExercise.phase || (selectedExercise.type === "warmup" ? "warmup" : selectedExercise.type === "core" || selectedExercise.type === "mobility" ? "core" : selectedExercise.type === "cardio" ? "cardio" : "main");
+          const samePhaseCount = localExercises.filter(e => {
+            const p = e.phase || (e.type === "warmup" ? "warmup" : e.type === "core" || e.type === "mobility" ? "core" : e.type === "cardio" ? "cardio" : "main");
+            return p === exPhase;
+          }).length;
+          canDelete = !(exPhase === "main" && samePhaseCount <= 1);
+          canSwap = getAlternativeExercises(selectedExercise.name).length > 0;
+        }
+        return (
+          <PlanSplitShell
+            focused={focusedPane}
+            onFocusChange={setFocusedPane}
+            library={
+              <PlanLibraryPane
+                mode={focusedPane === "library" ? "full" : "peek"}
+                phases={phases}
+                localExercises={localExercises}
+                firstCardRef={firstGuideRef}
+                scrollEndRef={scrollEndRef}
+                locale={locale}
+                t={t}
+                onSelectExercise={(idx) => { setSelectedIdx(idx); setFocusedPane("selected"); }}
+                onAdjustSets={adjustSets}
+                onAddExercise={openAddSheet}
+              />
+            }
+            selected={
+              <PlanSelectedPane
+                mode={focusedPane === "selected" ? "full" : "peek"}
+                exercise={selectedExercise}
+                globalIdx={selectedIdx}
+                canDelete={canDelete}
+                canSwap={canSwap}
+                locale={locale}
+                t={t}
+                onUpdateSetDetail={handleUpdateSetDetail}
+                onAddSet={handleAddSet}
+                onRemoveSet={handleRemoveSet}
+                onSwap={(idx) => { openSwapSheet(localExercises[idx], idx); }}
+                onDelete={(idx) => {
+                  handleDeleteExercise(idx);
+                  setSelectedIdx(null);
+                  setFocusedPane("library");
+                }}
+                onFormGuide={(ex) => {
+                  const parts = getExerciseName(ex.name, locale).split('(');
+                  const searchTerm = parts.length > 1 ? parts[1].replace(')', '').trim() : parts[0].trim();
+                  window.open(`https://www.youtube.com/results?search_query=${encodeURIComponent(searchTerm + " exercise form guide")}`, "_blank");
+                }}
+              />
+            }
+          />
+        );
+      })()}
+
+      {/* Bottom CTA — 스크롤 끝 도달 시 슬라이드업 */}
+      <div
+        className={`absolute bottom-0 left-0 right-0 px-5 pt-8 bg-gradient-to-t from-[#FAFBF9] via-[#FAFBF9]/95 to-transparent z-20 transition-transform duration-300 ease-out ${
+          ctaVisible ? "translate-y-0" : "translate-y-full"
+        }`}
+        style={{ paddingBottom: "calc(var(--safe-area-bottom, 0px) + 24px)" }}
+      >
         <div className="flex items-center gap-2.5">
           <button
             onClick={() => setShowShareCard(true)}
@@ -723,363 +532,40 @@ export const MasterPlanPreview: React.FC<MasterPlanPreviewProps> = ({
         </div>
       </div>
 
-      {/* Plan Adjustment Bottom Sheet */}
-      {isEditing && (
-        <div className="absolute inset-0 z-50">
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-fade-in" onClick={() => setIsEditing(false)} />
-          <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-[2rem] p-6 animate-slide-up shadow-2xl" style={{ paddingBottom: "calc(var(--safe-area-bottom, 0px) + 16px)" }}>
-            <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-6" />
+      {/* Bottom Sheets — 강도조정 / 종목추가 / 종목교체 */}
+      <PlanBottomSheets
+        isEditing={isEditing}
+        setIsEditing={setIsEditing}
+        currentIntensity={currentIntensity}
+        recommendedIntensity={recommendedIntensity}
+        onIntensitySelect={handleIntensitySelect}
+        onRegenerate={onRegenerate}
+        onBack={onBack}
+        addToPhase={addToPhase}
+        setAddToPhase={setAddToPhase}
+        onAddExercise={handleAddExercise}
+        swapExercise={swapExercise}
+        setSwapExercise={setSwapExercise}
+        onSwapExercise={handleSwapExercise}
+        swapSearch={swapSearch}
+        setSwapSearch={setSwapSearch}
+        swapFilter={swapFilter}
+        setSwapFilter={setSwapFilter}
+        localExercises={localExercises}
+      />
 
-            <h3 className="text-lg font-black text-[#1B4332] tracking-tight mb-1">{t("plan.adjust")}</h3>
-            <p className="text-[11px] text-gray-400 font-medium mb-5">{t("plan.adjust_desc")}</p>
-
-            {/* Intensity Options */}
-            <div className="space-y-2.5 mb-5">
-              {INTENSITY_OPTIONS.map((opt) => {
-                const isActive = currentIntensity === opt.level;
-                const isRec = recommendedIntensity === opt.level;
-                return (
-                  <button
-                    key={opt.level}
-                    onClick={() => handleIntensitySelect(opt.level)}
-                    className={`w-full p-4 rounded-2xl border-2 flex items-center gap-3 active:scale-[0.98] transition-all ${
-                      isActive
-                        ? `${opt.border} ${opt.bg} shadow-[2px_2px_0px_0px] shadow-current`
-                        : isRec
-                          ? `${opt.border} ${opt.bg}/30 hover:${opt.bg}`
-                          : "border-gray-100 bg-white hover:border-gray-200"
-                    }`}
-                  >
-                    <div className={`w-3 h-8 rounded-full ${opt.color} shrink-0`} />
-                    <div className="text-left flex-1">
-                      <div className="flex items-center gap-1.5">
-                        <p className={`font-black text-sm ${isActive ? opt.text : "text-gray-700"}`}>{t(opt.labelKey)}</p>
-                        {isRec && !isActive && (
-                          <span className="text-[8px] font-black px-1.5 py-0.5 rounded bg-emerald-100 text-[#2D6A4F]">{t("plan.recommended")}</span>
-                        )}
-                      </div>
-                      <p className="text-xs text-gray-400 mt-0.5">{t(opt.descKey)}</p>
-                    </div>
-                    {isActive && (
-                      <div className={`w-6 h-6 rounded-full ${opt.color} flex items-center justify-center shrink-0`}>
-                        <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                        </svg>
-                      </div>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Regenerate Button */}
-            {onRegenerate && (
-              <button
-                onClick={() => { onRegenerate(); setIsEditing(false); }}
-                className="w-full py-3.5 rounded-2xl border-2 border-gray-200 bg-white text-gray-700 font-bold text-sm active:scale-[0.98] transition-all flex items-center justify-center gap-2 hover:bg-gray-50"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182" />
-                </svg>
-                {t("plan.regenerate")}
-              </button>
-            )}
-
-            {/* Back to Condition Check */}
-            <button
-              onClick={() => { onBack(); setIsEditing(false); }}
-              className="w-full py-3.5 rounded-2xl border-2 border-gray-100 bg-gray-50 text-gray-400 font-bold text-sm active:scale-[0.98] transition-all flex items-center justify-center gap-2 hover:bg-gray-100 mt-2"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" />
-              </svg>
-              {t("plan.restart")}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Exercise Swap Bottom Sheet */}
-      {/* Add Exercise Bottom Sheet */}
-      {addToPhase && (
-        <div className="absolute inset-0 z-50">
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-fade-in" onClick={() => setAddToPhase(null)} />
-          <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-[2rem] p-6 animate-slide-up shadow-2xl" style={{ paddingBottom: "calc(var(--safe-area-bottom, 0px) + 16px)" }}>
-            <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-4" />
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em]">{t("plan.add_exercise")}</p>
-              <button onClick={() => setAddToPhase(null)} className="text-sm text-gray-400 font-bold">{t("plan.close")}</button>
-            </div>
-
-            <input
-              type="text"
-              value={swapSearch}
-              onChange={(e) => setSwapSearch(e.target.value)}
-              placeholder={t("plan.search")}
-              className="w-full px-4 py-2.5 rounded-xl bg-gray-50 border border-gray-200 text-[13px] text-[#1B4332] font-medium placeholder-gray-300 outline-none focus:border-[#2D6A4F] transition-colors mb-2"
-            />
-
-            <div className="flex gap-1.5 overflow-x-auto scrollbar-hide mb-3 pb-0.5">
-              {LABELED_EXERCISE_POOLS.map(p => (
-                <button
-                  key={p.label}
-                  onClick={() => setSwapFilter(prev => prev === p.label ? null : p.label)}
-                  className={`px-3 py-1.5 rounded-full text-[11px] font-bold whitespace-nowrap transition-all ${
-                    swapFilter === p.label ? "bg-[#1B4332] text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200"
-                  }`}
-                >
-                  {tLabel(p.label, locale)}
-                </button>
-              ))}
-            </div>
-
-            <div className="h-[30vh] overflow-y-auto space-y-1.5">
-              {(() => {
-                const q = swapSearch.replace(/\s/g, "").toLowerCase();
-                const isSearching = q.length > 0;
-                const existingNames = new Set(localExercises.map(e => e.name));
-
-                if (swapFilter !== null) {
-                  const pool = LABELED_EXERCISE_POOLS.find(p => p.label === swapFilter);
-                  if (!pool) return null;
-                  const list = pool.exercises
-                    .filter(e => !existingNames.has(e))
-                    .filter(e => !isSearching || e.replace(/\s/g, "").toLowerCase().includes(q));
-                  if (list.length === 0) return <p className="text-center text-sm text-gray-400 font-medium py-6">{t("plan.no_results")}</p>;
-                  return list.map((name: string) => (
-                    <button
-                      key={name}
-                      onClick={() => handleAddExercise(name)}
-                      className="w-full text-left px-4 py-3 rounded-xl bg-white border border-gray-200 text-[13px] font-bold text-gray-600 active:scale-[0.98] transition-all"
-                    >
-                      {getExerciseName(name, locale)}
-                    </button>
-                  ));
-                }
-
-                if (!isSearching) return <p className="text-center text-sm text-gray-400 font-medium py-6">{t("plan.select_tab")}</p>;
-
-                return LABELED_EXERCISE_POOLS
-                  .map((group) => {
-                    const keywordMatch = group.keywords.some((kw: string) => kw.includes(q) || q.includes(kw));
-                    const matched = group.exercises
-                      .filter((e: string) => !existingNames.has(e))
-                      .filter((e: string) => keywordMatch || e.replace(/\s/g, "").toLowerCase().includes(q));
-                    if (matched.length === 0) return null;
-                    return (
-                      <div key={group.label}>
-                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] mt-2 mb-1">{tLabel(group.label, locale)}</p>
-                        {matched.map((name: string) => (
-                          <button
-                            key={name}
-                            onClick={() => handleAddExercise(name)}
-                            className="w-full text-left px-4 py-3 rounded-xl bg-white border border-gray-200 text-[13px] font-bold text-gray-600 active:scale-[0.98] transition-all mb-1.5"
-                          >
-                            {getExerciseName(name, locale)}
-                          </button>
-                        ))}
-                      </div>
-                    );
-                  })
-                  .filter(Boolean);
-              })()}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {swapExercise && (
-        <div className="absolute inset-0 z-50">
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-fade-in" onClick={() => setSwapExercise(null)} />
-          <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-[2rem] p-6 animate-slide-up shadow-2xl" style={{ paddingBottom: "calc(var(--safe-area-bottom, 0px) + 16px)" }}>
-            <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-4" />
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em]">{t("plan.swap_title")}</p>
-              <button onClick={() => setSwapExercise(null)} className="text-sm text-gray-400 font-bold">{t("plan.close")}</button>
-            </div>
-            <p className="text-[10px] font-bold text-gray-500 mb-3">
-              {t("plan.current")} <span className="text-[#1B4332]">{getExerciseName(swapExercise.exercise.name, locale)}</span>
-            </p>
-
-            {/* Search Input */}
-            <input
-              type="text"
-              value={swapSearch}
-              onChange={(e) => setSwapSearch(e.target.value)}
-              placeholder={t("plan.search")}
-              className="w-full px-4 py-2.5 rounded-xl bg-gray-50 border border-gray-200 text-[13px] text-[#1B4332] font-medium placeholder-gray-300 outline-none focus:border-[#2D6A4F] transition-colors mb-2"
-            />
-
-            {/* Filter Tabs */}
-            <div className="flex gap-1.5 overflow-x-auto scrollbar-hide mb-3 pb-0.5">
-              <button
-                onClick={() => setSwapFilter(null)}
-                className={`px-3 py-1.5 rounded-full text-[11px] font-bold whitespace-nowrap transition-all ${
-                  swapFilter === null ? "bg-[#1B4332] text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200"
-                }`}
-              >
-                {t("plan.recommended")}
-              </button>
-              {LABELED_EXERCISE_POOLS.map(p => (
-                <button
-                  key={p.label}
-                  onClick={() => setSwapFilter(p.label)}
-                  className={`px-3 py-1.5 rounded-full text-[11px] font-bold whitespace-nowrap transition-all ${
-                    swapFilter === p.label ? "bg-[#1B4332] text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200"
-                  }`}
-                >
-                  {tLabel(p.label, locale)}
-                </button>
-              ))}
-            </div>
-
-            {/* Exercise List */}
-            <div className="h-[30vh] overflow-y-auto space-y-1.5">
-              {(() => {
-                const q = swapSearch.replace(/\s/g, "").toLowerCase();
-                const isSearching = q.length > 0;
-                const currentName = swapExercise.exercise.name;
-                const sameGroup = swapExercise.sameGroup;
-
-                // Filter by selected muscle group tab
-                if (swapFilter !== null) {
-                  const pool = LABELED_EXERCISE_POOLS.find(p => p.label === swapFilter);
-                  if (!pool) return null;
-                  const list = pool.exercises
-                    .filter(e => e !== currentName)
-                    .filter(e => !isSearching || e.replace(/\s/g, "").toLowerCase().includes(q));
-                  if (list.length === 0) return (
-                    <p className="text-center text-sm text-gray-400 font-medium py-6">{t("plan.no_results")}</p>
-                  );
-                  return list.map((alt: string) => (
-                    <button
-                      key={alt}
-                      onClick={() => handleSwapExercise(swapExercise.index, alt)}
-                      className={`w-full text-left px-4 py-3 rounded-xl bg-white border text-[13px] font-bold active:scale-[0.98] transition-all ${
-                        sameGroup.includes(alt) ? "border-[#2D6A4F] text-[#1B4332]" : "border-gray-200 text-gray-600"
-                      }`}
-                    >
-                      {getExerciseName(alt, locale)}
-                    </button>
-                  ));
-                }
-
-                // Default "추천" tab: same muscle group (no search) or grouped search
-                if (!isSearching) {
-                  if (sameGroup.length === 0) return <p className="text-center text-sm text-gray-400 font-medium py-6">{t("plan.select_from_tab")}</p>;
-                  return sameGroup.map((alt: string) => (
-                    <button
-                      key={alt}
-                      onClick={() => handleSwapExercise(swapExercise.index, alt)}
-                      className="w-full text-left px-4 py-3 rounded-xl bg-white border border-gray-200 text-[13px] font-bold text-[#1B4332] active:scale-[0.98] transition-all"
-                    >
-                      {getExerciseName(alt, locale)}
-                    </button>
-                  ));
-                }
-
-                // Search across all groups with group headers
-                return LABELED_EXERCISE_POOLS
-                  .map((group) => {
-                    const keywordMatch = group.keywords.some((kw: string) => kw.includes(q) || q.includes(kw));
-                    const matched = group.exercises
-                      .filter((e: string) => e !== currentName)
-                      .filter((e: string) => keywordMatch || e.replace(/\s/g, "").toLowerCase().includes(q));
-                    if (matched.length === 0) return null;
-                    return (
-                      <div key={group.label}>
-                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] mt-2 mb-1">{tLabel(group.label, locale)}</p>
-                        {matched.map((alt: string) => (
-                          <button
-                            key={alt}
-                            onClick={() => handleSwapExercise(swapExercise.index, alt)}
-                            className={`w-full text-left px-4 py-3 rounded-xl bg-white border text-[13px] font-bold active:scale-[0.98] transition-all mb-1.5 ${
-                              sameGroup.includes(alt) ? "border-[#2D6A4F] text-[#1B4332]" : "border-gray-200 text-gray-600"
-                            }`}
-                          >
-                            {getExerciseName(alt, locale)}
-                          </button>
-                        ))}
-                      </div>
-                    );
-                  })
-                  .filter(Boolean);
-              })()}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Intro Tutorial Overlay — spotlight on description */}
-      {showIntroTip && descPos && (
-        <div className="absolute inset-0 z-[60] animate-fade-in" onClick={dismissIntroTip}>
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px]" />
-          {/* Spotlight highlight on description area */}
-          <div
-            className="absolute rounded-xl border-2 border-white/70 bg-white/10"
-            style={{ top: descPos.top - 6, left: descPos.left - 8, width: descPos.width + 16, height: descPos.height + 12 }}
-          />
-          {/* Tooltip below the description */}
-          <div
-            className="absolute px-4"
-            style={{ top: descPos.top + descPos.height + 14, left: 0, right: 0 }}
-          >
-            <div className="bg-white rounded-2xl px-5 py-5 shadow-2xl mx-2 relative">
-              <div className="absolute -top-2 left-8 w-4 h-4 bg-white rotate-45 rounded-sm" />
-              <p className="text-[12.5px] text-gray-600 leading-relaxed">
-                {t("plan.tip_intro")}
-              </p>
-              <p className="text-[10px] text-gray-400 mt-3 font-medium">{t("plan.tip_dismiss")}</p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Settings Tutorial Tooltip Overlay */}
-      {!showIntroTip && showTip && settingsBtnPos && (
-        <div className="absolute inset-0 z-[60] animate-fade-in" onClick={dismissTip}>
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px]" />
-          <div className="absolute flex flex-col items-end" style={{ top: settingsBtnPos.top - 4, right: settingsBtnPos.right - 4 }}>
-            {/* Spotlight ring on actual settings button */}
-            <div className="w-10 h-10 rounded-full border-2 border-white/80 bg-white/10 flex items-center justify-center">
-              <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-              </svg>
-            </div>
-            {/* Tooltip bubble */}
-            <div className="mt-3 mr-1 bg-white rounded-2xl px-5 py-4 shadow-2xl max-w-[240px] relative">
-              <div className="absolute -top-2 right-4 w-4 h-4 bg-white rotate-45 rounded-sm" />
-              <p className="text-sm font-bold text-[#1B4332] leading-relaxed">
-                {t("plan.tip_settings")}
-              </p>
-              <p className="text-[11px] text-gray-400 mt-2 font-medium">{t("plan.tip_dismiss")}</p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Card Tap Tutorial Overlay */}
-      {!showIntroTip && !showTip && showGuideTip && guideBtnPos && (
-        <div className="absolute inset-0 z-[60] animate-fade-in" onClick={dismissGuideTip}>
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px]" />
-          <div
-            className="absolute rounded-2xl border-2 border-white/80 bg-white/10"
-            style={{ top: guideBtnPos.top - 4, left: guideBtnPos.left - 4, width: guideBtnPos.width + 8, height: guideBtnPos.height + 8 }}
-          />
-          <div
-            className="absolute px-4"
-            style={{ top: guideBtnPos.top + guideBtnPos.height + 14, left: 0, right: 0 }}
-          >
-            <div className="bg-white rounded-2xl px-5 py-4 shadow-2xl mx-2 relative">
-              <div className="absolute -top-2 left-8 w-4 h-4 bg-white rotate-45 rounded-sm" />
-              <p className="text-sm font-bold text-[#1B4332] leading-relaxed">
-                {t("plan.tip_card")}
-              </p>
-              <p className="text-[11px] text-gray-400 mt-2 font-medium">{t("plan.tip_dismiss")}</p>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Tutorial Overlays — 인트로 / 세팅 / 카드탭 */}
+      <PlanTutorialOverlays
+        showIntroTip={showIntroTip}
+        descPos={descPos}
+        onDismissIntro={dismissIntroTip}
+        showTip={showTip}
+        settingsBtnPos={settingsBtnPos}
+        onDismissTip={dismissTip}
+        showGuideTip={showGuideTip}
+        guideBtnPos={guideBtnPos}
+        onDismissGuideTip={dismissGuideTip}
+      />
 
       {/* 회의 41 후속: 러닝 타입 교체는 제목 옆 버튼의 인라인 드롭다운으로 처리 (위 렌더 참고) */}
 
@@ -1093,74 +579,6 @@ export const MasterPlanPreview: React.FC<MasterPlanPreviewProps> = ({
         />
       )}
 
-      {guideExercise && (
-        <div className="absolute inset-0 z-50">
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-fade-in" onClick={() => setGuideExercise(null)} />
-          <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-[2rem] p-6 animate-slide-up shadow-2xl" style={{ paddingBottom: "calc(var(--safe-area-bottom, 0px) + 16px)" }}>
-            <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-6" />
-
-            {/* Exercise Name */}
-            <div className="mb-5">
-              {(() => {
-                const parts = getExerciseName(guideExercise.name, locale).split('(');
-                const korean = parts[0].trim();
-                const english = parts.length > 1 ? parts[1].replace(')', '').trim() : "";
-                return (
-                  <>
-                    <h3 className="text-xl font-black text-[#1B4332] tracking-tight">{korean}</h3>
-                    {english && <p className="text-sm text-gray-400 mt-1">{english}</p>}
-                  </>
-                );
-              })()}
-            </div>
-
-            {/* Exercise Info */}
-            <div className="grid grid-cols-3 gap-2 mb-6">
-              <div className="bg-gray-50 rounded-xl p-3 flex flex-col border border-gray-100">
-                <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest text-center">Type</p>
-                <p className="text-base font-black text-gray-900 uppercase flex-1 flex items-center justify-center">{guideExercise.type}</p>
-              </div>
-              <div className="bg-gray-50 rounded-xl p-3 flex flex-col border border-gray-100">
-                <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest text-center">Sets</p>
-                <p className="text-base font-black text-gray-900 flex-1 flex items-center justify-center">{guideExercise.sets}</p>
-              </div>
-              <div className="bg-gray-50 rounded-xl p-3 flex flex-col border border-gray-100">
-                <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest text-center">Volume</p>
-                <p className="text-base font-black text-gray-900 flex-1 flex items-center justify-center text-center">{guideExercise.count}</p>
-              </div>
-            </div>
-
-            {guideExercise.weight && guideExercise.weight !== "Bodyweight" && guideExercise.weight !== "맨몸" && (
-              <div className="bg-emerald-50 rounded-xl p-3 mb-6 border border-emerald-100 text-center">
-                <p className="text-[9px] font-black text-[#2D6A4F] uppercase tracking-widest mb-0.5">Weight</p>
-                <p className="text-sm font-black text-[#1B4332]">{translateWeightGuide(guideExercise.weight, locale)}</p>
-              </div>
-            )}
-
-            {/* YouTube Search Button */}
-            <button
-              onClick={() => {
-                const parts = getExerciseName(guideExercise.name, locale).split('(');
-                const searchTerm = parts.length > 1 ? parts[1].replace(')', '').trim() : parts[0].trim();
-                window.open(`https://www.youtube.com/results?search_query=${encodeURIComponent(searchTerm + " exercise form guide")}`, "_blank");
-              }}
-              className="w-full p-4 rounded-2xl bg-white border border-gray-200 flex items-center justify-center gap-3 active:scale-[0.98] transition-all shadow-sm"
-            >
-              <svg className="w-5 h-5 text-red-600 shrink-0" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
-              </svg>
-              <span className="font-black text-sm text-gray-700 tracking-wide">{t("plan.youtube_guide")}</span>
-            </button>
-
-            <button
-              onClick={() => setGuideExercise(null)}
-              className="w-full p-3 mt-2 rounded-xl text-gray-400 font-bold text-sm active:scale-[0.98] transition-all"
-            >
-              {t("plan.close")}
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

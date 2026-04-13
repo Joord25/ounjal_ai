@@ -81,6 +81,32 @@ const lazyGenerateWorkout = async (
   targetMuscle?: import("@/constants/workout").TargetMuscle,
   runType?: import("@/constants/workout").RunType,
 ): Promise<import("@/constants/workout").WorkoutSessionData> => {
+  // [DEV ONLY] mockPlan 모드: Cloud Functions 없이 UI 프리뷰 (?mockPlan=1 또는 localStorage 플래그)
+  if (process.env.NODE_ENV === "development" && typeof window !== "undefined") {
+    const url = new URL(window.location.href);
+    const mockOn = url.searchParams.get("mockPlan") === "1" || localStorage.getItem("ohunjal_mock_plan") === "1";
+    if (mockOn) {
+      if (url.searchParams.get("mockPlan") === "1") localStorage.setItem("ohunjal_mock_plan", "1");
+      console.warn("[dev] mockPlan 모드 — 샘플 세션 반환 중");
+      await new Promise(r => setTimeout(r, 400)); // 로딩 연출
+      return {
+        title: "상체 근력 세션",
+        description: "가슴·삼두·어깨 중심 컴파운드 + 아이솔레이션",
+        intendedIntensity: intensityOverride ?? "moderate",
+        exercises: [
+          { type: "warmup", phase: "warmup", name: "폼롤러 흉추 스트레칭 (Foam Roller Thoracic Extension)", count: "2분", sets: 1, reps: 1 },
+          { type: "warmup", phase: "warmup", name: "밴드 풀 어파트 (Band Pull-Apart)", count: "2 세트 / 15회", sets: 2, reps: 15 },
+          { type: "strength", phase: "main", name: "바벨 벤치 프레스 (Barbell Bench Press)", count: "4 세트 / 8회", sets: 4, reps: 8, weight: "60kg" },
+          { type: "strength", phase: "main", name: "인클라인 덤벨 프레스 (Incline Dumbbell Press)", count: "3 세트 / 10회", sets: 3, reps: 10, weight: "20kg x2" },
+          { type: "strength", phase: "main", name: "사이드 레터럴 레이즈 (Side Lateral Raises)", count: "3 세트 / 15회", sets: 3, reps: 15, weight: "8kg x2" },
+          { type: "strength", phase: "main", name: "트라이셉 로프 푸쉬다운 (Tricep Rope Pushdown)", count: "3 세트 / 12회", sets: 3, reps: 12, weight: "15kg" },
+          { type: "core", phase: "core", name: "플랭크 (Plank)", count: "3 세트 / 60초", sets: 3, reps: 60 },
+          { type: "cardio", phase: "cardio", name: "마무리 걷기 (Cool-down Walk)", count: "5분", sets: 1, reps: 1 },
+        ],
+      };
+    }
+  }
+
   const { auth } = await import("@/lib/firebase");
   const user = auth.currentUser;
   if (!user) throw new Error("Not authenticated");
@@ -970,7 +996,7 @@ export default function Home() {
     <I18nProvider>
     <PhoneFrame pullToRefresh={view === "home"}>
       <div className="h-full w-full relative overflow-hidden">
-        <div className={`h-full overflow-y-auto overflow-x-hidden scrollbar-hide ${view === "login" ? "" : ""}`} style={view === "login" || view === "workout_session" ? undefined : { paddingBottom: "calc(80px + var(--safe-area-bottom, 0px))" }}>
+        <div className={`h-full overflow-y-auto overflow-x-hidden scrollbar-hide ${view === "login" ? "" : ""}`} style={view === "login" || view === "workout_session" || view === "master_plan_preview" ? undefined : { paddingBottom: "calc(80px + var(--safe-area-bottom, 0px))" }}>
           {renderContent()}
         </div>
         
@@ -1028,7 +1054,7 @@ export default function Home() {
           />
         )}
 
-        {view !== "login" && view !== "onboarding" && view !== "workout_session" && !cancelFlowActive && (
+        {view !== "login" && view !== "onboarding" && view !== "workout_session" && view !== "master_plan_preview" && !cancelFlowActive && (
           <div
             className={`absolute bottom-0 left-0 right-0 z-40 transition-transform duration-300 ease-out ${
               tabsVisible ? "translate-y-0" : "translate-y-full"

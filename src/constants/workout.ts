@@ -4,6 +4,11 @@ export type WorkoutType = "push" | "pull" | "leg_core" | "mobility" | "run_easy"
 
 export type ExercisePhase = "warmup" | "main" | "core" | "cardio";
 
+export interface SetDetail {
+  reps: number;
+  weight?: string; // "60kg" 또는 undefined (맨몸/시간 기반)
+}
+
 export interface ExerciseStep {
   type: ExerciseType;
   phase?: ExercisePhase;
@@ -12,8 +17,19 @@ export interface ExerciseStep {
   weight?: string;
   sets: number;
   reps: number;
+  /** 세트별 reps/weight 상세. 없으면 sets/reps/weight로 동일 적용 */
+  setDetails?: SetDetail[];
   logs?: ExerciseLog[];
   tempoGuide?: string;
+}
+
+/** ExerciseStep에서 세트별 상세를 도출 (setDetails 우선, 없으면 sets/reps/weight로 균일 생성) */
+export function deriveSetDetails(ex: ExerciseStep): SetDetail[] {
+  if (ex.setDetails && ex.setDetails.length > 0) return ex.setDetails;
+  return Array.from({ length: Math.max(1, ex.sets) }, () => ({
+    reps: ex.reps,
+    weight: ex.weight,
+  }));
 }
 
 export interface ExerciseLog {
@@ -184,4 +200,17 @@ export function getAlternativeExercises(exerciseName: string): string[] {
     }
   }
   return [];
+}
+
+/** 운동 이름으로 소속된 근육 그룹 라벨들 반환 (Kenko 스타일 태그용) */
+export function getExerciseMuscleGroups(exerciseName: string): string[] {
+  const normalized = exerciseName.toLowerCase().split(" (")[0].trim();
+  const groups: string[] = [];
+  for (const group of LABELED_EXERCISE_POOLS) {
+    if (group.label === "웜업" || group.label === "가동성") continue; // 보조 그룹 제외
+    if (group.exercises.some(e => e === exerciseName || e.toLowerCase().includes(normalized))) {
+      groups.push(group.label);
+    }
+  }
+  return groups.slice(0, 2); // 최대 2개까지만
 }
