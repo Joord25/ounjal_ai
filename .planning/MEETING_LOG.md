@@ -1929,3 +1929,100 @@ ShareCard 러닝 레이아웃 확정 + 전체 Plan 승인. M-A 즉시 착수.
 **습관 설계 (Nir Eyal):** Hook 4단계 중 Investment(쌓은 것) 강화가 핵심. 돌 번호는 절대 리셋 불가.
 
 **대표 컨펌:** 대기 중
+
+---
+
+### 회의 57: 온보딩·홈화면 전면 재설계 — LLM 채팅형 홈 채택 (2026-04-15)
+
+**배경:** A/B v3 설문 (500명) 결과 타겟(20~30대 초보 여성) 85.4%가 B안(0질문+샘플+대화) 선호, 결제 의향 B=4,954원 vs A=880원. 기존 7스텝 휠피커 온보딩 + ConditionCheck 구조 폐기 결정.
+
+**참석:** 대표, 기획자, 프엔, 박서진(프엔 헤더), 백엔, 프롬프트 전문가, UX/UI, 운동생리학자, 그로스, Nir Eyal, 박충환, 평가자
+
+**핵심 결정:**
+
+1. **온보딩·ConditionCheck 완전 폐기** — 채팅 자체가 온보딩
+2. **홈화면 = 채팅 진입점**
+   - 채팅 입력창 "오늘 뭐 해볼까요?"
+   - 예시 프롬프트 탭 5개 (길이별 · 복붙+수정 가능)
+   - 기존 대시보드 요소는 스크롤 하단
+   - 잠금 카드/로그인 유도 UI 제거 (대표 지시)
+3. **카드 9장/4탭 칩 모두 기각** (기획자 오버엔지니어링 반성)
+4. **정규식 파싱 제안 기각** — 자연어 다양성 대비 유지보수 지옥. 온보딩 Gemini 비용은 DAU 10K 기준 월 160원 수준으로 실질 무의미. 진짜 비용 주범은 코치 멘트(세션당 호출)이며 별도 세션에서 다룸.
+
+**Gemini Intent 스키마 확정:**
+```
+condition: { bodyPart, energyLevel, availableTime, bodyWeightKg?, gender?, birthYear? }
+goal, sessionMode, targetMuscle?, runType?, intensityOverride?
+recentGymFrequency?: "none" | "1_2_times" | "regular"  (신규)
+pushupLevel?: "zero" | "1_to_5" | "10_plus"             (신규, 1RM 대체)
+confidence, missingCritical, clarifyQuestion?
+```
+
+**availableTime 스냅 규칙:**
+- 러닝 long run: 30/50/90 유효
+- 그 외: 30/50만 (60+ 요청 시 50 캡, 과훈련 방지)
+- 유저는 세트 개인 수정 가능하므로 상한 엄격 유지
+
+**입력 3종 예시 프롬프트 (길이별):**
+- 짧은: "오늘 가슴 30분 운동하고 싶어"
+- 중간: "어깨 뻐근한데 하체 40분 하고 싶어. 체력은 보통."
+- 긴: "35살 여 162cm 58kg 헬스 3년 정자세 푸쉬업 5개 오늘 하체 40분 살 빼고 싶어"
+
+**단계별 실행안 (Phase 0~6):**
+- Phase 0: 종속성 맵 (완료)
+- Phase 1: 백엔드 계약 준비 (UserCondition 필드 추가, parseIntent Cloud Function, 프롬프트 v6)
+- Phase 2: 신규 ChatHome 병행 개발 (feature flag)
+- Phase 3: 라우팅 스위치 (신규 유저부터)
+- Phase 4: 레거시 제거 (Onboarding.tsx, ConditionCheck.tsx 삭제)
+- Phase 5: coach.ts/FitnessReading 프로필 null 그레이스풀 처리
+- Phase 6: E2E + 배포 + Analytics 모니터링
+
+**영향 범위 전수:** 프론트 11곳 + 백엔드 5곳 + Firestore/localStorage 키 + i18n ~70개 키
+
+**대표 지시사항:**
+- 절대 커밋·푸시 금지 (각 Phase 끝나도 대표 확인 전까지)
+- 각 Phase 완료 시 `npm run dev` + Functions 에뮬레이터 수동 확인 후 진입
+- Phase 1 종료 시 터미널 parseIntent 3케이스 JSON 출력 확인
+
+**블라인드 스팟 평가자 지적 → 결정:**
+- 부상·질병 이력 수집: 보류 (대표 지시)
+- 범용 플랜 예시 3개 작성: 보류 (선택지 축소)
+- 기존 유저 마이그레이션: (a) 프로필 있으면 채팅홈 직행, 카드·온보딩 재노출 없음
+- 타겟 외 세그먼트(남성 20/30대) 커버: 카드 방식 폐기로 자동 해소 (채팅은 모두 공통)
+
+**역할 분담:**
+- 기획자: 스펙·수락기준·최종 판정
+- 프엔: Phase 2~4 구현
+- 박서진: ViewState·컴포넌트 경계 감수
+- 백엔드: Phase 1 parseIntent, Phase 5 coach 컨텍스트
+- 프롬프트 전문가: 프롬프트 v6 작성, PROMPT_HISTORY 기록
+- 평가자: 매 Phase 체크리스트 실행, 렌더 경로 추적, 자기편향 경고
+
+**다음 진입:** Phase 1 착수 (대표 컨펌 후)
+
+---
+
+### 회의 57 후기: Phase 1~5 실행 완료 (2026-04-15)
+
+**진행 내역:**
+
+- **Phase 1 (백엔드 계약 준비)** — UserCondition에 recentGymFrequency/pushupLevel 옵셔널 추가, 신규 parseIntent Cloud Function 작성, PROMPT_HISTORY에 parseIntent v1 기록, firebase.json rewrite 등록, functions build 그린
+- **Phase 2 (ChatHome 신규)** — dashboard/ChatHome.tsx 생성, NutritionTab AI 코치챗 UI 재사용, HomeScreen 상단 greeting·date 블록 동일 이식, 예시 프롬프트 5종 pill 칩 + 좌우 fade + 가로 스냅, 무료 체험 배지 헤더 인라인, textarea auto-expand, feature flag ?chat_home 토글, ViewState home_chat 추가
+- **Phase 3 (라우팅 스위치)** — flag 기본값 ON 전환, opt-out은 ?chat_home=0, condition_check/onboarding 진입을 home_chat으로 useEffect redirect, canSubmit 가드로 게스트 소진/페이월 사전 차단
+- **Phase 4 (레거시 제거)** — Onboarding.tsx 347줄 삭제, ConditionCheck.tsx 544줄 삭제, SessionSelection 타입을 workout.ts로 이관, ViewState enum 축소, 6곳 setView condition_check 제거, 탭바 조건식 단순화
+- **Phase 5 (coach/프로필 null 안전)** — 검토 결과 5-1/5-3/5-4 이미 만족(coach는 condition만 사용, FitnessReading은 자체 profile step 보유, WorkoutReport는 bodyWeightKg 폴백). 5-2(프로필 컨텍스트 주입 폴리시)는 대표 결정으로 스킵
+
+**인프라 변경:**
+- next.config.ts — 개발 중 /api/* → 127.0.0.1:5001/ohunjal/us-central1/* dev-only 프록시 (Node 24 IPv6 이슈 회피)
+- .claude/hooks/block-commit-push.js — 배포 계열 커맨드 차단 패턴 추가, settings.json PreToolUse Bash 매처에 연결
+
+**tsc/build 상태:** 모두 그린 (루트 npx tsc --noEmit exit 0, functions npm run build 그린)
+
+**커밋/푸시/배포 금지 상태 유지 (대표 지시)**
+
+**남은 선택 정리(우선순위 낮음):**
+- i18n onboarding.* / condition.* 키 미사용분 정리 — 롤백 리스크 대비 현재 보존
+- coach.ts 프로필 컨텍스트 주입 — 후속 세션에서 재검토 가능
+- Analytics 이벤트 onboarding_* 제거 여부 — 기존 대시보드 영향 고려 필요
+
+**대표 컨펌 대기:** E2E 수동 테스트(신규/기존 로그인 → 채팅 → 플랜 → 운동 → 리포트 → 재진입) 성공 시 커밋 승인

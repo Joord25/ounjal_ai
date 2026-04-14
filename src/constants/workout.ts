@@ -168,6 +168,10 @@ export interface UserCondition {
   bodyWeightKg?: number;
   gender?: "male" | "female";
   birthYear?: number;
+  // 회의 57 (2026-04-15): 채팅형 온보딩 도입으로 추가된 초보 친화 프록시 필드.
+  // 1RM 입력 대신 비전문가도 답할 수 있는 질문으로 초기 강도·장비 적응도 파악.
+  recentGymFrequency?: "none" | "1_2_times" | "regular";
+  pushupLevel?: "zero" | "1_to_5" | "10_plus";
 }
 
 export type WorkoutGoal = "fat_loss" | "muscle_gain" | "strength" | "general_fitness";
@@ -175,6 +179,17 @@ export type WorkoutGoal = "fat_loss" | "muscle_gain" | "strength" | "general_fit
 export type SessionMode = "balanced" | "split" | "running" | "home_training";
 export type TargetMuscle = "chest" | "back" | "shoulders" | "arms" | "legs";
 export type RunType = "interval" | "easy" | "long";
+
+/**
+ * 세션 의도 묶음. 회의 57: ConditionCheck 폐기 이후 ChatHome/page가 공용 타입으로 사용.
+ * Phase 4에서 ConditionCheck.tsx 삭제와 함께 이곳으로 이관됨.
+ */
+export interface SessionSelection {
+  goal: WorkoutGoal;
+  sessionMode: SessionMode;
+  targetMuscle?: TargetMuscle;
+  runType?: RunType;
+}
 
 // === UI용 운동 풀 (운동 교체 검색에 사용) ===
 

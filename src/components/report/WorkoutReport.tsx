@@ -469,7 +469,7 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
 
         {/* === 4탭 네비게이션 (회의 37) — 현재 세션에서만, 히스토리에서는 숨김 === */}
         {!sessionDate && <div className="flex bg-white rounded-2xl border border-gray-100 p-1 mb-5 shadow-sm">
-          {(["status", "today", "next", "nutrition"] as ReportTabId[]).map((tab) => (
+          {(["status", "today", "next"] as ReportTabId[]).map((tab) => (
             <button
               key={tab}
               onClick={() => { setActiveReportTab(tab); setShowDetail(false); setShowLogs(false); }}
@@ -642,7 +642,7 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
         {!!sessionDate && !!savedReportTabs && <>
           {/* 4탭 네비게이션 (히스토리 — 저장된 데이터) */}
           <div className="flex bg-white rounded-2xl border border-gray-100 p-1 mb-5 shadow-sm">
-            {(["status", "today", "next", "nutrition"] as ReportTabId[]).map((tab) => (
+            {(["status", "today", "next"] as ReportTabId[]).map((tab) => (
               <button
                 key={tab}
                 onClick={() => { setActiveReportTab(tab); setShowDetail(false); setShowLogs(false); }}

@@ -83,6 +83,9 @@ export interface UserCondition {
   bodyWeightKg?: number; // User's body weight for BW ratio calculations
   gender?: "male" | "female";
   birthYear?: number;
+  // 회의 57: 채팅형 온보딩 프록시 필드. Gemini가 자연어에서 추출하여 전달.
+  recentGymFrequency?: "none" | "1_2_times" | "regular";
+  pushupLevel?: "zero" | "1_to_5" | "10_plus";
 }
 
 // Workout Goal Interface
@@ -751,6 +754,11 @@ const adjustVolume = (baseSets: number, condition: UserCondition, goal: WorkoutG
   if (goal === "muscle_gain") sets += 1;
   if (goal === "strength") sets = Math.max(3, sets - 1);
   if (goal === "general_fitness") sets = Math.max(2, Math.min(sets, 3));
+
+  // 회의 57: 초보자 프록시 — 푸쉬업 0개 또는 최근 헬스 없음이면 1세트 감산(최소 2세트 보장)
+  if (condition.pushupLevel === "zero" || condition.recentGymFrequency === "none") {
+    sets = Math.max(2, sets - 1);
+  }
 
   return sets;
 };

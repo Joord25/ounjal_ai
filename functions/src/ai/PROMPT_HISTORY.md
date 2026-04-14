@@ -54,3 +54,33 @@
 - 시간대별 (새벽/점심/저녁/심야)
 - 세션 날짜 시드 랜덤 선택
 - coachMessages.ts 파일 기반
+
+## parseIntent v1 (2026-04-15, 회의 57)
+
+**파일:** `functions/src/ai/parseIntent.ts`
+
+**목적:** 채팅형 홈 진입 — 유저 자연어 → planSession 파라미터 JSON.
+
+**모델:** gemini-2.5-flash, temperature 0.2 (추출 결정성 우선), responseMimeType=application/json
+
+**추출 스키마:** condition{bodyPart, energyLevel, availableTime, bodyWeightKg?, gender?, birthYear?}, goal, sessionMode, targetMuscle?, runType?, intensityOverride?, recentGymFrequency?, pushupLevel?, confidence, missingCritical, clarifyQuestion?
+
+**핵심 규칙:**
+1. 누락 필드 중립 기본값 (energyLevel=3, bodyPart="good", sessionMode="balanced", goal="general_fitness")
+2. 기존 프로필 컨텍스트 제공 시 대화에 없는 gender/birthYear/bodyWeightKg는 그 값 사용
+3. 나이("35살") → (현재 연도) - 나이 = birthYear
+4. availableTime 스냅: running+long만 30/50/90, 그 외 30/50 (60+ 요청도 50 캡, 과훈련 방지)
+5. bodyPart 키워드 매핑: 어깨/목/허리 뻐근 → upper_stiff, 다리 무거움 → lower_heavy, 전신 피로 → full_fatigue, 그 외 → good
+6. sessionMode: 러닝 → running, 홈트 → home_training, 특정 부위 하나 → split, 그 외 → balanced
+7. pushupLevel: 0개 → zero, 1~5 → 1_to_5, 10+ → 10_plus
+8. recentGymFrequency: 안 함 → none, 가끔 → 1_2_times, 꾸준히/경력 → regular
+9. 모호하면 clarifyQuestion 1개로 되묻기
+
+**Fallback:** JSON parse 실패 / Gemini 예외 시 `buildFallbackIntent()` — 안전 중립값 + clarifyQuestion.
+
+**후처리 sanitize():** Gemini가 enum 밖 값 내더라도 방어적 스냅. availableTime 90은 long run 아니면 50으로 다운캡.
+
+**입력 예시 3종 (수동 테스트 기준):**
+- 짧은: `"오늘 가슴 30분"` → sessionMode=split, targetMuscle=chest, availableTime=30, confidence≈0.7
+- 중간: `"어깨 뻐근한데 하체 40분 체력은 보통"` → bodyPart=upper_stiff, targetMuscle=legs, availableTime=50, confidence≈0.9
+- 긴: `"35살 여 162cm 58kg 헬스 3년 정자세 푸쉬업 5개 오늘 하체 40분 살 빼고 싶어"` → gender=female, birthYear=1991, bodyWeightKg=58, goal=fat_loss, pushupLevel=1_to_5, recentGymFrequency=regular, confidence≈0.98

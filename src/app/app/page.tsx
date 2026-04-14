@@ -5,7 +5,7 @@ import { PhoneFrame } from "@/components/layout/PhoneFrame";
 import { BottomTabs, TabId } from "@/components/layout/BottomTabs";
 import { LoginScreen } from "@/components/layout/LoginScreen";
 import { MasterPlanPreview } from "@/components/plan/MasterPlanPreview";
-import { ConditionCheck, SessionSelection } from "@/components/plan/ConditionCheck";
+import type { SessionSelection } from "@/constants/workout";
 import { WorkoutReport } from "@/components/report/WorkoutReport";
 import { WorkoutSession } from "@/components/workout/WorkoutSession";
 import { ProofTab } from "@/components/dashboard/ProofTab";
@@ -20,7 +20,9 @@ import { SubscriptionScreen } from "@/components/profile/SubscriptionScreen";
 import { PlanLoadingOverlay } from "@/components/plan/PlanLoadingOverlay";
 import { FitnessReading } from "@/components/dashboard/FitnessReading";
 import { HomeScreen } from "@/components/dashboard/HomeScreen";
+import { ChatHome } from "@/components/dashboard/ChatHome";
 import { Onboarding } from "@/components/layout/Onboarding";
+import { NutritionTab } from "@/components/report/tabs/NutritionTab";
 import { loadUserProfile, getPlanCount, incrementPlanCount, loadPlanCount } from "@/utils/userProfile";
 import { syncExpFromFirestore, processWorkoutCompletion, getOrRebuildSeasonExp, type ExpLogEntry } from "@/utils/questSystem";
 import { useSafeArea } from "@/hooks/useSafeArea";
@@ -154,13 +156,37 @@ const lazyGenerateWorkout = async (
 
 type ViewState =
   | "login"
-  | "onboarding"
   | "prediction_report"
   | "home"
-  | "condition_check"
+  | "home_chat"
   | "master_plan_preview"
   | "workout_session"
   | "workout_report";
+
+/**
+ * 회의 57 (2026-04-15): 채팅형 홈 feature flag.
+ * Phase 3 전환 — 기본값 ON. `?chat_home=0` 쿼리로 한시 opt-out (localStorage 저장).
+ * NEXT_PUBLIC_ENABLE_CHAT_HOME=0 환경변수로 빌드 시점 강제 OFF도 지원.
+ */
+const CHAT_HOME_DISABLED_KEY = "ohunjal_chat_home_disabled";
+function isChatHomeEnabled(): boolean {
+  if (typeof window === "undefined") return true; // SSR 기본값도 ON (첫 paint 깜빡임 방지)
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const q = params.get("chat_home");
+    if (q === "0") {
+      localStorage.setItem(CHAT_HOME_DISABLED_KEY, "1");
+      return false;
+    }
+    if (q === "1") {
+      localStorage.removeItem(CHAT_HOME_DISABLED_KEY);
+      return true;
+    }
+  } catch { /* ignore */ }
+  if (process.env.NEXT_PUBLIC_ENABLE_CHAT_HOME === "0") return false;
+  if (typeof window !== "undefined" && localStorage.getItem(CHAT_HOME_DISABLED_KEY) === "1") return false;
+  return true;
+}
 
 // Sync detect ?lang= BEFORE render so I18nProvider reads correct locale
 if (typeof window !== "undefined") {
@@ -215,6 +241,17 @@ export default function Home() {
   // 스크롤 내릴 때 탭바 숨김 (인스타 스타일)
   const [tabsVisible, setTabsVisible] = useState(true);
   const [view, setView] = useState<ViewState>("login"); // Start with login
+  // 회의 57: 채팅홈 feature flag — 마운트 시점 한 번만 평가 (새로고침 전까지 안정)
+  const [chatHomeEnabled] = useState<boolean>(() => isChatHomeEnabled());
+  // 영양 탭 온보딩 완료 시 리마운트 트리거
+  const [nutritionProfileVersion, setNutritionProfileVersion] = useState(0);
+
+  // 회의 57: 플래그 ON이면 기존 "home" 진입 지점을 "home_chat"으로 자동 치환.
+  // Phase 4: onboarding/condition_check ViewState는 제거돼 여기서 체크 불필요.
+  useEffect(() => {
+    if (!chatHomeEnabled) return;
+    if (view === "home") setView("home_chat");
+  }, [chatHomeEnabled, view]);
   const [autoEdit1RM, setAutoEdit1RM] = useState(false);
 
   // autoEdit1RM은 MyTab으로 이동 후 리셋
@@ -332,7 +369,7 @@ export default function Home() {
         // 익명 유저: API 토큰은 있지만 "로그인"은 아님
         setIsLoggedIn(false);
         setSubStatus("free");
-        setView("home");
+        setView(chatHomeEnabled ? "home_chat" : "home");
         setIsInitialized(true);
         // 게스트 체험 카운트 서버 동기화 — IP 기반 SSOT
         // 이유: 캐시 지우거나 다른 기기로 접속해도 trial_ips 는 유지됨.
@@ -383,7 +420,12 @@ export default function Home() {
           // 기존 유저(프로필 있음) → 온보딩 자동 스킵
           const hasProfile = !!(localStorage.getItem("ohunjal_gender") && localStorage.getItem("ohunjal_birth_year"));
           if (hasProfile) localStorage.setItem("ohunjal_onboarding_done", "1");
-          setView(hasProfile || localStorage.getItem("ohunjal_onboarding_done") ? "home" : "onboarding");
+          // 회의 57: 채팅홈 ON이면 온보딩 스킵하고 바로 채팅홈 (신규/기존 유저 모두)
+          if (chatHomeEnabled) {
+            setView("home_chat");
+          } else {
+            setView(hasProfile || localStorage.getItem("ohunjal_onboarding_done") ? "home" : "home_chat");
+          }
           setIsInitialized(true);
         });
 
@@ -518,8 +560,9 @@ export default function Home() {
     }
   };
 
-  const generatePlan = async (condition: UserCondition, goal: WorkoutGoal, sessionType?: string, intensityCtx?: { recommended: "high" | "moderate" | "low"; weekSummary: { high: number; moderate: number; low: number }; target: { high: number; moderate: number; low: number }; reason: string } | null, intensityLevel?: "high" | "moderate" | "low" | null, sessionSel?: SessionSelection | null) => {
-    setIsLoading(true);
+  const generatePlan = async (condition: UserCondition, goal: WorkoutGoal, sessionType?: string, intensityCtx?: { recommended: "high" | "moderate" | "low"; weekSummary: { high: number; moderate: number; low: number }; target: { high: number; moderate: number; low: number }; reason: string } | null, intensityLevel?: "high" | "moderate" | "low" | null, sessionSel?: SessionSelection | null, opts?: { skipLoadingAnim?: boolean }) => {
+    const skipLoadingAnim = !!opts?.skipLoadingAnim;
+    setIsLoading(!skipLoadingAnim);
     try {
         const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
         const dayIndex = new Date().getDay();
@@ -528,6 +571,12 @@ export default function Home() {
         // If sessionMode is set (new UI), generate instantly but wait for loading animation
         if (sessionSel?.sessionMode) {
             const session = await lazyGenerateWorkout(scheduleIndex, condition, goal, sessionType, intensityLevel, sessionSel.sessionMode, sessionSel.targetMuscle, sessionSel.runType);
+            // ChatHome 확인 경로: 오버레이 건너뛰고 즉시 마스터플랜 진입 (대표 지시)
+            if (skipLoadingAnim) {
+                setCurrentWorkoutSession(session);
+                setView("master_plan_preview");
+                return;
+            }
             pendingSessionRef.current = session;
             // isLoading stays true — PlanLoadingOverlay.onComplete will clear it
             return;
@@ -556,7 +605,7 @@ export default function Home() {
         }
 
         // 그 외 에러 (네트워크 장애, 서버 500 등)는 기존대로 조용히 condition_check 복귀
-        setView("condition_check");
+        setView("home_chat");
     } finally {
         // sessionMode path: onComplete callback handles isLoading
         if (!pendingSessionRef.current) {
@@ -567,7 +616,7 @@ export default function Home() {
 
   // getPlanCount, incrementPlanCount는 @/utils/userProfile에서 import
 
-  const handleConditionComplete = async (condition: UserCondition, goal: WorkoutGoal, session?: SessionSelection) => {
+  const handleConditionComplete = async (condition: UserCondition, goal: WorkoutGoal, session?: SessionSelection, opts?: { skipLoadingAnim?: boolean }) => {
     // 비로그인 게스트 체험 제한 — 홈으로 돌려보내고 로그인 모달 표시
     if (!isLoggedIn && getGuestTrialCount() >= GUEST_TRIAL_LIMIT) {
       trackEvent("guest_trial_exhausted", { limit: GUEST_TRIAL_LIMIT });
@@ -626,7 +675,7 @@ export default function Home() {
     } catch { /* ignore */ }
 
     try {
-      await generatePlan(condition, goal, undefined, intensityCtx, resolvedIntensity, session);
+      await generatePlan(condition, goal, undefined, intensityCtx, resolvedIntensity, session, opts);
     } catch (err) {
       if (err instanceof Error && err.message === "TRIAL_LIMIT") {
         trackEvent("guest_trial_exhausted", { limit: GUEST_TRIAL_LIMIT });
@@ -744,8 +793,41 @@ export default function Home() {
       </div>
     );
 
-    if (activeTab === "proof" && view === "home") {
+    if (activeTab === "proof" && (view === "home" || view === "home_chat")) {
       return <ProofTab lockedRuleIds={[]} onShowPrediction={() => { setPredictionReturnTab("proof"); setView("prediction_report"); }} />;
+    }
+
+    // 회의 57 후속: 영양 탭 — 첫 진입 시 프로필 없으면 Onboarding 게이트.
+    // 필수 3개(gender + bodyWeight + goal) 있으면 바로 NutritionTab.
+    if (activeTab === "nutrition" && (view === "home" || view === "home_chat")) {
+      const fp = (() => {
+        try { return JSON.parse(localStorage.getItem("ohunjal_fitness_profile") || "{}"); }
+        catch { return {}; }
+      })();
+      const hasEssentials = !!(fp.gender && fp.bodyWeight && fp.goal);
+      if (!hasEssentials) {
+        return (
+          <Onboarding
+            userName={getDisplayName(user, "")}
+            onComplete={() => { setNutritionProfileVersion(v => v + 1); }}
+          />
+        );
+      }
+      return (
+        <div key={`nutrition-${nutritionProfileVersion}`} className="h-full overflow-y-auto p-4">
+          <NutritionTab
+            bodyWeightKg={fp.bodyWeight || 70}
+            heightCm={fp.height || 170}
+            age={fp.birthYear ? new Date().getFullYear() - fp.birthYear : 30}
+            gender={(fp.gender || "male") as "male" | "female"}
+            goal={fp.goal || "health"}
+            weeklyFrequency={fp.weeklyFrequency || 3}
+            todaySession={{ type: "general", durationMin: 0, estimatedCalories: 0 }}
+            isPremium={subStatus === "active"}
+            readOnly={false}
+          />
+        </div>
+      );
     }
 
     switch (view) {
@@ -765,16 +847,6 @@ export default function Home() {
           />
         );
 
-      case "condition_check":
-        return (
-          <ConditionCheck
-            onComplete={handleConditionComplete}
-            onBack={() => { setView("home"); setActiveTab("home"); }}
-            userName={getDisplayName(user, "")}
-            isGuest={!isLoggedIn}
-          />
-        );
-
       case "master_plan_preview":
         if (!currentWorkoutSession) { setView("home"); return null; }
         return (
@@ -783,7 +855,7 @@ export default function Home() {
             onStart={(modifiedData) => { trackEvent("plan_preview_start"); incrementPlanCount(); setCurrentWorkoutSession(modifiedData); setView("workout_session"); }}
             onBack={() => {
               trackEvent("plan_preview_reject", { exercise_count: currentWorkoutSession?.exercises.length ?? 0 });
-              setView("condition_check");
+              setView("home_chat");
             }}
             onRegenerate={handleRegenerate}
             onIntensityChange={handleIntensityChange}
@@ -892,8 +964,65 @@ export default function Home() {
           />
         );
 
-      case "onboarding":
-        return <Onboarding userName={user?.displayName || ""} onComplete={() => setView("condition_check")} />;
+      case "home_chat": {
+        // 회의 57: 채팅형 홈. 유저 자연어 → parseIntent → handleConditionComplete 재사용.
+        if (activeTab === "my") {
+          return <MyProfileTab user={user} onLogout={handleLogout} autoEdit1RM={autoEdit1RM} onCancelFlowChange={setCancelFlowActive} key={autoEdit1RM ? "edit1rm" : "normal"} />;
+        }
+        const bodyWeightKg = (() => { const w = parseFloat(localStorage.getItem("ohunjal_body_weight") || ""); return isNaN(w) ? undefined : w; })();
+        const birthYear = (() => { const y = parseInt(localStorage.getItem("ohunjal_birth_year") || ""); return isNaN(y) ? undefined : y; })();
+        const genderVal = (localStorage.getItem("ohunjal_gender") as "male" | "female" | null) || undefined;
+        // fitness_profile에서 목표/1RM/주간빈도/키까지 꺼내서 Gemini 컨텍스트 강화
+        const fp = (() => {
+          try { return JSON.parse(localStorage.getItem("ohunjal_fitness_profile") || "{}"); }
+          catch { return {}; }
+        })() as {
+          goal?: "fat_loss" | "muscle_gain" | "endurance" | "health";
+          weeklyFrequency?: number;
+          height?: number;
+          bench1RM?: number;
+          squat1RM?: number;
+          deadlift1RM?: number;
+        };
+        return (
+          <ChatHome
+            key={`${guestTrialSyncVersion}`}
+            userName={getDisplayName(user, "")}
+            isGuest={!isLoggedIn}
+            isLoggedIn={isLoggedIn}
+            isPremium={subStatus === "active"}
+            userProfile={{
+              gender: genderVal,
+              birthYear,
+              bodyWeightKg,
+              heightCm: typeof fp.height === "number" ? fp.height : undefined,
+              goal: fp.goal,
+              weeklyFrequency: typeof fp.weeklyFrequency === "number" ? fp.weeklyFrequency : undefined,
+              bench1RM: typeof fp.bench1RM === "number" ? fp.bench1RM : undefined,
+              squat1RM: typeof fp.squat1RM === "number" ? fp.squat1RM : undefined,
+              deadlift1RM: typeof fp.deadlift1RM === "number" ? fp.deadlift1RM : undefined,
+            }}
+            onSubmit={handleConditionComplete}
+            canSubmit={() => {
+              // 게스트 체험 소진 → 즉시 로그인 모달
+              if (!isLoggedIn && getGuestTrialCount() >= GUEST_TRIAL_LIMIT) {
+                trackEvent("guest_trial_exhausted", { limit: GUEST_TRIAL_LIMIT });
+                trackEvent("login_modal_view", { trigger: "chat_submit_trial_limit" });
+                setLoginModalReason("trial_exhausted");
+                setShowLoginModal(true);
+                return false;
+              }
+              // 로그인 무료 소진 → paywall
+              if (isLoggedIn && (subStatus === "free" || subStatus === "expired") && getPlanCount() >= FREE_PLAN_LIMIT) {
+                trackEvent("paywall_view", { session_number: getPlanCount(), trigger: "chat_submit_paywall" });
+                setShowPaywall(true);
+                return false;
+              }
+              return true;
+            }}
+          />
+        );
+      }
 
       case "login":
         return <LoginScreen onLogin={handleLogin} onTryFree={() => { trackEvent("onboarding_start", { method: "guest" }); setView("home"); }} />;
@@ -939,7 +1068,7 @@ export default function Home() {
                    setShowPaywall(true);
                    return;
                  }
-                 setView("condition_check");
+                 setView("home_chat");
                }}
                initialAnalysis={currentWorkoutSession ?
                  // Try to find analysis from history if available (회의 52: 유틸 경유)
@@ -979,7 +1108,7 @@ export default function Home() {
                 setShowPaywall(true);
                 return;
               }
-              setView("condition_check");
+              setView("home_chat");
             }}
             onShowPrediction={() => {
               if (!isLoggedIn) { trackEvent("login_modal_view", { trigger: "prediction" }); setLoginModalReason("generic"); setShowLoginModal(true); return; }
@@ -996,9 +1125,9 @@ export default function Home() {
   return (
     <I18nProvider>
     <UnitsProvider>
-    <PhoneFrame pullToRefresh={view === "home"}>
+    <PhoneFrame pullToRefresh={view === "home" || view === "home_chat"}>
       <div className="h-full w-full relative overflow-hidden">
-        <div className={`h-full overflow-y-auto overflow-x-hidden scrollbar-hide ${view === "login" ? "" : ""}`} style={view === "login" || view === "workout_session" || view === "master_plan_preview" || view === "condition_check" ? undefined : { paddingBottom: "calc(80px + var(--safe-area-bottom, 0px))" }}>
+        <div className={`h-full overflow-y-auto overflow-x-hidden scrollbar-hide ${view === "login" ? "" : ""}`} style={view === "login" || view === "workout_session" || view === "master_plan_preview" ? undefined : { paddingBottom: "calc(80px + var(--safe-area-bottom, 0px))" }}>
           {renderContent()}
         </div>
         
@@ -1048,7 +1177,7 @@ export default function Home() {
                 } else {
                   // 타임아웃 — 로딩 종료, 컨디션 체크로 복귀
                   setIsLoading(false);
-                  setView("condition_check");
+                  setView("home_chat");
                 }
               };
               checkReady();
@@ -1056,7 +1185,7 @@ export default function Home() {
           />
         )}
 
-        {view !== "login" && view !== "onboarding" && view !== "workout_session" && view !== "master_plan_preview" && view !== "condition_check" && !cancelFlowActive && (
+        {view !== "login" && view !== "workout_session" && view !== "master_plan_preview" && !cancelFlowActive && (
           <div
             className={`absolute bottom-0 left-0 right-0 z-40 transition-transform duration-300 ease-out ${
               tabsVisible ? "translate-y-0" : "translate-y-full"

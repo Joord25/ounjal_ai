@@ -32,6 +32,16 @@
             "timeout": 5
           }
         ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .claude/hooks/block-commit-push.js",
+            "timeout": 5
+          }
+        ]
       }
     ]
   },

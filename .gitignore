@@ -45,3 +45,6 @@ yarn-error.log*
 next-env.d.ts
 .firebase/
 .gstack/
+
+# 실험 폴더 (쓰고 폐기)
+experiments/

@@ -3,12 +3,13 @@
 import React from "react";
 import { useTranslation } from "@/hooks/useTranslation";
 
-export type TabId = "home" | "proof" | "my";
+export type TabId = "home" | "proof" | "nutrition" | "my";
 
-const TAB_IDS: TabId[] = ["home", "proof", "my"];
+const TAB_IDS: TabId[] = ["home", "proof", "nutrition", "my"];
 const TAB_KEYS: Record<TabId, string> = {
   home: "tab.home",
   proof: "tab.proof",
+  nutrition: "tab.nutrition",
   my: "tab.my",
 };
 
