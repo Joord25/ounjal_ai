@@ -52,7 +52,11 @@
       { "source": "/api/planSession", "function": { "functionId": "planSession", "region": "us-central1" } },
       { "source": "/api/parseIntent", "function": { "functionId": "parseIntent", "region": "us-central1" } },
       { "source": "/api/getGuestTrialStatus", "function": { "functionId": "getGuestTrialStatus", "region": "us-central1" } },
-      { "source": "/api/selfDeleteAccount", "function": { "functionId": "selfDeleteAccount", "region": "us-central1" } }
+      { "source": "/api/selfDeleteAccount", "function": { "functionId": "selfDeleteAccount", "region": "us-central1" } },
+      { "source": "/api/savePlan", "function": { "functionId": "savePlan", "region": "us-central1" } },
+      { "source": "/api/listSavedPlans", "function": { "functionId": "listSavedPlans", "region": "us-central1" } },
+      { "source": "/api/deleteSavedPlan", "function": { "functionId": "deleteSavedPlan", "region": "us-central1" } },
+      { "source": "/api/markSavedPlanUsed", "function": { "functionId": "markSavedPlanUsed", "region": "us-central1" } }
     ]
   },
   "functions": {

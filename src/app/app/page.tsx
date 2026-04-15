@@ -21,6 +21,8 @@ import { PlanLoadingOverlay } from "@/components/plan/PlanLoadingOverlay";
 import { FitnessReading } from "@/components/dashboard/FitnessReading";
 import { HomeScreen } from "@/components/dashboard/HomeScreen";
 import { ChatHome } from "@/components/dashboard/ChatHome";
+import { MyPlansScreen } from "@/components/dashboard/MyPlansScreen";
+import { markPlanUsed, remoteMarkPlanUsed } from "@/utils/savedPlans";
 import { Onboarding } from "@/components/layout/Onboarding";
 import { NutritionTab } from "@/components/report/tabs/NutritionTab";
 import { loadUserProfile, getPlanCount, incrementPlanCount, loadPlanCount } from "@/utils/userProfile";
@@ -159,6 +161,7 @@ type ViewState =
   | "prediction_report"
   | "home"
   | "home_chat"
+  | "my_plans"
   | "master_plan_preview"
   | "workout_session"
   | "workout_report";
@@ -367,6 +370,7 @@ export default function Home() {
   // App State
   const [completedRitualIds, setCompletedRitualIds] = useState<string[]>([]);
   const [currentWorkoutSession, setCurrentWorkoutSession] = useState<WorkoutSessionData | null>(null);
+  const [activeSavedPlanId, setActiveSavedPlanId] = useState<string | null>(null);
   const [currentCondition, setCurrentCondition] = useState<UserCondition | null>(null);
   const [currentGoal, setCurrentGoal] = useState<WorkoutGoal | null>(null);
   const [currentSession, setCurrentSession] = useState<SessionSelection | null>(null);
@@ -912,16 +916,36 @@ export default function Home() {
         return (
           <MasterPlanPreview
             sessionData={currentWorkoutSession}
-            onStart={(modifiedData) => { trackEvent("plan_preview_start"); incrementPlanCount(); setCurrentWorkoutSession(modifiedData); setView("workout_session"); }}
+            onStart={(modifiedData) => {
+              trackEvent("plan_preview_start");
+              incrementPlanCount();
+              // 저장 플랜 실행도 게스트 트라이얼 소진시킴 (평가자 P0 지적)
+              if (activeSavedPlanId) {
+                if (!isLoggedIn) incrementGuestTrial();
+                markPlanUsed(activeSavedPlanId);
+                void remoteMarkPlanUsed(activeSavedPlanId);
+              }
+              setCurrentWorkoutSession(modifiedData);
+              setView("workout_session");
+            }}
             onBack={() => {
               trackEvent("plan_preview_reject", { exercise_count: currentWorkoutSession?.exercises.length ?? 0 });
-              setView("home_chat");
+              if (activeSavedPlanId) { setActiveSavedPlanId(null); setView("my_plans"); }
+              else setView("home_chat");
             }}
             onRegenerate={handleRegenerate}
             onIntensityChange={handleIntensityChange}
             currentIntensity={recommendedIntensity}
             recommendedIntensity={recommendedIntensity}
             goal={currentGoal || undefined}
+            isPremium={subStatus === "active"}
+            isLoggedIn={isLoggedIn}
+            onGuestSaveAttempt={() => {
+              trackEvent("login_modal_view", { trigger: "guest_save_attempt" });
+              setLoginModalReason("generic");
+              setShowLoginModal(true);
+            }}
+            savedPlanId={activeSavedPlanId ?? undefined}
           />
         );
 
@@ -1024,6 +1048,31 @@ export default function Home() {
           />
         );
 
+      case "my_plans":
+        return (
+          <MyPlansScreen
+            onBack={() => setView("home_chat")}
+            onSelectPlan={(plan) => {
+              // 저장 플랜 실행도 트라이얼/페이월 게이트 통과 (평가자 P0 지적)
+              if (!isLoggedIn && getGuestTrialCount() >= GUEST_TRIAL_LIMIT) {
+                trackEvent("guest_trial_exhausted", { limit: GUEST_TRIAL_LIMIT });
+                trackEvent("login_modal_view", { trigger: "saved_plan_trial_limit" });
+                setLoginModalReason("trial_exhausted");
+                setShowLoginModal(true);
+                return;
+              }
+              if (isLoggedIn && (subStatus === "free" || subStatus === "expired") && getPlanCount() >= FREE_PLAN_LIMIT) {
+                trackEvent("paywall_view", { session_number: getPlanCount() });
+                setShowPaywall(true);
+                return;
+              }
+              setCurrentWorkoutSession(plan.sessionData);
+              setActiveSavedPlanId(plan.id);
+              setView("master_plan_preview");
+            }}
+          />
+        );
+
       case "home_chat": {
         // 회의 57: 채팅형 홈. 유저 자연어 → parseIntent → handleConditionComplete 재사용.
         if (activeTab === "my") {
@@ -1051,6 +1100,8 @@ export default function Home() {
             isGuest={!isLoggedIn}
             isLoggedIn={isLoggedIn}
             isPremium={subStatus === "active"}
+            onOpenMyPlans={() => setView("my_plans")}
+            savedPlansCount={typeof window !== "undefined" ? JSON.parse(localStorage.getItem("ohunjal_saved_plans") || "[]").length : 0}
             userProfile={{
               gender: genderVal,
               birthYear,

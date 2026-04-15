@@ -26,6 +26,8 @@ interface ChatHomeProps {
   isGuest?: boolean;
   isLoggedIn?: boolean;
   isPremium?: boolean;
+  onOpenMyPlans?: () => void;
+  savedPlansCount?: number;
   onSubmit: (condition: UserCondition, goal: WorkoutGoal, session: SessionSelection, opts?: { skipLoadingAnim?: boolean }) => void | Promise<void>;
   userProfile?: {
     gender?: "male" | "female";
@@ -95,7 +97,7 @@ function renderMarkdownBold(text: string): React.ReactNode {
   });
 }
 
-export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProfile, isLoggedIn, isPremium, canSubmit }) => {
+export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProfile, isLoggedIn, isPremium, canSubmit, onOpenMyPlans, savedPlansCount = 0 }) => {
   const { t, locale } = useTranslation();
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
@@ -292,12 +294,28 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
   return (
     <div className="h-full flex flex-col bg-[#FAFBF9] relative overflow-hidden">
       {/* 상단 CTA — HomeScreen과 동일 형태로 고정 */}
-      <div className="pt-[max(2.5rem,env(safe-area-inset-top))] px-6 pb-2 shrink-0">
-        <h1 className="font-black leading-snug">
+      <div className="pt-[max(2.5rem,env(safe-area-inset-top))] px-6 pb-2 shrink-0 relative">
+        <h1 className="font-black leading-snug pr-12">
           <span className={`text-[#2D6A4F] ${displayName.length > 6 ? "text-2xl" : "text-3xl"}`}>{displayName}</span>
           <span className={`text-[#1B4332] ${greetingMsg.length > 14 ? "text-base" : "text-xl"}`}> {locale === "en" ? "" : "님, "}{greetingMsg}</span>
         </h1>
         <p className="text-[12px] font-medium text-gray-400 mt-1">{dateStr}</p>
+        {onOpenMyPlans && (
+          <button
+            onClick={onOpenMyPlans}
+            className="absolute right-5 top-[max(2.5rem,env(safe-area-inset-top))] p-2 text-gray-400 active:text-[#1B4332] transition-colors"
+            aria-label={locale === "en" ? "My Plans" : "내 플랜"}
+          >
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+            </svg>
+            {savedPlansCount > 0 && (
+              <span className="absolute top-1 right-1 min-w-[16px] h-4 px-1 rounded-full bg-[#2D6A4F] text-white text-[9px] font-black flex items-center justify-center">
+                {savedPlansCount}
+              </span>
+            )}
+          </button>
+        )}
       </div>
 
       {/* 채팅 섹션 — Kenko 스타일: 플랫 + 얇은 라인 구분 */}

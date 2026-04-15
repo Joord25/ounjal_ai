@@ -2026,3 +2026,109 @@ confidence, missingCritical, clarifyQuestion?
 - Analytics 이벤트 onboarding_* 제거 여부 — 기존 대시보드 영향 고려 필요
 
 **대표 컨펌 대기:** E2E 수동 테스트(신규/기존 로그인 → 채팅 → 플랜 → 운동 → 리포트 → 재진입) 성공 시 커밋 승인
+
+---
+
+## 회의 58 (2026-04-16): 플랜 저장 기능 + AI 운동 해석 정합성
+
+**소환:** 대표(임주용), 기획자, 프엔, 평가자, 프롬프트 전문가, 건강운동관리사(15년), 물리치료사(20년), UX/UI 디자이너, 콘텐츠 MD, 백엔드 개발자, Nir Eyal
+
+**배경 (고객 피드백):**
+1. "기구 없이" 요청했는데 덤벨 운동 포함됨 (부분 이해)
+2. "등 안 구부리는 운동" 요청했는데 cat-cow 반복됨 (플랭크류 기대)
+3. AI 생성 플랜을 저장해 재사용할 수단 없음 — 매번 LLM 토큰 소모
+
+### 결정 1: 플랜 저장 기능 (이슈 #3)
+
+| 항목 | 결정 |
+|---|---|
+| 저장 진입 | MasterPlanPreview CTA "내 플랜에 저장" (기존 공유 버튼 교체) |
+| 공유 | 헤더 우측 상단 아이콘으로 이동 |
+| 스코프 | AI 생성 플랜만 |
+| 한도 | 무료 1개 / 유료 5개 |
+| 이름 | 자동 명명 (`가슴·삼두·어깨 40분 · Apr 16`) + 연필 수정 |
+| 리스트 진입 | 홈 화면 우측 상단 아이콘 |
+| 탭 동작 | MasterPlanPreview 경유 → 강도 조정 → 운동 시작 |
+| Firestore | `users/{uid}/saved_plans/{planId}` — name, sessionData, createdAt, lastUsedAt, useCount |
+| 한도 초과 UX | 덮어쓰기 확인 바텀시트 + 페이월 유도 링크 (추후 A/B) |
+
+**스토리지 비용:** DAU 10K × 유료 5개 ≈ 월 2원 (무시 가능)
+
+### 결정 2: AI 해석 정합성 (이슈 #1, #2)
+
+**진단 (프롬프트 전문가):** parseIntent 스키마에 `equipmentAvailable`, `avoidMovementPattern`, `injuryConcern` 필드 부재 → Gemini가 의도 추출해도 룰엔진이 필터링 못 함.
+
+**해결책: Phase C → A → B 순서**
+- **Phase C (운동 태깅)** — 255개 운동에 `equipment`, `movementPattern` 태그 부여. 선행 조건.
+  - equipment: `none | dumbbell | barbell | kettlebell | cable_machine | bodyweight_only`
+  - movementPattern: `horizontal_push/pull`, `vertical_push/pull`, `squat`, `hinge`, `lunge`, `spinal_flexion`, `isometric_core`, `rotation`, `anti_rotation`, `mobility`, `cardio`
+  - 작업 방식: Claude 초안 작성 (~2h) → 대표 검수 (~30min)
+- **Phase A (프롬프트 v2)** — parseIntent 스키마 확장
+- **Phase B (룰엔진 필터)** — `equipment: none` → 맨몸만, `avoid: spinal_flexion` → 굴곡 제외 + McGill Big 3 우선
+
+**물리치료사 코멘트:** "등 안 구부리고" = 요추 이슈 고도화 시그널. McGill Big 3 (데드버그/버드독/플랭크) 우선 추천이 임상 정답.
+
+**평가자 강조:** 회의 55 칼로리 사건 재발 방지 → Phase B 구현 후 Vitest E2E 테스트 필수 (parseIntent → workoutEngine → 출력 운동 풀).
+
+### 실행 순서 (대표 승인)
+
+| Week | 작업 | 담당 |
+|---|---|---|
+| 1 | 플랜 저장 기능 (#3) 구현 | 프엔 + 백엔드 |
+| 2 | 운동 태깅 초안 (255개) → 대표 검수 | 프엔(초안), 대표(검수) |
+| 3 | parseIntent v2 + workoutEngine 필터 + E2E 테스트 | 프롬프트 전문가 + 백엔드 + 평가자 |
+
+### 대표 지시
+- 전체 승인, 착수 지시 (2026-04-16)
+- 기존 회의 관례대로 각 주차 종료 시 대표 확인 후 커밋
+
+
+---
+
+## 회의 58-A (2026-04-16): 플랜 저장 기능 보안·백엔드 긴급 감사
+
+**소환:** 평가자, 백엔드 개발자, 박충환, Nir Eyal, 기획자, 대표
+
+### 평가자 Grep 검증 — P0 두 건 발견
+
+**P0-1 (페이월/트라이얼 우회):**
+- 저장 플랜 실행 경로가 `incrementGuestTrial()` + `FREE_PLAN_LIMIT` 체크 모두 미경유
+- 게스트 1회 플랜 생성 후 저장 → 무한 실행으로 트라이얼 제한 완전 우회 가능
+- 유료 한도 `getPlanCount() >= FREE_PLAN_LIMIT` 체크도 건너뜀
+
+**P0-2 (유료 혜택 무력화):**
+- 저장 개수 한도가 `localStorage`만 참조 — DevTools 한 줄로 우회 가능
+- 무료 1개 / 유료 5개 차이가 클라이언트 조작만으로 돌파됨
+
+### 추가 식별 이슈
+
+- **P1** 데이터 유실(iOS ITP 7일 / 캐시 삭제 / 기기 변경) → Brand Admiration 훼손 (박충환)
+- **P2** 무게 박제 여부: FitScreen의 `ohunjal_weight_{exerciseName}` 오버라이드 구조로 실운영엔 문제없을 가능성 높음 (최종 E2E 필요)
+- **P2** 게스트 저장 허용 여부 결정 필요
+
+### 대표 결정
+- **조치 1 + 2 + 3 모두 진행**
+- 조치 3은 **A안** — 게스트 저장 금지, 로그인 모달 유도
+
+### 구현 완료
+
+| # | 조치 | 구현 |
+|---|---|---|
+| 1 | 저장 플랜 실행 게이트 | `MyPlansScreen.onSelectPlan` 진입 시 게스트/페이월 체크, onStart 저장플랜 경로에서 `incrementGuestTrial` |
+| 2 | Firestore 동기화 + 서버 검증 | `functions/src/plan/savedPlans.ts` 신설 (savePlan/listSavedPlans/deleteSavedPlan/markSavedPlanUsed). 서버가 `users/{uid}/billing/subscription.status`로 isPremium 조회 → 한도 강제. `firebase.json` rewrites 4개. 클라이언트 래퍼 + MasterPlanPreview/MyPlansScreen 서버 SSOT 동기화. |
+| 3 | 게스트 저장 금지 | `MasterPlanPreview.openSaveSheet`에 `isLoggedIn` 가드, `onGuestSaveAttempt` 콜백 → page.tsx 로그인 모달 |
+
+### 빌드 상태
+- 루트 `npx tsc --noEmit` ✓
+- `functions && npm run build` ✓
+
+### 배포 메모 (대표 수동)
+1. 프론트 push → Hosting 자동 배포
+2. `cd functions && npm run build && firebase deploy --only functions` — **신규 4개 함수**
+3. 주의: Hosting 선배포 후 functions 배포 사이 잠깐 /api/savePlan 호출 실패 가능 — 기능 사용 유도 자제 권장
+
+### 후속 과제
+- E2E 수동 테스트 (게스트/무료/유료 3종 시나리오)
+- 무게 박제 확인 테스트
+- Firestore Security Rules (현재 서버만 쓰기 중이라 기본 deny로 충분하나, 명시 규칙 추가 권장)
+

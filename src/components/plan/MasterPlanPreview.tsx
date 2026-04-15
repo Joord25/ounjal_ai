@@ -5,6 +5,7 @@ import { useSetEditor } from "./useSetEditor";
 import { THEME } from "@/constants/theme";
 import { WorkoutSessionData, ExerciseStep, getAlternativeExercises, WorkoutGoal } from "@/constants/workout";
 import { PlanShareCard } from "./PlanShareCard";
+import { SavedPlan, autoNamePlan, getSavedPlans, newPlanId, savePlan, remoteSavePlan, FREE_LIMIT, PREMIUM_LIMIT } from "@/utils/savedPlans";
 import { PlanHero } from "./PlanHero";
 import { PlanTutorialOverlays } from "./PlanTutorialOverlays";
 import { PlanBottomSheets } from "./PlanBottomSheets";
@@ -24,6 +25,11 @@ interface MasterPlanPreviewProps {
   currentIntensity?: "high" | "moderate" | "low" | null;
   recommendedIntensity?: "high" | "moderate" | "low" | null;
   goal?: WorkoutGoal;
+  isPremium?: boolean;
+  isLoggedIn?: boolean;
+  onGuestSaveAttempt?: () => void;
+  /** saved plan에서 진입한 경우: 해당 플랜 ID. 저장 동작이 "업데이트"로 바뀜 */
+  savedPlanId?: string;
 }
 
 const MUSCLE_GROUP_EN: Record<string, string> = {
@@ -194,7 +200,11 @@ export const MasterPlanPreview: React.FC<MasterPlanPreviewProps> = ({
   onIntensityChange,
   currentIntensity,
   recommendedIntensity,
-  goal
+  goal,
+  isPremium = false,
+  isLoggedIn = false,
+  onGuestSaveAttempt,
+  savedPlanId,
 }) => {
   const { t, locale } = useTranslation();
   // Local mutable copy of exercises (for set count adjustments)
@@ -265,6 +275,75 @@ export const MasterPlanPreview: React.FC<MasterPlanPreviewProps> = ({
   const [swapFilter, setSwapFilter] = useState<string | null>(null); // null = 추천(같은부위), or muscle group label
   const [addToPhase, setAddToPhase] = useState<string | null>(null); // phase key for "add exercise" mode
   const [showShareCard, setShowShareCard] = useState(false);
+  // 플랜 저장 바텀시트 상태
+  const [showSaveSheet, setShowSaveSheet] = useState(false);
+  const [saveNameDraft, setSaveNameDraft] = useState("");
+  const [saveFeedback, setSaveFeedback] = useState<"idle" | "saved" | "limit">("idle");
+  const openSaveSheet = () => {
+    if (!isLoggedIn) {
+      onGuestSaveAttempt?.();
+      return;
+    }
+    const defaultName = autoNamePlan({ ...sessionData, exercises: localExercises }, locale);
+    setSaveNameDraft(defaultName);
+    setSaveFeedback("idle");
+    setShowSaveSheet(true);
+  };
+  const confirmSavePlan = async () => {
+    const limit = isPremium ? PREMIUM_LIMIT : FREE_LIMIT;
+    const existing = getSavedPlans();
+    const isUpdate = !!savedPlanId && existing.some(p => p.id === savedPlanId);
+    if (!isUpdate && existing.length >= limit) {
+      setSaveFeedback("limit");
+      return;
+    }
+    const now = Date.now();
+    const planToSave: SavedPlan = isUpdate
+      ? {
+          ...existing.find(p => p.id === savedPlanId)!,
+          name: saveNameDraft.trim() || autoNamePlan({ ...sessionData, exercises: localExercises }, locale),
+          sessionData: { ...sessionData, exercises: localExercises },
+        }
+      : {
+          id: newPlanId(),
+          name: saveNameDraft.trim() || autoNamePlan({ ...sessionData, exercises: localExercises }, locale),
+          sessionData: { ...sessionData, exercises: localExercises },
+          createdAt: now,
+          lastUsedAt: null,
+          useCount: 0,
+        };
+    // 서버 먼저 — 서버가 SSOT, 한도는 서버가 강제
+    const remote = await remoteSavePlan(planToSave);
+    if (!remote.ok && remote.reason === "limit") {
+      setSaveFeedback("limit");
+      return;
+    }
+    // 서버 성공(또는 오프라인 fallback) 시 로컬 캐시에도 반영
+    savePlan(planToSave);
+    setSaveFeedback("saved");
+    void isUpdate;
+    setTimeout(() => setShowSaveSheet(false), 800);
+  };
+  const handleOverwriteOldest = async () => {
+    const existing = getSavedPlans();
+    if (existing.length === 0) return;
+    const oldest = [...existing].sort((a, b) => (a.lastUsedAt ?? a.createdAt) - (b.lastUsedAt ?? b.createdAt))[0];
+    const now = Date.now();
+    const replacement: SavedPlan = {
+      ...oldest,
+      name: saveNameDraft.trim() || autoNamePlan({ ...sessionData, exercises: localExercises }, locale),
+      sessionData: { ...sessionData, exercises: localExercises },
+      createdAt: now,
+    };
+    const remote = await remoteSavePlan(replacement);
+    if (!remote.ok && remote.reason === "limit") {
+      setSaveFeedback("limit");
+      return;
+    }
+    savePlan(replacement);
+    setSaveFeedback("saved");
+    setTimeout(() => setShowSaveSheet(false), 800);
+  };
   const [showIntroTip, setShowIntroTip] = useState(() => {
     if (typeof window !== "undefined") {
       return !localStorage.getItem("ohunjal_tip_intro");
@@ -450,15 +529,26 @@ export const MasterPlanPreview: React.FC<MasterPlanPreviewProps> = ({
         <span className="text-[11px] font-serif font-medium tracking-[0.25em] text-gray-400 uppercase">
           Master Plan
         </span>
-        <button
-          ref={settingsBtnRef}
-          onClick={() => setIsEditing(true)}
-          className="relative p-2 -mr-2 text-gray-400 active:text-gray-600 transition-colors"
-        >
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-          </svg>
-        </button>
+        <div className="flex items-center gap-1 -mr-2">
+          <button
+            onClick={() => setShowShareCard(true)}
+            className="p-2 text-gray-400 active:text-gray-600 transition-colors"
+            aria-label={t("plan.share")}
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+            </svg>
+          </button>
+          <button
+            ref={settingsBtnRef}
+            onClick={() => setIsEditing(true)}
+            className="relative p-2 text-gray-400 active:text-gray-600 transition-colors"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+            </svg>
+          </button>
+        </div>
       </div>
 
       {/* 고정 히어로 (스크롤 영역 밖) */}
@@ -556,13 +646,13 @@ export const MasterPlanPreview: React.FC<MasterPlanPreviewProps> = ({
       >
         <div className="flex items-center gap-2.5">
           <button
-            onClick={() => setShowShareCard(true)}
+            onClick={openSaveSheet}
             className="h-14 px-5 rounded-2xl bg-white border-2 border-gray-200 active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-sm"
           >
             <svg className="w-5 h-5 text-[#1B4332]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
             </svg>
-            <span className="text-[#1B4332] font-black text-sm">{t("plan.share")}</span>
+            <span className="text-[#1B4332] font-black text-sm">{t("plan.save_to_my")}</span>
           </button>
           <button
             onClick={() => onStart({ ...sessionData, exercises: localExercises })}
@@ -621,6 +711,64 @@ export const MasterPlanPreview: React.FC<MasterPlanPreviewProps> = ({
           currentIntensity={currentIntensity}
           onClose={() => setShowShareCard(false)}
         />
+      )}
+
+      {/* 플랜 저장 바텀시트 */}
+      {showSaveSheet && (
+        <div className="absolute inset-0 z-40 flex items-end" onClick={() => setShowSaveSheet(false)}>
+          <div className="absolute inset-0 bg-black/40" />
+          <div
+            className="relative w-full bg-white rounded-t-3xl px-5 pt-5 pb-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+            style={{ paddingBottom: "calc(var(--safe-area-bottom, 0px) + 24px)" }}
+          >
+            <div className="w-10 h-1 bg-gray-300 rounded-full mx-auto mb-4" />
+            <h3 className="text-lg font-black text-[#1B4332] mb-1">{t("plan.save_sheet_title")}</h3>
+            <p className="text-xs text-gray-500 mb-4">{t("plan.save_sheet_desc")}</p>
+            <label className="block text-[11px] font-bold text-gray-500 mb-1.5">{t("plan.save_name_label")}</label>
+            <input
+              type="text"
+              value={saveNameDraft}
+              onChange={(e) => setSaveNameDraft(e.target.value)}
+              maxLength={40}
+              className="w-full h-11 px-3 rounded-xl border-2 border-gray-200 focus:border-[#2D6A4F] outline-none text-sm font-bold text-gray-900"
+              placeholder={autoNamePlan({ ...sessionData, exercises: localExercises }, locale)}
+            />
+            {saveFeedback === "limit" && (
+              <div className="mt-3 px-3 py-2.5 rounded-xl bg-amber-50 border border-amber-200">
+                <p className="text-xs font-bold text-amber-800">
+                  {isPremium
+                    ? t("plan.save_limit_premium", { n: String(PREMIUM_LIMIT) })
+                    : t("plan.save_limit_free", { n: String(FREE_LIMIT) })}
+                </p>
+                <button
+                  onClick={handleOverwriteOldest}
+                  className="mt-2 text-xs font-black text-amber-900 underline"
+                >
+                  {t("plan.save_overwrite_oldest")}
+                </button>
+              </div>
+            )}
+            {saveFeedback === "saved" && (
+              <p className="mt-3 text-xs font-bold text-emerald-700">{t("plan.save_success")}</p>
+            )}
+            <div className="flex gap-2 mt-5">
+              <button
+                onClick={() => setShowSaveSheet(false)}
+                className="flex-1 h-12 rounded-xl border-2 border-gray-200 text-gray-700 font-black text-sm active:scale-[0.98] transition"
+              >
+                {t("common.cancel")}
+              </button>
+              <button
+                onClick={confirmSavePlan}
+                disabled={saveFeedback === "saved"}
+                className="flex-[2] h-12 rounded-xl bg-[#1B4332] text-white font-black text-sm active:scale-[0.98] transition disabled:opacity-60"
+              >
+                {t("plan.save_confirm")}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
     </div>
