@@ -190,9 +190,9 @@ export function buildInitialGreeting(
     .slice(0, 2)
     .map((ex) => cleanExerciseName(ex.name));
   const lastMovesLabel = lastMainExercises.length >= 2
-    ? `${lastMainExercises[0]}랑 ${lastMainExercises[1]}같은`
+    ? `**${lastMainExercises[0]}**랑 **${lastMainExercises[1]}**같은`
     : lastMainExercises.length === 1
-    ? `${lastMainExercises[0]}같은`
+    ? `**${lastMainExercises[0]}**같은`
     : "";
 
   // 오늘 추천 부위용 compound + 무게 계산
@@ -242,21 +242,21 @@ export function buildInitialGreeting(
     ? (locale === "en" ? (compoundLabelEn[todayCompound.name] || todayCompound.name) : todayCompound.name)
     : "";
 
-  // 오늘 운동 제안 한 줄 생성 (1RM 있으면 무게 포함, 없으면 중강도 시간)
+  // 오늘 운동 제안 한 줄 생성 (1RM 있으면 무게 포함, 없으면 중강도)
   const todaySuggestion = (() => {
     if (todayCompound && todayTargetWeight) {
       return locale === "en"
-        ? `Today's target — ${todayCompoundLabel} ${todayTargetWeight}kg.`
-        : `오늘은 ${todayCompound.name} ${todayTargetWeight}kg 목표로 입니다!`;
+        ? `Today's target — **${todayCompoundLabel} ${todayTargetWeight}kg**.`
+        : `오늘은 **${todayCompound.name} ${todayTargetWeight}kg** 목표로 입니다!`;
     }
     if (todayCompound) {
       return locale === "en"
-        ? `Today's target — ${todayCompoundLabel}, 40~50 min at moderate intensity.`
-        : `오늘은 ${todayCompound.name} 중강도로 40~50분 어떠세요?`;
+        ? `Today's target — **${todayCompoundLabel}** at moderate intensity.`
+        : `오늘은 **${todayCompound.name} 중강도** 어떠세요?`;
     }
     return locale === "en"
-      ? `Today — ${oppositePart}, 40~50 min moderate.`
-      : `오늘은 ${oppositePart}로 40~50분 중강도 어떠세요?`;
+      ? `Today — **${oppositePart}**, moderate intensity.`
+      : `오늘은 **${oppositePart}** 중강도 어떠세요?`;
   })();
 
   const confirmQuestion = locale === "en"
@@ -302,11 +302,11 @@ export function buildInitialGreeting(
   // 대표 요청 템플릿 — 지난 운동·오늘 추천·목표·무게·확인 질문
   if (lastPart && (lastMovesLabel || lastMovesLabelEn)) {
     const pastLine = locale === "en"
-      ? `Your last session (${daysSince} day${daysSince === 1 ? "" : "s"} ago) was mostly ${partLabelEn}${lastMovesLabelEn ? ` — ${lastMovesLabelEn}` : ""}.`
-      : `지난 마지막 시간 ${lastMovesLabel} ${lastPart} 위주로 했었네요.`;
+      ? `Your last session (${daysSince} day${daysSince === 1 ? "" : "s"} ago) was mostly **${partLabelEn}**${lastMovesLabelEn ? ` — **${lastMovesLabelEn}**` : ""}.`
+      : `지난 마지막 시간 ${lastMovesLabel} **${lastPart} 위주**로 했었네요.`;
     const todayPlanLine = locale === "en"
-      ? `Today I'm planning ${oppositePart}${goalLabel ? `, and since your goal is ${goalLabel}` : ""},`
-      : `오늘은 ${oppositePart} 계획하고 있으며${goalLabel ? ` ${namePrefix}${goalLabel}을 목적으로 하셨으니,` : ","}`;
+      ? `Today I'm planning **${oppositePart}**${goalLabel ? `, and since your goal is **${goalLabel}**` : ""},`
+      : `오늘은 **${oppositePart}** 계획하고 있으며${goalLabel ? ` ${namePrefix}${goalLabel}을 목적으로 하셨으니,` : ","}`;
     return join([pastLine, todayPlanLine, todaySuggestion, confirmQuestion]);
   }
 

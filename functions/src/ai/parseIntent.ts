@@ -277,6 +277,7 @@ ${historyBlock}
 - goals, principles, criticalPoints, conclusion, intensity, supplements: bullet 2~4개, 각 1문장
 - 불필요한 섹션은 omit (예: 초보자엔 monthProgram·supplements 생략 가능)
 - 이모지 사용 허용 (채팅 맥락이라 자연스럽게 1~2개 정도 가능, 과도한 사용은 금지)
+- 핵심 키워드(운동명/부위/강도/목표)는 **굵게** 마크다운으로 강조 (예: "**벤치프레스**를 **중강도**로"). 한 문장에 1~3개 정도만.
 - 유저 프로필(1RM·경력·나이·목표)과 운동 이력 요약을 반드시 반영
 - recommendedWorkout은 planSession 호출용이라 enum 정확히 — condition.availableTime은 30|50|90만, non-long-run은 30|50, split일 때만 targetMuscle
 

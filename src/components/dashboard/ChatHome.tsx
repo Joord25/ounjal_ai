@@ -81,6 +81,17 @@ function msgToHistoryContent(m: ChatMsg): string {
   return "[advice card shown]";
 }
 
+/** **bold** 마크다운만 렌더링. 나머지는 평문. */
+function renderMarkdownBold(text: string): React.ReactNode {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return <strong key={i} className="font-bold">{part.slice(2, -2)}</strong>;
+    }
+    return part;
+  });
+}
+
 export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProfile, isLoggedIn, isPremium, canSubmit }) => {
   const { t, locale } = useTranslation();
   const [text, setText] = useState("");
@@ -331,13 +342,13 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
         <div className="px-6 py-4 flex-1 overflow-y-auto min-h-0">
           {/* 최초 안내 (항상 노출) — 운동 이력 기반 룰베이스 인사 */}
           <p className="text-[13px] text-[#1B4332] leading-relaxed whitespace-pre-wrap break-keep">
-            {buildInitialGreeting(getCachedWorkoutHistory(), locale, {
+            {renderMarkdownBold(buildInitialGreeting(getCachedWorkoutHistory(), locale, {
               goal: userProfile?.goal,
               weeklyFrequency: userProfile?.weeklyFrequency,
               bench1RM: userProfile?.bench1RM,
               squat1RM: userProfile?.squat1RM,
               deadlift1RM: userProfile?.deadlift1RM,
-            }, userName)}
+            }, userName))}
           </p>
 
           {/* 대화 히스토리 */}
@@ -392,7 +403,7 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
                   textMsg.tone === "error" ? "text-amber-700" : "text-[#1B4332]"
                 }`}
               >
-                {textMsg.content}
+                {renderMarkdownBold(textMsg.content)}
               </p>
             );
           })}
