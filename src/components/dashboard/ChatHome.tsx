@@ -292,10 +292,10 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
         <p className="text-[12px] font-medium text-gray-400 mt-1">{dateStr}</p>
       </div>
 
-      {/* 채팅 카드 — NutritionTab의 AI 코치챗 스타일 재사용 */}
-      <div className="mx-6 mt-2 mb-4 bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex-1 flex flex-col min-h-0">
+      {/* 채팅 섹션 — Kenko 스타일: 플랫 + 얇은 라인 구분 */}
+      <div className="mt-4 border-t border-gray-200 flex-1 flex flex-col min-h-0">
         {/* 헤더 — 우측에 무료 체험 배지 인라인 (회의 57 대표 지시) */}
-        <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100">
+        <div className="flex items-center gap-3 px-6 py-3 border-b border-gray-200">
           <img src="/favicon_backup.png" alt="AI" className="w-7 h-7 rounded-full shrink-0" />
           <div>
             <p className="text-xs font-black text-[#1B4332]">{locale === "en" ? "AI Coach" : "AI 코치"}</p>
@@ -335,7 +335,7 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
         </div>
 
         {/* 메시지 영역 */}
-        <div className="px-4 py-4 bg-gray-50/50 flex-1 overflow-y-auto min-h-0">
+        <div className="px-6 py-4 flex-1 overflow-y-auto min-h-0">
           {/* 최초 안내 (항상 노출) — 운동 이력 기반 룰베이스 인사 */}
           <div className="flex gap-2.5">
             <img src="/favicon_backup.png" alt="AI" className="w-6 h-6 rounded-full shrink-0 mt-0.5" />
@@ -471,7 +471,7 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
         </div>
 
         {/* 입력 */}
-        <div className="px-4 py-3 border-t border-gray-100">
+        <div className="px-6 py-3 border-t border-gray-200">
           <div className="flex gap-2 items-end">
             <textarea
               ref={inputRef}
@@ -503,7 +503,7 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
       </div>
 
       {/* 예시 프롬프트 — 가로 스와이프 (우측 fade로 추가 내용 힌트) */}
-      <div className="shrink-0 pb-4 relative">
+      <div className="shrink-0 pt-3 pb-4 border-t border-gray-200 relative">
         <p className="px-6 text-[11px] font-medium text-gray-400 tracking-wider uppercase mb-2">
           {t("chat_home.examples.title")}
         </p>
