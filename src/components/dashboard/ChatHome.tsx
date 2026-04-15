@@ -12,7 +12,7 @@
  * 예시 프롬프트 탭 → 채팅창에 자동 입력 → 유저 수정/전송.
  */
 
-import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useTranslation } from "@/hooks/useTranslation";
 import type { UserCondition, WorkoutGoal, SessionSelection } from "@/constants/workout";
 import { getTrialStatus } from "@/utils/trialStatus";
@@ -88,7 +88,7 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [pendingIntent, setPendingIntent] = useState<ParsedIntent | null>(null);
   const [routing, setRouting] = useState(false);
-  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const scrollEndRef = useRef<HTMLDivElement>(null);
 
   const buildIntentSummary = (intent: ParsedIntent): string => {
@@ -155,13 +155,6 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
     scrollEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages, busy]);
 
-  // 긴 입력도 보이도록 자동 높이 조절 (최대 ~5줄)
-  useLayoutEffect(() => {
-    const el = inputRef.current;
-    if (!el) return;
-    el.style.height = "auto";
-    el.style.height = Math.min(el.scrollHeight, 140) + "px";
-  }, [text]);
   const displayName = userName || t("home.defaultName");
 
   // 회의 57: HomeScreen과 동일한 상단 CTA(인사 + 날짜) 고정 재사용.
@@ -337,20 +330,15 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
         {/* 메시지 영역 */}
         <div className="px-6 py-4 flex-1 overflow-y-auto min-h-0">
           {/* 최초 안내 (항상 노출) — 운동 이력 기반 룰베이스 인사 */}
-          <div className="flex gap-2.5">
-            <img src="/favicon_backup.png" alt="AI" className="w-6 h-6 rounded-full shrink-0 mt-0.5" />
-            <div className="bg-white rounded-2xl rounded-tl-md px-3.5 py-2.5 shadow-sm border border-gray-100">
-              <p className="text-[13px] text-[#1B4332] leading-relaxed whitespace-pre-wrap">
-                {buildInitialGreeting(getCachedWorkoutHistory(), locale, {
-                  goal: userProfile?.goal,
-                  weeklyFrequency: userProfile?.weeklyFrequency,
-                  bench1RM: userProfile?.bench1RM,
-                  squat1RM: userProfile?.squat1RM,
-                  deadlift1RM: userProfile?.deadlift1RM,
-                }, userName)}
-              </p>
-            </div>
-          </div>
+          <p className="text-[13px] text-[#1B4332] leading-relaxed whitespace-pre-wrap">
+            {buildInitialGreeting(getCachedWorkoutHistory(), locale, {
+              goal: userProfile?.goal,
+              weeklyFrequency: userProfile?.weeklyFrequency,
+              bench1RM: userProfile?.bench1RM,
+              squat1RM: userProfile?.squat1RM,
+              deadlift1RM: userProfile?.deadlift1RM,
+            }, userName)}
+          </p>
 
           {/* 대화 히스토리 */}
           {messages.map((msg, i) => {
@@ -365,9 +353,8 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
             }
             if ("kind" in msg && msg.kind === "advice") {
               return (
-                <div key={i} className="flex gap-2.5 mt-3">
-                  <img src="/favicon_backup.png" alt="AI" className="w-6 h-6 rounded-full shrink-0 mt-0.5" />
-                  <div className="flex-1 min-w-0">
+                <div key={i} className="mt-3">
+                  <div className="min-w-0">
                     <AdviceCard
                       advice={msg.advice}
                       onStartRecommended={async () => {
@@ -399,24 +386,21 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
             // 남은 variant: { role: "assistant"; content: string; tone?: ... }
             const textMsg = msg as { role: "assistant"; content: string; tone?: "info" | "error" };
             return (
-              <div key={i} className="flex gap-2.5 mt-3">
-                <img src="/favicon_backup.png" alt="AI" className="w-6 h-6 rounded-full shrink-0 mt-0.5" />
-                <div className={`max-w-[85%] rounded-2xl rounded-tl-md px-3.5 py-2.5 shadow-sm text-[13px] leading-relaxed whitespace-pre-wrap ${
-                  textMsg.tone === "error"
-                    ? "bg-amber-50 border border-amber-100 text-amber-900"
-                    : "bg-white border border-gray-100 text-[#1B4332]"
-                }`}>
-                  {textMsg.content}
-                </div>
-              </div>
+              <p
+                key={i}
+                className={`mt-3 text-[13px] leading-relaxed whitespace-pre-wrap ${
+                  textMsg.tone === "error" ? "text-amber-700" : "text-[#1B4332]"
+                }`}
+              >
+                {textMsg.content}
+              </p>
             );
           })}
 
           {/* 플랜 확인 카드 — 자동 전환 대신 유저 탭 요구. busy 중이면 숨김 (새 분석 중) */}
           {pendingIntent && !routing && !busy && (
-            <div className="flex gap-2.5 mt-3">
-              <img src="/favicon_backup.png" alt="AI" className="w-6 h-6 rounded-full shrink-0 mt-0.5" />
-              <div className="flex-1 bg-white rounded-2xl rounded-tl-md px-3.5 py-3 shadow-sm border border-[#2D6A4F]/20">
+            <div className="mt-3">
+              <div className="bg-white rounded-2xl px-3.5 py-3 border border-[#2D6A4F]/20">
                 <p className="text-[12px] text-gray-500 mb-2">
                   {locale === "en" ? "Ready to build this plan?" : "이 플랜으로 시작할까요?"}
                 </p>
@@ -443,27 +427,17 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
 
           {/* 플랜 이동 중 표시 */}
           {routing && (
-            <div className="flex gap-2.5 mt-3">
-              <img src="/favicon_backup.png" alt="AI" className="w-6 h-6 rounded-full shrink-0 mt-0.5" />
-              <div className="bg-white rounded-2xl rounded-tl-md px-3.5 py-2.5 shadow-sm border border-gray-100">
-                <p className="text-[13px] text-[#1B4332] leading-relaxed">
-                  {t("chat_home.confirm.routing")}
-                </p>
-              </div>
-            </div>
+            <p className="mt-3 text-[13px] text-[#1B4332] leading-relaxed">
+              {t("chat_home.confirm.routing")}
+            </p>
           )}
 
           {/* 생각 중 — busy일 때만 */}
           {busy && (
-            <div className="flex gap-2.5 mt-3">
-              <img src="/favicon_backup.png" alt="AI" className="w-6 h-6 rounded-full shrink-0 mt-0.5" />
-              <div className="bg-white rounded-2xl rounded-tl-md px-4 py-3 shadow-sm border border-gray-100">
-                <div className="flex gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: "0ms" }} />
-                  <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: "150ms" }} />
-                  <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: "300ms" }} />
-                </div>
-              </div>
+            <div className="mt-3 flex gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: "0ms" }} />
+              <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: "150ms" }} />
+              <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: "300ms" }} />
             </div>
           )}
 
@@ -473,20 +447,20 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
         {/* 입력 */}
         <div className="px-6 py-3 border-t border-gray-200">
           <div className="flex gap-2 items-end">
-            <textarea
+            <input
               ref={inputRef}
-              rows={1}
+              type="text"
               value={text}
               onChange={(e) => setText(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
+                if (e.key === "Enter") {
                   e.preventDefault();
                   handleSubmit();
                 }
               }}
               placeholder={t("chat_home.placeholder")}
               disabled={busy}
-              className="flex-1 text-sm bg-gray-50 rounded-xl px-4 py-2.5 border border-gray-100 focus:outline-none focus:border-[#2D6A4F] text-[#1B4332] placeholder-gray-400 disabled:opacity-50 resize-none leading-6 min-h-[40px] max-h-[140px] overflow-y-auto"
+              className="flex-1 text-sm bg-transparent px-0 py-2 border-0 focus:outline-none text-[#1B4332] placeholder-gray-400 disabled:opacity-50"
             />
             <button
               onClick={handleSubmit}
