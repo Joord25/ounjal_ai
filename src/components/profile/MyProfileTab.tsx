@@ -569,7 +569,7 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout, auto
       <div className="flex flex-col gap-4 px-8 pb-8">
 
         {/* ── 1. ACCOUNT — MY INFO 패턴의 드롭다운 (구독 / 로그아웃 / 회원 탈퇴) ── */}
-        <div className="bg-gray-50 rounded-2xl p-5 flex flex-col gap-3">
+        <div className="border-t border-gray-200 py-5 flex flex-col gap-3">
           <button
             onClick={() => setShowAccount(!showAccount)}
             className="flex items-center justify-between active:opacity-60"
@@ -629,7 +629,7 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout, auto
         </div>
 
         {/* ── 2. MY INFO ── */}
-        <div className="bg-gray-50 rounded-2xl p-5 flex flex-col gap-3">
+        <div className="border-t border-gray-200 py-5 flex flex-col gap-3">
           <button
             onClick={() => setShowBodyInfo(!showBodyInfo)}
             className="flex items-center justify-between active:opacity-60"
@@ -843,7 +843,7 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout, auto
         </div>
 
         {/* ── 3. 환경설정 ── */}
-        <div className="bg-gray-50 rounded-2xl p-5 flex flex-col gap-3">
+        <div className="border-t border-gray-200 py-5 flex flex-col gap-3">
           <button
             onClick={() => setShowSettings(!showSettings)}
             className="flex items-center justify-between active:opacity-60"
@@ -910,7 +910,7 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout, auto
         {/* ── 4. 프리미엄 구독 배너 (독립) ── */}
         <button
           onClick={() => setShowSubscription(true)}
-          className="w-full bg-gradient-to-r from-[#1B4332] to-[#2D6A4F] rounded-2xl p-6 flex items-center justify-between transition-all active:scale-[0.98] shadow-lg shadow-[#1B4332]/20"
+          className="w-full bg-gradient-to-r from-[#1B4332] to-[#2D6A4F] rounded-xl p-6 flex items-center justify-between transition-all active:scale-[0.98]"
         >
           <div className="flex flex-col items-start gap-1">
             <span className="text-lg font-bold text-white">{t("my.premium")}</span>
@@ -929,7 +929,7 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout, auto
           href="https://forms.gle/N9inup92JWtZAphS7"
           target="_blank"
           rel="noopener noreferrer"
-          className="w-full bg-[#1B4332] hover:bg-[#2D6A4F] rounded-2xl p-6 flex items-center justify-between transition-all active:scale-[0.98]"
+          className="w-full bg-[#1B4332] hover:bg-[#2D6A4F] rounded-xl p-6 flex items-center justify-between transition-all active:scale-[0.98]"
         >
           <div className="flex flex-col items-start gap-1">
             <span className="text-lg font-bold text-white">{t("my.bugReport")}</span>
