@@ -244,8 +244,8 @@ export const NutritionTab: React.FC<NutritionTabProps> = ({
 
   return (
     <div>
-      {/* 칼로리 + 목표 */}
-      <div className="py-5 px-1 relative">
+      {/* 칼로리 + 목표 — 스크롤 시 상단 고정 */}
+      <div className="sticky top-0 z-10 bg-[#FAFBF9] py-5 px-1 relative">
         <button onClick={() => setShowCalorieHelp(true)} className="absolute top-4 right-1 w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center">
           <span className="text-[11px] font-black text-gray-400">?</span>
         </button>
@@ -255,7 +255,7 @@ export const NutritionTab: React.FC<NutritionTabProps> = ({
         <p className="text-3xl font-black text-[#1B4332]">
           {guide.dailyCalorie.toLocaleString()} <span className="text-base font-bold text-gray-400">kcal</span>
         </p>
-        <p className="text-[10px] text-gray-500 mt-1">{guide.goalBasis} {isKo ? "기준" : "based"}</p>
+        <p className="text-[10px] text-gray-500 mt-1">{guide.goalBasis}</p>
 
         {/* 탄단지 바 */}
         <div className="mt-4 flex gap-2">
@@ -358,7 +358,7 @@ export const NutritionTab: React.FC<NutritionTabProps> = ({
         </div>
 
         {/* 입력 영역 */}
-        <div className="py-3 px-1 border-t border-gray-200">
+        <div className="py-3 px-1 border-t border-b border-gray-200">
           {readOnly ? (
             chatMessages.length === 0 ? null : (
               <p className="text-center text-[10px] text-gray-400 py-1">
