@@ -363,7 +363,7 @@ export const ProofTab: React.FC<ProofTabProps> = ({ onShowPrediction }) => {
 
         {/* 부위 도감은 4탭 카드 안으로 이동 */}
 
-        {/* 4탭 통합 카드 — Kenko 스타일 플랫 */}
+        {/* 4탭 통합 카드 */}
         <div className="border-t border-b border-gray-200 mb-5">
           <div className="flex gap-0.5 bg-[#2D6A4F]/10 p-1 m-3 mb-0 rounded-xl">
             {([
@@ -548,7 +548,7 @@ export const ProofTab: React.FC<ProofTabProps> = ({ onShowPrediction }) => {
 
         {/* 기록 없을 때 안내 */}
         {history.length === 0 && (
-          <div className="mt-4 border-t border-gray-200 px-1 py-6 text-center">
+          <div className="mt-4 rounded-2xl bg-[#2D6A4F]/5 border border-[#2D6A4F]/10 px-5 py-6 text-center">
             <p className="text-[15px] font-bold text-[#1B4332] mb-1">{t("proof.noRecordYet")}</p>
             <p className="text-[12px] text-gray-400">{t("proof.firstWorkoutHere")}</p>
           </div>
@@ -583,7 +583,7 @@ export const ProofTab: React.FC<ProofTabProps> = ({ onShowPrediction }) => {
               : "from-gray-400 to-gray-300";
 
             return (
-              <div className="border-t border-b border-gray-200 overflow-hidden">
+              <div className="rounded-3xl overflow-hidden border border-[#2D6A4F]/10 shadow-sm">
                 <div className={`bg-gradient-to-r ${lvlGradient} px-6 py-4`}>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -644,7 +644,7 @@ export const ProofTab: React.FC<ProofTabProps> = ({ onShowPrediction }) => {
           {onShowPrediction && (
             <button
               onClick={onShowPrediction}
-              className="w-full border-t border-b border-gray-200 px-1 py-4 flex items-center justify-between active:opacity-70 transition-opacity"
+              className="w-full bg-white rounded-2xl border border-[#2D6A4F]/10 shadow-sm p-4 flex items-center justify-between active:scale-[0.98] transition-all"
             >
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-xl bg-[#2D6A4F]/10 flex items-center justify-center shrink-0">

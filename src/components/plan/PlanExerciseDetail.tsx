@@ -5,6 +5,7 @@ import { useTranslation } from "@/hooks/useTranslation";
 import { ExerciseStep, deriveSetDetails, getExerciseMuscleGroups } from "@/constants/workout";
 import { getExerciseName } from "@/utils/exerciseName";
 import { getMuscleColor, translateMuscleGroup } from "./muscleColor";
+import { getBodyIcon } from "./bodyIcon";
 import { useUnits } from "@/hooks/useUnits";
 import { kgToLb, lbToKg } from "@/utils/units";
 import { getVideoEmbedUrl, getYoutubeSearchUrl } from "@/constants/exerciseVideos";
@@ -95,11 +96,19 @@ export const PlanExerciseDetail: React.FC<PlanExerciseDetailProps> = ({
     <div ref={cardRef} className="rounded-2xl border border-gray-200 bg-white overflow-hidden">
       {/* 헤더 */}
       <div className="flex items-center gap-3 px-4 pt-4 pb-3">
-        <div className={`w-11 h-11 rounded-xl ${color.bg} flex items-center justify-center shrink-0`}>
-          <span className={`text-base font-black ${color.fg}`}>
-            {muscleGroups[0]?.[0] || "?"}
-          </span>
-        </div>
+        {(() => {
+          const bodyIcon = getBodyIcon(exercise.name);
+          if (bodyIcon) {
+            return <img src={bodyIcon} alt="" className="w-20 h-20 shrink-0" />;
+          }
+          return (
+            <div className={`w-20 h-20 rounded-xl ${color.bg} flex items-center justify-center shrink-0`}>
+              <span className={`text-lg font-black ${color.fg}`}>
+                {muscleGroups[0]?.[0] || "?"}
+              </span>
+            </div>
+          );
+        })()}
         <div className="flex-1 min-w-0">
           <h2 className="text-base font-black text-[#1B4332] leading-tight">
             {getExerciseName(exercise.name, locale)}

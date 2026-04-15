@@ -513,6 +513,7 @@ export const MasterPlanPreview: React.FC<MasterPlanPreviewProps> = ({
                 mode={focusedPane === "selected" ? "full" : "peek"}
                 exercise={selectedExercise}
                 globalIdx={selectedIdx}
+                totalCount={localExercises.length}
                 canDelete={canDelete}
                 canSwap={canSwap}
                 locale={locale}

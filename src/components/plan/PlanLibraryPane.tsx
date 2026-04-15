@@ -3,7 +3,8 @@
 import React from "react";
 import { ExerciseStep, getExerciseMuscleGroups } from "@/constants/workout";
 import { getExerciseName } from "@/utils/exerciseName";
-import { translateMuscleGroup } from "./muscleColor";
+import { getMuscleColor, translateMuscleGroup } from "./muscleColor";
+import { getBodyIcon } from "./bodyIcon";
 
 interface PhaseBlock {
   key: string;
@@ -20,7 +21,7 @@ interface PlanLibraryPaneProps {
   locale: string;
   t: (key: string, vars?: Record<string, string>) => string;
   onSelectExercise: (globalIdx: number) => void;
-  onAdjustSets: (globalIdx: number, delta: number) => void;
+  onAdjustSets?: (globalIdx: number, delta: number) => void;
   onAddExercise: (phaseKey: string) => void;
 }
 
@@ -33,7 +34,6 @@ export const PlanLibraryPane: React.FC<PlanLibraryPaneProps> = ({
   locale,
   t,
   onSelectExercise,
-  onAdjustSets,
   onAddExercise,
 }) => {
   if (mode === "peek") {
@@ -74,8 +74,10 @@ export const PlanLibraryPane: React.FC<PlanLibraryPaneProps> = ({
             <div className="flex flex-col gap-1">
               {phase.exercises.map((ex, i) => {
                 const globalIdx = localExercises.indexOf(ex);
-                const canAdjustSets = (ex.type === "strength" || ex.type === "core") && ex.sets > 0;
                 const isFirstCard = phaseIdx === 0 && i === 0;
+                const bodyIcon = getBodyIcon(ex.name);
+                const fallbackColor = getMuscleColor(ex.name);
+                const groups = getExerciseMuscleGroups(ex.name);
                 return (
                   <div
                     key={globalIdx}
@@ -83,54 +85,39 @@ export const PlanLibraryPane: React.FC<PlanLibraryPaneProps> = ({
                     className="px-2 py-3.5 border-b border-gray-200 relative transition-colors active:bg-gray-50/70"
                     onClick={() => onSelectExercise(globalIdx)}
                   >
-                    <div className="flex justify-between items-center gap-2">
-                      <div className="flex-1 min-w-0">
-                        <span className="text-sm font-bold block leading-snug text-gray-900">
-                          {getExerciseName(ex.name, locale)}
-                        </span>
-                        {(() => {
-                          const groups = getExerciseMuscleGroups(ex.name);
-                          if (groups.length === 0) return null;
-                          return (
-                            <div className="flex gap-1 mt-1 flex-wrap">
+                    <div className="flex items-center gap-3 min-w-0">
+                        {ex.type !== "warmup" && (
+                          <div className="w-20 h-20 shrink-0 flex items-center justify-center">
+                            {bodyIcon ? (
+                              <img src={bodyIcon} alt="" className="w-20 h-20" />
+                            ) : (
+                              <div className={`w-20 h-20 rounded-xl ${fallbackColor.bg} flex items-center justify-center`}>
+                                <span className={`text-lg font-black ${fallbackColor.fg}`}>
+                                  {groups[0]?.[0] || "?"}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <span className="text-base font-bold block leading-snug text-gray-900">
+                            {getExerciseName(ex.name, locale)}
+                          </span>
+                          {ex.type !== "warmup" && groups.length > 0 && (
+                            <div className="flex gap-1 mt-1.5 flex-wrap">
                               {groups.map((g) => (
-                                <span key={g} className="text-[10px] font-bold text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">
+                                <span key={g} className="text-xs font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
                                   {translateMuscleGroup(g, locale)}
                                 </span>
                               ))}
                             </div>
-                          );
-                        })()}
-                      </div>
-                      <div className="flex items-center gap-1.5 ml-2 shrink-0">
-                        {canAdjustSets && (
-                          <button
-                            onClick={(e) => { e.stopPropagation(); onAdjustSets(globalIdx, -1); }}
-                            disabled={ex.sets <= 1}
-                            className="w-6 h-6 rounded-lg flex items-center justify-center text-gray-400 active:scale-90 transition-all disabled:opacity-30"
-                          >
-                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                              <path strokeLinecap="round" d="M5 12h14" />
-                            </svg>
-                          </button>
+                          )}
+                        </div>
+                        {ex.type === "warmup" && (
+                          <span className="text-xs font-bold text-[#1B4332] shrink-0 ml-2">
+                            <span className="font-plan-num">{ex.count}</span>
+                          </span>
                         )}
-                        <span className="text-[11px] font-bold text-[#1B4332] px-2 py-1 min-w-[44px] text-center">
-                          {(ex.type === "strength" || ex.type === "core") && ex.sets >= 1
-                            ? (<><span className="font-plan-num">{ex.sets}</span>{locale === "ko" ? t("plan.sets") : ` ${t("plan.sets")}`}</>)
-                            : <span className="font-plan-num">{ex.count}</span>}
-                        </span>
-                        {canAdjustSets && (
-                          <button
-                            onClick={(e) => { e.stopPropagation(); onAdjustSets(globalIdx, 1); }}
-                            disabled={ex.sets >= 10}
-                            className="w-6 h-6 rounded-lg flex items-center justify-center text-gray-400 active:scale-90 transition-all disabled:opacity-30"
-                          >
-                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                              <path strokeLinecap="round" d="M12 5v14M5 12h14" />
-                            </svg>
-                          </button>
-                        )}
-                      </div>
                     </div>
                   </div>
                 );

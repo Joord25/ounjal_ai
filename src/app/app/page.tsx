@@ -250,8 +250,42 @@ export default function Home() {
   // Phase 4: onboarding/condition_check ViewState는 제거돼 여기서 체크 불필요.
   useEffect(() => {
     if (!chatHomeEnabled) return;
+    // [DEV] goto=plan 잠금 시 home 자동치환 건너뛰기
+    if (typeof window !== "undefined" && new URLSearchParams(window.location.search).get("goto") === "plan") return;
     if (view === "home") setView("home_chat");
   }, [chatHomeEnabled, view]);
+
+  // [DEV ONLY] ?goto=plan 으로 MasterPlanPreview 강제 잠금 (UI 프리뷰용)
+  useEffect(() => {
+    if (process.env.NODE_ENV !== "development") return;
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("goto") !== "plan") return;
+    setCurrentWorkoutSession({
+      title: "상체 근력 세션",
+      description: "가슴·삼두·어깨 중심 컴파운드 + 아이솔레이션",
+      intendedIntensity: "moderate",
+      exercises: [
+        { type: "warmup", phase: "warmup", name: "폼롤러 흉추 가동성 (Foam Roller Thoracic Mobility)", count: "2분", sets: 1, reps: 2 },
+        { type: "warmup", phase: "warmup", name: "밴드 풀 어파트 (Band Pull-Aparts)", count: "2 세트 / 15회", sets: 2, reps: 15 },
+        { type: "strength", phase: "main", name: "바벨 벤치 프레스 (Barbell Bench Press)", count: "4 세트 / 8회", sets: 4, reps: 8, weight: "60kg" },
+        { type: "strength", phase: "main", name: "바벨 로우 (Barbell Row)", count: "4 세트 / 8회", sets: 4, reps: 8, weight: "50kg" },
+        { type: "strength", phase: "main", name: "바벨 백 스쿼트 (Barbell Back Squat)", count: "4 세트 / 8회", sets: 4, reps: 8, weight: "70kg" },
+        { type: "strength", phase: "main", name: "루마니안 데드리프트 (Romanian Deadlift)", count: "3 세트 / 10회", sets: 3, reps: 10, weight: "60kg" },
+        { type: "strength", phase: "main", name: "바벨 컬 (Barbell Curl)", count: "3 세트 / 12회", sets: 3, reps: 12, weight: "20kg" },
+        { type: "core", phase: "core", name: "플랭크 (Plank)", count: "3 세트 / 60초", sets: 3, reps: 60 },
+      ],
+    });
+    setView("master_plan_preview");
+  }, []);
+
+  // [DEV ONLY] ?goto=plan 활성화 시 view가 다른 곳으로 튀면 강제로 돌려놓음
+  useEffect(() => {
+    if (process.env.NODE_ENV !== "development") return;
+    if (typeof window === "undefined") return;
+    if (new URLSearchParams(window.location.search).get("goto") !== "plan") return;
+    if (view !== "master_plan_preview") setView("master_plan_preview");
+  }, [view]);
   const [autoEdit1RM, setAutoEdit1RM] = useState(false);
 
   // autoEdit1RM은 MyTab으로 이동 후 리셋
