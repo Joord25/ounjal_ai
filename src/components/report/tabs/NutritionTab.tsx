@@ -243,10 +243,10 @@ export const NutritionTab: React.FC<NutritionTabProps> = ({
   const fatPct = 100 - proteinPct - carbPct;
 
   return (
-    <div className="space-y-4">
+    <div>
       {/* 칼로리 + 목표 */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm relative">
-        <button onClick={() => setShowCalorieHelp(true)} className="absolute top-4 right-4 w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center">
+      <div className="py-5 px-1 relative">
+        <button onClick={() => setShowCalorieHelp(true)} className="absolute top-4 right-1 w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center">
           <span className="text-[11px] font-black text-gray-400">?</span>
         </button>
         <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1">
@@ -290,7 +290,7 @@ export const NutritionTab: React.FC<NutritionTabProps> = ({
       </div>
 
       {/* 식단 예시 */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
+      <div className="py-5 px-1 border-t border-gray-200">
         <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-3">
           {isKo ? "오늘 이렇게 챙겨보세요" : "Today's meal plan"}
         </p>
@@ -307,10 +307,10 @@ export const NutritionTab: React.FC<NutritionTabProps> = ({
         </div>
       </div>
 
-      {/* 채팅 영역 — AI 코치챗 스타일 */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      {/* 채팅 영역 */}
+      <div className="border-t border-gray-200">
         {/* 채팅 헤더 */}
-        <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100">
+        <div className="flex items-center gap-3 py-3 px-1 border-b border-gray-200">
           <img src="/favicon_backup.png" alt="AI" className="w-7 h-7 rounded-full shrink-0" />
           <div>
             <p className="text-xs font-black text-[#1B4332]">{isKo ? "AI 코치" : "AI Coach"}</p>
@@ -322,48 +322,43 @@ export const NutritionTab: React.FC<NutritionTabProps> = ({
         </div>
 
         {/* 채팅 메시지 */}
-        <div className="px-4 py-4 bg-gray-50/50 max-h-[400px] overflow-y-auto">
+        <div className="py-4 px-1 max-h-[400px] overflow-y-auto">
           {chatMessages.length === 0 && (
-            <div className="flex gap-2.5">
-              <img src="/favicon_backup.png" alt="AI" className="w-6 h-6 rounded-full shrink-0 mt-0.5" />
-              <div className="bg-white rounded-2xl rounded-tl-md px-3.5 py-2.5 shadow-sm border border-gray-100">
-                <p className="text-xs text-gray-500">
-                  {isKo ? "식단이나 영양에 대해 궁금한 거 물어보세요" : "Ask me anything about your diet or nutrition"}
-                </p>
-              </div>
-            </div>
+            <p className="text-xs text-gray-500 break-keep">
+              {isKo ? "식단이나 영양에 대해 궁금한 거 물어보세요" : "Ask me anything about your diet or nutrition"}
+            </p>
           )}
-          {chatMessages.map((msg, i) => (
-            <div key={i} className={`flex gap-2.5 ${msg.role === "user" ? "justify-end" : ""} ${i > 0 ? "mt-3" : ""}`}>
-              {msg.role === "assistant" && (
-                <img src="/favicon_backup.png" alt="AI" className="w-6 h-6 rounded-full shrink-0 mt-0.5" />
-              )}
-              <div className={`max-w-[85%] px-3.5 py-2.5 shadow-sm ${
-                msg.role === "user"
-                  ? "bg-[#1B4332] text-white rounded-2xl rounded-tr-md text-sm"
-                  : "bg-white rounded-2xl rounded-tl-md border border-gray-100 text-[#1B4332] text-[13px] leading-relaxed"
-              }`}>
-                {msg.role === "assistant" ? renderFormattedText(msg.content) : msg.content}
-              </div>
-            </div>
-          ))}
-          {chatLoading && (
-            <div className="flex gap-2.5 mt-3">
-              <img src="/favicon_backup.png" alt="AI" className="w-6 h-6 rounded-full shrink-0 mt-0.5" />
-              <div className="bg-white rounded-2xl rounded-tl-md px-4 py-3 shadow-sm border border-gray-100">
-                <div className="flex gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: "0ms" }} />
-                  <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: "150ms" }} />
-                  <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: "300ms" }} />
+          {chatMessages.map((msg, i) => {
+            if (msg.role === "user") {
+              return (
+                <div key={i} className={`flex ${i > 0 ? "mt-3" : ""} justify-end`}>
+                  <div className="max-w-[85%] bg-[#1B4332] text-white rounded-2xl rounded-tr-md px-3.5 py-2.5 shadow-sm text-[13px] leading-relaxed whitespace-pre-wrap break-keep">
+                    {msg.content}
+                  </div>
                 </div>
+              );
+            }
+            return (
+              <div
+                key={i}
+                className={`${i > 0 ? "mt-3" : ""} text-[13px] text-[#1B4332] leading-relaxed break-keep`}
+              >
+                {renderFormattedText(msg.content)}
               </div>
+            );
+          })}
+          {chatLoading && (
+            <div className="mt-3 flex gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: "0ms" }} />
+              <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: "150ms" }} />
+              <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: "300ms" }} />
             </div>
           )}
           <div ref={chatEndRef} />
         </div>
 
         {/* 입력 영역 */}
-        <div className="px-4 py-3 border-t border-gray-100">
+        <div className="py-3 px-1 border-t border-gray-200">
           {readOnly ? (
             chatMessages.length === 0 ? null : (
               <p className="text-center text-[10px] text-gray-400 py-1">
@@ -371,14 +366,14 @@ export const NutritionTab: React.FC<NutritionTabProps> = ({
               </p>
             )
           ) : (isPremium || chatCount < MAX_FREE_CHATS) ? (
-            <div className="flex gap-2">
+            <div className="flex gap-2 items-end">
               <input
                 type="text"
                 value={chatInput}
                 onChange={(e) => setChatInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && sendChat()}
                 placeholder={isKo ? "궁금한 거 물어보세요" : "Ask anything"}
-                className="flex-1 text-sm bg-gray-50 rounded-xl px-4 py-2.5 border border-gray-100 focus:outline-none focus:border-[#2D6A4F] text-[#1B4332] placeholder-gray-400"
+                className="flex-1 text-sm bg-transparent px-0 py-2 border-0 focus:outline-none text-[#1B4332] placeholder-gray-400"
               />
               <button
                 onClick={sendChat}
@@ -399,7 +394,7 @@ export const NutritionTab: React.FC<NutritionTabProps> = ({
       </div>
 
       {/* 면책조항 */}
-      <p className="text-center text-[10px] text-gray-700 font-medium px-4">
+      <p className="text-center text-[10px] text-gray-700 font-medium px-4 pt-4">
         {isKo
           ? "일반적인 영양 정보이며 개인 건강 상담을 대체하지 않습니다"
           : "General nutrition information. Not a substitute for professional advice."}
