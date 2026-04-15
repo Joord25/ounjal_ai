@@ -358,7 +358,7 @@ export const NutritionTab: React.FC<NutritionTabProps> = ({
         </div>
 
         {/* 입력 영역 */}
-        <div className="py-3 px-1 border-t border-b border-gray-200">
+        <div className="py-1.5 px-1 border-t border-b border-gray-200">
           {readOnly ? (
             chatMessages.length === 0 ? null : (
               <p className="text-center text-[10px] text-gray-400 py-1">
@@ -373,7 +373,7 @@ export const NutritionTab: React.FC<NutritionTabProps> = ({
                 onChange={(e) => setChatInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && sendChat()}
                 placeholder={isKo ? "궁금한 거 물어보세요" : "Ask anything"}
-                className="flex-1 text-sm bg-transparent px-0 py-2 border-0 focus:outline-none text-[#1B4332] placeholder-gray-400"
+                className="flex-1 text-sm bg-transparent px-0 py-1 border-0 focus:outline-none text-[#1B4332] placeholder-gray-400"
               />
               <button
                 onClick={sendChat}

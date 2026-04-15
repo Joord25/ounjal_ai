@@ -456,7 +456,7 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
         </div>
 
         {/* 입력 */}
-        <div className="px-6 py-3 border-t border-gray-200">
+        <div className="px-6 py-1.5 border-t border-gray-200">
           <div className="flex gap-2 items-end">
             <input
               ref={inputRef}
@@ -471,7 +471,7 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
               }}
               placeholder={t("chat_home.placeholder")}
               disabled={busy}
-              className="flex-1 text-sm bg-transparent px-0 py-2 border-0 focus:outline-none text-[#1B4332] placeholder-gray-400 disabled:opacity-50"
+              className="flex-1 text-sm bg-transparent px-0 py-1 border-0 focus:outline-none text-[#1B4332] placeholder-gray-400 disabled:opacity-50"
             />
             <button
               onClick={handleSubmit}
