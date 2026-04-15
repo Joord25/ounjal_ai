@@ -330,7 +330,7 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
         {/* 메시지 영역 */}
         <div className="px-6 py-4 flex-1 overflow-y-auto min-h-0">
           {/* 최초 안내 (항상 노출) — 운동 이력 기반 룰베이스 인사 */}
-          <p className="text-[13px] text-[#1B4332] leading-relaxed whitespace-pre-wrap">
+          <p className="text-[13px] text-[#1B4332] leading-relaxed whitespace-pre-wrap break-keep">
             {buildInitialGreeting(getCachedWorkoutHistory(), locale, {
               goal: userProfile?.goal,
               weeklyFrequency: userProfile?.weeklyFrequency,
@@ -345,7 +345,7 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
             if (msg.role === "user") {
               return (
                 <div key={i} className="flex gap-2.5 mt-3 justify-end">
-                  <div className="max-w-[85%] bg-[#1B4332] text-white rounded-2xl rounded-tr-md px-3.5 py-2.5 shadow-sm text-[13px] leading-relaxed whitespace-pre-wrap">
+                  <div className="max-w-[85%] bg-[#1B4332] text-white rounded-2xl rounded-tr-md px-3.5 py-2.5 shadow-sm text-[13px] leading-relaxed whitespace-pre-wrap break-keep">
                     {msg.content}
                   </div>
                 </div>
@@ -388,7 +388,7 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
             return (
               <p
                 key={i}
-                className={`mt-3 text-[13px] leading-relaxed whitespace-pre-wrap ${
+                className={`mt-3 text-[13px] leading-relaxed whitespace-pre-wrap break-keep ${
                   textMsg.tone === "error" ? "text-amber-700" : "text-[#1B4332]"
                 }`}
               >
@@ -427,7 +427,7 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
 
           {/* 플랜 이동 중 표시 */}
           {routing && (
-            <p className="mt-3 text-[13px] text-[#1B4332] leading-relaxed">
+            <p className="mt-3 text-[13px] text-[#1B4332] leading-relaxed break-keep">
               {t("chat_home.confirm.routing")}
             </p>
           )}
