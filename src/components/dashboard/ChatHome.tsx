@@ -61,6 +61,8 @@ interface ParsedIntent {
 
 // 예시 프롬프트 (길이별 스펙트럼). i18n 키로 관리 — ko/en 양쪽에서 번역.
 const EXAMPLE_KEYS = [
+  "chat_home.example.summer_diet",
+  "chat_home.example.advanced_back",
   "chat_home.example.short_chest",
   "chat_home.example.short_home",
   "chat_home.example.short_run",
