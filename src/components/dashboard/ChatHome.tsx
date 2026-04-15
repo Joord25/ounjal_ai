@@ -75,6 +75,9 @@ type ChatMsg =
   | { role: "assistant"; kind?: "text"; content: string; tone?: "info" | "error" }
   | { role: "assistant"; kind: "advice"; advice: AdviceContent };
 
+// view 전환 시 언마운트되더라도 세션 내 대화 유지 (새로고침 시 리셋).
+let sessionCachedMessages: ChatMsg[] = [];
+
 /** advice 변종은 content 없으므로 history 전달 시 문자열 요약으로 대체 */
 function msgToHistoryContent(m: ChatMsg): string {
   if ("content" in m) return m.content;
@@ -96,7 +99,8 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
   const { t, locale } = useTranslation();
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
-  const [messages, setMessages] = useState<ChatMsg[]>([]);
+  const [messages, setMessages] = useState<ChatMsg[]>(() => sessionCachedMessages);
+  useEffect(() => { sessionCachedMessages = messages; }, [messages]);
   const [pendingIntent, setPendingIntent] = useState<ParsedIntent | null>(null);
   const [routing, setRouting] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
