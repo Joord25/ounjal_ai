@@ -307,13 +307,6 @@ export const NutritionTab: React.FC<NutritionTabProps> = ({
         </div>
       </div>
 
-      {/* 면책조항 — 채팅 위로 이동해 입력창이 화면 하단 차지 */}
-      <p className="text-center text-[10px] text-gray-700 font-medium px-4 pt-4">
-        {isKo
-          ? "일반적인 영양 정보이며 개인 건강 상담을 대체하지 않습니다"
-          : "General nutrition information. Not a substitute for professional advice."}
-      </p>
-
       {/* 채팅 영역 */}
       <div className="border-t border-gray-200 flex-1 flex flex-col min-h-0">
         {/* 채팅 헤더 */}
@@ -400,6 +393,12 @@ export const NutritionTab: React.FC<NutritionTabProps> = ({
         </div>
       </div>
 
+      {/* 면책조항 */}
+      <p className="text-center text-[10px] text-gray-700 font-medium px-4 pt-4">
+        {isKo
+          ? "일반적인 영양 정보이며 개인 건강 상담을 대체하지 않습니다"
+          : "General nutrition information. Not a substitute for professional advice."}
+      </p>
 
       {/* 칼로리 도움말 모달 */}
       {showCalorieHelp && (
