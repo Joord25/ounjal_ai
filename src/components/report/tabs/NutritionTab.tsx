@@ -366,7 +366,7 @@ export const NutritionTab: React.FC<NutritionTabProps> = ({
               </p>
             )
           ) : (isPremium || chatCount < MAX_FREE_CHATS) ? (
-            <div className="flex gap-2 items-end">
+            <div className="flex gap-2 items-center">
               <input
                 type="text"
                 value={chatInput}
@@ -378,9 +378,9 @@ export const NutritionTab: React.FC<NutritionTabProps> = ({
               <button
                 onClick={sendChat}
                 disabled={!chatInput.trim() || chatLoading}
-                className="w-10 h-10 bg-[#1B4332] text-white rounded-xl flex items-center justify-center disabled:opacity-40 active:scale-95 transition-all shrink-0"
+                className="w-7 h-7 bg-[#1B4332] text-white rounded-lg flex items-center justify-center disabled:opacity-40 active:scale-95 transition-all shrink-0"
               >
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M3.4 20.4l17.45-7.48a1 1 0 000-1.84L3.4 3.6a1 1 0 00-1.39 1.2L4.5 11l7.5 1-7.5 1-2.49 6.2a1 1 0 001.39 1.2z" />
                 </svg>
               </button>
