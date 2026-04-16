@@ -660,13 +660,13 @@ export const MasterPlanPreview: React.FC<MasterPlanPreviewProps> = ({
             <svg className="w-5 h-5 text-[#1B4332]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
             </svg>
-            <span className="text-[#1B4332] font-black text-sm">{t("plan.save_to_my")}</span>
+            <span className="text-[#1B4332] font-black text-sm whitespace-nowrap">{t("plan.save_to_my")}</span>
           </button>
           <button
             onClick={() => onStart({ ...sessionData, exercises: localExercises })}
             className="flex-1 h-14 rounded-2xl bg-[#1B4332] active:scale-[0.98] transition-all flex items-center justify-center gap-3 shadow-xl shadow-[#1B4332]/20 hover:bg-[#2D6A4F]"
           >
-            <span className="text-white font-black text-base tracking-wide">{t("plan.start")}</span>
+            <span className="text-white font-black text-base tracking-wide whitespace-nowrap">{t("plan.start")}</span>
             <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
               <path d="M8 5v14l11-7z" />
             </svg>

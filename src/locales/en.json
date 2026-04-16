@@ -196,9 +196,9 @@
 
   "plan.ai_coach": "Ohunjal AI Coach",
   "plan.title": "Today's Workout Plan",
-  "plan.start": "Start Workout",
+  "plan.start": "Start",
   "plan.share": "Share",
-  "plan.save_to_my": "Save to My Plans",
+  "plan.save_to_my": "Save",
   "plan.save_sheet_title": "Save this plan to My Plans?",
   "plan.save_sheet_desc": "Saved plans can be reused instantly without AI regeneration.",
   "plan.save_name_label": "Plan name",
