@@ -4,6 +4,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { useTranslation } from "@/hooks/useTranslation";
 import { getAuth } from "firebase/auth";
 import { AssistantMiniHeader } from "@/components/chat/AssistantMiniHeader";
+import { QuickFollowupList, type FollowupItem } from "@/components/chat/QuickFollowupList";
 
 interface NutritionGuide {
   dailyCalorie: number;
@@ -49,6 +50,73 @@ async function getIdToken(): Promise<string> {
   const user = getAuth().currentUser;
   if (!user) throw new Error("Not logged in");
   return user.getIdToken();
+}
+
+/** 시간대별 영양 코치 Quick Chips (룰베이스, Gemini 호출 없음) */
+function getNutritionChips(locale: "ko" | "en", hour: number): FollowupItem[] {
+  if (locale === "en") {
+    if (hour < 10) return [
+      { icon: "food", label: "Quick protein breakfast", prompt: "How to hit protein fast at breakfast?" },
+      { icon: "diet", label: "Lunch out picks", prompt: "What should I eat for lunch out?" },
+      { icon: "protein", label: "Protein timing", prompt: "When should I take protein around workouts?" },
+      { icon: "sleep", label: "Fasted coffee OK?", prompt: "Is fasted morning coffee OK?" },
+    ];
+    if (hour < 14) return [
+      { icon: "food", label: "Lunch out menu", prompt: "Lunch options for busy office workers" },
+      { icon: "diet", label: "Under 400kcal ideas", prompt: "Lunch ideas under 400kcal" },
+      { icon: "plateau", label: "Daily carb target", prompt: "How much carbs per day for my weight?" },
+      { icon: "protein", label: "Afternoon snack", prompt: "Protein-focused afternoon snack ideas" },
+    ];
+    if (hour < 18) return [
+      { icon: "food", label: "I'm hungry now", prompt: "Healthy snack right now while keeping on track" },
+      { icon: "protein", label: "Pre-workout meal", prompt: "What to eat 1 hour before workout?" },
+      { icon: "sleep", label: "Caffeine limit", prompt: "Safe daily caffeine limit?" },
+      { icon: "diet", label: "Hydration check", prompt: "Am I drinking enough water?" },
+    ];
+    if (hour < 22) return [
+      { icon: "food", label: "Dinner protein focus", prompt: "High-protein dinner ideas" },
+      { icon: "flame", label: "Drinking tonight", prompt: "I'm drinking tonight, how to minimize damage?" },
+      { icon: "sleep", label: "Late-night snack?", prompt: "OK to snack after dinner?" },
+      { icon: "posture", label: "Recovery foods", prompt: "Best recovery foods before sleep?" },
+    ];
+    return [
+      { icon: "sleep", label: "Late-night limit", prompt: "What's safe to eat this late?" },
+      { icon: "diet", label: "Water intake", prompt: "Should I drink more water before bed?" },
+      { icon: "food", label: "Tomorrow's breakfast", prompt: "Plan tomorrow's breakfast for me" },
+      { icon: "calendar", label: "Log today's meals", prompt: "How do I track today's meals?" },
+    ];
+  }
+  // ko
+  if (hour < 10) return [
+    { icon: "food", label: "아침 단백질 빨리", prompt: "아침에 단백질 빨리 채우는 법 알려줘" },
+    { icon: "diet", label: "점심 외식 메뉴", prompt: "점심 외식할 때 뭘 먹을까?" },
+    { icon: "protein", label: "프로틴 타이밍", prompt: "운동 전후 프로틴 언제 먹어?" },
+    { icon: "sleep", label: "공복 커피 괜찮?", prompt: "아침 공복에 커피 마셔도 돼?" },
+  ];
+  if (hour < 14) return [
+    { icon: "food", label: "점심 외식 추천", prompt: "직장인 점심 외식 추천해줘" },
+    { icon: "diet", label: "400kcal 이하", prompt: "점심 400kcal로 끊고 싶어" },
+    { icon: "plateau", label: "탄수 적정량", prompt: "내 몸무게 기준 탄수 하루 얼마?" },
+    { icon: "protein", label: "오후 간식", prompt: "오후 간식 단백질 위주로 추천" },
+  ];
+  if (hour < 18) return [
+    { icon: "food", label: "지금 배고픈데", prompt: "지금 배고픈데 건강한 간식 추천" },
+    { icon: "protein", label: "운동 전 식사", prompt: "운동 1시간 전에 뭐 먹어?" },
+    { icon: "sleep", label: "카페인 한도", prompt: "하루 카페인 얼마까지 괜찮아?" },
+    { icon: "diet", label: "물 얼마나?", prompt: "오늘 물 충분히 마셨나?" },
+  ];
+  if (hour < 22) return [
+    { icon: "food", label: "저녁 단백질", prompt: "저녁 단백질 위주 메뉴 추천" },
+    { icon: "flame", label: "술 약속인데", prompt: "오늘 술 약속인데 어떻게 조절해?" },
+    { icon: "sleep", label: "야식 괜찮?", prompt: "저녁 먹고 야식 먹어도 돼?" },
+    { icon: "posture", label: "회복 음식", prompt: "잠들기 전 회복에 좋은 음식?" },
+  ];
+  return [
+    { icon: "sleep", label: "야식 한계", prompt: "이 시간엔 뭐 먹어도 돼?" },
+    { icon: "diet", label: "수분 섭취", prompt: "자기 전 물 더 마셔야 해?" },
+    { icon: "food", label: "내일 아침 준비", prompt: "내일 아침 식단 미리 짜줘" },
+    { icon: "calendar", label: "오늘 식단 기록", prompt: "오늘 뭐 먹었는지 기록하는 법" },
+  ];
 }
 
 /** [영양] 탭 — Gemini 영양 가이드 + 채팅 (회의 37) */
@@ -276,33 +344,37 @@ export const NutritionTab: React.FC<NutritionTabProps> = ({
         </p>
         <p className="text-[10px] text-gray-500 mt-1">{guide.goalBasis}</p>
 
-        {/* 탄단지 바 */}
-        <div className="mt-4 flex gap-2">
-          <div className="flex-1">
+        {/* 탄단지 바 — 단백질 우선 철학 시각화 (단백질 굵고 진함, 탄단·지 보조로 얇게) */}
+        <div className="mt-4">
+          {/* 단백질 — 메인 강조 */}
+          <div className="mb-3">
             <div className="flex justify-between mb-1">
-              <span className="text-[9px] font-bold text-gray-500">{isKo ? "단백질" : "Protein"}</span>
-              <span className="text-[9px] font-black text-[#1B4332]">{guide.macros.protein}g</span>
+              <span className="text-[11px] font-black text-[#1B4332] tracking-wide">{isKo ? "단백질" : "Protein"}</span>
+              <span className="text-[11px] font-black text-[#1B4332]">{guide.macros.protein}g</span>
             </div>
-            <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-              <div className="h-full bg-[#2D6A4F] rounded-full" style={{ width: `${proteinPct}%` }} />
+            <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
+              <div className="h-full bg-[#1B4332] rounded-full" style={{ width: `${proteinPct}%` }} />
             </div>
           </div>
-          <div className="flex-1">
-            <div className="flex justify-between mb-1">
-              <span className="text-[9px] font-bold text-gray-500">{isKo ? "탄수화물" : "Carbs"}</span>
-              <span className="text-[9px] font-black text-[#1B4332]">{guide.macros.carb}g</span>
+          {/* 탄수화물 / 지방 — 얇고 옅게 */}
+          <div className="flex gap-2">
+            <div className="flex-1">
+              <div className="flex justify-between mb-1">
+                <span className="text-[9px] font-bold text-gray-400">{isKo ? "탄수화물" : "Carbs"}</span>
+                <span className="text-[9px] font-bold text-gray-500">{guide.macros.carb}g</span>
+              </div>
+              <div className="h-1 bg-gray-100 rounded-full overflow-hidden">
+                <div className="h-full bg-amber-300 rounded-full" style={{ width: `${carbPct}%` }} />
+              </div>
             </div>
-            <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-              <div className="h-full bg-amber-400 rounded-full" style={{ width: `${carbPct}%` }} />
-            </div>
-          </div>
-          <div className="flex-1">
-            <div className="flex justify-between mb-1">
-              <span className="text-[9px] font-bold text-gray-500">{isKo ? "지방" : "Fat"}</span>
-              <span className="text-[9px] font-black text-[#1B4332]">{guide.macros.fat}g</span>
-            </div>
-            <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-              <div className="h-full bg-rose-300 rounded-full" style={{ width: `${fatPct}%` }} />
+            <div className="flex-1">
+              <div className="flex justify-between mb-1">
+                <span className="text-[9px] font-bold text-gray-400">{isKo ? "지방" : "Fat"}</span>
+                <span className="text-[9px] font-bold text-gray-500">{guide.macros.fat}g</span>
+              </div>
+              <div className="h-1 bg-gray-100 rounded-full overflow-hidden">
+                <div className="h-full bg-rose-200 rounded-full" style={{ width: `${fatPct}%` }} />
+              </div>
             </div>
           </div>
         </div>
@@ -364,17 +436,40 @@ export const NutritionTab: React.FC<NutritionTabProps> = ({
             );
           })}
           {chatLoading && (
-            <div className="mt-3 flex gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: "0ms" }} />
-              <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: "150ms" }} />
-              <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: "300ms" }} />
+            <div className="mt-3">
+              <AssistantMiniHeader locale={isKo ? "ko" : "en"} />
+              <div className="bg-white border border-gray-200 rounded-xl px-3.5 py-3 shadow-sm w-full max-w-[280px]">
+                <div className="flex items-center gap-2">
+                  <svg className="w-3.5 h-3.5 animate-spin text-[#2D6A4F] shrink-0" fill="none" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeDasharray="30 60" />
+                  </svg>
+                  <span className="text-[12px] font-semibold text-[#1B4332]">
+                    {isKo ? "영양 분석 중" : "Analyzing nutrition"}
+                  </span>
+                </div>
+              </div>
             </div>
           )}
           <div ref={chatEndRef} />
         </div>
 
-        {/* 입력 영역 */}
-        <div className="py-1.5 px-1 border-t border-b border-gray-200">
+        {/* 시간대별 Quick Chips — 채팅 시작 전에만 노출 */}
+        {!readOnly && (isPremium || chatCount < MAX_FREE_CHATS) && chatMessages.length === 0 && !chatLoading && (
+          <div className="px-1">
+            <QuickFollowupList
+              locale={isKo ? "ko" : "en"}
+              items={getNutritionChips(isKo ? "ko" : "en", new Date().getHours())}
+              onTap={(prompt) => {
+                setChatInput(prompt);
+                // 입력창에 채워서 유저가 확인 후 보내게 함 (탐색 의도 고려)
+                setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
+              }}
+            />
+          </div>
+        )}
+
+        {/* 입력 영역 — ChatHome 스타일 2단 라운드 카드 */}
+        <div className="py-2">
           {readOnly ? (
             chatMessages.length === 0 ? null : (
               <p className="text-center text-[10px] text-gray-400 py-1">
@@ -382,7 +477,7 @@ export const NutritionTab: React.FC<NutritionTabProps> = ({
               </p>
             )
           ) : (isPremium || chatCount < MAX_FREE_CHATS) ? (
-            <div className="flex gap-2 items-end">
+            <div className="bg-white border border-gray-200 rounded-3xl px-4 pt-3 pb-2 shadow-sm focus-within:border-[#2D6A4F]/50 transition-colors">
               <textarea
                 value={chatInput}
                 onChange={(e) => {
@@ -398,30 +493,32 @@ export const NutritionTab: React.FC<NutritionTabProps> = ({
                 }}
                 placeholder={isKo ? "오늘 식단 뭐 궁금하세요?" : "What do you want to know about your diet?"}
                 rows={1}
-                className="flex-1 text-sm bg-transparent px-0 py-1 border-0 focus:outline-none text-[#1B4332] placeholder-gray-400 resize-none overflow-y-auto leading-[1.5]"
+                className="w-full text-[14px] bg-transparent px-0 py-1 border-0 focus:outline-none text-[#1B4332] placeholder-gray-400 disabled:opacity-50 resize-none overflow-y-auto leading-[1.5]"
               />
-              {chatLoading ? (
-                <button
-                  onClick={abortChat}
-                  className="w-8 h-8 bg-[#1B4332] text-white rounded-full flex items-center justify-center active:scale-95 transition-all shrink-0 hover:bg-[#2D6A4F]"
-                  aria-label={isKo ? "정지" : "Stop"}
-                >
-                  <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
-                    <rect x="6" y="6" width="12" height="12" rx="1.5" />
-                  </svg>
-                </button>
-              ) : (
-                <button
-                  onClick={sendChat}
-                  disabled={!chatInput.trim()}
-                  className="w-8 h-8 bg-[#1B4332] text-white rounded-full flex items-center justify-center disabled:opacity-30 disabled:bg-gray-300 active:scale-95 transition-all shrink-0"
-                  aria-label={isKo ? "보내기" : "Send"}
-                >
-                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 10l7-7m0 0l7 7m-7-7v18" />
-                  </svg>
-                </button>
-              )}
+              <div className="flex items-center justify-end mt-1">
+                {chatLoading ? (
+                  <button
+                    onClick={abortChat}
+                    className="w-9 h-9 bg-[#1B4332] text-white rounded-full flex items-center justify-center active:scale-95 transition-all shrink-0 hover:bg-[#2D6A4F]"
+                    aria-label={isKo ? "정지" : "Stop"}
+                  >
+                    <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+                      <rect x="6" y="6" width="12" height="12" rx="1.5" />
+                    </svg>
+                  </button>
+                ) : (
+                  <button
+                    onClick={sendChat}
+                    disabled={!chatInput.trim()}
+                    className="w-9 h-9 bg-[#1B4332] text-white rounded-full flex items-center justify-center disabled:opacity-30 disabled:bg-gray-300 active:scale-95 transition-all shrink-0"
+                    aria-label={isKo ? "보내기" : "Send"}
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                    </svg>
+                  </button>
+                )}
+              </div>
             </div>
           ) : (
             <p className="text-center text-xs text-gray-400 py-1">
