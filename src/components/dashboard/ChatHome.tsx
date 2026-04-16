@@ -71,18 +71,27 @@ interface ParsedIntent {
 }
 
 // 예시 프롬프트 (마누스식 칩). key = i18n 프롬프트, label = 짧은 칩 라벨, icon = SVG path
-type ExampleChip = { key: string; labelKo: string; labelEn: string; icon: "chest" | "home" | "run" | "legs" | "diet" | "back" | "full" };
+type ExampleChip = { key: string; labelKo: string; labelEn: string; icon: ChipIconType };
+type ChipIconType = "chest" | "home" | "run" | "legs" | "diet" | "back" | "full" | "cycle" | "shoulder" | "posture" | "calendar";
+// 기본 노출 (4개 — 가벼운 진입용)
 const EXAMPLE_CHIPS: ExampleChip[] = [
   { key: "chat_home.example.short_chest", labelKo: "가슴 30분", labelEn: "Chest 30m", icon: "chest" },
   { key: "chat_home.example.medium_legs", labelKo: "하체 40분", labelEn: "Legs 40m", icon: "legs" },
   { key: "chat_home.example.short_run", labelKo: "러닝 10km", labelEn: "Run 10km", icon: "run" },
   { key: "chat_home.example.short_home", labelKo: "홈트 30분", labelEn: "Home 30m", icon: "home" },
-  { key: "chat_home.example.summer_diet", labelKo: "여름 다이어트", labelEn: "Summer diet", icon: "diet" },
-  { key: "chat_home.example.advanced_back", labelKo: "상급자 등", labelEn: "Advanced back", icon: "back" },
-  { key: "chat_home.example.long_full", labelKo: "전신 맞춤", labelEn: "Full body", icon: "full" },
 ];
-const ChipIcon: React.FC<{ type: ExampleChip["icon"] }> = ({ type }) => {
-  const paths: Record<ExampleChip["icon"], string> = {
+// 더보기 팝오버 — 심화/특수 요청
+const EXAMPLE_CHIPS_MORE: ExampleChip[] = [
+  { key: "chat_home.example.summer_diet", labelKo: "여름 다이어트 3개월", labelEn: "3-mo summer diet", icon: "diet" },
+  { key: "chat_home.example.menstrual_diet", labelKo: "생리주기 다이어트 3개월", labelEn: "Cycle-synced diet", icon: "cycle" },
+  { key: "chat_home.example.advanced_back", labelKo: "상급자 등 루틴", labelEn: "Advanced back", icon: "back" },
+  { key: "chat_home.example.shoulder_rehab", labelKo: "어깨 부상 회피 가슴", labelEn: "Shoulder-safe chest", icon: "shoulder" },
+  { key: "chat_home.example.desk_posture", labelKo: "거북목·굽은등 교정", labelEn: "Desk posture fix", icon: "posture" },
+  { key: "chat_home.example.vacation_7day", labelKo: "휴가 전 7일 팔뚝", labelEn: "7-day arm plan", icon: "calendar" },
+  { key: "chat_home.example.long_full", labelKo: "내 스펙 맞춤 플랜", labelEn: "Full profile plan", icon: "full" },
+];
+const ChipIcon: React.FC<{ type: ChipIconType }> = ({ type }) => {
+  const paths: Record<ChipIconType, string> = {
     chest: "M12 3l8 4v6c0 5-3.5 7.5-8 9-4.5-1.5-8-4-8-9V7l8-4z",
     legs: "M6 3v8l2 10h3l-1-10h2l-1 10h3l2-10V3",
     run: "M13 4a2 2 0 110 4 2 2 0 010-4zM8 21l3-7 2 3 4-1",
@@ -90,6 +99,10 @@ const ChipIcon: React.FC<{ type: ExampleChip["icon"] }> = ({ type }) => {
     diet: "M12 3v2M12 19v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M3 12h2M19 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42M16 12a4 4 0 11-8 0 4 4 0 018 0z",
     back: "M6 3v18M10 6h8M10 10h8M10 14h8M10 18h8",
     full: "M12 2l2.4 5.4L20 9l-4 4 1 6-5-3-5 3 1-6-4-4 5.6-1.6L12 2z",
+    cycle: "M12 4a8 8 0 11-8 8M4 4v5h5M20 4l-8 8",
+    shoulder: "M4 14c2-6 6-8 8-8s6 2 8 8M4 14v4h16v-4",
+    posture: "M8 3a2 2 0 104 0 2 2 0 00-4 0zM10 7c-2 2-4 3-4 6l2 0 1 8h3l-1-8h2l1 8h3l-1-8 2 0c0-3-2-4-4-6",
+    calendar: "M4 6h16v14H4V6zM8 3v4M16 3v4M4 10h16",
   };
   return (
     <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
@@ -688,10 +701,10 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
         </div>
       </div>
 
-      {/* 예시 프롬프트 — 마누스식 칩 그리드 (아이콘 + 짧은 라벨). 회의 60 대표 지시. */}
+      {/* 예시 프롬프트 — 기본 4개 칩 + 더보기(팝오버로 심화 예시). 회의 60 대표 지시. */}
       <div className="shrink-0 pt-2 pb-4 px-4 relative" data-examples-container>
         <div className="flex flex-wrap gap-1.5 justify-center">
-          {(showMoreExamples ? EXAMPLE_CHIPS : EXAMPLE_CHIPS.slice(0, 4)).map((chip) => (
+          {EXAMPLE_CHIPS.map((chip) => (
             <button
               key={chip.key}
               onClick={() => fillExample(chip.key)}
@@ -702,16 +715,66 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
               {locale === "en" ? chip.labelEn : chip.labelKo}
             </button>
           ))}
-          {!showMoreExamples && EXAMPLE_CHIPS.length > 4 && (
-            <button
-              onClick={() => setShowMoreExamples(true)}
-              className="inline-flex items-center px-3 py-2 rounded-xl bg-white border border-gray-200 hover:border-[#2D6A4F]/40 active:scale-[0.97] transition-all text-[12px] font-medium text-gray-500 whitespace-nowrap"
-            >
-              {locale === "en" ? "More" : "더보기"}
-            </button>
-          )}
+          <button
+            onClick={() => setShowMoreExamples(true)}
+            className="inline-flex items-center gap-1 px-3 py-2 rounded-xl bg-white border border-gray-200 hover:border-[#2D6A4F]/40 active:scale-[0.97] transition-all text-[12px] font-medium text-gray-500 whitespace-nowrap"
+          >
+            {locale === "en" ? "More" : "더보기"}
+            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
         </div>
       </div>
+
+      {/* 더보기 팝오버 — 심화 예시 (마누스 스타일 세로 리스트) */}
+      {showMoreExamples && (
+        <>
+          <div
+            className="fixed inset-0 z-40 bg-black/20"
+            onClick={() => setShowMoreExamples(false)}
+          />
+          <div className="fixed left-1/2 -translate-x-1/2 bottom-24 z-50 w-[88%] max-w-[340px] bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
+            <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+              <p className="text-[12px] font-black text-[#1B4332] tracking-wider uppercase">
+                {locale === "en" ? "More templates" : "심화 예시"}
+              </p>
+              <button
+                onClick={() => setShowMoreExamples(false)}
+                className="text-gray-400 hover:text-[#1B4332]"
+                aria-label="close"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="max-h-[55vh] overflow-y-auto">
+              {EXAMPLE_CHIPS_MORE.map((chip) => (
+                <button
+                  key={chip.key}
+                  onClick={() => {
+                    fillExample(chip.key);
+                    setShowMoreExamples(false);
+                  }}
+                  disabled={busy}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-emerald-50/40 active:bg-emerald-50/60 transition-colors border-b border-gray-50 last:border-b-0 disabled:opacity-50"
+                >
+                  <span className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center text-[#2D6A4F] shrink-0">
+                    <ChipIcon type={chip.icon} />
+                  </span>
+                  <span className="text-[13px] font-medium text-[#1B4332] flex-1">
+                    {locale === "en" ? chip.labelEn : chip.labelKo}
+                  </span>
+                  <svg className="w-3.5 h-3.5 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 };
