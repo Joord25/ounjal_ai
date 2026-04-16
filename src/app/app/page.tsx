@@ -19,7 +19,6 @@ import { onAuthStateChanged, signOut, signInWithPopup, signInAnonymously, User }
 import { SubscriptionScreen } from "@/components/profile/SubscriptionScreen";
 import { PlanLoadingOverlay } from "@/components/plan/PlanLoadingOverlay";
 import { FitnessReading } from "@/components/dashboard/FitnessReading";
-import { HomeScreen } from "@/components/dashboard/HomeScreen";
 import { ChatHome } from "@/components/dashboard/ChatHome";
 import { MyPlansScreen } from "@/components/dashboard/MyPlansScreen";
 import { markPlanUsed, remoteMarkPlanUsed } from "@/utils/savedPlans";
@@ -171,26 +170,6 @@ type ViewState =
  * Phase 3 전환 — 기본값 ON. `?chat_home=0` 쿼리로 한시 opt-out (localStorage 저장).
  * NEXT_PUBLIC_ENABLE_CHAT_HOME=0 환경변수로 빌드 시점 강제 OFF도 지원.
  */
-const CHAT_HOME_DISABLED_KEY = "ohunjal_chat_home_disabled";
-function isChatHomeEnabled(): boolean {
-  if (typeof window === "undefined") return true; // SSR 기본값도 ON (첫 paint 깜빡임 방지)
-  try {
-    const params = new URLSearchParams(window.location.search);
-    const q = params.get("chat_home");
-    if (q === "0") {
-      localStorage.setItem(CHAT_HOME_DISABLED_KEY, "1");
-      return false;
-    }
-    if (q === "1") {
-      localStorage.removeItem(CHAT_HOME_DISABLED_KEY);
-      return true;
-    }
-  } catch { /* ignore */ }
-  if (process.env.NEXT_PUBLIC_ENABLE_CHAT_HOME === "0") return false;
-  if (typeof window !== "undefined" && localStorage.getItem(CHAT_HOME_DISABLED_KEY) === "1") return false;
-  return true;
-}
-
 // Sync detect ?lang= BEFORE render so I18nProvider reads correct locale
 if (typeof window !== "undefined") {
   const params = new URLSearchParams(window.location.search);
@@ -244,19 +223,15 @@ export default function Home() {
   // 스크롤 내릴 때 탭바 숨김 (인스타 스타일)
   const [tabsVisible, setTabsVisible] = useState(true);
   const [view, setView] = useState<ViewState>("login"); // Start with login
-  // 회의 57: 채팅홈 feature flag — 마운트 시점 한 번만 평가 (새로고침 전까지 안정)
-  const [chatHomeEnabled] = useState<boolean>(() => isChatHomeEnabled());
   // 영양 탭 온보딩 완료 시 리마운트 트리거
   const [nutritionProfileVersion, setNutritionProfileVersion] = useState(0);
 
-  // 회의 57: 플래그 ON이면 기존 "home" 진입 지점을 "home_chat"으로 자동 치환.
-  // Phase 4 이후: 메인 플로우는 login → home_chat → master_plan_preview → workout_session → workout_report.
+  // HomeScreen 폐기 (회의: fix-forward). "home"은 레거시 alias — home_chat으로 자동 치환.
   useEffect(() => {
-    if (!chatHomeEnabled) return;
     // [DEV] goto=plan 잠금 시 home 자동치환 건너뛰기
     if (typeof window !== "undefined" && new URLSearchParams(window.location.search).get("goto") === "plan") return;
     if (view === "home") setView("home_chat");
-  }, [chatHomeEnabled, view]);
+  }, [view]);
 
   // [DEV ONLY] ?goto=plan 으로 MasterPlanPreview 강제 잠금 (UI 프리뷰용)
   useEffect(() => {
@@ -361,7 +336,7 @@ export default function Home() {
   }, [activeTab, view]);
   const [isInitialized, setIsInitialized] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  // 게스트 체험 서버 동기화 카운터 (HomeScreen key bump 용)
+  // 게스트 체험 서버 동기화 카운터 (ChatHome key bump 용)
   const [guestTrialSyncVersion, setGuestTrialSyncVersion] = useState(0);
   const [isLoading, setIsLoading] = useState(false); // AI Loading State
   const pendingSessionRef = useRef<WorkoutSessionData | null>(null);
@@ -407,7 +382,7 @@ export default function Home() {
         // 익명 유저: API 토큰은 있지만 "로그인"은 아님
         setIsLoggedIn(false);
         setSubStatus("free");
-        setView(chatHomeEnabled ? "home_chat" : "home");
+        setView("home_chat");
         setIsInitialized(true);
         // 게스트 체험 카운트 서버 동기화 — IP 기반 SSOT
         // 이유: 캐시 지우거나 다른 기기로 접속해도 trial_ips 는 유지됨.
@@ -422,7 +397,7 @@ export default function Home() {
             const local = parseInt(localStorage.getItem("ohunjal_guest_trial_count") || "0", 10);
             const synced = Math.max(local, data.count);
             localStorage.setItem("ohunjal_guest_trial_count", String(synced));
-            setGuestTrialSyncVersion(v => v + 1); // HomeScreen remount → 배지 재계산
+            setGuestTrialSyncVersion(v => v + 1); // ChatHome remount → 배지 재계산
           }
         }).catch(() => { /* 네트워크 실패 시 localStorage 로 폴백 */ });
         return;
@@ -458,12 +433,8 @@ export default function Home() {
           // 기존 유저(프로필 있음) → 온보딩 자동 스킵
           const hasProfile = !!(localStorage.getItem("ohunjal_gender") && localStorage.getItem("ohunjal_birth_year"));
           if (hasProfile) localStorage.setItem("ohunjal_onboarding_done", "1");
-          // 회의 57: 채팅홈 ON이면 온보딩 스킵하고 바로 채팅홈 (신규/기존 유저 모두)
-          if (chatHomeEnabled) {
-            setView("home_chat");
-          } else {
-            setView(hasProfile || localStorage.getItem("ohunjal_onboarding_done") ? "home" : "home_chat");
-          }
+          // HomeScreen 폐기 후 모든 유저 채팅홈으로 직행
+          setView("home_chat");
           setIsInitialized(true);
         });
 
@@ -851,7 +822,7 @@ export default function Home() {
           />
         );
       }
-      // 당일 영양 가이드 캐시 읽기 (HomeScreen과 동일 키 사용, 날짜 변경 시 자동 리셋)
+      // 당일 영양 가이드 캐시 읽기 (날짜 변경 시 자동 리셋)
       const cachedNutritionGuide = (() => {
         try {
           const cached = localStorage.getItem("ohunjal_nutrition_cache");
@@ -1217,38 +1188,8 @@ export default function Home() {
            );
         }
 
-        // 홈 화면: 로그인/비로그인 모두 진입 가능
-        return (
-          <HomeScreen
-            key={`${getCachedWorkoutHistory().length}-${guestTrialSyncVersion}`}
-            userName={getDisplayName(user, "")}
-            onStartWorkout={() => {
-              // 1) 비로그인 게스트 체험 소진 → 즉시 Google 로그인 모달
-              if (!isLoggedIn && getGuestTrialCount() >= GUEST_TRIAL_LIMIT) {
-                trackEvent("guest_trial_exhausted", { limit: GUEST_TRIAL_LIMIT });
-                trackEvent("login_modal_view", { trigger: "trial_limit_home" });
-                setLoginModalReason("trial_exhausted");
-                setShowLoginModal(true);
-                return;
-              }
-              // 2) 로그인 무료 풀 소진 → 즉시 구독/결제 페이지 (페이월)
-              //    홈 CTA 시점에서 차단해 채팅 입력 수고를 덜어줌.
-              if (isLoggedIn && (subStatus === "free" || subStatus === "expired") && getPlanCount() >= FREE_PLAN_LIMIT) {
-                trackEvent("paywall_view", { session_number: getPlanCount(), trigger: "home_cta" });
-                setShowPaywall(true);
-                return;
-              }
-              setView("home_chat");
-            }}
-            onShowPrediction={() => {
-              if (!isLoggedIn) { trackEvent("login_modal_view", { trigger: "prediction" }); setLoginModalReason("generic"); setShowLoginModal(true); return; }
-              setPredictionReturnTab("home");
-              setView("prediction_report");
-            }}
-            isPremium={subStatus === "active"}
-            isLoggedIn={isLoggedIn}
-          />
-        );
+        // HomeScreen 폐기 — useEffect가 home → home_chat 자동 리다이렉트. 1 프레임 null 반환.
+        return null;
     }
   };
 

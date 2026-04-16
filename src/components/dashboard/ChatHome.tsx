@@ -331,7 +331,7 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
 
   const displayName = userName || t("home.defaultName");
 
-  // 회의 57: HomeScreen과 동일한 상단 CTA(인사 + 날짜) 고정 재사용.
+  // 상단 CTA: 인사 + 날짜 + 상태 pill
   const greetingMsg = (() => {
     const hour = new Date().getHours();
     if (hour < 6) return t("home.greeting.dawn");
@@ -557,7 +557,7 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
 
   return (
     <div className="h-full flex flex-col bg-[#FAFBF9] relative overflow-hidden">
-      {/* 상단 CTA — HomeScreen과 동일 형태로 고정 */}
+      {/* 상단 CTA — 인사 + 날짜 + 상태 pill */}
       <div className="pt-[max(2.5rem,env(safe-area-inset-top))] px-6 pb-2 shrink-0 relative">
         {onOpenMyPlans && (
           <button

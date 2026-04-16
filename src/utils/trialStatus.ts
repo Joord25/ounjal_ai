@@ -7,7 +7,7 @@
  * - 해결: 체험 상태 조회를 단일 유틸로 통일
  *
  * 사용처:
- * - HomeScreen: 진행 뱃지 표시
+ * - ChatHome: 진행 뱃지 표시 (상태 pill)
  * - WorkoutReport: 운동 후 남은 횟수 안내
  * - ConditionCheck / MasterPlanPreview: 현재 단계 표시 (선택)
  * - page.tsx: 기존 check 로직 점진 리팩토링 가능
