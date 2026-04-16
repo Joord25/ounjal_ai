@@ -363,36 +363,35 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
     <div className="h-full flex flex-col bg-[#FAFBF9] relative overflow-hidden">
       {/* 상단 CTA — HomeScreen과 동일 형태로 고정 */}
       <div className="pt-[max(2.5rem,env(safe-area-inset-top))] px-6 pb-2 shrink-0 relative">
-        <h1 className="font-black leading-snug pr-12">
+        <h1 className="font-black leading-snug pr-20">
           <span className={`text-[#2D6A4F] ${displayName.length > 6 ? "text-2xl" : "text-3xl"}`}>{displayName}</span>
           <span className={`text-[#1B4332] ${greetingMsg.length > 14 ? "text-base" : "text-xl"}`}> {locale === "en" ? "" : "님, "}{greetingMsg}</span>
         </h1>
-        <div className="flex items-center justify-between mt-1 pr-12">
-          <p className="text-[12px] font-medium text-gray-400">{dateStr}</p>
-          {(() => {
-            const trial = getTrialStatus(isLoggedIn ?? false, isPremium ?? false, getPlanCount());
-            if (isPremium) {
-              return (
-                <span className="shrink-0 px-2 py-0.5 rounded-full bg-[#2D6A4F] text-white text-[10px] font-bold whitespace-nowrap">
-                  {locale === "en" ? "Premium" : "프리미엄"}
-                </span>
-              );
-            }
-            if (trial.stage === "premium") return null;
-            const isGuest = trial.stage === "guest";
-            const label = locale === "ko"
-              ? (trial.stage === "exhausted" ? "무료 완료" : (isGuest ? "체험" : "무료") + ` ${trial.currentCompleted}/${trial.currentLimit}`)
-              : (trial.stage === "exhausted" ? "Trial done" : (isGuest ? "Trial" : "Free") + ` ${trial.currentCompleted}/${trial.currentLimit}`);
-            const warn = trial.remaining <= 1;
+        <p className="text-[12px] font-medium text-gray-400 mt-1">{dateStr}</p>
+        {/* 상태 pill — 우측 상단 (구 북마크 자리). 회의 60 대표 지시. */}
+        {(() => {
+          const trial = getTrialStatus(isLoggedIn ?? false, isPremium ?? false, getPlanCount());
+          if (isPremium) {
             return (
-              <span className={`shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap ${
-                warn ? "bg-amber-100 text-amber-700" : "bg-gray-100 text-[#1B4332]"
-              }`}>
-                {label}
+              <span className="absolute right-5 top-[max(2.5rem,env(safe-area-inset-top))] px-2.5 py-1 rounded-full bg-[#2D6A4F] text-white text-[10px] font-bold whitespace-nowrap">
+                {locale === "en" ? "Premium" : "프리미엄"}
               </span>
             );
-          })()}
-        </div>
+          }
+          if (trial.stage === "premium") return null;
+          const isGuest = trial.stage === "guest";
+          const label = locale === "ko"
+            ? (trial.stage === "exhausted" ? "무료 완료" : (isGuest ? "체험" : "무료") + ` ${trial.currentCompleted}/${trial.currentLimit}`)
+            : (trial.stage === "exhausted" ? "Trial done" : (isGuest ? "Trial" : "Free") + ` ${trial.currentCompleted}/${trial.currentLimit}`);
+          const warn = trial.remaining <= 1;
+          return (
+            <span className={`absolute right-5 top-[max(2.5rem,env(safe-area-inset-top))] px-2.5 py-1 rounded-full text-[10px] font-bold whitespace-nowrap ${
+              warn ? "bg-amber-100 text-amber-700" : "bg-gray-100 text-[#1B4332]"
+            }`}>
+              {label}
+            </span>
+          );
+        })()}
       </div>
 
       {/* 채팅 섹션 — 상단 고정 헤더 제거. 각 메시지에 미니 헤더 표시 (회의 60 Phase 2). */}
