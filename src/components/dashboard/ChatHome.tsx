@@ -241,7 +241,7 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
     if (trial.stage === "exhausted") return locale === "en" ? "Trial done" : "무료 완료";
     return locale === "en" ? "Free" : "무료";
   })();
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const scrollEndRef = useRef<HTMLDivElement>(null);
 
   const buildIntentSummary = (intent: ParsedIntent): string => {
@@ -762,20 +762,25 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
         {/* 입력창 — 2단 구조 (회의 60 대표 지시): 위=입력, 아래=도구+전송 */}
         <div className="px-4 pt-2 pb-3">
           <div className="bg-white border border-gray-200 rounded-3xl px-4 pt-3 pb-2 shadow-sm focus-within:border-[#2D6A4F]/50 transition-colors">
-            <input
+            <textarea
               ref={inputRef}
-              type="text"
               value={text}
-              onChange={(e) => setText(e.target.value)}
+              onChange={(e) => {
+                setText(e.target.value);
+                // auto-grow: 최소 1줄, 최대 5줄
+                e.target.style.height = "auto";
+                e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`;
+              }}
               onKeyDown={(e) => {
-                if (e.key === "Enter") {
+                if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
                   e.preventDefault();
                   handleSubmit();
                 }
               }}
               placeholder={t("chat_home.placeholder")}
               disabled={busy}
-              className="w-full text-[14px] bg-transparent px-0 py-1 border-0 focus:outline-none text-[#1B4332] placeholder-gray-400 disabled:opacity-50"
+              rows={1}
+              className="w-full text-[14px] bg-transparent px-0 py-1 border-0 focus:outline-none text-[#1B4332] placeholder-gray-400 disabled:opacity-50 resize-none overflow-y-auto leading-[1.5]"
             />
             <div className="flex items-center justify-between mt-1">
               <div className="flex items-center gap-1.5">
