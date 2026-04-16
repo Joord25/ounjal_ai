@@ -262,13 +262,10 @@ const QuickFollowupList: React.FC<{
   locale: "ko" | "en";
   items: Array<{ icon: ChipIconType; label: string; prompt: string }>;
   onTap: (prompt: string) => void;
-  variant?: "adjust" | "followup"; // adjust=빠른 재조정 (플랜 수정), followup=추천 후속 질문
-}> = ({ locale, items, onTap, variant = "adjust" }) => (
+}> = ({ locale, items, onTap }) => (
   <div className="mt-2 flex flex-col gap-1">
     <p className="text-[10px] font-black text-gray-400 tracking-wider uppercase mb-0.5 px-0.5">
-      {variant === "followup"
-        ? (locale === "en" ? "Recommended follow-ups" : "추천 후속 질문")
-        : (locale === "en" ? "Quick adjust" : "빠른 재조정")}
+      {locale === "en" ? "Recommended follow-ups" : "추천 후속 질문"}
     </p>
     {items.map((f) => (
       <button
@@ -865,7 +862,6 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
                 <QuickFollowupList
                   locale={locale}
                   items={finalItems}
-                  variant="followup"
                   onTap={(p: string) => {
                     trackEvent("chat_submit", { source: hasAi ? "ai_followup" : "rule_followup", char_length: p.length });
                     handleSubmit(p, { intentDepth: "focused_followup" });
@@ -901,27 +897,17 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
                   </button>
                 </div>
               </div>
-              {/* Phase 3+7+7C: 후속 질문 — Gemini 개인화 우선, 없으면 룰베이스 fallback */}
-              <QuickFollowupList
-                locale={locale}
-                items={aiFollowups.length > 0 ? aiFollowups : (locale === "en"
-                  ? [
-                      { icon: "flame", label: "Go harder", prompt: "make it harder" },
-                      { icon: "swap", label: "Different body part", prompt: "different body part" },
-                      { icon: "timer", label: "Make it shorter", prompt: "make it shorter" },
-                      { icon: "run", label: "Add cardio", prompt: "add cardio" },
-                    ]
-                  : [
-                      { icon: "flame", label: "강도 세게", prompt: "강도 세게" },
-                      { icon: "swap", label: "다른 부위로", prompt: "다른 부위로" },
-                      { icon: "timer", label: "시간 줄여서", prompt: "시간 줄여서" },
-                      { icon: "run", label: "유산소 추가", prompt: "유산소 추가" },
-                    ])}
-                onTap={(p) => {
-                  trackEvent("chat_submit", { source: aiFollowups.length > 0 ? "ai_followup" : "rule_followup", char_length: p.length });
-                  handleSubmit(p);
-                }}
-              />
+              {/* 추천 후속 질문 — Gemini 개인화만 (비어있으면 생략) */}
+              {aiFollowups.length > 0 && (
+                <QuickFollowupList
+                  locale={locale}
+                  items={aiFollowups}
+                  onTap={(p: string) => {
+                    trackEvent("chat_submit", { source: "ai_followup", char_length: p.length });
+                    handleSubmit(p, { intentDepth: "focused_followup" });
+                  }}
+                />
+              )}
             </div>
           )}
 
