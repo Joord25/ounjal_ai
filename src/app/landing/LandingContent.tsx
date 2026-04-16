@@ -514,8 +514,45 @@ export default function LandingContent({ locale = "ko" }: { locale?: LandingLoca
         </div>
       </section>
 
-      {/* Gradient bridge */}
-      <div className="h-24 sm:h-32" style={{ background: "linear-gradient(to bottom, #111111, #0a0a0a)" }} />
+      {/* ═══ FAQ — 흰 배경 섹션 (푸터 직전) ═══ */}
+      <section className="bg-white py-16 sm:py-24 px-6">
+        <div className="max-w-3xl mx-auto">
+          <h2 className="text-2xl sm:text-4xl font-black text-center text-[#1B4332] mb-10 sm:mb-14">
+            {t.faq.title}
+          </h2>
+          <div className="space-y-3">
+            {t.faq.items.map((item, i) => (
+              <details
+                key={i}
+                className="group border border-gray-200 rounded-2xl overflow-hidden bg-white hover:border-[#2D6A4F]/30 transition-colors"
+              >
+                <summary className="cursor-pointer px-5 sm:px-6 py-4 sm:py-5 flex items-center justify-between gap-4 list-none">
+                  <span className="text-sm sm:text-base font-bold text-[#1B4332] flex-1">
+                    {item.q}
+                  </span>
+                  <svg
+                    className="w-4 h-4 text-[#2D6A4F] shrink-0 transition-transform group-open:rotate-180"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2.5}
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </summary>
+                <div className="px-5 sm:px-6 pb-4 sm:pb-5 pt-0">
+                  <p className="text-sm sm:text-[15px] text-gray-600 leading-relaxed">
+                    {item.a}
+                  </p>
+                </div>
+              </details>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Gradient bridge — 흰색 FAQ → 검정 Footer 전환 */}
+      <div className="h-16 sm:h-24" style={{ background: "linear-gradient(to bottom, #ffffff, #0a0a0a)" }} />
 
       {/* ═══ Footer ═══ */}
       <footer ref={footerRef} className="pt-16 sm:pt-20 pb-24 px-6 bg-[#0a0a0a]">

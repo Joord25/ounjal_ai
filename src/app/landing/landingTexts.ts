@@ -50,6 +50,10 @@ export interface LandingTexts {
       features: string[];
     };
   };
+  faq: {
+    title: string;
+    items: { q: string; a: string }[];
+  };
   footer: {
     mission: string;
     company: string[];
@@ -133,6 +137,39 @@ const ko: LandingTexts = {
       ],
     },
   },
+  faq: {
+    title: "자주 묻는 질문",
+    items: [
+      {
+        q: "기존 운동 앱과 뭐가 달라요?",
+        a: "유저가 운동을 골라 기록하는 게 아니라, AI가 오늘 컨디션·이력·목표를 반영해 루틴을 자동으로 짜요. 채팅 한마디면 끝.",
+      },
+      {
+        q: "완전 초보도 가능한가요?",
+        a: "네. 부위·시간만 말해도 알맞은 강도로 구성돼요. '홈트 30분'처럼 막연해도 AI가 구체 운동으로 바꿔줍니다.",
+      },
+      {
+        q: "부상이 있어도 안전한가요?",
+        a: "채팅에 '어깨 아픈데'처럼 말하면 관절 부담 적은 동작 위주로 자동 대체해요. 단, 의학적 진단은 병원을 권장합니다.",
+      },
+      {
+        q: "AI 기준은 뭐에요?",
+        a: "ACSM·NASM 국제 운동 가이드라인과 한체대 운동과학 박사 감수를 바탕으로 설계됐어요. 유저 프로필·이력도 실시간 반영.",
+      },
+      {
+        q: "무료로 어디까지 쓸 수 있어요?",
+        a: "AI 운동 플랜 월 4회 + 운동 기록 저장은 무료. 영양 코치·분석 리포트·무제한 플랜은 프리미엄(월 6,900원).",
+      },
+      {
+        q: "구독 언제든 취소되나요?",
+        a: "네. 프로필 탭에서 1클릭 해지. 결제 후 7일 이내 + 프리미엄 기능 미사용 시 환불 가능.",
+      },
+      {
+        q: "개인정보·운동 데이터는 어떻게 보호되나요?",
+        a: "Google Cloud 기반 암호화 저장. 제3자 공유 없음. 계정 삭제 시 모든 데이터 영구 삭제.",
+      },
+    ],
+  },
   footer: {
     mission: "당신의 시간을 아끼고, 성장의 즐거움과 건강을 드립니다.",
     company: [
@@ -212,6 +249,39 @@ const en: LandingTexts = {
         "Weekly quests + season tiers",
       ],
     },
+  },
+  faq: {
+    title: "Frequently Asked Questions",
+    items: [
+      {
+        q: "How is this different from other workout apps?",
+        a: "You don't pick workouts from a list. AI reads your condition, history, and goal to build today's routine from one chat message.",
+      },
+      {
+        q: "Is it OK if I'm a total beginner?",
+        a: "Yes. Just say a body part and time — 'chest 30 min', 'easy home' — and AI translates to exercises at the right intensity.",
+      },
+      {
+        q: "What if I have injuries?",
+        a: "Say 'shoulder hurts' and AI swaps to joint-safe angles. For diagnosis, see a medical professional.",
+      },
+      {
+        q: "What's the AI based on?",
+        a: "ACSM, NASM international exercise guidelines + reviewed by KNSU exercise science PhDs. Your profile and history adapt in real time.",
+      },
+      {
+        q: "What do I get for free?",
+        a: "4 AI workout plans/month + workout logs. Nutrition coach, analysis reports, and unlimited plans require Premium (6,900 KRW/mo).",
+      },
+      {
+        q: "Can I cancel anytime?",
+        a: "Yes — 1-click cancel in Profile. Refundable within 7 days if Premium features weren't used.",
+      },
+      {
+        q: "How is my data protected?",
+        a: "Encrypted on Google Cloud. Never shared with third parties. Deleting your account wipes all data permanently.",
+      },
+    ],
   },
   footer: {
     mission: "Save your time, enjoy growth and health.",
