@@ -731,47 +731,28 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
       {showMoreExamples && (
         <>
           <div
-            className="fixed inset-0 z-40 bg-black/20"
+            className="fixed inset-0 z-40"
             onClick={() => setShowMoreExamples(false)}
           />
-          <div className="fixed left-1/2 -translate-x-1/2 bottom-24 z-50 w-[88%] max-w-[340px] bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
-            <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-              <p className="text-[12px] font-black text-[#1B4332] tracking-wider uppercase">
-                {locale === "en" ? "More templates" : "심화 예시"}
-              </p>
+          <div className="fixed right-4 bottom-24 z-50 w-[220px] bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden py-1.5">
+            {EXAMPLE_CHIPS_MORE.map((chip) => (
               <button
-                onClick={() => setShowMoreExamples(false)}
-                className="text-gray-400 hover:text-[#1B4332]"
-                aria-label="close"
+                key={chip.key}
+                onClick={() => {
+                  fillExample(chip.key);
+                  setShowMoreExamples(false);
+                }}
+                disabled={busy}
+                className="w-full flex items-center gap-2.5 px-3 py-2 text-left hover:bg-gray-50 active:bg-emerald-50/40 transition-colors disabled:opacity-50"
               >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
+                <span className="text-[#1B4332] shrink-0">
+                  <ChipIcon type={chip.icon} />
+                </span>
+                <span className="text-[12.5px] text-[#1B4332] whitespace-nowrap overflow-hidden text-ellipsis flex-1">
+                  {locale === "en" ? chip.labelEn : chip.labelKo}
+                </span>
               </button>
-            </div>
-            <div className="max-h-[55vh] overflow-y-auto">
-              {EXAMPLE_CHIPS_MORE.map((chip) => (
-                <button
-                  key={chip.key}
-                  onClick={() => {
-                    fillExample(chip.key);
-                    setShowMoreExamples(false);
-                  }}
-                  disabled={busy}
-                  className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-emerald-50/40 active:bg-emerald-50/60 transition-colors border-b border-gray-50 last:border-b-0 disabled:opacity-50"
-                >
-                  <span className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center text-[#2D6A4F] shrink-0">
-                    <ChipIcon type={chip.icon} />
-                  </span>
-                  <span className="text-[13px] font-medium text-[#1B4332] flex-1">
-                    {locale === "en" ? chip.labelEn : chip.labelKo}
-                  </span>
-                  <svg className="w-3.5 h-3.5 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                  </svg>
-                </button>
-              ))}
-            </div>
+            ))}
           </div>
         </>
       )}
