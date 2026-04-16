@@ -291,6 +291,55 @@ ${historyBlock}
   "reply": "정보 없어도 괜찮아요! 오늘 어느 부위 할지만 알려주시면 ㅎㅎ"
 }
 
+**모든 모드에 공통: "followups" 배열 필드 포함 (3~4개).**
+마누스식 4단계 프레임워크 적용 — 유저가 "AI가 진짜 내 맥락을 이해하네" 체감하게:
+
+Step 1 맥락 분석: 표면 의도(요청한 것) vs 심층 의도(진짜 원하는 변화) 구분
+Step 2 정보 공백: userProfile에서 빠진 결정적 정보(bench1RM/squat1RM/deadlift1RM/bodyWeight/경력) 중 1개 이하만 질문화
+Step 3 논리 흐름: 현재 유저 단계 판단 (요청 파악/설계 완료/실행 직전/피드백 대기) → 다음 단계 질문 제시
+Step 4 UX 선제: 답변 받고 당장 궁금할 실행/변형/장애 질문 미리 예상
+
+각 followup 항목:
+{
+  "icon": "chest" | "legs" | "back" | "shoulder" | "posture" | "run" | "home" | "diet" | "full" | "cycle" | "calendar" | "creatine" | "pump" | "sleep" | "food" | "plateau" | "split" | "protein" | "flame" | "swap" | "timer",
+  "label": "15자 이내 칩 라벨",
+  "prompt": "80자 이내 실제 후속 질문 (유저가 이 칩 탭하면 그대로 제출됨)"
+}
+
+요청별 followups 예시 (참고용, 반드시 맥락 반영해 다양화):
+- "3개월 다이어트":
+  [
+    {"icon":"food","label":"식단 장보기 리스트","prompt":"3개월 다이어트 일주일치 식단 장보기 리스트 짜줘"},
+    {"icon":"calendar","label":"직장인 변형","prompt":"점심 외식 많은 직장인인데 어떻게 변형하지?"},
+    {"icon":"timer","label":"주간 체중 기록법","prompt":"체중 언제 재고 기록해야 정확해?"},
+    {"icon":"diet","label":"치팅데이 가이드","prompt":"치팅데이는 언제 어떻게 해야 해?"}
+  ]
+- "가슴 30분":
+  [
+    {"icon":"pump","label":"자극 포인트","prompt":"추천한 가슴 운동 각각 자극 포인트 알려줘"},
+    {"icon":"timer","label":"세트 사이 휴식","prompt":"세트 사이 몇 분 쉬어야 해?"},
+    {"icon":"shoulder","label":"어깨 부상 예방","prompt":"가슴 운동할 때 어깨 안전한 각도 알려줘"},
+    {"icon":"swap","label":"다음 날 부위","prompt":"오늘 가슴 했으면 내일은 뭘 해?"}
+  ]
+- "러닝 10km":
+  [
+    {"icon":"pump","label":"페이스 조절법","prompt":"10km 페이스 어떻게 나눠 뛰는 게 좋아?"},
+    {"icon":"run","label":"인터벌 추가","prompt":"10km 뛸 수 있게 만드는 인터벌 훈련 알려줘"},
+    {"icon":"food","label":"러닝 전후 식사","prompt":"러닝 전후 뭘 먹어야 해?"},
+    {"icon":"sleep","label":"회복 스트레칭","prompt":"러닝 끝나고 필수 스트레칭 알려줘"}
+  ]
+- 부상/통증 요청:
+  [
+    {"icon":"pump","label":"안전 각도 체크","prompt":"이 운동 할 때 통증 안 오는 각도 알려줘"},
+    {"icon":"swap","label":"대체 운동","prompt":"이 운동 대신할 수 있는 안전한 운동 뭐 있어?"},
+    {"icon":"sleep","label":"회복 팁","prompt":"부상 부위 회복에 도움되는 게 뭐야?"},
+    {"icon":"posture","label":"예방 동작","prompt":"재발 방지 위해 평소 뭐 해야 해?"}
+  ]
+- 프로필 정보 공백 시 (예: bodyWeight 없음):
+  위 예시 중 1개를 정보 수집형으로 교체 — {"icon":"split","label":"내 체중 알려주기","prompt":"제 체중은 XX kg이에요"}
+
+금지: 모든 요청에 동일한 4개 고정 (반드시 맥락 기반 다양화), 영어 혼용, 너무 긴 라벨(15자 초과).
+
 [advice 모드 작성 규칙]
 - headline: 한 줄 요약 (20자 이내)
 - goals, principles, criticalPoints, conclusion, intensity, supplements: bullet 2~4개, 각 1문장
@@ -326,8 +375,32 @@ JSON만 반환. 설명 문장 금지.`;
       const reasoning: string[] = Array.isArray(parsedRaw?.reasoning)
         ? parsedRaw.reasoning
             .filter((r: unknown): r is string => typeof r === "string" && r.trim().length > 0)
-            .slice(0, 4)
+            .slice(0, 5)
             .map((r: string) => r.trim().slice(0, 120))
+        : [];
+
+      // followups 추출 (Phase 7C — 마누스 4단계 프레임워크 개인화 후속 질문)
+      const ALLOWED_ICONS = new Set([
+        "chest","legs","back","shoulder","posture","run","home","diet","full",
+        "cycle","calendar","creatine","pump","sleep","food","plateau","split",
+        "protein","flame","swap","timer",
+      ]);
+      const followups: Array<{ icon: string; label: string; prompt: string }> = Array.isArray(parsedRaw?.followups)
+        ? parsedRaw.followups
+            .filter((f: unknown): f is { icon: string; label: string; prompt: string } =>
+              typeof f === "object" && f !== null
+              && typeof (f as any).icon === "string"
+              && typeof (f as any).label === "string"
+              && typeof (f as any).prompt === "string"
+              && (f as any).label.trim().length > 0
+              && (f as any).prompt.trim().length > 0
+            )
+            .slice(0, 4)
+            .map((f: any) => ({
+              icon: ALLOWED_ICONS.has(f.icon) ? f.icon : "full",
+              label: f.label.trim().slice(0, 15),
+              prompt: f.prompt.trim().slice(0, 120),
+            }))
         : [];
 
       // 3-way 모드 분기: plan | advice | chat
@@ -335,14 +408,14 @@ JSON만 반환. 설명 문장 금지.`;
 
       if (mode === "plan" && parsedRaw?.intent) {
         const intent = sanitize(parsedRaw.intent);
-        res.status(200).json({ mode: "plan", reasoning, intent, model: "gemini-2.5-flash" });
+        res.status(200).json({ mode: "plan", reasoning, followups, intent, model: "gemini-2.5-flash" });
         return;
       }
 
       if (mode === "advice" && parsedRaw?.advice) {
         const advice = sanitizeAdvice(parsedRaw.advice);
         if (advice) {
-          res.status(200).json({ mode: "advice", reasoning, advice, model: "gemini-2.5-flash" });
+          res.status(200).json({ mode: "advice", reasoning, followups, advice, model: "gemini-2.5-flash" });
           return;
         }
         // advice 스키마 훼손 시 chat으로 폴백
@@ -354,7 +427,7 @@ JSON만 반환. 설명 문장 금지.`;
         : (locale === "en"
           ? "Tell me which area and how long — I'll build a plan for you."
           : "어느 부위로, 몇 분 할지만 말씀해주시면 바로 짜드려요.");
-      res.status(200).json({ mode: "chat", reasoning, reply, model: "gemini-2.5-flash" });
+      res.status(200).json({ mode: "chat", reasoning, followups, reply, model: "gemini-2.5-flash" });
     } catch (error) {
       console.error("parseIntent error:", error);
       res.status(200).json(buildFallbackReply(locale, "fallback-exception"));

@@ -383,6 +383,7 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
   const [showMoreExamples, setShowMoreExamples] = useState(false);
   const [ackPending, setAckPending] = useState(false); // 타이핑 지연 중 (Phase 6A 보완)
   const [reasoningLines, setReasoningLines] = useState<string[]>([]); // Phase 7 B-lite 사고 과정 스트림
+  const [aiFollowups, setAiFollowups] = useState<Array<{ icon: ChipIconType; label: string; prompt: string }>>([]); // Phase 7C Gemini 개인화 후속 질문
 
   // 미니 헤더 옆 플랜 라벨 — 프리미엄/무료/체험 구분 (회의 60 대표 피드백)
   const miniPlanLabel = (() => {
@@ -541,6 +542,7 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
     setMessages((prev) => [...prev, { role: "user", content: trimmed }]);
     setText("");
     setPendingIntent(null);
+    setAiFollowups([]); // 새 요청 시 이전 followups 제거
     setAckPending(true);
 
     // 1.2초 타이핑 지연 후 Ack 삽입 — "유저 메시지 파악 중" 체감 제공 (회의 60 대표 피드백)
@@ -588,10 +590,11 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
         return;
       }
 
+      type FollowupResp = { icon: string; label: string; prompt: string };
       const data = (await res.json()) as
-        | { mode: "chat"; reply: string; reasoning?: string[] }
-        | { mode: "plan"; intent: ParsedIntent; reasoning?: string[] }
-        | { mode: "advice"; advice: AdviceContent; reasoning?: string[] };
+        | { mode: "chat"; reply: string; reasoning?: string[]; followups?: FollowupResp[] }
+        | { mode: "plan"; intent: ParsedIntent; reasoning?: string[]; followups?: FollowupResp[] }
+        | { mode: "advice"; advice: AdviceContent; reasoning?: string[]; followups?: FollowupResp[] };
 
       // Phase 7 B-lite: Gemini가 반환한 reasoning을 순차로 표시 (800ms 간격)
       const reasoning = Array.isArray(data.reasoning) ? data.reasoning.filter(Boolean) : [];
@@ -599,6 +602,12 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
         setReasoningLines((prev) => [...prev, line]);
         await new Promise((resolve) => setTimeout(resolve, 800));
       }
+
+      // Phase 7C: Gemini 개인화 followups 저장 (ChipIconType로 좁혀서)
+      const serverFollowups: Array<{ icon: ChipIconType; label: string; prompt: string }> = Array.isArray(data.followups)
+        ? data.followups.map((f) => ({ icon: f.icon as ChipIconType, label: f.label, prompt: f.prompt }))
+        : [];
+      setAiFollowups(serverFollowups);
 
       if (data.mode === "chat") {
         setMessages((prev) => [...prev, { role: "assistant", content: data.reply }]);
@@ -819,10 +828,20 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
                   ? [{ icon: "chest", label: "가슴 30분", prompt: "가슴 30분" }, { icon: "swap", label: "다른 부위로", prompt: "다른 부위로" }, { icon: "run", label: "유산소 추가", prompt: "유산소 추가" }]
                   : [{ icon: "full", label: "오늘 운동 추천해줘", prompt: "오늘 운동 추천해줘" }, { icon: "timer", label: "오늘은 피곤해", prompt: "오늘은 피곤해" }, { icon: "swap", label: "아무 부위나 골라줘", prompt: "아무 부위나 골라줘" }]));
 
+            // Phase 7C: Gemini가 개인화 followups 줬으면 우선 사용 (룰베이스 fallback)
+            const finalItems = aiFollowups.length > 0 ? aiFollowups : quickItems;
+
             return (
               <div className="mt-2">
-                {quickItems.length > 0 && (
-                  <QuickFollowupList locale={locale} items={quickItems} onTap={(p) => handleSubmit(p)} />
+                {finalItems.length > 0 && (
+                  <QuickFollowupList
+                    locale={locale}
+                    items={finalItems}
+                    onTap={(p) => {
+                      trackEvent("chat_submit", { source: aiFollowups.length > 0 ? "ai_followup" : "rule_followup", char_length: p.length });
+                      handleSubmit(p);
+                    }}
+                  />
                 )}
                 <DeepFollowupList
                   contextTags={contextTags}
@@ -862,10 +881,10 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
                   </button>
                 </div>
               </div>
-              {/* Phase 3+7: 후속 질문 — 마누스식 세로 아이콘 리스트 (회의 60 대표 피드백) */}
+              {/* Phase 3+7+7C: 후속 질문 — Gemini 개인화 우선, 없으면 룰베이스 fallback */}
               <QuickFollowupList
                 locale={locale}
-                items={locale === "en"
+                items={aiFollowups.length > 0 ? aiFollowups : (locale === "en"
                   ? [
                       { icon: "flame", label: "Go harder", prompt: "make it harder" },
                       { icon: "swap", label: "Different body part", prompt: "different body part" },
@@ -877,8 +896,11 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
                       { icon: "swap", label: "다른 부위로", prompt: "다른 부위로" },
                       { icon: "timer", label: "시간 줄여서", prompt: "시간 줄여서" },
                       { icon: "run", label: "유산소 추가", prompt: "유산소 추가" },
-                    ]}
-                onTap={(prompt) => handleSubmit(prompt)}
+                    ])}
+                onTap={(p) => {
+                  trackEvent("chat_submit", { source: aiFollowups.length > 0 ? "ai_followup" : "rule_followup", char_length: p.length });
+                  handleSubmit(p);
+                }}
               />
             </div>
           )}
