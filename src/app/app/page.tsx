@@ -1125,11 +1125,24 @@ export default function Home() {
               }
               // 로그인 무료 소진 → paywall
               if (isLoggedIn && (subStatus === "free" || subStatus === "expired") && getPlanCount() >= FREE_PLAN_LIMIT) {
-                trackEvent("paywall_view", { session_number: getPlanCount(), trigger: "chat_submit_paywall" });
+                trackEvent("paywall_view", { session_number: getPlanCount(), trigger: "chat_submit_paywall", surface: "modal" });
                 setShowPaywall(true);
                 return false;
               }
               return true;
+            }}
+            getBlockReason={() => {
+              if (!isLoggedIn && getGuestTrialCount() >= GUEST_TRIAL_LIMIT) return "guest_exhausted";
+              if (isLoggedIn && (subStatus === "free" || subStatus === "expired") && getPlanCount() >= FREE_PLAN_LIMIT) return "free_limit";
+              return null;
+            }}
+            onRequestLogin={() => {
+              setLoginModalReason("trial_exhausted");
+              setShowLoginModal(true);
+            }}
+            onRequestPaywall={() => {
+              trackEvent("paywall_view", { session_number: getPlanCount(), trigger: "chat_inline_retap", surface: "modal" });
+              setShowPaywall(true);
             }}
           />
         );

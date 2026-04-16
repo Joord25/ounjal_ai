@@ -46,6 +46,14 @@ interface ChatHomeProps {
    * false 반환 시 ChatHome은 아무것도 안 함 (부모가 로그인 모달/페이월 표시).
    */
   canSubmit?: () => boolean;
+  /**
+   * canSubmit이 false 반환했을 때 이유 조회용. 결과가 null이 아니면
+   * ChatHome이 채팅 히스토리에 인라인 업그레이드 카드 추가 (모달은 부모가 이미 띄움).
+   * Phase 4 (회의 60).
+   */
+  getBlockReason?: () => UpgradeTrigger | null;
+  onRequestLogin?: () => void;
+  onRequestPaywall?: () => void;
 }
 
 interface ParsedIntent {
@@ -73,10 +81,13 @@ const EXAMPLE_KEYS = [
   "chat_home.example.long_full",
 ] as const;
 
+type UpgradeTrigger = "guest_exhausted" | "free_limit" | "high_value";
+
 type ChatMsg =
   | { role: "user"; kind?: "text"; content: string }
   | { role: "assistant"; kind?: "text"; content: string; tone?: "info" | "error" }
-  | { role: "assistant"; kind: "advice"; advice: AdviceContent };
+  | { role: "assistant"; kind: "advice"; advice: AdviceContent }
+  | { role: "assistant"; kind: "upgrade"; trigger: UpgradeTrigger };
 
 // view 전환 시 언마운트되더라도 세션 내 대화 유지 (새로고침 시 리셋).
 let sessionCachedMessages: ChatMsg[] = [];
@@ -84,6 +95,7 @@ let sessionCachedMessages: ChatMsg[] = [];
 /** advice 변종은 content 없으므로 history 전달 시 문자열 요약으로 대체 */
 function msgToHistoryContent(m: ChatMsg): string {
   if ("content" in m) return m.content;
+  if ("kind" in m && m.kind === "upgrade") return "[upgrade card shown]";
   return "[advice card shown]";
 }
 
@@ -98,7 +110,7 @@ function renderMarkdownBold(text: string): React.ReactNode {
   });
 }
 
-export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProfile, isLoggedIn, isPremium, canSubmit, onOpenMyPlans, savedPlansCount = 0 }) => {
+export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProfile, isLoggedIn, isPremium, canSubmit, getBlockReason, onRequestLogin, onRequestPaywall, onOpenMyPlans, savedPlansCount = 0 }) => {
   const { t, locale } = useTranslation();
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
@@ -217,7 +229,21 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
     if (!trimmed || busy) return;
 
     // 회의 57 Phase 3: 체험 소진/페이월 사전 가드 — Gemini 호출 전에 차단
-    if (canSubmit && !canSubmit()) return;
+    if (canSubmit && !canSubmit()) {
+      // Phase 4: 차단 시 인라인 업그레이드 카드 삽입 (모달은 부모가 이미 띄움)
+      const reason = getBlockReason?.();
+      if (reason) {
+        // 중복 방지: 마지막 메시지가 같은 trigger upgrade면 스킵
+        setMessages((prev) => {
+          const last = prev[prev.length - 1];
+          if (last && "kind" in last && last.kind === "upgrade" && last.trigger === reason) return prev;
+          return [...prev, { role: "user", content: trimmed }, { role: "assistant", kind: "upgrade", trigger: reason }];
+        });
+        setText("");
+        trackEvent("paywall_view", { surface: "chat_inline", trigger: reason });
+      }
+      return;
+    }
 
     trackEvent("chat_submit", { char_length: trimmed.length });
     const submitStart = Date.now();
@@ -388,6 +414,37 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
                 </div>
               );
             }
+            if ("kind" in msg && msg.kind === "upgrade") {
+              const trig = msg.trigger;
+              const isGuest = trig === "guest_exhausted";
+              const title = locale === "en"
+                ? (isGuest ? "Free trial done" : trig === "high_value" ? "This needs Premium" : "Free plans used up")
+                : (isGuest ? "오늘 체험 다 썼어요" : trig === "high_value" ? "프리미엄이 더 잘 맞아요" : "이번 달 무료 플랜 다 썼어요");
+              const body = locale === "en"
+                ? (isGuest ? "Sign in to keep planning free for today." : "Unlock unlimited plans for 6,900 KRW/month.")
+                : (isGuest ? "로그인하면 오늘 계속 무료로 이어서 짜드릴 수 있어요." : "프리미엄이면 지금 바로 이어서 짜드릴 수 있어요. (월 6,900원)");
+              const ctaLabel = locale === "en"
+                ? (isGuest ? "Sign in with Google" : "Unlock Premium")
+                : (isGuest ? "Google로 로그인" : "프리미엄 열기");
+              const ctaAction = () => {
+                trackEvent("paywall_tap_subscribe", { source: "chat_inline", trigger: trig, plan: "monthly", value: 6900, currency: "KRW" });
+                if (isGuest) onRequestLogin?.(); else onRequestPaywall?.();
+              };
+              return (
+                <div key={i} className="mt-2">
+                  <div className="bg-gradient-to-br from-[#F0FDF4] to-white border border-[#2D6A4F]/30 rounded-2xl px-3.5 py-3">
+                    <p className="text-[13px] font-black text-[#1B4332] mb-1">{title}</p>
+                    <p className="text-[12px] text-gray-600 leading-[1.5] mb-2.5">{body}</p>
+                    <button
+                      onClick={ctaAction}
+                      className="w-full py-2.5 rounded-xl bg-[#1B4332] text-white text-[13px] font-bold active:scale-[0.97] transition-all hover:bg-[#2D6A4F]"
+                    >
+                      {ctaLabel}
+                    </button>
+                  </div>
+                </div>
+              );
+            }
             if ("kind" in msg && msg.kind === "advice") {
               return (
                 <div key={i} className="mt-2">
@@ -459,22 +516,53 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
                   </button>
                 </div>
               </div>
+              {/* Phase 3: 후속 질문 칩 — 탭 시 입력창에 채워서 재조정 유도 */}
+              <div className="mt-2 flex gap-1.5 flex-wrap">
+                {(locale === "en"
+                  ? ["go harder", "different body part", "make it shorter", "add cardio"]
+                  : ["강도 세게", "다른 부위로", "시간 줄여서", "유산소 추가"]
+                ).map((hint) => (
+                  <button
+                    key={hint}
+                    onClick={() => {
+                      setText(hint);
+                      requestAnimationFrame(() => inputRef.current?.focus());
+                    }}
+                    className="text-[11.5px] px-2.5 py-1 rounded-full bg-white border border-gray-200 text-gray-600 active:scale-95 transition-all hover:border-[#2D6A4F]/40 hover:text-[#1B4332]"
+                  >
+                    {hint}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 
-          {/* 플랜 이동 중 표시 */}
-          {routing && (
-            <p className="mt-2 text-[13px] text-[#1B4332] leading-[1.55] break-keep">
-              {t("chat_home.confirm.routing")}
-            </p>
+          {/* 로딩 인라인 카드 — Phase 2: 마누스식 작업 카드 (회의 60) */}
+          {busy && (
+            <div className="mt-2 inline-flex items-center gap-2.5 bg-white border border-gray-200 rounded-xl px-3 py-2 shadow-sm">
+              <svg className="w-4 h-4 animate-spin text-[#2D6A4F] shrink-0" fill="none" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeDasharray="30 60" />
+              </svg>
+              <span className="text-[12px] font-medium text-[#1B4332]">
+                {locale === "en" ? "Reading your intent…" : "의도 파악 중…"}
+              </span>
+              <span className="flex gap-0.5 ml-0.5">
+                <span className="w-1 h-1 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: "0ms" }} />
+                <span className="w-1 h-1 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: "150ms" }} />
+                <span className="w-1 h-1 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: "300ms" }} />
+              </span>
+            </div>
           )}
 
-          {/* 생각 중 — busy일 때만 */}
-          {busy && (
-            <div className="mt-2 flex gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: "0ms" }} />
-              <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: "150ms" }} />
-              <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: "300ms" }} />
+          {/* 플랜 라우팅 인라인 카드 (확인 버튼 탭 후 master_plan_preview 이동 대기) */}
+          {routing && (
+            <div className="mt-2 inline-flex items-center gap-2.5 bg-[#F0FDF4] border border-[#2D6A4F]/20 rounded-xl px-3 py-2">
+              <svg className="w-4 h-4 animate-spin text-[#2D6A4F] shrink-0" fill="none" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeDasharray="30 60" />
+              </svg>
+              <span className="text-[12px] font-medium text-[#1B4332]">
+                {locale === "en" ? "Building your plan…" : "맞춤 플랜 짜는 중…"}
+              </span>
             </div>
           )}
 
