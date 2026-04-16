@@ -136,6 +136,96 @@ export const deleteSavedPlan = onRequest(
   },
 );
 
+/**
+ * POST /saveProgram
+ * Body: { sessions: SavedPlanPayload[] }
+ * 장기 프로그램 세션 일괄 저장. programId로 그룹핑.
+ */
+export const saveProgram = onRequest(
+  { cors: true },
+  async (req, res) => {
+    if (req.method !== "POST") { res.status(405).json({ error: "Method not allowed" }); return; }
+    let uid: string;
+    try { uid = await verifyAuth(req.headers.authorization); } catch {
+      res.status(401).json({ error: "Unauthorized" }); return;
+    }
+
+    const body = req.body as { sessions?: SavedPlanPayload[] } | undefined;
+    if (!body?.sessions || !Array.isArray(body.sessions) || body.sessions.length === 0) {
+      res.status(400).json({ error: "Invalid payload: sessions array required" }); return;
+    }
+    if (body.sessions.length > 100) {
+      res.status(400).json({ error: "Too many sessions (max 100)" }); return;
+    }
+
+    const isPremium = await isUserPremium(uid);
+    if (!isPremium) {
+      res.status(403).json({ error: "Premium required for programs" }); return;
+    }
+
+    try {
+      const col = db.collection("users").doc(uid).collection("saved_plans");
+      const batch = db.batch();
+      for (const s of body.sessions) {
+        if (!s.id || !s.sessionData) continue;
+        const raw = s as unknown as Record<string, unknown>;
+        batch.set(col.doc(s.id), {
+          name: s.name ?? "",
+          sessionData: s.sessionData,
+          programId: raw.programId ?? null,
+          sessionNumber: raw.sessionNumber ?? null,
+          totalSessions: raw.totalSessions ?? null,
+          programName: raw.programName ?? null,
+          completedAt: null,
+          createdAt: s.createdAt ?? Date.now(),
+          lastUsedAt: null,
+          useCount: 0,
+          updatedAt: FieldValue.serverTimestamp(),
+        }, { merge: true });
+      }
+      await batch.commit();
+      res.status(200).json({ ok: true, count: body.sessions.length });
+    } catch (err) {
+      console.error("saveProgram error:", err);
+      res.status(500).json({ error: "Failed to save program" });
+    }
+  },
+);
+
+/**
+ * POST /deleteProgram
+ * Body: { programId: string }
+ * 프로그램 전체 세션 일괄 삭제.
+ */
+export const deleteProgram = onRequest(
+  { cors: true },
+  async (req, res) => {
+    if (req.method !== "POST") { res.status(405).json({ error: "Method not allowed" }); return; }
+    let uid: string;
+    try { uid = await verifyAuth(req.headers.authorization); } catch {
+      res.status(401).json({ error: "Unauthorized" }); return;
+    }
+
+    const programId = (req.body as { programId?: string } | undefined)?.programId;
+    if (typeof programId !== "string") {
+      res.status(400).json({ error: "Invalid programId" }); return;
+    }
+
+    try {
+      const col = db.collection("users").doc(uid).collection("saved_plans");
+      const snap = await col.where("programId", "==", programId).get();
+      if (snap.empty) { res.status(404).json({ error: "Program not found" }); return; }
+      const batch = db.batch();
+      snap.docs.forEach(doc => batch.delete(doc.ref));
+      await batch.commit();
+      res.status(200).json({ ok: true, deleted: snap.size });
+    } catch (err) {
+      console.error("deleteProgram error:", err);
+      res.status(500).json({ error: "Failed to delete program" });
+    }
+  },
+);
+
 /** POST /markSavedPlanUsed — useCount/lastUsedAt 증가 */
 export const markSavedPlanUsed = onRequest(
   { cors: true },

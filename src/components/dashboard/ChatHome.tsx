@@ -98,11 +98,32 @@ const EXAMPLE_CHIPS_MORE: ExampleChip[] = [
 ];
 type UpgradeTrigger = "guest_exhausted" | "free_limit" | "high_value";
 
+/** 장기 프로그램 Gemini 응답 */
+interface ProgramSessionParam {
+  weekNumber: number;
+  dayInWeek: number;
+  sessionMode: "balanced" | "split" | "running" | "home_training";
+  targetMuscle?: "chest" | "back" | "shoulders" | "arms" | "legs";
+  goal: "fat_loss" | "muscle_gain" | "strength" | "general_fitness";
+  availableTime: 30 | 50 | 90;
+  intensityOverride?: "high" | "moderate" | "low";
+  label: string;
+}
+interface ProgramData {
+  name: string;
+  totalWeeks: number;
+  sessionsPerWeek: number;
+  summary: string;
+  weekDescriptions: Record<string, string>;
+  sessions: ProgramSessionParam[];
+}
+
 type ChatMsg =
   | { role: "user"; kind?: "text"; content: string }
   | { role: "assistant"; kind?: "text"; content: string; tone?: "info" | "error" }
   | { role: "assistant"; kind: "advice"; advice: AdviceContent }
-  | { role: "assistant"; kind: "upgrade"; trigger: UpgradeTrigger };
+  | { role: "assistant"; kind: "upgrade"; trigger: UpgradeTrigger }
+  | { role: "assistant"; kind: "program"; program: ProgramData };
 
 // view 전환 시 언마운트되더라도 세션 내 대화 유지 (새로고침 시 리셋).
 let sessionCachedMessages: ChatMsg[] = [];
@@ -111,6 +132,7 @@ let sessionCachedMessages: ChatMsg[] = [];
 function msgToHistoryContent(m: ChatMsg): string {
   if ("content" in m) return m.content;
   if ("kind" in m && m.kind === "upgrade") return "[upgrade card shown]";
+  if ("kind" in m && m.kind === "program") return "[program card shown]";
   return "[advice card shown]";
 }
 
@@ -151,7 +173,7 @@ function renderMarkdownBold(text: string): React.ReactNode {
   });
 }
 
-export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProfile, isLoggedIn, isPremium, canSubmit, getBlockReason, onRequestLogin, onRequestPaywall, onOpenMyPlans, savedPlansCount = 0, lastPlanSummary, onResumeLastPlan }) => {
+export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProfile, isLoggedIn, isPremium, canSubmit, getBlockReason, onRequestLogin, onRequestPaywall, onOpenMyPlans, lastPlanSummary, onResumeLastPlan }) => {
   const { t, locale } = useTranslation();
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
@@ -208,6 +230,15 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
   const [aiFollowups, setAiFollowups] = useState<Array<{ icon: ChipIconType; label: string; prompt: string }>>([]); // Phase 7C Gemini 개인화 후속 질문
 
   // 미니 헤더 옆 플랜 라벨 — 프리미엄/무료/체험 구분 (회의 60 대표 피드백)
+  // 활성 프로그램 존재 여부 (내 플랜 아이콘 dot 표시용)
+  const hasActiveProgram = (() => {
+    try {
+      const { getActivePrograms } = require("@/utils/savedPlans");
+      const programs = getActivePrograms();
+      return programs.some((p: { completed: number; total: number }) => p.completed < p.total);
+    } catch { return false; }
+  })();
+
   const miniPlanLabel = (() => {
     if (isPremium) return locale === "en" ? "Premium" : "프리미엄";
     const trial = getTrialStatus(isLoggedIn ?? false, isPremium ?? false, getPlanCount());
@@ -280,6 +311,69 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
       await onSubmit(pendingIntent.condition, pendingIntent.goal, session, { skipLoadingAnim: true });
     } catch (e) {
       console.error("ChatHome confirmPlan error:", e);
+      setRouting(false);
+    }
+  };
+
+  const handleGenerateProgram = async (prog: ProgramData) => {
+    if (routing) return;
+    setRouting(true);
+    try {
+      const { auth } = await import("@/lib/firebase");
+      const token = await auth.currentUser?.getIdToken();
+      if (!token) { setRouting(false); return; }
+
+      const { newPlanId, newProgramId, saveProgramSessions, remoteSaveProgram } = await import("@/utils/savedPlans");
+      const programId = newProgramId();
+      const totalSessions = prog.sessions.length;
+
+      // 각 세션을 planSession API로 생성
+      const savedSessions: import("@/utils/savedPlans").SavedPlan[] = [];
+      for (let idx = 0; idx < prog.sessions.length; idx++) {
+        const s = prog.sessions[idx];
+        const res = await fetch("/api/planSession", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({
+            condition: { bodyPart: "good", energyLevel: 3, availableTime: s.availableTime, bodyWeightKg: userProfile?.bodyWeightKg, gender: userProfile?.gender, birthYear: userProfile?.birthYear },
+            goal: s.goal,
+            sessionMode: s.sessionMode,
+            targetMuscle: s.targetMuscle,
+            intensityOverride: s.intensityOverride,
+          }),
+        });
+        if (!res.ok) continue;
+        const { sessionData } = await res.json();
+        savedSessions.push({
+          id: newPlanId(),
+          name: `${prog.name} ${idx + 1}/${totalSessions}`,
+          sessionData,
+          createdAt: Date.now(),
+          lastUsedAt: null,
+          useCount: 0,
+          programId,
+          sessionNumber: idx + 1,
+          totalSessions,
+          programName: prog.name,
+          completedAt: null,
+        });
+      }
+
+      if (savedSessions.length > 0) {
+        saveProgramSessions(savedSessions);
+        await remoteSaveProgram(savedSessions);
+        trackEvent("chat_program_generated", { total_sessions: savedSessions.length, weeks: prog.totalWeeks });
+        setMessages((prev) => [
+          ...prev,
+          { role: "assistant", content: locale === "en"
+            ? `Done! ${savedSessions.length} sessions saved to My Plans. Tap the plan icon to start.`
+            : `완료! ${savedSessions.length}세션 내 플랜에 저장했어요. 내 플랜 아이콘을 눌러서 시작하세요.` },
+        ]);
+      }
+    } catch (e) {
+      console.error("handleGenerateProgram error:", e);
+      setMessages((prev) => [...prev, { role: "assistant", content: t("chat_home.error.generic"), tone: "error" }]);
+    } finally {
       setRouting(false);
     }
   };
@@ -451,7 +545,8 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
       const data = (await res.json()) as
         | ({ mode: "chat"; reply: string } & CommonMeta)
         | ({ mode: "plan"; intent: ParsedIntent } & CommonMeta)
-        | ({ mode: "advice"; advice: AdviceContent } & CommonMeta);
+        | ({ mode: "advice"; advice: AdviceContent } & CommonMeta)
+        | ({ mode: "program"; program: ProgramData } & CommonMeta);
 
       // Phase 7D: selfCheck.safety가 warning/risky면 concerns를 reasoning에 prepend
       const safetyConcerns = data.selfCheck?.safety && data.selfCheck.safety !== "ok"
@@ -496,6 +591,18 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
         return;
       }
 
+      if (data.mode === "program") {
+        trackEvent("chat_program_generated", {
+          latency_ms: Date.now() - submitStart,
+          total_sessions: data.program.sessions.length,
+          weeks: data.program.totalWeeks,
+        });
+        setMessages((prev) => [...prev, { role: "assistant", kind: "program", program: data.program }]);
+        setBusy(false);
+        setReasoningLines([]);
+        return;
+      }
+
       // plan 모드 — 유저 확인 버튼 제시 (자동 전환 아님, 대표 지시)
       const intent = data.intent;
       trackEvent("chat_plan_generated", {
@@ -531,23 +638,7 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
     <div className="h-full flex flex-col bg-[#FAFBF9] relative overflow-hidden">
       {/* 상단 CTA — 인사 + 날짜 + 상태 pill */}
       <div className="pt-[max(2.5rem,env(safe-area-inset-top))] px-6 pb-2 shrink-0 relative">
-        {onOpenMyPlans && (
-          <button
-            onClick={onOpenMyPlans}
-            className="absolute right-5 top-[max(2.5rem,env(safe-area-inset-top))] p-2 text-gray-400 active:text-[#1B4332] transition-colors"
-            aria-label={locale === "en" ? "My Plans" : "내 플랜"}
-          >
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-            </svg>
-            {savedPlansCount > 0 && (
-              <span className="absolute top-1 right-1 min-w-[16px] h-4 px-1 rounded-full bg-[#2D6A4F] text-white text-[9px] font-black flex items-center justify-center">
-                {savedPlansCount}
-              </span>
-            )}
-          </button>
-        )}
-        <h1 className="font-black leading-snug pr-12">
+        <h1 className="font-black leading-snug">
           <span className={`text-[#2D6A4F] ${displayName.length > 6 ? "text-2xl" : "text-3xl"}`}>{displayName}</span>
           <span className={`text-[#1B4332] ${greetingMsg.length > 14 ? "text-base" : "text-xl"}`}> {locale === "en" ? "" : "님, "}{greetingMsg}</span>
         </h1>
@@ -586,7 +677,7 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
           {/* 최초 안내 (항상 노출) — 운동 이력 기반 룰베이스 인사 */}
           <div>
             <AssistantMiniHeader locale={locale} planLabel={miniPlanLabel} />
-            <p className="text-[13px] text-[#1B4332] leading-[1.55] whitespace-pre-wrap break-keep">
+            <p className="text-[15px] text-[#1B4332] leading-[1.55] whitespace-pre-wrap break-keep">
               {renderMarkdownBold(buildInitialGreeting(getCachedWorkoutHistory(), locale, {
                 goal: userProfile?.goal,
                 weeklyFrequency: userProfile?.weeklyFrequency,
@@ -602,7 +693,7 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
             if (msg.role === "user") {
               return (
                 <div key={i} className="flex gap-2.5 mt-2 justify-end">
-                  <div className="max-w-[85%] bg-[#1B4332] text-white rounded-2xl rounded-tr-md px-3.5 py-2.5 shadow-sm text-[13px] leading-relaxed whitespace-pre-wrap break-keep">
+                  <div className="max-w-[85%] bg-[#1B4332] text-white rounded-2xl rounded-tr-md px-3.5 py-2.5 shadow-sm text-[15px] leading-relaxed whitespace-pre-wrap break-keep">
                     {msg.content}
                   </div>
                 </div>
@@ -673,13 +764,57 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
                 </div>
               );
             }
+            if ("kind" in msg && msg.kind === "program") {
+              const prog = msg.program;
+              const totalSessions = prog.sessions.length;
+              return (
+                <div key={i} className="mt-3">
+                  <AssistantMiniHeader locale={locale} planLabel={miniPlanLabel} />
+                  <p className="text-[15px] text-[#1B4332] leading-[1.55] whitespace-pre-wrap break-keep mb-2">
+                    {renderMarkdownBold(
+                      locale === "en"
+                        ? `${prog.totalWeeks}-week program ready! ${prog.sessionsPerWeek}x/week, **${totalSessions} sessions** total.`
+                        : `${prog.totalWeeks}주 프로그램 짰어요! 주 ${prog.sessionsPerWeek}회, 총 **${totalSessions}세션** 구성이에요.`
+                    )}
+                  </p>
+                  <div className="bg-white rounded-2xl px-3.5 py-3 border border-[#2D6A4F]/20">
+                    <p className="text-[13px] font-black text-[#1B4332] mb-2">{prog.name}</p>
+                    <div className="flex flex-col gap-1 mb-3">
+                      {Object.entries(prog.weekDescriptions).map(([wk, desc]) => (
+                        <div key={wk} className="flex items-center gap-2 py-1 border-b border-gray-100 last:border-b-0">
+                          <span className="text-[10px] font-bold text-gray-400 w-9 shrink-0">{wk}{locale === "en" ? "wk" : "주"}</span>
+                          <span className="text-[12px] text-[#1B4332] flex-1">{desc}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleGenerateProgram(prog)}
+                        disabled={routing}
+                        className="flex-1 py-2.5 rounded-xl bg-[#1B4332] text-white text-[13px] font-bold active:scale-[0.97] transition-all hover:bg-[#2D6A4F] disabled:opacity-50"
+                      >
+                        {routing
+                          ? (locale === "en" ? "Generating..." : "생성 중...")
+                          : (locale === "en" ? `Generate ${totalSessions} sessions` : `${totalSessions}세션 생성`)}
+                      </button>
+                      <button
+                        onClick={cancelPlan}
+                        className="px-4 py-2.5 rounded-xl bg-gray-100 text-gray-600 text-[13px] font-bold active:scale-[0.97] transition-all"
+                      >
+                        {locale === "en" ? "Change" : "수정"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            }
             // 남은 variant: { role: "assistant"; content: string; tone?: ... }
             const textMsg = msg as { role: "assistant"; content: string; tone?: "info" | "error" };
             return (
               <div key={i} className="mt-3">
                 <AssistantMiniHeader locale={locale} planLabel={miniPlanLabel} />
                 <p
-                  className={`text-[13px] leading-[1.55] whitespace-pre-wrap break-keep ${
+                  className={`text-[15px] leading-[1.55] whitespace-pre-wrap break-keep ${
                     textMsg.tone === "error" ? "text-amber-700" : "text-[#1B4332]"
                   }`}
                 >
@@ -835,7 +970,23 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
               rows={1}
               className="w-full text-[14px] bg-transparent px-0 py-1 border-0 focus:outline-none text-[#1B4332] placeholder-gray-400 disabled:opacity-50 resize-none overflow-y-auto leading-[1.5]"
             />
-            <div className="flex items-center justify-end mt-1">
+            <div className="flex items-center justify-between mt-1">
+              <div className="flex items-center gap-1">
+                {onOpenMyPlans && (
+                  <button
+                    onClick={onOpenMyPlans}
+                    className="relative w-8 h-8 rounded-full bg-[#F0FDF4] border border-[#2D6A4F]/20 flex items-center justify-center active:scale-95 transition-all hover:bg-emerald-100"
+                    aria-label={locale === "en" ? "My Plans" : "내 플랜"}
+                  >
+                    <svg className="w-4 h-4 text-[#2D6A4F]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                    </svg>
+                    {hasActiveProgram && (
+                      <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-[#2D6A4F] border-[1.5px] border-white" />
+                    )}
+                  </button>
+                )}
+              </div>
               {busy ? (
                 <button
                   onClick={abortSubmit}

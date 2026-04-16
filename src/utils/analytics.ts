@@ -20,6 +20,7 @@ type FunnelEvent =
   | "chat_submit"
   | "chat_plan_generated"
   | "chat_plan_failed"
+  | "chat_program_generated"
   | "intensity_change"
   | "plan_regenerate"
   | "purchase"

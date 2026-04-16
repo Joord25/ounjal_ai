@@ -8,7 +8,7 @@ export { getCoachMessage } from "./ai/coach";
 export { getNutritionGuide, nutritionChat } from "./ai/nutrition";
 export { parseIntent } from "./ai/parseIntent";
 export { planSession, getGuestTrialStatus } from "./plan/session";
-export { savePlan, listSavedPlans, deleteSavedPlan, markSavedPlanUsed } from "./plan/savedPlans";
+export { savePlan, listSavedPlans, deleteSavedPlan, markSavedPlanUsed, saveProgram, deleteProgram } from "./plan/savedPlans";
 export { subscribe, getSubscription, cancelSubscription, submitRefundRequest } from "./billing/subscription";
 export { selfDeleteAccount } from "./billing/selfDelete";
 export { adminActivate, adminCheckUser, adminCheckSelf, adminDeactivate, adminDashboard, adminListUsers, adminListPayments, adminLogs, adminCancelFeedbacks, adminRefundRequests, adminProcessRefund } from "./admin/admin";

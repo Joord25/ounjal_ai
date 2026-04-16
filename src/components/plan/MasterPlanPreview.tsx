@@ -122,17 +122,17 @@ function rebuildCount(ex: ExerciseStep, t?: (key: string, vars?: Record<string, 
   // 첫 set의 reps(시간값) 우선 사용, 없으면 count 추출 또는 ex.reps fallback
   const firstSetTime = (unitMatch: RegExpMatchArray | null): number | null => {
     const fromSets = ex.setDetails?.[0]?.reps;
-    if (fromSets && fromSets > 1) return fromSets;
-    if (unitMatch) return parseInt(unitMatch[2] || unitMatch[1], 10);
-    return ex.reps > 1 ? ex.reps : null;
+    if (fromSets && fromSets > 0) return fromSets;
+    if (unitMatch) return parseFloat(unitMatch[2] || unitMatch[1]);
+    return ex.reps > 0 ? ex.reps : null;
   };
   // Timer-based exercises (warmup, cardio, mobility with time-based counts)
   if (ex.type === "warmup" || ex.type === "cardio" || ex.type === "mobility") {
-    const m = ex.count.match(/(\d+)(?:-(\d+))?\s*(초|분|sec|min)/);
+    const m = ex.count.match(/(\d+(?:\.\d+)?)(?:-(\d+(?:\.\d+)?))?\s*(초|분|sec|min)/);
     const hasIntervalMarker = /×|x\s*\d+/i.test(ex.count);
     if (m && !hasIntervalMarker) {
       const unit = m[3];
-      const time = firstSetTime(m) ?? parseInt(m[2] || m[1], 10);
+      const time = firstSetTime(m) ?? parseFloat(m[2] || m[1]);
       const setsPrefix = ex.sets > 1 ? (locale && locale !== "ko" ? `${ex.sets} sets / ` : `${ex.sets}세트 / `) : "";
       const unitOut = locale && locale !== "ko"
         ? (unit === "초" ? "sec" : unit === "분" ? "min" : unit)

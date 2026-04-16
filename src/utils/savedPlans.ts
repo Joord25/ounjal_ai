@@ -7,6 +7,12 @@ export interface SavedPlan {
   createdAt: number;
   lastUsedAt: number | null;
   useCount: number;
+  /** 장기 프로그램 필드 — 단일 플랜이면 모두 undefined */
+  programId?: string;
+  sessionNumber?: number;
+  totalSessions?: number;
+  programName?: string;
+  completedAt?: number | null;
 }
 
 const STORAGE_KEY = "ohunjal_saved_plans";
@@ -57,7 +63,11 @@ export function markPlanUsed(id: string): void {
 
 export function canAddPlan(isPremium: boolean): boolean {
   const limit = isPremium ? PREMIUM_LIMIT : FREE_LIMIT;
-  return getSavedPlans().length < limit;
+  // 프로그램은 세션 수가 많지만 1개로 카운트
+  const all = getSavedPlans();
+  const programIds = new Set(all.filter(p => p.programId).map(p => p.programId!));
+  const singlePlans = all.filter(p => !p.programId).length;
+  return (singlePlans + programIds.size) < limit;
 }
 
 // ─── 서버 동기화 (Firestore 경유 Cloud Functions) ──────────────────
@@ -121,6 +131,100 @@ export async function remoteMarkPlanUsed(id: string): Promise<boolean> {
 
 export function newPlanId(): string {
   return `plan_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+export function newProgramId(): string {
+  return `prog_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+/** 특정 프로그램의 세션들을 순서대로 반환 */
+export function getProgramSessions(programId: string): SavedPlan[] {
+  return getSavedPlans()
+    .filter(p => p.programId === programId)
+    .sort((a, b) => (a.sessionNumber ?? 0) - (b.sessionNumber ?? 0));
+}
+
+/** 프로그램의 다음 미완료 세션 반환 */
+export function getNextProgramSession(programId: string): SavedPlan | null {
+  const sessions = getProgramSessions(programId);
+  return sessions.find(s => !s.completedAt) ?? null;
+}
+
+/** 프로그램 진행률 { completed, total } */
+export function getProgramProgress(programId: string): { completed: number; total: number } {
+  const sessions = getProgramSessions(programId);
+  return {
+    completed: sessions.filter(s => !!s.completedAt).length,
+    total: sessions.length,
+  };
+}
+
+/** 활성 프로그램 목록 (고유 programId별 첫 세션 기준) */
+export function getActivePrograms(): Array<{ programId: string; programName: string; completed: number; total: number; nextSession: SavedPlan | null }> {
+  const all = getSavedPlans();
+  const programIds = new Set<string>();
+  const result: Array<{ programId: string; programName: string; completed: number; total: number; nextSession: SavedPlan | null }> = [];
+  for (const p of all) {
+    if (!p.programId || programIds.has(p.programId)) continue;
+    programIds.add(p.programId);
+    const progress = getProgramProgress(p.programId);
+    result.push({
+      programId: p.programId,
+      programName: p.programName ?? p.name,
+      ...progress,
+      nextSession: getNextProgramSession(p.programId),
+    });
+  }
+  return result;
+}
+
+/** 세션 완료 마킹 */
+export function markSessionCompleted(planId: string): void {
+  const all = getSavedPlans();
+  const p = all.find(x => x.id === planId);
+  if (!p) return;
+  p.completedAt = Date.now();
+  p.lastUsedAt = Date.now();
+  p.useCount += 1;
+  savePlans(all);
+}
+
+/** 프로그램 일괄 저장 (N세션) */
+export function saveProgramSessions(sessions: SavedPlan[]): void {
+  const all = getSavedPlans();
+  for (const s of sessions) {
+    const idx = all.findIndex(p => p.id === s.id);
+    if (idx >= 0) all[idx] = s;
+    else all.push(s);
+  }
+  savePlans(all);
+}
+
+/** 프로그램 전체 삭제 */
+export function deleteProgram(programId: string): void {
+  savePlans(getSavedPlans().filter(p => p.programId !== programId));
+}
+
+/** 서버에 프로그램 일괄 저장 */
+export async function remoteSaveProgram(sessions: SavedPlan[]): Promise<{ ok: true } | { ok: false; reason: string }> {
+  try {
+    const res = await authedFetch("/api/saveProgram", { sessions });
+    if (!res) return { ok: false, reason: "Not authenticated" };
+    if (!res.ok) return { ok: false, reason: `HTTP ${res.status}` };
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, reason: (e as Error).message };
+  }
+}
+
+/** 서버에 프로그램 전체 삭제 */
+export async function remoteDeleteProgram(programId: string): Promise<boolean> {
+  try {
+    const res = await authedFetch("/api/deleteProgram", { programId });
+    return !!res?.ok;
+  } catch {
+    return false;
+  }
 }
 
 /** 세션 데이터로부터 자동 이름 생성 — "가슴·삼두·어깨 40분 · 4월 16일" */

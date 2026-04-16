@@ -56,7 +56,9 @@
       { "source": "/api/savePlan", "function": { "functionId": "savePlan", "region": "us-central1" } },
       { "source": "/api/listSavedPlans", "function": { "functionId": "listSavedPlans", "region": "us-central1" } },
       { "source": "/api/deleteSavedPlan", "function": { "functionId": "deleteSavedPlan", "region": "us-central1" } },
-      { "source": "/api/markSavedPlanUsed", "function": { "functionId": "markSavedPlanUsed", "region": "us-central1" } }
+      { "source": "/api/markSavedPlanUsed", "function": { "functionId": "markSavedPlanUsed", "region": "us-central1" } },
+      { "source": "/api/saveProgram", "function": { "functionId": "saveProgram", "region": "us-central1" } },
+      { "source": "/api/deleteProgram", "function": { "functionId": "deleteProgram", "region": "us-central1" } }
     ]
   },
   "functions": {

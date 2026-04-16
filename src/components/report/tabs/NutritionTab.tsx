@@ -428,7 +428,7 @@ export const NutritionTab: React.FC<NutritionTabProps> = ({
             if (msg.role === "user") {
               return (
                 <div key={i} className={`flex ${i > 0 ? "mt-3" : ""} justify-end`}>
-                  <div className="max-w-[85%] bg-[#1B4332] text-white rounded-2xl rounded-tr-md px-3.5 py-2.5 shadow-sm text-[13px] leading-relaxed whitespace-pre-wrap break-keep">
+                  <div className="max-w-[85%] bg-[#1B4332] text-white rounded-2xl rounded-tr-md px-3.5 py-2.5 shadow-sm text-[15px] leading-relaxed whitespace-pre-wrap break-keep">
                     {msg.content}
                   </div>
                 </div>
@@ -440,7 +440,7 @@ export const NutritionTab: React.FC<NutritionTabProps> = ({
                 className={i > 0 ? "mt-3" : ""}
               >
                 <AssistantMiniHeader locale={isKo ? "ko" : "en"} />
-                <div className="text-[13px] text-[#1B4332] leading-relaxed break-keep">
+                <div className="text-[15px] text-[#1B4332] leading-relaxed break-keep">
                   {renderFormattedText(msg.content)}
                 </div>
               </div>
