@@ -330,43 +330,36 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
       </div>
 
       {/* 채팅 섹션 — Kenko 스타일: 플랫 + 얇은 라인 구분 */}
-      <div className="mt-4 border-t border-gray-200 flex-1 flex flex-col min-h-0">
-        {/* 헤더 — 우측에 무료 체험 배지 인라인 (회의 57 대표 지시) */}
-        <div className="flex items-center gap-3 px-6 py-3 border-b border-gray-200">
-          <img src="/favicon_backup.png" alt="AI" className="w-7 h-7 rounded-full shrink-0" />
-          <div>
-            <p className="text-xs font-black text-[#1B4332]">{locale === "en" ? "AI Coach" : "AI 코치"}</p>
-            <p className="text-[9px] text-[#2D6A4F] font-medium">{locale === "en" ? "Online" : "온라인"}</p>
-          </div>
-          {!isPremium && (() => {
+      <div className="mt-3 border-t border-gray-200 flex-1 flex flex-col min-h-0">
+        {/* 헤더 — Phase 1: 콤팩트 1줄 (운 로고 + 오운잘 AI + 상태 pill). 회의 60 대표 지시. */}
+        <div className="flex items-center gap-2 px-6 py-2 border-b border-gray-200">
+          <img src="/favicon_backup.png" alt="AI" className="w-6 h-6 rounded-full shrink-0" />
+          <p className="text-[13px] font-black text-[#1B4332]">{locale === "en" ? "Ohunjal AI" : "오운잘 AI"}</p>
+          {(() => {
             const trial = getTrialStatus(isLoggedIn ?? false, isPremium ?? false, getPlanCount());
+            if (isPremium) {
+              return (
+                <span className="ml-auto shrink-0 px-2 py-0.5 rounded-full bg-[#2D6A4F] text-white text-[10px] font-bold whitespace-nowrap">
+                  {locale === "en" ? "Premium" : "프리미엄"}
+                </span>
+              );
+            }
             if (trial.stage === "premium") return null;
-            const dots = Array.from({ length: trial.currentLimit });
+            const isGuest = trial.stage === "guest";
             const label = locale === "ko"
-              ? (trial.stage === "guest"
-                  ? `무료 체험 ${trial.currentCompleted}/${trial.currentLimit}${trial.remaining === 0 ? " · 로그인 필요" : trial.remaining === 1 ? " · 1회 남음" : ""}`
-                  : trial.stage === "exhausted"
-                  ? "무료 체험 완료"
-                  : `무료 체험 ${trial.currentCompleted}/${trial.currentLimit}${trial.remaining === 1 ? " · 1회 남음" : ""}`)
-              : (trial.stage === "guest"
-                  ? `Free ${trial.currentCompleted}/${trial.currentLimit}${trial.remaining === 0 ? " · sign in" : trial.remaining === 1 ? " · 1 left" : ""}`
-                  : trial.stage === "exhausted"
+              ? (trial.stage === "exhausted"
+                  ? "무료 완료"
+                  : (isGuest ? "체험" : "무료") + ` ${trial.currentCompleted}/${trial.currentLimit}`)
+              : (trial.stage === "exhausted"
                   ? "Trial done"
-                  : `Free ${trial.currentCompleted}/${trial.currentLimit}${trial.remaining === 1 ? " · 1 left" : ""}`);
+                  : (isGuest ? "Trial" : "Free") + ` ${trial.currentCompleted}/${trial.currentLimit}`);
+            const warn = trial.remaining <= 1;
             return (
-              <div className="ml-auto flex items-center gap-1.5 shrink-0">
-                <div className="flex gap-0.5">
-                  {dots.map((_, i) => (
-                    <div
-                      key={i}
-                      className={`w-1 h-1 rounded-full transition-colors ${
-                        i < trial.currentCompleted ? "bg-[#2D6A4F]" : "bg-gray-300"
-                      }`}
-                    />
-                  ))}
-                </div>
-                <span className="text-[10px] font-bold text-[#1B4332] whitespace-nowrap">{label}</span>
-              </div>
+              <span className={`ml-auto shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap ${
+                warn ? "bg-amber-100 text-amber-700" : "bg-gray-100 text-[#1B4332]"
+              }`}>
+                {label}
+              </span>
             );
           })()}
         </div>
@@ -374,7 +367,7 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
         {/* 메시지 영역 */}
         <div className="px-6 py-4 flex-1 overflow-y-auto min-h-0">
           {/* 최초 안내 (항상 노출) — 운동 이력 기반 룰베이스 인사 */}
-          <p className="text-[13px] text-[#1B4332] leading-relaxed whitespace-pre-wrap break-keep">
+          <p className="text-[13px] text-[#1B4332] leading-[1.55] whitespace-pre-wrap break-keep">
             {renderMarkdownBold(buildInitialGreeting(getCachedWorkoutHistory(), locale, {
               goal: userProfile?.goal,
               weeklyFrequency: userProfile?.weeklyFrequency,
@@ -388,7 +381,7 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
           {messages.map((msg, i) => {
             if (msg.role === "user") {
               return (
-                <div key={i} className="flex gap-2.5 mt-3 justify-end">
+                <div key={i} className="flex gap-2.5 mt-2 justify-end">
                   <div className="max-w-[85%] bg-[#1B4332] text-white rounded-2xl rounded-tr-md px-3.5 py-2.5 shadow-sm text-[13px] leading-relaxed whitespace-pre-wrap break-keep">
                     {msg.content}
                   </div>
@@ -397,7 +390,7 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
             }
             if ("kind" in msg && msg.kind === "advice") {
               return (
-                <div key={i} className="mt-3">
+                <div key={i} className="mt-2">
                   <div className="min-w-0">
                     <AdviceCard
                       advice={msg.advice}
@@ -432,7 +425,7 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
             return (
               <p
                 key={i}
-                className={`mt-3 text-[13px] leading-relaxed whitespace-pre-wrap break-keep ${
+                className={`mt-2 text-[13px] leading-[1.55] whitespace-pre-wrap break-keep ${
                   textMsg.tone === "error" ? "text-amber-700" : "text-[#1B4332]"
                 }`}
               >
@@ -443,7 +436,7 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
 
           {/* 플랜 확인 카드 — 자동 전환 대신 유저 탭 요구. busy 중이면 숨김 (새 분석 중) */}
           {pendingIntent && !routing && !busy && (
-            <div className="mt-3">
+            <div className="mt-2">
               <div className="bg-white rounded-2xl px-3.5 py-3 border border-[#2D6A4F]/20">
                 <p className="text-[12px] text-gray-500 mb-2">
                   {locale === "en" ? "Ready to build this plan?" : "이 플랜으로 시작할까요?"}
@@ -471,14 +464,14 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
 
           {/* 플랜 이동 중 표시 */}
           {routing && (
-            <p className="mt-3 text-[13px] text-[#1B4332] leading-relaxed break-keep">
+            <p className="mt-2 text-[13px] text-[#1B4332] leading-[1.55] break-keep">
               {t("chat_home.confirm.routing")}
             </p>
           )}
 
           {/* 생각 중 — busy일 때만 */}
           {busy && (
-            <div className="mt-3 flex gap-1">
+            <div className="mt-2 flex gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: "0ms" }} />
               <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: "150ms" }} />
               <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: "300ms" }} />
