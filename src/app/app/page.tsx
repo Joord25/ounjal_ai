@@ -11,7 +11,6 @@ import { WorkoutSession } from "@/components/workout/WorkoutSession";
 import { ProofTab } from "@/components/dashboard/ProofTab";
 import { MyProfileTab } from "@/components/profile/MyProfileTab";
 import type { WorkoutSessionData, UserCondition, WorkoutGoal, ExerciseLog, WorkoutHistory, RunningStats } from "@/constants/workout";
-import { generateAIWorkoutPlan } from "@/utils/gemini";
 import { buildWorkoutMetrics, getIntensityRecommendation } from "@/utils/workoutMetrics";
 import { saveWorkoutHistory, updateWorkoutAnalysis, updateReportTabs, getCachedWorkoutHistory } from "@/utils/workoutHistory";
 import { auth, googleProvider } from "@/lib/firebase";
@@ -569,11 +568,10 @@ export default function Home() {
     }
   };
 
-  const generatePlan = async (condition: UserCondition, goal: WorkoutGoal, sessionType?: string, intensityCtx?: { recommended: "high" | "moderate" | "low"; weekSummary: { high: number; moderate: number; low: number }; target: { high: number; moderate: number; low: number }; reason: string } | null, intensityLevel?: "high" | "moderate" | "low" | null, sessionSel?: SessionSelection | null, opts?: { skipLoadingAnim?: boolean }) => {
+  const generatePlan = async (condition: UserCondition, goal: WorkoutGoal, sessionType?: string, _intensityCtx?: { recommended: "high" | "moderate" | "low"; weekSummary: { high: number; moderate: number; low: number }; target: { high: number; moderate: number; low: number }; reason: string } | null, intensityLevel?: "high" | "moderate" | "low" | null, sessionSel?: SessionSelection | null, opts?: { skipLoadingAnim?: boolean }) => {
     const skipLoadingAnim = !!opts?.skipLoadingAnim;
     setIsLoading(!skipLoadingAnim);
     try {
-        const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
         const dayIndex = new Date().getDay();
         const scheduleIndex = dayIndex === 0 ? 6 : dayIndex - 1;
 
@@ -590,16 +588,9 @@ export default function Home() {
             // isLoading stays true — PlanLoadingOverlay.onComplete will clear it
             return;
         } else {
-            // Legacy path: try Gemini AI first
-            const dayName = days[dayIndex];
-            const aiSession = await generateAIWorkoutPlan(condition, goal, dayName, sessionType, intensityCtx);
-            if (aiSession) {
-                setCurrentWorkoutSession(aiSession);
-            } else {
-                console.warn("AI generation failed, falling back to algorithm.");
-                const session = await lazyGenerateWorkout(scheduleIndex, condition, goal, sessionType, intensityLevel);
-                setCurrentWorkoutSession(session);
-            }
+            // 룰엔진 직접 생성 (Gemini 레거시 경로 제거)
+            const session = await lazyGenerateWorkout(scheduleIndex, condition, goal, sessionType, intensityLevel);
+            setCurrentWorkoutSession(session);
         }
     } catch (e) {
         console.error("Error generating workout:", e);

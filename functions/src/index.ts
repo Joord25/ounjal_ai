@@ -3,7 +3,6 @@ import "./helpers"; // ensure app is initialized
 
 setGlobalOptions({ region: "us-central1" });
 
-export { generateWorkout, analyzeWorkout } from "./ai/workout";
 export { getCoachMessage } from "./ai/coach";
 export { getNutritionGuide, nutritionChat } from "./ai/nutrition";
 export { parseIntent } from "./ai/parseIntent";
