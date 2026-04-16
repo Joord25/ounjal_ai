@@ -528,8 +528,8 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
     setPendingIntent(null);
     setAckPending(true);
 
-    // 400ms 타이핑 지연 후 Ack 삽입 — 분석 중 체감 제공
-    await new Promise((resolve) => setTimeout(resolve, 400));
+    // 1.2초 타이핑 지연 후 Ack 삽입 — "유저 메시지 파악 중" 체감 제공 (회의 60 대표 피드백)
+    await new Promise((resolve) => setTimeout(resolve, 1200));
     setMessages((prev) => [...prev, { role: "assistant", content: echo, tone: "info" }]);
     setAckPending(false);
 
