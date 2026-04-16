@@ -173,3 +173,59 @@ export const planSession = onRequest(
     }
   }
 );
+
+/**
+ * POST /api/generateProgramSessions
+ * 장기 프로그램 세션 일괄 생성 — 프리미엄 전용, 한도 체크 1번만.
+ * Body: { sessions: Array<{ condition, goal, sessionMode, targetMuscle?, intensityOverride? }> }
+ * Response: { sessions: WorkoutSessionData[] }
+ */
+export const generateProgramSessions = onRequest(
+  { cors: true },
+  async (req, res) => {
+    if (req.method !== "POST") { res.status(405).json({ error: "Method not allowed" }); return; }
+    let uid: string;
+    try { uid = await verifyAuth(req.headers.authorization); } catch {
+      res.status(401).json({ error: "Unauthorized" }); return;
+    }
+
+    // 프리미엄 체크 (1번만)
+    try {
+      const subDoc = await db.collection("subscriptions").doc(uid).get();
+      const subStatus = subDoc.exists ? subDoc.data()?.status : "free";
+      if (subStatus !== "active") {
+        res.status(403).json({ error: "Premium required", code: "PREMIUM_REQUIRED" }); return;
+      }
+    } catch { /* proceed */ }
+
+    const body = req.body as { sessions?: Array<{ condition: any; goal: string; sessionMode?: string; targetMuscle?: string; intensityOverride?: string }> };
+    if (!body?.sessions || !Array.isArray(body.sessions) || body.sessions.length === 0) {
+      res.status(400).json({ error: "sessions array required" }); return;
+    }
+    if (body.sessions.length > 100) {
+      res.status(400).json({ error: "Too many sessions (max 100)" }); return;
+    }
+
+    try {
+      const results = [];
+      for (let i = 0; i < body.sessions.length; i++) {
+        const s = body.sessions[i];
+        if (!s.condition || !s.goal) continue;
+        const session = generateAdaptiveWorkout(
+          i % 7,
+          s.condition,
+          s.goal as any,
+          undefined,
+          s.intensityOverride as any,
+          s.sessionMode as any,
+          s.targetMuscle as any,
+        );
+        results.push(session);
+      }
+      res.status(200).json({ sessions: results });
+    } catch (error) {
+      console.error("generateProgramSessions error:", error);
+      res.status(500).json({ error: "Failed to generate program sessions" });
+    }
+  }
+);

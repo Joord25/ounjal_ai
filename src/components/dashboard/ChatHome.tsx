@@ -310,62 +310,74 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
     }
   };
 
+  /** 프로그램 세션 일괄 생성 공통 함수 */
+  const generateAndSaveProgram = async (
+    programName: string,
+    sessionParams: Array<{ condition: any; goal: string; sessionMode?: string; targetMuscle?: string; intensityOverride?: string }>,
+    totalWeeks: number,
+  ) => {
+    const { auth } = await import("@/lib/firebase");
+    const token = await auth.currentUser?.getIdToken();
+    if (!token) return;
+
+    const { newPlanId, newProgramId, saveProgramSessions, remoteSaveProgram } = await import("@/utils/savedPlans");
+
+    // 1회 일괄 호출
+    const res = await fetch("/api/generateProgramSessions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ sessions: sessionParams }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || `HTTP ${res.status}`);
+    }
+    const { sessions: generatedSessions } = await res.json();
+    if (!Array.isArray(generatedSessions) || generatedSessions.length === 0) throw new Error("No sessions generated");
+
+    const programId = newProgramId();
+    const totalSessions = generatedSessions.length;
+    const savedSessions: import("@/utils/savedPlans").SavedPlan[] = generatedSessions
+      .filter((sd: any) => sd?.exercises)
+      .map((sessionData: any, idx: number) => ({
+        id: newPlanId(),
+        name: `${programName} ${idx + 1}/${totalSessions}`,
+        sessionData,
+        createdAt: Date.now(),
+        lastUsedAt: null,
+        useCount: 0,
+        programId,
+        sessionNumber: idx + 1,
+        totalSessions,
+        programName,
+        completedAt: null,
+      }));
+
+    if (savedSessions.length > 0) {
+      saveProgramSessions(savedSessions);
+      await remoteSaveProgram(savedSessions);
+      trackEvent("chat_program_generated", { total_sessions: savedSessions.length, weeks: totalWeeks });
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", content: locale === "en"
+          ? `Done! ${savedSessions.length} sessions saved to My Plans.`
+          : `완료! ${savedSessions.length}세션 내 플랜에 저장했어요.` },
+      ]);
+    }
+  };
+
   const handleGenerateProgram = async (prog: ProgramData) => {
     if (routing) return;
     setRouting(true);
     try {
-      const { auth } = await import("@/lib/firebase");
-      const token = await auth.currentUser?.getIdToken();
-      if (!token) { setRouting(false); return; }
-
-      const { newPlanId, newProgramId, saveProgramSessions, remoteSaveProgram } = await import("@/utils/savedPlans");
-      const programId = newProgramId();
-      const totalSessions = prog.sessions.length;
-
-      // 각 세션을 planSession API로 생성
-      const savedSessions: import("@/utils/savedPlans").SavedPlan[] = [];
-      for (let idx = 0; idx < prog.sessions.length; idx++) {
-        const s = prog.sessions[idx];
-        const res = await fetch("/api/planSession", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          body: JSON.stringify({
-            condition: { bodyPart: "good", energyLevel: 3, availableTime: s.availableTime, bodyWeightKg: userProfile?.bodyWeightKg, gender: userProfile?.gender, birthYear: userProfile?.birthYear },
-            goal: s.goal,
-            sessionMode: s.sessionMode,
-            targetMuscle: s.targetMuscle,
-            intensityOverride: s.intensityOverride,
-          }),
-        });
-        if (!res.ok) continue;
-        const sessionData = await res.json();
-        if (!sessionData?.exercises) continue;
-        savedSessions.push({
-          id: newPlanId(),
-          name: `${prog.name} ${idx + 1}/${totalSessions}`,
-          sessionData,
-          createdAt: Date.now(),
-          lastUsedAt: null,
-          useCount: 0,
-          programId,
-          sessionNumber: idx + 1,
-          totalSessions,
-          programName: prog.name,
-          completedAt: null,
-        });
-      }
-
-      if (savedSessions.length > 0) {
-        saveProgramSessions(savedSessions);
-        await remoteSaveProgram(savedSessions);
-        trackEvent("chat_program_generated", { total_sessions: savedSessions.length, weeks: prog.totalWeeks });
-        setMessages((prev) => [
-          ...prev,
-          { role: "assistant", content: locale === "en"
-            ? `Done! ${savedSessions.length} sessions saved to My Plans. Tap the plan icon to start.`
-            : `완료! ${savedSessions.length}세션 내 플랜에 저장했어요. 내 플랜 아이콘을 눌러서 시작하세요.` },
-        ]);
-      }
+      const sessionParams = prog.sessions.map((s) => ({
+        condition: { bodyPart: "good", energyLevel: 3, availableTime: s.availableTime, bodyWeightKg: userProfile?.bodyWeightKg, gender: userProfile?.gender, birthYear: userProfile?.birthYear },
+        goal: s.goal,
+        sessionMode: s.sessionMode,
+        targetMuscle: s.targetMuscle,
+        intensityOverride: s.intensityOverride,
+      }));
+      await generateAndSaveProgram(prog.name, sessionParams, prog.totalWeeks);
     } catch (e) {
       console.error("handleGenerateProgram error:", e);
       setMessages((prev) => [...prev, { role: "assistant", content: t("chat_home.error.generic"), tone: "error" }]);
@@ -378,73 +390,27 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
     if (routing) return;
     setRouting(true);
     try {
-      const { auth } = await import("@/lib/firebase");
-      const token = await auth.currentUser?.getIdToken();
-      if (!token) { setRouting(false); return; }
-
-      const { newPlanId, newProgramId, saveProgramSessions, remoteSaveProgram } = await import("@/utils/savedPlans");
       const rec = advice.recommendedWorkout;
-      const programId = newProgramId();
       const weeklyFreq = userProfile?.weeklyFrequency ?? 3;
-      const totalWeeks = 4; // monthProgram = 4주 기준
+      const totalWeeks = 4;
       const totalSessions = totalWeeks * weeklyFreq;
 
-      // 부위 로테이션 (split이면 5부위 순환, 아니면 동일 모드 반복)
       const muscleRotation: Array<"chest" | "back" | "shoulders" | "arms" | "legs"> = ["chest", "back", "legs", "shoulders", "arms"];
-      // 주차별 강도 프로그레션: 적응→증가→피크→디로드
       const weekIntensity: Array<"moderate" | "moderate" | "high" | "low"> = ["moderate", "moderate", "high", "low"];
 
-      const programName = advice.headline || (locale === "en" ? "4-week program" : "4주 프로그램");
-      const savedSessions: import("@/utils/savedPlans").SavedPlan[] = [];
-
-      for (let idx = 0; idx < totalSessions; idx++) {
+      const sessionParams = Array.from({ length: totalSessions }, (_, idx) => {
         const weekIdx = Math.floor(idx / weeklyFreq);
-        const targetMuscle = rec.sessionMode === "split"
-          ? muscleRotation[idx % muscleRotation.length]
-          : rec.targetMuscle;
-        const intensity = weekIntensity[weekIdx] ?? "moderate";
+        return {
+          condition: { ...rec.condition },
+          goal: rec.goal,
+          sessionMode: rec.sessionMode,
+          targetMuscle: rec.sessionMode === "split" ? muscleRotation[idx % muscleRotation.length] : rec.targetMuscle,
+          intensityOverride: weekIntensity[weekIdx] ?? "moderate",
+        };
+      });
 
-        const res = await fetch("/api/planSession", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          body: JSON.stringify({
-            condition: { ...rec.condition, availableTime: rec.condition.availableTime },
-            goal: rec.goal,
-            sessionMode: rec.sessionMode,
-            targetMuscle,
-            intensityOverride: intensity,
-          }),
-        });
-        if (!res.ok) continue;
-        const sessionData = await res.json();
-        if (!sessionData?.exercises) continue;
-
-        savedSessions.push({
-          id: newPlanId(),
-          name: `${programName} ${idx + 1}/${totalSessions}`,
-          sessionData,
-          createdAt: Date.now(),
-          lastUsedAt: null,
-          useCount: 0,
-          programId,
-          sessionNumber: idx + 1,
-          totalSessions,
-          programName,
-          completedAt: null,
-        });
-      }
-
-      if (savedSessions.length > 0) {
-        saveProgramSessions(savedSessions);
-        await remoteSaveProgram(savedSessions);
-        trackEvent("chat_program_generated", { total_sessions: savedSessions.length, weeks: totalWeeks });
-        setMessages((prev) => [
-          ...prev,
-          { role: "assistant", content: locale === "en"
-            ? `Done! ${savedSessions.length} sessions saved to My Plans.`
-            : `완료! ${savedSessions.length}세션 내 플랜에 저장했어요.` },
-        ]);
-      }
+      const programName = advice.headline || (locale === "en" ? "4-week program" : "4주 프로그램");
+      await generateAndSaveProgram(programName, sessionParams, totalWeeks);
     } catch (e) {
       console.error("handleGenerateProgramFromAdvice error:", e);
       setMessages((prev) => [...prev, { role: "assistant", content: t("chat_home.error.generic"), tone: "error" }]);

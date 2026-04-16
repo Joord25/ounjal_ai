@@ -7,7 +7,7 @@ export { generateWorkout, analyzeWorkout } from "./ai/workout";
 export { getCoachMessage } from "./ai/coach";
 export { getNutritionGuide, nutritionChat } from "./ai/nutrition";
 export { parseIntent } from "./ai/parseIntent";
-export { planSession, getGuestTrialStatus } from "./plan/session";
+export { planSession, getGuestTrialStatus, generateProgramSessions } from "./plan/session";
 export { savePlan, listSavedPlans, deleteSavedPlan, markSavedPlanUsed, saveProgram, deleteProgram } from "./plan/savedPlans";
 export { subscribe, getSubscription, cancelSubscription, submitRefundRequest } from "./billing/subscription";
 export { selfDeleteAccount } from "./billing/selfDelete";
