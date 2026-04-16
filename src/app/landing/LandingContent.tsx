@@ -542,7 +542,15 @@ export default function LandingContent({ locale = "ko" }: { locale?: LandingLoca
                 </summary>
                 <div className="px-5 sm:px-6 pb-4 sm:pb-5 pt-0">
                   <p className="text-sm sm:text-[15px] text-gray-600 leading-relaxed">
-                    {item.a}
+                    {item.a.split(/(\*\*[^*]+\*\*)/g).map((part, idx) =>
+                      part.startsWith("**") && part.endsWith("**") ? (
+                        <strong key={idx} className="text-[#059669] font-black">
+                          {part.slice(2, -2)}
+                        </strong>
+                      ) : (
+                        <React.Fragment key={idx}>{part}</React.Fragment>
+                      )
+                    )}
                   </p>
                 </div>
               </details>

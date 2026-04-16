@@ -141,32 +141,28 @@ const ko: LandingTexts = {
     title: "자주 묻는 질문",
     items: [
       {
-        q: "기존 운동 앱과 뭐가 달라요?",
-        a: "유저가 운동을 골라 기록하는 게 아니라, AI가 오늘 컨디션·이력·목표를 반영해 루틴을 자동으로 짜요. 채팅 한마디면 끝.",
+        q: "유튜브·인스타 루틴 따라 하는 거랑 뭐가 달라요?",
+        a: "유튜브 루틴은 '누구에게나' 해당하지만, 오운잘은 '오늘의 당신'에게만 맞춥니다. 컨디션 안 좋은 날엔 강도를 낮추고, 시간 부족한 날엔 핵심만 압축해요. 수만 명이 보는 고정 영상이 아니라, 실시간 대화로 나에게 딱 맞는 루틴을 **3초 만에** 받습니다.",
       },
       {
-        q: "완전 초보도 가능한가요?",
-        a: "네. 부위·시간만 말해도 알맞은 강도로 구성돼요. '홈트 30분'처럼 막연해도 AI가 구체 운동으로 바꿔줍니다.",
+        q: "AI가 짜준 루틴, 믿고 따라 해도 안전한가요?",
+        a: "단순 텍스트 생성이 아닙니다. 국제 운동 가이드라인 **ACSM·NASM**과 한체대 운동과학 박사진 감수를 거친 알고리즘으로 설계됐어요. 부상·통증 부위를 말하면 해당 관절에 무리 가지 않는 대체 동작을 즉시 제안합니다.",
       },
       {
-        q: "부상이 있어도 안전한가요?",
-        a: "채팅에 '어깨 아픈데'처럼 말하면 관절 부담 적은 동작 위주로 자동 대체해요. 단, 의학적 진단은 병원을 권장합니다.",
+        q: "PT 받기엔 비싸고 혼자 하긴 막막한데, 도움이 될까요?",
+        a: "바로 그런 분들을 위해 탄생했습니다. 회당 평균 **5~8만 원** 하는 PT가 부담스럽다면, 월 커피 한 잔 값으로 24시간 대기하는 AI 코치를 고용하세요. 뭘 할지 고민하는 시간은 0초로 줄이고, 이미 **10명 중 9명**의 유저가 루틴 완주에 성공 중입니다.",
       },
       {
-        q: "AI 기준은 뭐에요?",
-        a: "ACSM·NASM 국제 운동 가이드라인과 한체대 운동과학 박사 감수를 바탕으로 설계됐어요. 유저 프로필·이력도 실시간 반영.",
+        q: "운동 의지가 약해서 금방 포기할까 봐 걱정돼요.",
+        a: "오운잘은 당신의 의지력에만 의존하지 않습니다. AI 코치가 매 세션 컨디션을 체크하고 \"어제보다 성장했네요\"라며 소통해요. 유저 **10명 중 9명**이 루틴을 끝까지 완수하는 비결은, 나를 지켜봐 주는 AI 코치가 함께하기 때문입니다.",
       },
       {
-        q: "무료로 어디까지 쓸 수 있어요?",
-        a: "AI 운동 플랜 월 4회 + 운동 기록 저장은 무료. 영양 코치·분석 리포트·무제한 플랜은 프리미엄(월 6,900원).",
+        q: "무료로 충분한가요? 프리미엄은 뭐가 좋아요?",
+        a: "무료로도 AI 루틴의 강력함을 충분히 경험할 수 있어요 (월 **4회** 플랜 + 기록 저장). 더 빠른 성장을 원하면 프리미엄: 무제한 플랜, AI 분석 리포트, **AI 영양 코치** 무제한 채팅, 성장 예측 리포트 전부 포함. 월 **6,900원**.",
       },
       {
-        q: "구독 언제든 취소되나요?",
-        a: "네. 프로필 탭에서 1클릭 해지. 결제 후 7일 이내 + 프리미엄 기능 미사용 시 환불 가능.",
-      },
-      {
-        q: "개인정보·운동 데이터는 어떻게 보호되나요?",
-        a: "Google Cloud 기반 암호화 저장. 제3자 공유 없음. 계정 삭제 시 모든 데이터 영구 삭제.",
+        q: "구독 취소 / 환불 / 데이터 보호는?",
+        a: "프로필 탭에서 **1클릭 해지**. 결제 후 7일 이내 + 프리미엄 기능 미사용 시 환불 가능. 모든 운동·개인 데이터는 Google Cloud 암호화 저장, 제3자 공유 없음. 계정 삭제 시 모든 데이터 영구 삭제.",
       },
     ],
   },
@@ -254,32 +250,28 @@ const en: LandingTexts = {
     title: "Frequently Asked Questions",
     items: [
       {
-        q: "How is this different from other workout apps?",
-        a: "You don't pick workouts from a list. AI reads your condition, history, and goal to build today's routine from one chat message.",
+        q: "How is this different from YouTube or Instagram routines?",
+        a: "YouTube routines are for 'anyone'. Ohunjal is for 'you, today'. Low-energy day? We drop intensity. No time? We compress to the essentials. Not a static video for millions — a custom routine built for you in **3 seconds**.",
       },
       {
-        q: "Is it OK if I'm a total beginner?",
-        a: "Yes. Just say a body part and time — 'chest 30 min', 'easy home' — and AI translates to exercises at the right intensity.",
+        q: "Is the AI-built routine safe to follow?",
+        a: "It's not just text generation. The algorithm is built on **ACSM & NASM** international exercise guidelines and reviewed by KNSU exercise science PhDs. Mention an injury or pain and AI swaps in joint-safe alternatives on the spot.",
       },
       {
-        q: "What if I have injuries?",
-        a: "Say 'shoulder hurts' and AI swaps to joint-safe angles. For diagnosis, see a medical professional.",
+        q: "PT is too expensive and going solo feels lost — can this help?",
+        a: "Built for exactly that. If PT at **50,000–80,000 KRW/session** feels heavy, hire a 24/7 AI coach for the price of a coffee a month. Zero time wasted figuring out what to do — and **9 out of 10** users complete their routines.",
       },
       {
-        q: "What's the AI based on?",
-        a: "ACSM, NASM international exercise guidelines + reviewed by KNSU exercise science PhDs. Your profile and history adapt in real time.",
+        q: "I'm worried I'll lose motivation and quit.",
+        a: "Ohunjal doesn't rely on your willpower alone. AI coach checks your condition every session and says \"You grew from yesterday\". The secret that **9 out of 10** users complete their routines: an AI coach that watches over you.",
       },
       {
-        q: "What do I get for free?",
-        a: "4 AI workout plans/month + workout logs. Nutrition coach, analysis reports, and unlimited plans require Premium (6,900 KRW/mo).",
+        q: "Is free enough? What does Premium add?",
+        a: "Free gives you the full AI routine experience (**4 plans/month** + workout logs). Want faster growth? Premium unlocks unlimited plans, AI analysis reports, **unlimited AI nutrition coach** chat, and growth prediction reports. Just **6,900 KRW/month**.",
       },
       {
-        q: "Can I cancel anytime?",
-        a: "Yes — 1-click cancel in Profile. Refundable within 7 days if Premium features weren't used.",
-      },
-      {
-        q: "How is my data protected?",
-        a: "Encrypted on Google Cloud. Never shared with third parties. Deleting your account wipes all data permanently.",
+        q: "Cancellation, refunds, data protection?",
+        a: "**1-click cancel** in Profile. Refundable within 7 days if Premium features weren't used. All data encrypted on Google Cloud, never shared with third parties. Delete your account — all data permanently wiped.",
       },
     ],
   },
