@@ -262,10 +262,13 @@ const QuickFollowupList: React.FC<{
   locale: "ko" | "en";
   items: Array<{ icon: ChipIconType; label: string; prompt: string }>;
   onTap: (prompt: string) => void;
-}> = ({ locale, items, onTap }) => (
+  variant?: "adjust" | "followup"; // adjust=빠른 재조정 (플랜 수정), followup=추천 후속 질문
+}> = ({ locale, items, onTap, variant = "adjust" }) => (
   <div className="mt-2 flex flex-col gap-1">
     <p className="text-[10px] font-black text-gray-400 tracking-wider uppercase mb-0.5 px-0.5">
-      {locale === "en" ? "Quick adjust" : "빠른 재조정"}
+      {variant === "followup"
+        ? (locale === "en" ? "Recommended follow-ups" : "추천 후속 질문")
+        : (locale === "en" ? "Quick adjust" : "빠른 재조정")}
     </p>
     {items.map((f) => (
       <button
@@ -848,27 +851,24 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
                   ? [{ icon: "chest", label: "가슴 30분", prompt: "가슴 30분" }, { icon: "swap", label: "다른 부위로", prompt: "다른 부위로" }, { icon: "run", label: "유산소 추가", prompt: "유산소 추가" }]
                   : [{ icon: "full", label: "오늘 운동 추천해줘", prompt: "오늘 운동 추천해줘" }, { icon: "timer", label: "오늘은 피곤해", prompt: "오늘은 피곤해" }, { icon: "swap", label: "아무 부위나 골라줘", prompt: "아무 부위나 골라줘" }]));
 
-            // Phase 7C: Gemini가 개인화 followups 줬으면 우선 사용 (룰베이스 fallback)
-            const finalItems = aiFollowups.length > 0 ? aiFollowups : quickItems;
+            // Phase 7C + 10.1 통합: Gemini 개인화 우선, 없으면 카탈로그 폴백 — 섹션 1개로 단일화
+            const hasAi = aiFollowups.length > 0;
+            const finalItems: Array<{ icon: ChipIconType; label: string; prompt: string }> = hasAi
+              ? aiFollowups
+              : (quickItems.length > 0 ? quickItems : selectDeepFollowups(contextTags).map((f) => ({
+                  icon: f.icon, label: locale === "en" ? f.labelEn : f.labelKo, prompt: locale === "en" ? f.promptEn : f.promptKo,
+                })));
 
+            if (finalItems.length === 0) return null;
             return (
               <div className="mt-2">
-                {finalItems.length > 0 && (
-                  <QuickFollowupList
-                    locale={locale}
-                    items={finalItems}
-                    onTap={(p) => {
-                      trackEvent("chat_submit", { source: aiFollowups.length > 0 ? "ai_followup" : "rule_followup", char_length: p.length });
-                      handleSubmit(p);
-                    }}
-                  />
-                )}
-                <DeepFollowupList
-                  contextTags={contextTags}
+                <QuickFollowupList
                   locale={locale}
-                  onTap={(prompt) => {
-                    trackEvent("chat_submit", { source: "deep_followup", char_length: prompt.length });
-                    handleSubmit(prompt, { intentDepth: "focused_followup" });
+                  items={finalItems}
+                  variant="followup"
+                  onTap={(p: string) => {
+                    trackEvent("chat_submit", { source: hasAi ? "ai_followup" : "rule_followup", char_length: p.length });
+                    handleSubmit(p, { intentDepth: "focused_followup" });
                   }}
                 />
               </div>
@@ -937,17 +937,12 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
             </div>
           )}
 
-          {/* Phase 7 B-lite: 진짜 Gemini reasoning 스트림 + 이력 확인 1단계 (실제 단계만) */}
+          {/* Phase 7 B-lite + 10.2: 진짜 Gemini reasoning 스트림만 (하드코딩 이력 줄 제거) */}
           {busy && (() => {
-            const historyCount = getCachedWorkoutHistory().length;
-            const historyHint = locale === "en"
-              ? (historyCount > 0 ? `${historyCount} past sessions` : "first-time session")
-              : (historyCount > 0 ? `지난 ${historyCount}회 반영` : "첫 운동");
             return (
               <div className="mt-3">
                 <AssistantMiniHeader locale={locale} planLabel={miniPlanLabel} />
                 <div className="bg-white border border-gray-200 rounded-xl px-3.5 py-3 shadow-sm w-full max-w-[320px]">
-                  <ProgressStep state="done" label={locale === "en" ? `History checked · ${historyHint}` : `지난 이력 확인 · ${historyHint}`} />
                   {reasoningLines.map((line, i) => (
                     <ProgressStep key={i} state="done" label={line} />
                   ))}
