@@ -70,16 +70,33 @@ interface ParsedIntent {
   clarifyQuestion?: string;
 }
 
-// 예시 프롬프트 (길이별 스펙트럼). i18n 키로 관리 — ko/en 양쪽에서 번역.
-const EXAMPLE_KEYS = [
-  "chat_home.example.summer_diet",
-  "chat_home.example.advanced_back",
-  "chat_home.example.short_chest",
-  "chat_home.example.short_home",
-  "chat_home.example.short_run",
-  "chat_home.example.medium_legs",
-  "chat_home.example.long_full",
-] as const;
+// 예시 프롬프트 (마누스식 칩). key = i18n 프롬프트, label = 짧은 칩 라벨, icon = SVG path
+type ExampleChip = { key: string; labelKo: string; labelEn: string; icon: "chest" | "home" | "run" | "legs" | "diet" | "back" | "full" };
+const EXAMPLE_CHIPS: ExampleChip[] = [
+  { key: "chat_home.example.short_chest", labelKo: "가슴 30분", labelEn: "Chest 30m", icon: "chest" },
+  { key: "chat_home.example.medium_legs", labelKo: "하체 40분", labelEn: "Legs 40m", icon: "legs" },
+  { key: "chat_home.example.short_run", labelKo: "러닝 10km", labelEn: "Run 10km", icon: "run" },
+  { key: "chat_home.example.short_home", labelKo: "홈트 30분", labelEn: "Home 30m", icon: "home" },
+  { key: "chat_home.example.summer_diet", labelKo: "여름 다이어트", labelEn: "Summer diet", icon: "diet" },
+  { key: "chat_home.example.advanced_back", labelKo: "상급자 등", labelEn: "Advanced back", icon: "back" },
+  { key: "chat_home.example.long_full", labelKo: "전신 맞춤", labelEn: "Full body", icon: "full" },
+];
+const ChipIcon: React.FC<{ type: ExampleChip["icon"] }> = ({ type }) => {
+  const paths: Record<ExampleChip["icon"], string> = {
+    chest: "M12 3l8 4v6c0 5-3.5 7.5-8 9-4.5-1.5-8-4-8-9V7l8-4z",
+    legs: "M6 3v8l2 10h3l-1-10h2l-1 10h3l2-10V3",
+    run: "M13 4a2 2 0 110 4 2 2 0 010-4zM8 21l3-7 2 3 4-1",
+    home: "M3 10l9-7 9 7v10a1 1 0 01-1 1h-5v-6h-6v6H4a1 1 0 01-1-1V10z",
+    diet: "M12 3v2M12 19v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M3 12h2M19 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42M16 12a4 4 0 11-8 0 4 4 0 018 0z",
+    back: "M6 3v18M10 6h8M10 10h8M10 14h8M10 18h8",
+    full: "M12 2l2.4 5.4L20 9l-4 4 1 6-5-3-5 3 1-6-4-4 5.6-1.6L12 2z",
+  };
+  return (
+    <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+      <path d={paths[type]} />
+    </svg>
+  );
+};
 
 type UpgradeTrigger = "guest_exhausted" | "free_limit" | "high_value";
 
@@ -100,10 +117,15 @@ function msgToHistoryContent(m: ChatMsg): string {
 }
 
 /** 각 assistant 메시지 상단에 붙는 미니 헤더 — 마누스 스타일 (회의 60) */
-const AssistantMiniHeader: React.FC<{ locale: "ko" | "en" }> = ({ locale }) => (
+const AssistantMiniHeader: React.FC<{ locale: "ko" | "en"; planLabel?: string }> = ({ locale, planLabel }) => (
   <div className="flex items-center gap-1.5 mb-1">
     <img src="/favicon_backup.png" alt="AI" className="w-5 h-5 rounded-full" />
     <span className="text-[11.5px] font-black text-[#1B4332]">{locale === "en" ? "Ohunjal" : "오운잘"}</span>
+    {planLabel && (
+      <span className="px-1.5 py-0.5 rounded-md bg-gray-100 text-gray-600 text-[9px] font-bold">
+        {planLabel}
+      </span>
+    )}
   </div>
 );
 
@@ -126,6 +148,17 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
   useEffect(() => { sessionCachedMessages = messages; }, [messages]);
   const [pendingIntent, setPendingIntent] = useState<ParsedIntent | null>(null);
   const [routing, setRouting] = useState(false);
+  const [showMoreExamples, setShowMoreExamples] = useState(false);
+
+  // 미니 헤더 옆 플랜 라벨 — 프리미엄/무료/체험 구분 (회의 60 대표 피드백)
+  const miniPlanLabel = (() => {
+    if (isPremium) return locale === "en" ? "Premium" : "프리미엄";
+    const trial = getTrialStatus(isLoggedIn ?? false, isPremium ?? false, getPlanCount());
+    if (trial.stage === "premium") return undefined;
+    if (trial.stage === "guest") return locale === "en" ? "Trial" : "체험";
+    if (trial.stage === "exhausted") return locale === "en" ? "Trial done" : "무료 완료";
+    return locale === "en" ? "Free" : "무료";
+  })();
   const inputRef = useRef<HTMLInputElement>(null);
   const scrollEndRef = useRef<HTMLDivElement>(null);
 
@@ -401,7 +434,7 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
         <div className="px-6 py-4 flex-1 overflow-y-auto min-h-0">
           {/* 최초 안내 (항상 노출) — 운동 이력 기반 룰베이스 인사 */}
           <div>
-            <AssistantMiniHeader locale={locale} />
+            <AssistantMiniHeader locale={locale} planLabel={miniPlanLabel} />
             <p className="text-[13px] text-[#1B4332] leading-[1.55] whitespace-pre-wrap break-keep">
               {renderMarkdownBold(buildInitialGreeting(getCachedWorkoutHistory(), locale, {
                 goal: userProfile?.goal,
@@ -442,7 +475,7 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
               };
               return (
                 <div key={i} className="mt-3">
-                  <AssistantMiniHeader locale={locale} />
+                  <AssistantMiniHeader locale={locale} planLabel={miniPlanLabel} />
                   <div className="bg-gradient-to-br from-[#F0FDF4] to-white border border-[#2D6A4F]/30 rounded-2xl px-3.5 py-3">
                     <p className="text-[13px] font-black text-[#1B4332] mb-1">{title}</p>
                     <p className="text-[12px] text-gray-600 leading-[1.5] mb-2.5">{body}</p>
@@ -459,7 +492,7 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
             if ("kind" in msg && msg.kind === "advice") {
               return (
                 <div key={i} className="mt-3">
-                  <AssistantMiniHeader locale={locale} />
+                  <AssistantMiniHeader locale={locale} planLabel={miniPlanLabel} />
                   <div className="min-w-0">
                     <AdviceCard
                       advice={msg.advice}
@@ -493,7 +526,7 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
             const textMsg = msg as { role: "assistant"; content: string; tone?: "info" | "error" };
             return (
               <div key={i} className="mt-3">
-                <AssistantMiniHeader locale={locale} />
+                <AssistantMiniHeader locale={locale} planLabel={miniPlanLabel} />
                 <p
                   className={`text-[13px] leading-[1.55] whitespace-pre-wrap break-keep ${
                     textMsg.tone === "error" ? "text-amber-700" : "text-[#1B4332]"
@@ -508,7 +541,7 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
           {/* 플랜 확인 카드 — 자동 전환 대신 유저 탭 요구. busy 중이면 숨김 (새 분석 중) */}
           {pendingIntent && !routing && !busy && (
             <div className="mt-3">
-              <AssistantMiniHeader locale={locale} />
+              <AssistantMiniHeader locale={locale} planLabel={miniPlanLabel} />
               <div className="bg-white rounded-2xl px-3.5 py-3 border border-[#2D6A4F]/20">
                 <p className="text-[12px] text-gray-500 mb-2">
                   {locale === "en" ? "Ready to build this plan?" : "이 플랜으로 시작할까요?"}
@@ -555,7 +588,7 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
           {/* 로딩 인라인 카드 — 순차 메시지 cycling (회의 60 Phase 2) */}
           {busy && (
             <div className="mt-3">
-              <AssistantMiniHeader locale={locale} />
+              <AssistantMiniHeader locale={locale} planLabel={miniPlanLabel} />
               <div className="inline-flex items-center gap-2.5 bg-white border border-gray-200 rounded-xl px-3 py-2 shadow-sm">
                 <svg className="w-4 h-4 animate-spin text-[#2D6A4F] shrink-0" fill="none" viewBox="0 0 24 24">
                   <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeDasharray="30 60" />
@@ -575,7 +608,7 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
           {/* 플랜 라우팅 인라인 카드 (확인 버튼 탭 후 master_plan_preview 이동 대기) */}
           {routing && (
             <div className="mt-3">
-              <AssistantMiniHeader locale={locale} />
+              <AssistantMiniHeader locale={locale} planLabel={miniPlanLabel} />
               <div className="inline-flex items-center gap-2.5 bg-[#F0FDF4] border border-[#2D6A4F]/20 rounded-xl px-3 py-2">
                 <svg className="w-4 h-4 animate-spin text-[#2D6A4F] shrink-0" fill="none" viewBox="0 0 24 24">
                   <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeDasharray="30 60" />
@@ -655,29 +688,29 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
         </div>
       </div>
 
-      {/* 예시 프롬프트 — 가로 스와이프 (우측 fade로 추가 내용 힌트) */}
-      <div className="shrink-0 pt-3 pb-4 border-t border-gray-200 relative" data-examples-container>
-        <p className="px-6 text-[11px] font-medium text-gray-400 tracking-wider uppercase mb-2">
-          {t("chat_home.examples.title")}
-        </p>
-        <div
-          className="flex gap-2 overflow-x-auto snap-x snap-mandatory px-6 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-          data-scroll-container
-        >
-          {EXAMPLE_KEYS.map((key) => (
+      {/* 예시 프롬프트 — 마누스식 칩 그리드 (아이콘 + 짧은 라벨). 회의 60 대표 지시. */}
+      <div className="shrink-0 pt-2 pb-4 px-4 relative" data-examples-container>
+        <div className="flex flex-wrap gap-1.5 justify-center">
+          {(showMoreExamples ? EXAMPLE_CHIPS : EXAMPLE_CHIPS.slice(0, 4)).map((chip) => (
             <button
-              key={key}
-              onClick={() => fillExample(key)}
+              key={chip.key}
+              onClick={() => fillExample(chip.key)}
               disabled={busy}
-              className="snap-start shrink-0 text-left px-3.5 py-2 rounded-full bg-white border border-gray-200 hover:border-[#2D6A4F]/40 hover:bg-emerald-50/40 active:scale-[0.97] transition-all text-[12.5px] text-gray-700 disabled:opacity-50 whitespace-nowrap"
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-gray-200 hover:border-[#2D6A4F]/40 hover:bg-emerald-50/40 active:scale-[0.97] transition-all text-[12px] font-medium text-gray-700 disabled:opacity-50 whitespace-nowrap"
             >
-              {t(key)}
+              <ChipIcon type={chip.icon} />
+              {locale === "en" ? chip.labelEn : chip.labelKo}
             </button>
           ))}
+          {!showMoreExamples && EXAMPLE_CHIPS.length > 4 && (
+            <button
+              onClick={() => setShowMoreExamples(true)}
+              className="inline-flex items-center px-3 py-2 rounded-xl bg-white border border-gray-200 hover:border-[#2D6A4F]/40 active:scale-[0.97] transition-all text-[12px] font-medium text-gray-500 whitespace-nowrap"
+            >
+              {locale === "en" ? "More" : "더보기"}
+            </button>
+          )}
         </div>
-        {/* 좌우 fade — 양쪽에 더 있음 힌트 */}
-        <div className="pointer-events-none absolute left-0 top-6 bottom-1 w-8 bg-gradient-to-r from-[#FAFBF9] to-transparent" />
-        <div className="pointer-events-none absolute right-0 top-6 bottom-1 w-8 bg-gradient-to-l from-[#FAFBF9] to-transparent" />
       </div>
     </div>
   );
