@@ -504,7 +504,7 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
     });
   };
 
-  const handleSubmit = async (override?: string) => {
+  const handleSubmit = async (override?: string, opts?: { intentDepth?: "focused_followup" }) => {
     const trimmed = (override ?? text).trim();
     if (!trimmed || busy) return;
 
@@ -580,7 +580,7 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
       const res = await fetch("/api/parseIntent", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ text: trimmed, locale, userProfile, history: recentHistory, workoutDigest }),
+        body: JSON.stringify({ text: trimmed, locale, userProfile, history: recentHistory, workoutDigest, intentDepth: opts?.intentDepth }),
       });
 
       if (!res.ok) {
@@ -868,7 +868,7 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
                   locale={locale}
                   onTap={(prompt) => {
                     trackEvent("chat_submit", { source: "deep_followup", char_length: prompt.length });
-                    handleSubmit(prompt);
+                    handleSubmit(prompt, { intentDepth: "focused_followup" });
                   }}
                 />
               </div>
