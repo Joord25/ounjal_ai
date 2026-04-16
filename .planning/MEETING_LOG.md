@@ -2,6 +2,48 @@
 
 ---
 
+### 회의 59: GA4 이벤트 스키마 v2 정리 (chat-first 퍼널)
+**참석:** 대표(임주용), 데이터 자문, 프로덕트
+**일자:** 2026-04-16
+
+**배경:**
+- Phase 4에서 `condition_check`/메인 `Onboarding` ViewState 제거, chat-first 플로우 전환 완료
+- 기존 GA 이벤트가 죽은 화면 기준으로 남아 퍼널 분석 불가
+- ja/zh 랜딩 제거됐으나 sitemap/lang-check에 잔재
+
+**발견 (audit 결과):**
+- 🪦 죽은 이벤트: `condition_check_*` 4종 (정의만, 호출 0건)
+- 🧟 오염 이벤트: `onboarding_start`가 로그인 시점에 발화 — 메인 온보딩 없는데 "온보딩" 이름으로 집계되어 해석 왜곡
+- 🕳️ 핵심 구멍:
+  - 랜딩 CTA 클릭 미추적 → 채널별 전환율 불가
+  - ChatHome 제출 미추적 → 진짜 전환점 블라인드
+  - `subscription_complete`에 value/currency/transaction_id 없음 → GA4 매출 리포트 작동 불가
+
+**결정:**
+1. v1 유령 이벤트 삭제, `onboarding_*` → `login` + `nutrition_onboarding_*`로 분리
+2. GA4 표준 `purchase` 이벤트로 매출 추적 (KRW, transaction_id 포함)
+3. `chat_submit`/`chat_plan_generated`/`chat_plan_failed` 배선이 다음 구현 최우선
+4. `landing_cta_click` 랜딩 추적 신규
+5. ja/zh 잔재(sitemap, lang 체크) 즉시 제거
+
+**이번 커밋 완료:**
+- sitemap.ts ja/zh 제거
+- page.tsx lang 체크 ko/en만
+- analytics.ts `FunnelEvent` 타입 재정의 (v2)
+- 로그인 이벤트 분리 (`login`)
+- 영양 온보딩 이벤트 재명명
+- condition_check 유령 주석 3곳 수정
+- [.planning/GA_EVENTS_v2.md](GA_EVENTS_v2.md) 스키마 문서 작성
+
+**다음 티켓 (미배선):**
+- `landing_cta_click` LandingContent
+- `chat_submit`/`chat_plan_generated`/`chat_plan_failed` ChatHome + page.tsx
+- `intensity_change`/`plan_regenerate` MasterPlanPreview
+- `purchase` SubscriptionScreen (subscription_complete 교체)
+- `report_view` 파라미터 확장
+
+---
+
 ### 회의 56: 홈 vs 리포트 "내 상태" 일원화 + 네이밍 분리
 **참석:** 대표(임주용), 기획자(PM), **박충환 교수 (USC Marshall)**, **Nir Eyal (Hook Model 저자)**, 데이터 자문, UX 디자이너, 트레이너, 현지화 전문가
 **일자:** 2026-04-12

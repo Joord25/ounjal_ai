@@ -48,7 +48,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({ userName, onComplete }) 
   const [bodyWeight, setBodyWeight] = useState(70);
   const [selectedGoal, setSelectedGoal] = useState<FitnessProfile["goal"] | null>(null);
 
-  useEffect(() => { trackEvent("onboarding_start"); }, []);
+  useEffect(() => { trackEvent("nutrition_onboarding_start"); }, []);
 
   useEffect(() => {
     if (step === "welcome") {
@@ -90,9 +90,9 @@ export const Onboarding: React.FC<OnboardingProps> = ({ userName, onComplete }) 
     } catch { /* ignore */ }
 
     localStorage.setItem("ohunjal_onboarding_done", "1");
-    trackEvent("onboarding_profile");
-    trackEvent("onboarding_goal", { goal });
-    trackEvent("onboarding_complete");
+    trackEvent("nutrition_onboarding_profile");
+    trackEvent("nutrition_onboarding_goal", { goal });
+    trackEvent("nutrition_onboarding_complete");
 
     goTo("done");
   };

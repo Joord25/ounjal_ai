@@ -161,6 +161,10 @@ export const subscribe = onRequest(
       res.status(200).json({
         status: "active",
         expiresAt: expiresAt.toISOString(),
+        paymentId,
+        amount: SUBSCRIPTION_AMOUNT,
+        plan: "monthly",
+        currency: "KRW",
       });
     } catch (error) {
       console.error("subscribe error:", error);

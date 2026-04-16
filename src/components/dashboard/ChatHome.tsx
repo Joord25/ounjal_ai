@@ -20,6 +20,7 @@ import { getPlanCount } from "@/utils/userProfile";
 import { getCachedWorkoutHistory } from "@/utils/workoutHistory";
 import { buildHistoryDigest, buildInitialGreeting } from "@/utils/historyDigest";
 import { AdviceCard, type AdviceContent } from "./AdviceCard";
+import { trackEvent } from "@/utils/analytics";
 
 interface ChatHomeProps {
   userName?: string;
@@ -218,6 +219,9 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
     // 회의 57 Phase 3: 체험 소진/페이월 사전 가드 — Gemini 호출 전에 차단
     if (canSubmit && !canSubmit()) return;
 
+    trackEvent("chat_submit", { char_length: trimmed.length });
+    const submitStart = Date.now();
+
     // 유저 메시지 먼저 채팅에 반영 (대표 지시: 내 입력이 보여야 대화 느낌)
     setMessages((prev) => [...prev, { role: "user", content: trimmed }]);
     setText("");
@@ -251,6 +255,7 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
       });
 
       if (!res.ok) {
+        trackEvent("chat_plan_failed", { reason: `http_${res.status}`, latency_ms: Date.now() - submitStart });
         setMessages((prev) => [...prev, { role: "assistant", content: t("chat_home.error.generic"), tone: "error" }]);
         setBusy(false);
         return;
@@ -275,6 +280,11 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
 
       // plan 모드 — 유저 확인 버튼 제시 (자동 전환 아님, 대표 지시)
       const intent = data.intent;
+      trackEvent("chat_plan_generated", {
+        latency_ms: Date.now() - submitStart,
+        session_mode: intent.sessionMode,
+        goal: intent.goal,
+      });
       const summary = buildIntentSummary(intent);
       setPendingIntent(intent);
       setMessages((prev) => [
@@ -286,6 +296,7 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
       setBusy(false);
     } catch (e) {
       console.error("ChatHome submit error:", e);
+      trackEvent("chat_plan_failed", { reason: "exception", latency_ms: Date.now() - submitStart });
       setMessages((prev) => [...prev, { role: "assistant", content: t("chat_home.error.generic"), tone: "error" }]);
       setBusy(false);
     }

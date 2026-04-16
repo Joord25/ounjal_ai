@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { LANDING_TEXTS, type LandingLocale } from "./landingTexts";
 import { LanguageSelector } from "@/components/layout/LanguageSelector";
+import { trackEvent } from "@/utils/analytics";
 
 // ─── Hooks ───────────────────────────────────────────────────────
 function useAtTop(threshold = 80) {
@@ -157,6 +158,7 @@ export default function LandingContent({ locale = "ko" }: { locale?: LandingLoca
   const stat2 = useCountUp(STAT_VALUES[2], t.hero.stats[2].suffix, 1000);
 
   const ctaHref = `/app?lang=${locale}`;
+  const onCtaClick = (section: "nav" | "bottom_sticky") => trackEvent("landing_cta_click", { locale, section });
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white overflow-x-clip font-[var(--font-instrument),_var(--font-sans)]">
@@ -173,7 +175,7 @@ export default function LandingContent({ locale = "ko" }: { locale?: LandingLoca
             </div>
             <div className="flex items-center gap-2 sm:gap-3">
               <LanguageSelector current={locale === "ko" ? "/" : "/en"} />
-              <a href={ctaHref} className="px-5 py-2.5 bg-[#059669] text-white text-sm font-bold rounded-xl hover:bg-[#047857] active:scale-95 transition-all">
+              <a href={ctaHref} onClick={() => onCtaClick("nav")} className="px-5 py-2.5 bg-[#059669] text-white text-sm font-bold rounded-xl hover:bg-[#047857] active:scale-95 transition-all">
                 {t.nav.cta}
               </a>
             </div>
@@ -186,7 +188,7 @@ export default function LandingContent({ locale = "ko" }: { locale?: LandingLoca
         className="fixed bottom-0 left-0 right-0 z-50 flex justify-center pb-6 sm:pb-8 pointer-events-none transition-all duration-500"
         style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))", transform: bottomCtaVisible ? "translateY(0)" : "translateY(120%)", opacity: bottomCtaVisible ? 1 : 0 }}
       >
-        <a href={ctaHref} className="pointer-events-auto px-10 sm:px-14 py-4 bg-[#059669] text-white font-bold text-base rounded-2xl shadow-[0_0_40px_rgba(5,150,105,0.3)] hover:shadow-[0_0_60px_rgba(5,150,105,0.5)] hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200">
+        <a href={ctaHref} onClick={() => onCtaClick("bottom_sticky")} className="pointer-events-auto px-10 sm:px-14 py-4 bg-[#059669] text-white font-bold text-base rounded-2xl shadow-[0_0_40px_rgba(5,150,105,0.3)] hover:shadow-[0_0_60px_rgba(5,150,105,0.5)] hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200">
           {t.nav.cta}
         </a>
       </div>

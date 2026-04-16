@@ -195,7 +195,7 @@ function isChatHomeEnabled(): boolean {
 if (typeof window !== "undefined") {
   const params = new URLSearchParams(window.location.search);
   const lang = params.get("lang");
-  if (lang && ["en", "ko", "ja", "zh"].includes(lang)) {
+  if (lang && ["en", "ko"].includes(lang)) {
     localStorage.setItem("ohunjal_language", lang);
     window.history.replaceState({}, "", window.location.pathname);
   }
@@ -250,7 +250,7 @@ export default function Home() {
   const [nutritionProfileVersion, setNutritionProfileVersion] = useState(0);
 
   // 회의 57: 플래그 ON이면 기존 "home" 진입 지점을 "home_chat"으로 자동 치환.
-  // Phase 4: onboarding/condition_check ViewState는 제거돼 여기서 체크 불필요.
+  // Phase 4 이후: 메인 플로우는 login → home_chat → master_plan_preview → workout_session → workout_report.
   useEffect(() => {
     if (!chatHomeEnabled) return;
     // [DEV] goto=plan 잠금 시 home 자동치환 건너뛰기
@@ -557,7 +557,7 @@ export default function Home() {
   const handleLogin = () => {
     // Firebase Auth handles state via onAuthStateChanged
     // This callback is called after successful signInWithPopup in LoginScreen
-    trackEvent("onboarding_start", { method: "google" });
+    trackEvent("login", { method: "google" });
     setShowLoginModal(false);
     setView("home");
   };
@@ -642,7 +642,7 @@ export default function Home() {
           throw e;
         }
 
-        // 그 외 에러 (네트워크 장애, 서버 500 등)는 기존대로 조용히 condition_check 복귀
+        // 그 외 에러 (네트워크 장애, 서버 500 등)는 조용히 채팅홈 복귀
         setView("home_chat");
     } finally {
         // sessionMode path: onComplete callback handles isLoading
@@ -1136,7 +1136,7 @@ export default function Home() {
       }
 
       case "login":
-        return <LoginScreen onLogin={handleLogin} onTryFree={() => { trackEvent("onboarding_start", { method: "guest" }); setView("home"); }} />;
+        return <LoginScreen onLogin={handleLogin} onTryFree={() => { trackEvent("login", { method: "guest" }); setView("home"); }} />;
 
       case "home":
       default:
@@ -1212,8 +1212,7 @@ export default function Home() {
                 return;
               }
               // 2) 로그인 무료 풀 소진 → 즉시 구독/결제 페이지 (페이월)
-              //    기존엔 condition_check → plan 단계에서 차단했는데,
-              //    홈 CTA 시점에서 차단해 컨디션 선택 수고를 덜어줌.
+              //    홈 CTA 시점에서 차단해 채팅 입력 수고를 덜어줌.
               if (isLoggedIn && (subStatus === "free" || subStatus === "expired") && getPlanCount() >= FREE_PLAN_LIMIT) {
                 trackEvent("paywall_view", { session_number: getPlanCount(), trigger: "home_cta" });
                 setShowPaywall(true);

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { WorkoutSessionData, ExerciseLog, WorkoutAnalysis, WorkoutHistory, RunningStats } from "@/constants/workout";
 import { RunningReportBody } from "@/components/report/RunningReportBody";
 import { detectRunningType } from "@/utils/runningFormat";
@@ -200,7 +200,6 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
   const { system: unitSystem, labels: unitLabels } = useUnits();
   const U = unitLabels.weight;
   const toDispW = (kg: number) => unitSystem === "imperial" ? Math.round(kgToLb(kg) * 10) / 10 : kg;
-  useEffect(() => { trackEvent("report_view"); }, []);
 
   // 리포트 열리자마자 reportTabs 저장 (영양 제외 — 영양은 Gemini 응답 후 별도 업데이트)
   useEffect(() => {
@@ -295,6 +294,16 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
 
   const metrics = buildWorkoutMetrics(sessionData.exercises, logs, bodyWeightKg, savedDurationSec);
   const { sessionCategory, totalVolume, bestE1RM, allE1RMs, successRate, fatigueDrop, loadScore, totalDurationSec } = metrics;
+  const reportTrackedRef = useRef(false);
+  useEffect(() => {
+    if (reportTrackedRef.current) return;
+    reportTrackedRef.current = true;
+    trackEvent("report_view", {
+      total_volume: Math.round(totalVolume || 0),
+      has_pr: !!bestE1RM && (bestE1RM.value || 0) > 0,
+      session_category: sessionCategory,
+    });
+  }, [totalVolume, bestE1RM, sessionCategory]);
   const isStrengthSession = sessionCategory === "strength" || sessionCategory === "mixed";
 
   // Merge today's big-4 e1RMs with history (today takes priority)

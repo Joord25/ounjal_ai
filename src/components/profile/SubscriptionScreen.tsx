@@ -421,7 +421,14 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ user, on
         const err = await serverRes.json().catch(() => ({}));
         throw new Error(err.error || t("sub.error.failed"));
       }
-      trackEvent("subscription_complete");
+      const data = await serverRes.json().catch(() => ({} as { paymentId?: string; amount?: number; plan?: string; currency?: string }));
+      trackEvent("purchase", {
+        transaction_id: data.paymentId || "",
+        value: data.amount || 6900,
+        currency: data.currency || "KRW",
+        plan: data.plan || "monthly",
+        payment_method: "kakaopay",
+      });
       sessionStorage.removeItem("portone_billing_processed");
       setStatus("active");
       await checkSubscription();
@@ -489,7 +496,7 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ user, on
     if (status === "active") return;
     if (isProcessing) return;
 
-    trackEvent("paywall_tap_subscribe");
+    trackEvent("paywall_tap_subscribe", { plan: "monthly", value: 6900, currency: "KRW" });
     setIsProcessing(true);
     setError(null);
 
@@ -544,7 +551,14 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ user, on
       }
 
       // Success
-      trackEvent("subscription_complete");
+      const data = await serverRes.json().catch(() => ({} as { paymentId?: string; amount?: number; plan?: string; currency?: string }));
+      trackEvent("purchase", {
+        transaction_id: data.paymentId || "",
+        value: data.amount || 6900,
+        currency: data.currency || "KRW",
+        plan: data.plan || "monthly",
+        payment_method: "kakaopay",
+      });
       setStatus("active");
       await checkSubscription();
     } catch (err) {

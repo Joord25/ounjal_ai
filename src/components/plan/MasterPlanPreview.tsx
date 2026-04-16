@@ -513,8 +513,16 @@ export const MasterPlanPreview: React.FC<MasterPlanPreviewProps> = ({
   ].filter(p => p.exercises.length > 0);
 
   const handleIntensitySelect = (level: "high" | "moderate" | "low") => {
+    if (level !== currentIntensity) {
+      trackEvent("intensity_change", { from: currentIntensity || "unknown", to: level });
+    }
     if (onIntensityChange) onIntensityChange(level);
     setIsEditing(false);
+  };
+
+  const handleRegenerate = () => {
+    trackEvent("plan_regenerate", { trigger: "manual" });
+    if (onRegenerate) onRegenerate();
   };
 
   return (
@@ -673,7 +681,7 @@ export const MasterPlanPreview: React.FC<MasterPlanPreviewProps> = ({
         currentIntensity={currentIntensity}
         recommendedIntensity={recommendedIntensity}
         onIntensitySelect={handleIntensitySelect}
-        onRegenerate={onRegenerate}
+        onRegenerate={onRegenerate ? handleRegenerate : undefined}
         onBack={onBack}
         addToPhase={addToPhase}
         setAddToPhase={setAddToPhase}
