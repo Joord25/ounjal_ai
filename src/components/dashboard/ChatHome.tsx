@@ -891,11 +891,22 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
                 <button
                   onClick={handleInitialStart}
                   disabled={routing}
-                  className="w-full py-3 rounded-xl bg-[#1B4332] text-white text-[14px] font-bold active:scale-[0.97] transition-all hover:bg-[#2D6A4F] disabled:opacity-50"
+                  className={`w-full py-3 rounded-xl text-[14px] font-bold transition-all flex items-center justify-center gap-2 ${
+                    routing
+                      ? "bg-[#1B4332]/80 text-white"
+                      : "bg-[#1B4332] text-white active:scale-[0.97] hover:bg-[#2D6A4F]"
+                  }`}
                 >
-                  {routing
-                    ? (locale === "en" ? "Starting..." : "준비 중...")
-                    : t("chat_home.initial.cta_start")}
+                  {routing ? (
+                    <>
+                      <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeDasharray="30 60" />
+                      </svg>
+                      <span>{locale === "en" ? "Loading..." : "준비 중..."}</span>
+                    </>
+                  ) : (
+                    t("chat_home.initial.cta_start")
+                  )}
                 </button>
               </div>
               {(() => {
