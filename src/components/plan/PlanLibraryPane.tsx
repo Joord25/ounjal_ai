@@ -86,7 +86,8 @@ export const PlanLibraryPane: React.FC<PlanLibraryPaneProps> = ({
                     onClick={() => onSelectExercise(globalIdx)}
                   >
                     <div className="flex items-center gap-3 min-w-0">
-                        {ex.type !== "warmup" && (
+                        {/* 회의 62 후속 (2026-04-18, 대표 지시): 카디오(유산소)도 웜업과 동일하게 아이콘·뱃지 숨기고 시간만 노출 */}
+                        {ex.type !== "warmup" && ex.type !== "cardio" && (
                           <div className="w-20 h-20 shrink-0 flex items-center justify-center">
                             {bodyIcon ? (
                               <img src={bodyIcon} alt="" className="w-20 h-20" />
@@ -103,7 +104,7 @@ export const PlanLibraryPane: React.FC<PlanLibraryPaneProps> = ({
                           <span className="text-base font-bold block leading-snug text-gray-900">
                             {getExerciseName(ex.name, locale)}
                           </span>
-                          {ex.type !== "warmup" && groups.length > 0 && (
+                          {ex.type !== "warmup" && ex.type !== "cardio" && groups.length > 0 && (
                             <div className="flex gap-1 mt-1.5 flex-wrap">
                               {groups.map((g) => (
                                 <span key={g} className="text-xs font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
@@ -113,7 +114,7 @@ export const PlanLibraryPane: React.FC<PlanLibraryPaneProps> = ({
                             </div>
                           )}
                         </div>
-                        {ex.type === "warmup" && (
+                        {(ex.type === "warmup" || ex.type === "cardio") && (
                           <span className="text-xs font-bold text-[#1B4332] shrink-0 ml-2">
                             <span className="font-plan-num">{ex.count}</span>
                           </span>

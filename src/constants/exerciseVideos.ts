@@ -287,6 +287,10 @@ export const EXERCISE_VIDEOS: Record<string, string> = {
   "하이니즈": "IdIlyOKozx4",
   "점핑 런지": "_5kDxC0flg0",
   "스쿼트 점프": "IfqrxS_-8oU",
+  // 회의 62 후속 (2026-04-18): 와이드 스쿼트 3종 신규 추가. YouTube ID는 대표 확정 후 보완.
+  "케틀벨 와이드 스쿼트": "",
+  "덤벨 와이드 스쿼트": "",
+  "와이드 스쿼트": "",
   "버피": "1YI2HvMsKug",
   "슬로우 버피": "AU2Rw0rMHeg",
   "베어 크롤": "NrFNOiDbJCc",

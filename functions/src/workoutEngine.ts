@@ -364,6 +364,10 @@ const LEG_EXERCISES = {
     "더블 케틀벨 프론트 스쿼트 (Double Kettlebell Front Squat)",
     "케틀벨 고블릿 스쿼트 (Kettlebell Goblet Squat)",
     "핵 스쿼트 (Hack Squat)",
+    // 회의 62 후속 (2026-04-18, 대표 지시): 와이드 스쿼트 3종 (내전근·엉덩이 강조)
+    "케틀벨 와이드 스쿼트 (Kettlebell Wide Squat)",
+    "덤벨 와이드 스쿼트 (Dumbbell Wide Squat)",
+    "와이드 스쿼트 (Wide Squat)",
   ],
   hinge: [
     "루마니안 데드리프트 (Romanian Deadlift)",
@@ -1190,6 +1194,7 @@ function generateHomeWorkout(
     "에어 스쿼트 (Air Squat)", "고블렛 스쿼트 (Goblet Squat)", "케틀벨 고블릿 스쿼트 (Kettlebell Goblet Squat)",
     "워킹 런지 (Walking Lunges)", "리버스 런지 (Reverse Lunges)", "불가리안 스플릿 스쿼트 (Bulgarian Split Squat)",
     "스텝업 (Step-Up)", "스쿼트 점프 (Squat Jump)",
+    "와이드 스쿼트 (Wide Squat)", "덤벨 와이드 스쿼트 (Dumbbell Wide Squat)",
   ]);
   const homePush = pick([
     "푸쉬업 (Push-ups)", "니 푸쉬업 (Knee Push-ups)",
