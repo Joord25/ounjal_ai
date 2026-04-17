@@ -2,6 +2,121 @@
 
 ---
 
+### 회의 62: 비로그인 첫 진입 후킹 재설계 — 욕구 자극 시즌 카피 + 원클릭 CTA (2026-04-18)
+**참석:** 대표(임주용), 기획자, 평가자, Nir Eyal, David Hershey, 박충환, Dan Ariely, Robert Cialdini, BJ Fogg, Amanda Askell, 카피라이터·MD·그로스
+
+**배경 (GA 1차 진단에서 촉발):**
+- 2026-04-18 `/admin` 데이터: 누적 체험 413, 가입 45, 결제 1건(₩6,900). 가입→결제 2.2%, 체험→결제 0.2% (업계 1/10~1/25)
+- 로그인 유저 32명 중 **63% 0회 미시작·31% 1회만 사용·6%만 페이월 도달** — 결제 funnel 병목이 아니라 **재방문/첫 경험 병목**
+- 인스타 광고 재개했으나 유입 전환 약함 — Leaky Bucket 문제 확인 (Skok)
+- 대표 지시: "비로그인 후킹 문구로 채팅·플랜·운동까지 몰입시켜야"
+- Hershey 원칙 채택: "선택을 유저에게 넘기는 AI는 검색창. AI가 골라주고 [시작] 1개."
+- 대표 직관: "운동하고 싶지 않던 사람도 '해야겠다' 들도록. 여름→반팔→몸 드러남→체력 키우자" 사고 체인
+
+**자문단 진단 (대표 사고 체인 해부):**
+```
+시즌 사실 → 시각화 → 자기 직시 → 긴박감 → 행동 결론(유저 스스로 도달)
+```
+- Cialdini Consistency: 유저 스스로 끄덕이면 이탈 30%↓
+- Ariely 손실회피: "여름까지 N주" 희소성 + "몇 번의 기회"로 투영
+- 박충환 Entice: 자존감 상처 없이 가능성으로 치환
+- Fogg MAP: 30~50분 = Ability 높음 / 시즌 = Motivation 높음
+- Askell 톤: 협박 X, 파트너 톤
+
+**결정사항:**
+1. **대상 재정의:** 로그인+이력 있는 유저는 이미 Phase 10 reasoning 작동 중 (문제 없음). 이번 개편은 **goal 없음 + 이력 없음** 유저(비로그인 체험 + 로그인 온보딩 미완) 한정
+2. **카피 방향:** 하이브리드 (C-2+C-1) — 시즌 동적 countdown + AI 선제안 + 이유 1줄
+3. **시간대 × 운동 매핑 (대표 트레이너 확정):**
+   - 새벽(4~6시) → 맨몸 30분
+   - 아침~낮(6~16시) → 하체 40분 (내부 50분, 기존 EXAMPLE_CHIPS 관행 동일)
+   - 저녁(16~21시) → 홈트 30분
+   - 밤(21시~4시) → 홈트 30분
+   - **러닝은 기본값에서 제외**, 후속질문 칩의 "러닝도 가능" 경로로만 진입
+4. **시즌 동적 계산:** `여름(7/1)까지 N주`, `반팔(5/15)까지 M주`, `남은 기회 = N×3회`. 매일 자동 갱신 → Scarcity 효과.
+5. **7월 이후 시즌 전환:** 봄(3~6월) 외에는 중립 폴백 카피 — 시즌 2(여름 유지) 전환 로직은 **추후 별도 회의**로 이관 (TODO)
+6. **UI 구조 (Hershey 원칙):** 초기 인사 아래 **CTA 카드 1개** + **후속질문 스타일 칩 4개** (`QuickFollowupList` 재사용, Gemini 호출 X, 룰베이스)
+7. **기존 EXAMPLE_CHIPS** 비로그인 초기 화면에서 숨김 (CTA 카드와 역할 중복)
+8. **Analytics 3개 이벤트 신설:** `chat_home_initial_greeting_shown` / `chat_home_initial_cta_click` / `chat_home_initial_followup_tap`
+
+**확정 카피 (2026-04-18 기준, 시간대 = 아침~낮):**
+```
+여름까지 10주. 올여름 더 뜨거워진다는 예보예요.
+반팔 매일 입는 날까지 4주 남았어요.
+
+일주일 3번이면 30번의 기회 —
+오늘이 그 중 첫 번째입니다.
+
+AI 추천: 하체 40분
+대근육부터 건드려야 체지방 태우는 속도가 제일 빨라요.
+
+[오늘 추천 · 하체 40분]
+[  바로 시작  ]
+
+🔘 하체 말고 가슴   🔘 30분 말고 짧게
+🔘 러닝도 가능해요  🔘 초보라 더 쉽게
+```
+
+**구현:**
+| 파일 | 변경 |
+|---|---|
+| `src/utils/historyDigest.ts` | `buildInitialSuggestion()` + `pickByHour()` + `getSeasonCountdown()` + `InitialSuggestion` 타입 신설 |
+| `src/components/dashboard/ChatHome.tsx` | `initialSuggestion` useMemo + CTA 카드 + `QuickFollowupList` 재사용 + `handleInitialStart` / `handleInitialFollowupTap` + 최초 노출 analytics + 기존 EXAMPLE_CHIPS 조건부 숨김 |
+| `src/utils/analytics.ts` | FunnelEvent 타입에 3개 추가 |
+| `src/locales/{ko,en}.json` | 신규 키 10개 (CTA 2개 + 후속질문 라벨 4개 + 후속질문 prompt 4개) |
+
+**검증:**
+- `npm run build` 통과 (TypeScript 0 에러)
+- `availableTime: 40` 타입 위반 발견 → 시스템 표준 `30 | 50 | 90`에 맞춰 **UI 라벨 "하체 40분" + 내부 50분** 하드코딩 (기존 EXAMPLE_CHIPS 관행과 동일)
+- 비로그인 `canSubmit` 가드 경로 유지 — 체험 소진 시 업그레이드 카드 자동 전환
+- `UserCondition.bodyWeightKg` optional 확인 — 비로그인도 플랜 생성 가능
+
+**후속 과제:**
+- 1주 측정: `chat_home_initial_cta_click / chat_home_initial_greeting_shown` 비율 = CTA CTR
+- 2주 측정: 이 개편 유저의 `workout_complete` 비율 vs 이전 코호트
+- 광고 영상 ↔ 홈챗 첫 문장 문법 일관성 (광고 훅 ↔ "여름까지 10주" 정합 필요) — 후속 회의
+- 시즌 2(7~8월) / 가을(9~11월) / 겨울(12~2월) 카피 추가 (별도 회의)
+
+---
+
+### 회의 62-A: 로그인·이력 유저로 CTA 구조 확장 (2026-04-18 당일 추가)
+**참석:** 대표(임주용), 기획자, 평가자
+
+**배경:**
+- 회의 62 1차 구현은 비로그인·goal無 유저에만 CTA 카드 적용
+- 대표 확인 후 추가 지시: "로그인 시에도 첫 화면에 비로그인 때처럼 적용. 단 히스토리 내역과 유저의 목표를 고려해서 추천. 후속질문도 똑같이."
+
+**결정사항:**
+1. **`buildInitialSuggestion` 범용 함수로 승격** — 매개변수 `(history, profile, locale)` 로 확장. 모든 유저 단일 경로.
+2. **이력 기반 부위 교대** (아침~낮 6~16시만 적용):
+   - 지난 운동 하체 → 오늘 **가슴 30분** 추천 ("지난번 하체 했으니, 오늘은 가슴으로 교대하면 회복이 좋아요.")
+   - 지난 운동 가슴 → 오늘 **하체 40분** 추천
+   - 기타(러닝·전신) → 시간대 기본 유지
+3. **daysSince === 0 특수 케이스** — 오늘 이미 운동했으면 **가벼운 홈트 30분**으로 오버라이드 ("오늘 한 번 하셨으니, 가볍게 마무리 한 세트 어때요?")
+4. **목표 기반 이유** (이력 無 + goal 有 케이스) — fat_loss/muscle_gain/endurance/health별 이유 카피 교체
+5. **후속질문 첫 칩 동적화** — 현재 추천 부위에 따라:
+   - 하체 추천 → "하체 말고 가슴"
+   - 가슴 추천 → "가슴 말고 하체"
+   - home_training(맨몸·홈트·가벼운 홈트) → "부위 운동 해볼게요"
+6. **기존 `buildInitialGreeting` 경로는 dead code화** — 호출 안 됨. 후속 정리 TODO.
+7. **closingLine 차별화** — 이력 있으면 "오늘이 그 중 한 번이에요", 없으면 "오늘이 그 중 첫 번째입니다"
+
+**구현:**
+| 파일 | 변경 |
+|---|---|
+| `src/utils/historyDigest.ts` | `buildInitialSuggestion` 시그니처 확장 (history, profile 추가), 이력/목표/daysSince===0 로직 분기, `InitialSuggestion.targetMuscle`에 "chest" 추가 |
+| `src/components/dashboard/ChatHome.tsx` | useMemo 의존성 확장, 후속질문 1번 칩 동적 매핑 (switchItem) |
+| `src/locales/{ko,en}.json` | switch_legs, switch_split 키 + 프롬프트 4개 추가 |
+
+**검증:**
+- `npm run build` 통과 (TypeScript 0 에러)
+- 6개 시나리오 런쓰루 OK: 비로그인 / 로그인+goal+이력無 / 로그인+이력有(하체→가슴) / 로그인+이력有(가슴→하체) / daysSince===0 오늘 마무리 / 새벽·밤 홈트 고정
+
+**후속 과제:**
+- `buildInitialGreeting` dead code 제거 (별도 cleanup PR)
+- 이력 3회차+ 유저에 "초보라 더 쉽게" 칩이 어색 → v3에서 "강도 더 세게"로 교체 고려
+
+---
+
 ### 회의 61: 장기 플랜(3개월+) 연계 설계 (2026-04-17)
 **참석:** 대표(임주용), Claude
 

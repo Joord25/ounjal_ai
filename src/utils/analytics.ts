@@ -36,7 +36,10 @@ type FunnelEvent =
   | "paywall_dismiss"
   | "guest_to_login"
   | "guest_trial_exhausted"
-  | "login_modal_view";
+  | "login_modal_view"
+  | "chat_home_initial_greeting_shown"
+  | "chat_home_initial_cta_click"
+  | "chat_home_initial_followup_tap";
 
 export function trackEvent(event: FunnelEvent, params?: Record<string, string | number | boolean>) {
   try {

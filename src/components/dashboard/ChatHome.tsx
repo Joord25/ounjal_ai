@@ -12,13 +12,13 @@
  * 예시 프롬프트 탭 → 채팅창에 자동 입력 → 유저 수정/전송.
  */
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "@/hooks/useTranslation";
 import type { UserCondition, WorkoutGoal, SessionSelection } from "@/constants/workout";
 import { getTrialStatus } from "@/utils/trialStatus";
 import { getPlanCount } from "@/utils/userProfile";
 import { getCachedWorkoutHistory } from "@/utils/workoutHistory";
-import { buildHistoryDigest, buildInitialGreeting } from "@/utils/historyDigest";
+import { buildHistoryDigest, buildInitialGreeting, buildInitialSuggestion, type InitialSuggestion } from "@/utils/historyDigest";
 import { AdviceCard, type AdviceContent } from "./AdviceCard";
 import { trackEvent } from "@/utils/analytics";
 import { buildIntentEcho, detectCategory, isPivot } from "@/utils/intentEcho";
@@ -309,6 +309,94 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
       console.error("ChatHome confirmPlan error:", e);
       setRouting(false);
     }
+  };
+
+  /**
+   * 회의 62 (2026-04-18): 모든 유저 초기 선제안.
+   * v1: 비로그인·온보딩 미완 유저 한정
+   * v2 (대표 지시): 로그인·이력 유저도 동일 CTA 구조 — 이력·목표 기반 개인화.
+   */
+  const initialSuggestion: InitialSuggestion | null = useMemo(() => {
+    // 채팅 시작 후엔 숨김 (messages.length === 0 조건은 렌더 단에서 처리)
+    return buildInitialSuggestion(
+      getCachedWorkoutHistory(),
+      {
+        goal: userProfile?.goal,
+        weeklyFrequency: userProfile?.weeklyFrequency,
+        bench1RM: userProfile?.bench1RM,
+        squat1RM: userProfile?.squat1RM,
+        deadlift1RM: userProfile?.deadlift1RM,
+      },
+      locale,
+    );
+  }, [
+    userProfile?.goal,
+    userProfile?.weeklyFrequency,
+    userProfile?.bench1RM,
+    userProfile?.squat1RM,
+    userProfile?.deadlift1RM,
+    locale,
+  ]);
+
+  // 초기 선제안 노출 시 analytics 이벤트 1회 발화
+  useEffect(() => {
+    if (!initialSuggestion) return;
+    if (messages.length > 0) return;
+    trackEvent("chat_home_initial_greeting_shown", {
+      hour: new Date().getHours(),
+      session_mode: initialSuggestion.sessionMode,
+      available_time: initialSuggestion.availableTime,
+      label: initialSuggestion.label,
+    });
+    // messages가 0일 때 최초 1회만 (initialSuggestion reference 안정성: useMemo 의존성)
+  }, [initialSuggestion, messages.length]);
+
+  const handleInitialStart = async () => {
+    if (!initialSuggestion || routing || busy) return;
+    // 비로그인 가드 — 체험 소진/페이월 등
+    if (canSubmit && !canSubmit()) {
+      const reason = getBlockReason?.();
+      if (reason) {
+        setMessages((prev) => {
+          const last = prev[prev.length - 1];
+          if (last && "kind" in last && last.kind === "upgrade" && last.trigger === reason) return prev;
+          return [...prev, { role: "assistant", kind: "upgrade", trigger: reason }];
+        });
+        trackEvent("paywall_view", { surface: "chat_initial_cta", trigger: reason });
+      }
+      return;
+    }
+    trackEvent("chat_home_initial_cta_click", {
+      label: initialSuggestion.label,
+      session_mode: initialSuggestion.sessionMode,
+      available_time: initialSuggestion.availableTime,
+    });
+    setRouting(true);
+    try {
+      const condition: UserCondition = {
+        bodyPart: "good",
+        energyLevel: 3,
+        availableTime: initialSuggestion.availableTime,
+      };
+      const goal: WorkoutGoal = "general_fitness";
+      const session: SessionSelection = {
+        goal,
+        sessionMode: initialSuggestion.sessionMode,
+        targetMuscle: initialSuggestion.targetMuscle,
+      };
+      await onSubmit(condition, goal, session, { skipLoadingAnim: true });
+    } catch (e) {
+      console.error("initial CTA error:", e);
+      setRouting(false);
+    }
+  };
+
+  const handleInitialFollowupTap = (prompt: string, which: string) => {
+    trackEvent("chat_home_initial_followup_tap", {
+      which,
+      char_length: prompt.length,
+    });
+    handleSubmit(prompt);
   };
 
   /** 프로그램 세션 일괄 생성 공통 함수 */
@@ -770,19 +858,82 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
       <div className="mt-3 border-t border-gray-200 flex-1 flex flex-col min-h-0">
         {/* 메시지 영역 */}
         <div className="px-6 py-4 flex-1 overflow-y-auto min-h-0">
-          {/* 최초 안내 (항상 노출) — 운동 이력 기반 룰베이스 인사 */}
+          {/* 최초 안내 (항상 노출) — 비로그인·이력無는 시즌 후킹 선제안, 그 외는 이력 기반 */}
           <div>
             <AssistantMiniHeader locale={locale} planLabel={miniPlanLabel} />
             <p className="text-[15px] text-[#1B4332] leading-[1.55] whitespace-pre-wrap break-keep">
-              {renderMarkdownBold(buildInitialGreeting(getCachedWorkoutHistory(), locale, {
-                goal: userProfile?.goal,
-                weeklyFrequency: userProfile?.weeklyFrequency,
-                bench1RM: userProfile?.bench1RM,
-                squat1RM: userProfile?.squat1RM,
-                deadlift1RM: userProfile?.deadlift1RM,
-              }, userName))}
+              {renderMarkdownBold(initialSuggestion
+                ? initialSuggestion.greeting
+                : buildInitialGreeting(getCachedWorkoutHistory(), locale, {
+                    goal: userProfile?.goal,
+                    weeklyFrequency: userProfile?.weeklyFrequency,
+                    bench1RM: userProfile?.bench1RM,
+                    squat1RM: userProfile?.squat1RM,
+                    deadlift1RM: userProfile?.deadlift1RM,
+                  }, userName))}
             </p>
           </div>
+
+          {/* 회의 62: 비로그인·이력無 유저용 초기 CTA 카드 + 후속질문 칩 (Hershey 원칙) */}
+          {initialSuggestion && messages.length === 0 && !busy && !routing && !pendingIntent && (
+            <div className="mt-5">
+              <div className="bg-white rounded-2xl px-3.5 py-3 border border-[#2D6A4F]/30 shadow-sm">
+                <p className="text-[11px] font-medium text-gray-400 mb-0.5">
+                  {t("chat_home.initial.cta_today")}
+                </p>
+                <p className="text-[14px] font-bold text-[#1B4332] mb-3">
+                  {initialSuggestion.label}
+                </p>
+                <button
+                  onClick={handleInitialStart}
+                  disabled={routing}
+                  className="w-full py-3 rounded-xl bg-[#1B4332] text-white text-[14px] font-bold active:scale-[0.97] transition-all hover:bg-[#2D6A4F] disabled:opacity-50"
+                >
+                  {routing
+                    ? (locale === "en" ? "Starting..." : "준비 중...")
+                    : t("chat_home.initial.cta_start")}
+                </button>
+              </div>
+              {(() => {
+                // 1번째 칩: 현재 추천 부위에 따라 동적 — 반대 부위 유도
+                const switchItem = (() => {
+                  if (initialSuggestion.targetMuscle === "legs") {
+                    return { icon: "chest" as ChipIconType, key: "switch_chest",
+                      label: t("chat_home.initial.followup.switch_chest"),
+                      prompt: t("chat_home.initial.followup.switch_chest.prompt") };
+                  }
+                  if (initialSuggestion.targetMuscle === "chest") {
+                    return { icon: "legs" as ChipIconType, key: "switch_legs",
+                      label: t("chat_home.initial.followup.switch_legs"),
+                      prompt: t("chat_home.initial.followup.switch_legs.prompt") };
+                  }
+                  // home_training (맨몸·홈트·가벼운 홈트) → 부위 운동 제안
+                  return { icon: "split" as ChipIconType, key: "switch_split",
+                    label: t("chat_home.initial.followup.switch_split"),
+                    prompt: t("chat_home.initial.followup.switch_split.prompt") };
+                })();
+                const items = [
+                  { icon: switchItem.icon, label: switchItem.label, prompt: switchItem.prompt },
+                  { icon: "timer" as ChipIconType, label: t("chat_home.initial.followup.shorter"), prompt: t("chat_home.initial.followup.shorter.prompt") },
+                  { icon: "run" as ChipIconType, label: t("chat_home.initial.followup.running"), prompt: t("chat_home.initial.followup.running.prompt") },
+                  { icon: "home" as ChipIconType, label: t("chat_home.initial.followup.easier"), prompt: t("chat_home.initial.followup.easier.prompt") },
+                ];
+                const labelMap: Record<string, string> = {
+                  [switchItem.prompt]: switchItem.key,
+                  [t("chat_home.initial.followup.shorter.prompt")]: "shorter",
+                  [t("chat_home.initial.followup.running.prompt")]: "running",
+                  [t("chat_home.initial.followup.easier.prompt")]: "easier",
+                };
+                return (
+                  <QuickFollowupList
+                    locale={locale}
+                    items={items}
+                    onTap={(prompt: string) => handleInitialFollowupTap(prompt, labelMap[prompt] || "unknown")}
+                  />
+                );
+              })()}
+            </div>
+          )}
 
           {/* 대화 히스토리 */}
           {messages.map((msg, i) => {
@@ -1085,8 +1236,8 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
         </div>
       </div>
 
-      {/* 예시 프롬프트 — 기본 4개 칩 + 더보기(팝오버로 심화 예시). 회의 60: 채팅 시작 후 숨김. */}
-      {messages.length === 0 && (
+      {/* 예시 프롬프트 — 기본 4개 칩 + 더보기(팝오버로 심화 예시). 회의 60: 채팅 시작 후 숨김. 회의 62: 비로그인 초기 CTA 카드와 중복되므로 그 경우엔 숨김. */}
+      {messages.length === 0 && !initialSuggestion && (
       <div className="shrink-0 pt-2 pb-4 px-4 relative" data-examples-container>
         <div className="flex flex-wrap gap-1.5 justify-center">
           {EXAMPLE_CHIPS.map((chip) => (
