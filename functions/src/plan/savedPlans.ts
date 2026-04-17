@@ -8,7 +8,7 @@ const PREMIUM_LIMIT = 5;
 /** 구독 상태 조회 — billing/subscription.ts 와 동일 규칙: users/{uid}/billing/subscription.status === "active" */
 async function isUserPremium(uid: string): Promise<boolean> {
   try {
-    const sub = await db.collection("users").doc(uid).collection("billing").doc("subscription").get();
+    const sub = await db.collection("subscriptions").doc(uid).get();
     return sub.exists && sub.data()?.status === "active";
   } catch {
     return false;
