@@ -395,6 +395,8 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
     setRouting(true);
     try {
       const rec = advice.recommendedWorkout;
+      // 정보성 advice(recommendedWorkout 없음)는 프로그램 생성 불가 — 초기 가드
+      if (!rec) { setRouting(false); return; }
 
       // Gemini가 sessionParams를 줬으면 그대로 사용, 없으면 폴백 로테이션
       if (advice.sessionParams && advice.sessionParams.length > 0) {
@@ -786,7 +788,7 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
           {messages.map((msg, i) => {
             if (msg.role === "user") {
               return (
-                <div key={i} className="flex gap-2.5 mt-2 justify-end">
+                <div key={i} className="flex gap-2.5 mt-12 justify-end">
                   <div className="max-w-[85%] bg-[#1B4332] text-white rounded-2xl rounded-tr-md px-3.5 py-2.5 shadow-sm text-[15px] leading-relaxed whitespace-pre-wrap break-keep">
                     {msg.content}
                   </div>
@@ -810,7 +812,7 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
                 if (isGuest) onRequestLogin?.(); else onRequestPaywall?.();
               };
               return (
-                <div key={i} className="mt-3">
+                <div key={i} className="mt-12">
                   <AssistantMiniHeader locale={locale} planLabel={miniPlanLabel} />
                   <div className="bg-gradient-to-br from-[#F0FDF4] to-white border border-[#2D6A4F]/30 rounded-2xl px-3.5 py-3">
                     <p className="text-[13px] font-black text-[#1B4332] mb-1">{title}</p>
@@ -827,23 +829,25 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
             }
             if ("kind" in msg && msg.kind === "advice") {
               return (
-                <div key={i} className="mt-3">
+                <div key={i} className="mt-12">
                   <AssistantMiniHeader locale={locale} planLabel={miniPlanLabel} />
                   <div className="min-w-0">
                     <AdviceCard
                       advice={msg.advice}
                       onStartRecommended={async () => {
+                        const rec = msg.advice.recommendedWorkout;
+                        if (!rec) return; // 정보성 advice는 시작 버튼 없으므로 도달 불가
                         if (canSubmit && !canSubmit()) return;
                         setRouting(true);
                         try {
                           await onSubmit(
-                            msg.advice.recommendedWorkout.condition,
-                            msg.advice.recommendedWorkout.goal,
+                            rec.condition,
+                            rec.goal,
                             {
-                              goal: msg.advice.recommendedWorkout.goal,
-                              sessionMode: msg.advice.recommendedWorkout.sessionMode,
-                              targetMuscle: msg.advice.recommendedWorkout.targetMuscle,
-                              runType: msg.advice.recommendedWorkout.runType,
+                              goal: rec.goal,
+                              sessionMode: rec.sessionMode,
+                              targetMuscle: rec.targetMuscle,
+                              runType: rec.runType,
                             },
                             { skipLoadingAnim: true },
                           );
@@ -864,7 +868,7 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
               const prog = msg.program;
               const totalSessions = prog.sessions.length;
               return (
-                <div key={i} className="mt-3">
+                <div key={i} className="mt-12">
                   <AssistantMiniHeader locale={locale} planLabel={miniPlanLabel} />
                   <p className="text-[15px] text-[#1B4332] leading-[1.55] whitespace-pre-wrap break-keep mb-2">
                     {renderMarkdownBold(
@@ -907,7 +911,7 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
             // 남은 variant: { role: "assistant"; content: string; tone?: ... }
             const textMsg = msg as { role: "assistant"; content: string; tone?: "info" | "error" };
             return (
-              <div key={i} className="mt-3">
+              <div key={i} className="mt-12">
                 <AssistantMiniHeader locale={locale} planLabel={miniPlanLabel} />
                 <p
                   className={`text-[15px] leading-[1.55] whitespace-pre-wrap break-keep ${
@@ -945,7 +949,7 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
 
           {/* 플랜 확인 카드 — 자동 전환 대신 유저 탭 요구. busy 중이면 숨김 (새 분석 중) */}
           {pendingIntent && !routing && !busy && (
-            <div className="mt-3">
+            <div className="mt-12">
               <AssistantMiniHeader locale={locale} planLabel={miniPlanLabel} />
               <div className="bg-white rounded-2xl px-3.5 py-3 border border-[#2D6A4F]/20">
                 <p className="text-[12px] text-gray-500 mb-2">
@@ -987,7 +991,7 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
           {/* Phase 7 B-lite + 10.2 + 11: 진짜 Gemini reasoning 스트림만 */}
           {busy && (() => {
             return (
-              <div className="mt-3">
+              <div className="mt-12">
                 <AssistantMiniHeader locale={locale} planLabel={miniPlanLabel} />
                 <div className="bg-white border border-gray-200 rounded-xl px-3.5 py-3 shadow-sm w-full max-w-[320px]">
                   {reasoningLines.map((line, i) => (
@@ -1005,7 +1009,7 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
 
           {/* 플랜 라우팅 인라인 카드 (확인 버튼 탭 후 master_plan_preview 이동 대기) */}
           {routing && (
-            <div className="mt-3">
+            <div className="mt-12">
               <AssistantMiniHeader locale={locale} planLabel={miniPlanLabel} />
               <div className="inline-flex items-center gap-2.5 bg-[#F0FDF4] border border-[#2D6A4F]/20 rounded-xl px-3 py-2">
                 <svg className="w-4 h-4 animate-spin text-[#2D6A4F] shrink-0" fill="none" viewBox="0 0 24 24">

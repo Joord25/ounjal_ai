@@ -41,7 +41,7 @@ export interface AdviceContent {
     intensityOverride?: "high" | "moderate" | "low";
     label: string;
   }>;
-  recommendedWorkout: {
+  recommendedWorkout?: {
     condition: {
       bodyPart: "upper_stiff" | "lower_heavy" | "full_fatigue" | "good";
       energyLevel: 1 | 2 | 3 | 4 | 5;
@@ -194,6 +194,7 @@ function buildRecSummary(
   rec: AdviceContent["recommendedWorkout"],
   locale: "ko" | "en",
 ): string {
+  if (!rec) return "";
   const muscleKo: Record<string, string> = {
     chest: "가슴", back: "등", shoulders: "어깨", arms: "팔", legs: "하체",
   };
@@ -283,48 +284,50 @@ export const AdviceCard: React.FC<AdviceCardProps> = ({ advice, onStartRecommend
         )}
       </div>
 
-      {/* 하단 CTA — 오늘 운동 + 프로그램 저장 */}
-      <div className="px-4 py-3 border-t border-gray-100 bg-[#FAFBF9]">
-        {advice.recommendedWorkout.reasoning && (
-          <p className="text-[11px] text-gray-500 leading-relaxed mb-2">
-            {renderInline(advice.recommendedWorkout.reasoning)}
-          </p>
-        )}
-        <div className="flex flex-col gap-2">
-          <button
-            onClick={onStartRecommended}
-            disabled={starting}
-            className={`w-full py-3 rounded-xl text-[13px] font-bold transition-all flex items-center justify-center gap-2 ${
-              starting
-                ? "bg-gray-200 text-gray-400"
-                : "bg-[#1B4332] text-white active:scale-[0.98] hover:bg-[#2D6A4F]"
-            }`}
-          >
-            <span>{t("advice.startCTA")}</span>
-            <span className="opacity-70">·</span>
-            <span className="font-normal">{recLabel}</span>
-          </button>
-          {onGenerateProgram && (
+      {/* 하단 CTA — 오늘 운동 + 프로그램 저장 (recommendedWorkout 없으면 정보성 응답이므로 CTA 숨김) */}
+      {advice.recommendedWorkout && (
+        <div className="px-4 py-3 border-t border-gray-100 bg-[#FAFBF9]">
+          {advice.recommendedWorkout.reasoning && (
+            <p className="text-[11px] text-gray-500 leading-relaxed mb-2">
+              {renderInline(advice.recommendedWorkout.reasoning)}
+            </p>
+          )}
+          <div className="flex flex-col gap-2">
             <button
-              onClick={onGenerateProgram}
-              disabled={generatingProgram}
-              className={`w-full py-2.5 rounded-xl text-[12.5px] font-bold transition-all flex items-center justify-center gap-1.5 border ${
-                generatingProgram
-                  ? "bg-gray-50 text-gray-400 border-gray-200"
-                  : "bg-white text-[#1B4332] border-[#1B4332]/30 active:scale-[0.98] hover:bg-[#F0FDF4]"
+              onClick={onStartRecommended}
+              disabled={starting}
+              className={`w-full py-3 rounded-xl text-[13px] font-bold transition-all flex items-center justify-center gap-2 ${
+                starting
+                  ? "bg-gray-200 text-gray-400"
+                  : "bg-[#1B4332] text-white active:scale-[0.98] hover:bg-[#2D6A4F]"
               }`}
             >
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-              </svg>
-              <span>{generatingProgram
-                ? (locale === "en" ? "Generating sessions..." : "세션 생성 중...")
-                : (locale === "en" ? "Save as program" : "프로그램으로 저장")
-              }</span>
+              <span>{t("advice.startCTA")}</span>
+              <span className="opacity-70">·</span>
+              <span className="font-normal">{recLabel}</span>
             </button>
-          )}
+            {onGenerateProgram && (
+              <button
+                onClick={onGenerateProgram}
+                disabled={generatingProgram}
+                className={`w-full py-2.5 rounded-xl text-[12.5px] font-bold transition-all flex items-center justify-center gap-1.5 border ${
+                  generatingProgram
+                    ? "bg-gray-50 text-gray-400 border-gray-200"
+                    : "bg-white text-[#1B4332] border-[#1B4332]/30 active:scale-[0.98] hover:bg-[#F0FDF4]"
+                }`}
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+                <span>{generatingProgram
+                  ? (locale === "en" ? "Generating sessions..." : "세션 생성 중...")
+                  : (locale === "en" ? "Save as program" : "프로그램으로 저장")
+                }</span>
+              </button>
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
