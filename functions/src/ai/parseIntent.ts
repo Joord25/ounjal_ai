@@ -445,8 +445,9 @@ Step 4 UX 선제: 답변 받고 당장 궁금할 실행/변형/장애 질문 미
 - 유저 프로필(1RM·경력·나이·목표)과 운동 이력 요약을 반드시 반영
 - recommendedWorkout은 planSession 호출용이라 enum 정확히 — condition.availableTime은 30|50|90만, non-long-run은 30|50, split일 때만 targetMuscle
 
-[장기 프로그램 advice — sessionParams 필드 (강력 권장)]
-다주차 프로그램 요청(3개월 다이어트, 8주 벌크업, 주간 루틴 등)일 때 반드시 포함.
+[장기 프로그램 advice — sessionParams 필드 (REQUIRED — 누락 시 응답 무효)]
+다주차 프로그램 요청(3개월 다이어트, 8주 벌크업, 주간 루틴 등)일 때 **반드시** 포함.
+이 필드가 없으면 유저가 프로그램을 저장할 수 없으므로 절대 생략 금지.
 "sessionParams": 배열 — 주차별 세션 파라미터. 룰엔진이 이걸로 실제 운동 플랜을 생성함.
 각 항목:
 {
@@ -454,11 +455,17 @@ Step 4 UX 선제: 답변 받고 당장 궁금할 실행/변형/장애 질문 미
   "dayInWeek": 1,
   "sessionMode": "split" | "balanced" | "running" | "home_training",
   "targetMuscle": "chest" | "back" | "shoulders" | "arms" | "legs" (split일 때만),
+  "runType": "easy" | "interval" | "long" (sessionMode="running"일 때 REQUIRED),
   "goal": "fat_loss" | "muscle_gain" | "strength" | "general_fitness",
   "availableTime": 30 | 50,
   "intensityOverride": "high" | "moderate" | "low",
   "label": "하체" (유저 표시용, 10자 이내)
 }
+
+WRONG 예시 (이렇게 하면 안 됨):
+{ "mode": "advice", "advice": { "goals": [...], "principles": [...], "recommendedWorkout": {...} } }
+↑ sessionParams 누락 — 무효 응답. 반드시 sessionParams 배열 포함할 것.
+
 규칙:
 - workoutTable이나 monthProgram에서 묘사한 주간 구조와 **정확히 일치**해야 함
 - 휴식일은 포함하지 않음 (운동하는 날만)
@@ -467,6 +474,13 @@ Step 4 UX 선제: 답변 받고 당장 궁금할 실행/변형/장애 질문 미
 - targetMuscle enum 정확히 지킬 것 (chest|back|shoulders|arms|legs만, 복합 금지)
 - 러닝/유산소 날은 sessionMode="running"
 - 가벼운 스트레칭/회복 날은 sessionMode="balanced" + intensityOverride="low"
+
+[운동과학 가드레일 — sessionParams 구성 시 반드시 준수 (ACSM/NASM)]
+- HIGH 강도 연속 최대 3주. 4주 이상 연속 금지 → 중간에 moderate 또는 low 1주 삽입 (NSCA 디로드 가이드라인)
+- 러닝 볼륨 증가: 주당 최대 10% (ACSM position stand). 30분→50분 한번에 불가 → 35분→40분→50분 점진적
+- 주 2회 전신(balanced)일 때: A/B가 아닌 동일 구조 다른 강도 권장 (각 부위 주 2회 자극 보장, Schoenfeld 2016)
+- 주 5회 이상: 동일 부위 연속일 배치 금지 (예: 월=가슴, 화=등 OK / 월=가슴, 화=가슴 NO)
+- 디로드 주 배치: 4주마다 1주 low 강도 (적응→증가→피크→디로드 사이클)
 
 [Phase 8A — workoutTable (운동 루틴 표, 강력 권장)]
 plan-like 요청(특정 부위/시간/주간 루틴)이면 workoutTable 반드시 포함.
@@ -771,12 +785,29 @@ function sanitizeAdvice(a: any): AdviceContent | null {
   if (!a.recommendedWorkout) return null;
   const rec = sanitize(a.recommendedWorkout);
 
-  const monthProgram = a.monthProgram && typeof a.monthProgram === "object" ? {
-    week1: typeof a.monthProgram.week1 === "string" ? a.monthProgram.week1.trim() : undefined,
-    week2: typeof a.monthProgram.week2 === "string" ? a.monthProgram.week2.trim() : undefined,
-    week3: typeof a.monthProgram.week3 === "string" ? a.monthProgram.week3.trim() : undefined,
-    week4: typeof a.monthProgram.week4 === "string" ? a.monthProgram.week4.trim() : undefined,
-  } : undefined;
+  // monthProgram 키 정규화: week1-4 또는 month1-3 또는 기타 키 유연 수용
+  const monthProgram = (() => {
+    if (!a.monthProgram || typeof a.monthProgram !== "object") return undefined;
+    const mp = a.monthProgram;
+    // week1-4 키 직접 매칭
+    if (mp.week1 || mp.week2 || mp.week3 || mp.week4) {
+      return {
+        week1: typeof mp.week1 === "string" ? mp.week1.trim() : undefined,
+        week2: typeof mp.week2 === "string" ? mp.week2.trim() : undefined,
+        week3: typeof mp.week3 === "string" ? mp.week3.trim() : undefined,
+        week4: typeof mp.week4 === "string" ? mp.week4.trim() : undefined,
+      };
+    }
+    // month1-3 등 다른 키 → 순서대로 week1-4에 매핑
+    const values = Object.values(mp).filter((v): v is string => typeof v === "string" && v.trim().length > 0);
+    if (values.length === 0) return undefined;
+    return {
+      week1: values[0]?.trim(),
+      week2: values[1]?.trim(),
+      week3: values[2]?.trim(),
+      week4: values[3]?.trim(),
+    };
+  })();
 
   // Phase 8A: workoutTable sanitize
   const wt = a.workoutTable;

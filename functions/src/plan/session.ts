@@ -218,10 +218,18 @@ export const generateProgramSessions = onRequest(
       }))));
 
       const results = [];
-      let lastUpper: "push" | "pull" | undefined = undefined;
+      // push/pull 교대: "pull"로 시작하면 엔진이 첫 세션을 "push(밀기)"로 생성
+      let lastUpper: "push" | "pull" = "pull";
       for (let i = 0; i < body.sessions.length; i++) {
         const s = body.sessions[i];
         if (!s.condition || !s.goal) continue;
+
+        // runType 자동 추론: sessionMode=running이면 필수
+        let runType = (s as any).runType as string | undefined;
+        if (s.sessionMode === "running" && !runType) {
+          runType = s.intensityOverride === "high" ? "interval" : "easy";
+        }
+
         const session = generateAdaptiveWorkout(
           i % 7,
           s.condition,
@@ -230,10 +238,10 @@ export const generateProgramSessions = onRequest(
           s.intensityOverride as any,
           s.sessionMode as any,
           s.targetMuscle as any,
-          undefined,
+          runType as any,
           lastUpper,
         );
-        // balanced 모드면 push↔pull 교대 추적
+        // balanced 모드면 push↔pull 교대 추적 (엔진이 생성한 결과 기준)
         if (!s.sessionMode || s.sessionMode === "balanced") {
           lastUpper = lastUpper === "push" ? "pull" : "push";
         }
