@@ -208,6 +208,7 @@ export const generateProgramSessions = onRequest(
 
     try {
       const results = [];
+      let lastUpper: "push" | "pull" | undefined = undefined;
       for (let i = 0; i < body.sessions.length; i++) {
         const s = body.sessions[i];
         if (!s.condition || !s.goal) continue;
@@ -219,7 +220,13 @@ export const generateProgramSessions = onRequest(
           s.intensityOverride as any,
           s.sessionMode as any,
           s.targetMuscle as any,
+          undefined,
+          lastUpper,
         );
+        // balanced 모드면 push↔pull 교대 추적
+        if (!s.sessionMode || s.sessionMode === "balanced") {
+          lastUpper = lastUpper === "push" ? "pull" : "push";
+        }
         results.push(session);
       }
       res.status(200).json({ sessions: results });
