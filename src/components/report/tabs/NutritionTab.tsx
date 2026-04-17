@@ -418,7 +418,7 @@ export const NutritionTab: React.FC<NutritionTabProps> = ({
         )}
 
         {/* 채팅 메시지 */}
-        <div className="py-4 px-1 flex-1 min-h-0 overflow-y-auto">
+        <div className="py-4 px-1 flex-1 min-h-0 overflow-y-auto scrollbar-hide">
           {chatMessages.length === 0 && (
             <p className="text-xs text-gray-500 break-keep">
               {isKo ? "식단이나 영양에 대해 궁금한 거 물어보세요" : "Ask me anything about your diet or nutrition"}

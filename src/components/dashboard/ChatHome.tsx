@@ -385,12 +385,10 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
         targetMuscle: initialSuggestion.targetMuscle,
       };
       // 회의 62 후속 (2026-04-18 PM): 대표 지시 — PlanLoadingOverlay는 띄우지 않되,
-      // 버튼의 "준비 중..." 상태가 체감되도록 최소 350ms 딜레이 보장.
-      // 딜레이와 onSubmit을 동시 시작해서 로직 지연은 최소화.
-      await Promise.all([
-        new Promise((resolve) => setTimeout(resolve, 350)),
-        onSubmit(condition, goal, session, { skipLoadingAnim: true }),
-      ]);
+      // 버튼 "준비 중..." 상태가 체감되게 먼저 350ms 보여준 뒤 onSubmit 호출.
+      // (Promise.all로 병렬 실행 시 onSubmit이 즉시 view 전환 → ChatHome 언마운트되어 버튼 사라짐)
+      await new Promise((resolve) => setTimeout(resolve, 350));
+      await onSubmit(condition, goal, session, { skipLoadingAnim: true });
     } catch (e) {
       console.error("initial CTA error:", e);
       setRouting(false);
@@ -863,7 +861,7 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
       {/* 채팅 섹션 — 상단 고정 헤더 제거. 각 메시지에 미니 헤더 표시 (회의 60 Phase 2). */}
       <div className="mt-3 border-t border-gray-200 flex-1 flex flex-col min-h-0">
         {/* 메시지 영역 */}
-        <div className="px-6 py-4 flex-1 overflow-y-auto min-h-0">
+        <div className="px-6 py-4 flex-1 overflow-y-auto min-h-0 scrollbar-hide">
           {/* 최초 안내 (항상 노출) — 비로그인·이력無는 시즌 후킹 선제안, 그 외는 이력 기반 */}
           <div>
             <AssistantMiniHeader locale={locale} planLabel={miniPlanLabel} />
