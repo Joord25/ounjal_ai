@@ -160,7 +160,7 @@ export default function RootLayout({
               "@context": "https://schema.org",
               "@type": "FAQPage",
               "mainEntity": [
-                { "@type": "Question", "name": "무료로 쓸 수 있나요?", "acceptedAnswer": { "@type": "Answer", "text": "네, 회원가입 없이 바로 1회 체험 가능해요. 가입하면 하루 4회까지 무료예요." }},
+                { "@type": "Question", "name": "무료로 쓸 수 있나요?", "acceptedAnswer": { "@type": "Answer", "text": "네, 회원가입 없이 1회 체험 가능해요. 가입하면 무료 플랜 2회 + AI 채팅 3회까지 사용할 수 있어요." }},
                 { "@type": "Question", "name": "운동 초보(헬린이)인데 괜찮을까요?", "acceptedAnswer": { "@type": "Answer", "text": "오히려 초보일수록 좋아요. AI가 체력에 맞춰 운동을 짜주니까 뭘 해야 할지 고민할 필요 없어요." }},
                 { "@type": "Question", "name": "다른 운동 루틴 추천 앱이랑 뭐가 달라요?", "acceptedAnswer": { "@type": "Answer", "text": "다른 앱은 운동을 직접 골라야 해요. 오운잘은 컨디션만 고르면 AI가 알아서 짜줘요." }},
                 { "@type": "Question", "name": "PT 없이 혼자 운동해도 효과가 있나요?", "acceptedAnswer": { "@type": "Answer", "text": "네, AI가 매 세트마다 무게와 횟수를 조절해주고, 운동 후 분석 리포트까지 제공해요. PT 없이도 체계적으로 운동할 수 있어요." }},

@@ -5,7 +5,7 @@ import { verifyAuth, db } from "../helpers";
 import { generateAdaptiveWorkout } from "../workoutEngine";
 import * as crypto from "crypto";
 
-const GUEST_TRIAL_LIMIT = 3;
+const GUEST_TRIAL_LIMIT = 1;
 
 // IP 해시 헬퍼 — planSession 과 공통 로직
 function hashClientIp(req: { headers: Record<string, string | string[] | undefined>; socket?: { remoteAddress?: string } }): string {
@@ -69,7 +69,7 @@ export const planSession = onRequest(
     }
 
     // Server-side usage limits
-    const FREE_PLAN_LIMIT = 4;
+    const FREE_PLAN_LIMIT = 2;
     try {
       const userRecord = await getAuth().getUser(uid);
       const isAnonymous = !userRecord.email;

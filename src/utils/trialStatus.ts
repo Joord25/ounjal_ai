@@ -13,15 +13,15 @@
  * - page.tsx: 기존 check 로직 점진 리팩토링 가능
  */
 
-export const GUEST_TRIAL_LIMIT = 3;
-export const FREE_PLAN_LIMIT = 4;
+export const GUEST_TRIAL_LIMIT = 1;
+export const FREE_PLAN_LIMIT = 2;
 
 export type TrialStage = "guest" | "logged_in_free" | "exhausted" | "premium";
 
 export interface TrialStatus {
-  /** 게스트 단계에서 완료한 운동 수 (0~3) */
+  /** 게스트 단계에서 완료한 운동 수 (0~1) */
   guestCompleted: number;
-  /** 로그인 후 무료 플랜에서 완료한 운동 수 (0~4) */
+  /** 로그인 후 무료 플랜에서 완료한 운동 수 (0~2) */
   loggedInCompleted: number;
   /** 현재 단계에서 남은 운동 수 */
   remaining: number;

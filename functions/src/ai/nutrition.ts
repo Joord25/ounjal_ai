@@ -1,6 +1,15 @@
 import { onRequest } from "firebase-functions/v2/https";
-import { verifyAuth } from "../helpers";
+import { verifyAuth, db } from "../helpers";
 import { getGemini, GEMINI_MODEL } from "../gemini";
+
+async function requirePremium(uid: string): Promise<boolean> {
+  try {
+    const subDoc = await db.collection("subscriptions").doc(uid).get();
+    return subDoc.exists && subDoc.data()?.status === "active";
+  } catch {
+    return false;
+  }
+}
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // 영양 가이드 — Gemini 기반 (회의 37)
@@ -38,10 +47,16 @@ export const getNutritionGuide = onRequest(
       return;
     }
 
+    let uid: string;
     try {
-      await verifyAuth(req.headers.authorization);
+      uid = await verifyAuth(req.headers.authorization);
     } catch {
       res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+
+    if (!(await requirePremium(uid))) {
+      res.status(403).json({ error: "Premium required", code: "PREMIUM_REQUIRED" });
       return;
     }
 
@@ -218,10 +233,16 @@ export const nutritionChat = onRequest(
       return;
     }
 
+    let uid: string;
     try {
-      await verifyAuth(req.headers.authorization);
+      uid = await verifyAuth(req.headers.authorization);
     } catch {
       res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+
+    if (!(await requirePremium(uid))) {
+      res.status(403).json({ error: "Premium required", code: "PREMIUM_REQUIRED" });
       return;
     }
 

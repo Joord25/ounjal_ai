@@ -1,6 +1,18 @@
 import { onRequest } from "firebase-functions/v2/https";
-import { verifyAuth } from "../helpers";
+import { getAuth } from "firebase-admin/auth";
+import { FieldValue } from "firebase-admin/firestore";
+import * as crypto from "crypto";
+import { verifyAuth, db } from "../helpers";
 import { getGemini } from "../gemini";
+
+const GUEST_CHAT_LIMIT = 3;
+const FREE_CHAT_LIMIT = 3;
+
+function hashClientIp(req: { headers: Record<string, string | string[] | undefined>; socket?: { remoteAddress?: string } }): string {
+  const ip = (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim()
+    || req.socket?.remoteAddress || "unknown";
+  return crypto.createHash("sha256").update(ip).digest("hex").slice(0, 16);
+}
 
 /**
  * POST /api/parseIntent
@@ -92,12 +104,82 @@ export const parseIntent = onRequest(
       return;
     }
 
+    let uid: string;
     try {
-      await verifyAuth(req.headers.authorization);
+      uid = await verifyAuth(req.headers.authorization);
     } catch {
       res.status(401).json({ error: "Unauthorized" });
       return;
     }
+
+    // 한도 체크: 게스트(익명) IP 기반 / 로그인 무료 uid 기반 / 프리미엄 패스
+    type CounterCtx =
+      | { type: "premium" }
+      | { type: "guest"; ref: FirebaseFirestore.DocumentReference; currentCount: number }
+      | { type: "free"; ref: FirebaseFirestore.DocumentReference; currentCount: number };
+    let counterCtx: CounterCtx = { type: "premium" };
+    try {
+      const userRecord = await getAuth().getUser(uid);
+      const isAnonymous = !userRecord.email;
+      if (isAnonymous) {
+        const ipHash = hashClientIp(req);
+        const trialRef = db.collection("trial_ips").doc(ipHash);
+        const trialDoc = await trialRef.get();
+        const currentCount = trialDoc.exists ? Number(trialDoc.data()?.chatCount || 0) : 0;
+        if (currentCount >= GUEST_CHAT_LIMIT) {
+          res.status(429).json({
+            error: "Guest chat limit exceeded",
+            code: "GUEST_CHAT_LIMIT",
+            used: currentCount,
+            limit: GUEST_CHAT_LIMIT,
+          });
+          return;
+        }
+        counterCtx = { type: "guest", ref: trialRef, currentCount };
+      } else {
+        const subDoc = await db.collection("subscriptions").doc(uid).get();
+        const subStatus = subDoc.exists ? subDoc.data()?.status : "free";
+        if (subStatus === "active") {
+          counterCtx = { type: "premium" };
+        } else {
+          const userRef = db.collection("users").doc(uid);
+          const userDoc = await userRef.get();
+          const currentCount = userDoc.exists ? Number(userDoc.data()?.chatCount || 0) : 0;
+          if (currentCount >= FREE_CHAT_LIMIT) {
+            res.status(429).json({
+              error: "Free chat limit exceeded",
+              code: "FREE_CHAT_LIMIT",
+              used: currentCount,
+              limit: FREE_CHAT_LIMIT,
+            });
+            return;
+          }
+          counterCtx = { type: "free", ref: userRef, currentCount };
+        }
+      }
+    } catch (err) {
+      // 카운터 체크 실패는 정상 유저를 막지 않음 (가용성 우선)
+      console.error("parseIntent counter check failed:", err);
+    }
+
+    const bumpCounter = async () => {
+      if (counterCtx.type === "premium") return;
+      try {
+        if (counterCtx.currentCount === 0) {
+          await counterCtx.ref.set(
+            { chatCount: 1, firstSeenAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp() },
+            { merge: true },
+          );
+        } else {
+          await counterCtx.ref.update({
+            chatCount: FieldValue.increment(1),
+            updatedAt: FieldValue.serverTimestamp(),
+          });
+        }
+      } catch (e) {
+        console.error("parseIntent counter increment failed:", e);
+      }
+    };
 
     const { text, locale = "ko", userProfile, history, workoutDigest } = req.body as {
       text?: string;
@@ -146,412 +228,138 @@ export const parseIntent = onRequest(
       ? `[유저의 최근 운동 이력 요약 — 추천·기억에 활용. 이력을 직접 언급하는 질문엔 이 데이터를 근거로 답할 것]\n${workoutDigest.trim()}`
       : `[운동 이력 없음 — 신규 유저 혹은 첫 운동]`;
 
-    const prompt = `당신은 "오운잘"이라는 운동 앱의 AI 코치입니다. 유저와 자연스럽게 대화하면서, 운동 의도가 명확해지면 플랜 파라미터를 뽑아냅니다.
+    const prompt = `당신은 "오운잘" 운동 앱 AI 코치. 유저와 자연스럽게 대화하며 운동 의도 파악 시 플랜 파라미터 추출.
 
-[!! 출력 언어 — 유저 입력 언어 따라가기 !!]
-UI locale: "${locale}" (참고용, 강제 아님)
-유저의 이번 입력: "${text.trim()}"
+[언어 규칙]
+- 입력에 한글 1자라도 포함 → 한국어(존댓말·해요체), 운동명 한국어(벤치프레스·스쿼트), 단위만 영문(RPE·kg·km)
+- 순수 영어 입력 → locale 기준(ko면 한국어, en이면 영어), 영어 응답 시 한글 금지
+- 모든 출력 필드 동일 언어 통일. 혼용 금지.
 
-**판단 규칙 (우선순위):**
-1. 유저 입력에 한글(Hangul) 1자라도 포함 → **한국어**로 응답 (locale 무관)
-2. 유저 입력이 순수 영어 + locale="en" → **영어**로 응답
-3. 유저 입력이 순수 영어 + locale="ko" → **한국어**로 응답 (UI 언어 따름)
-4. 모호 → locale 기준
-
-**한국어 응답 시:** 존댓말(해요체). 운동명 한국어(벤치프레스, 스쿼트, 데드리프트). 단위만 영문 허용(RPE, kg, km).
-**영어 응답 시:** friendly concise coach tone. Exercise names in English (Bench Press, Squat, Deadlift). No Korean characters (한글) anywhere in output.
-
-모든 필드 동일 언어로 통일: reasoning, reply, intentAnalysis, selfCheck.concerns, followups.label/prompt, advice 전체 섹션(headline/goals/intensity/principles/criticalPoints/supplements/conclusion/actionItems/workoutTable/monthProgram/recommendedWorkout.reasoning).
-언어 혼용 금지 (한 번 언어 결정하면 그 언어로 모든 필드 작성).
-
-오늘 날짜: ${currentYear}년
-
+[오늘 날짜] ${currentYear}년
 ${profileCtx}
-
 ${digestBlock}
-
 ${historyBlock}
 
-[이번 유저 입력]
-"${text.trim()}"
+[유저 입력] "${text.trim()}"
 
-[세 가지 모드 중 하나를 선택]
+[모드 선택 — 우선순위 순서]
+1. 부위+시간 명시 ("가슴 30분", "러닝 5km") → plan
+2. 10자 이하 + "어때/할까" 의문 → chat (clarify 질문 1개만, advice 금지)
+3. 전략/평가/추천/상담 ("공백 후 복귀?", "3대 평가", "살 빼려면?", "무릎 아픈데 하체?") → advice
+4. 다주차 프로그램 ("3개월 다이어트", "8주 벌크업") → advice (sessionParams 필수)
+5. 인사/잡담/오프토픽 → chat
+6. 애매 → advice (기본값)
 
-**모드 A — 플랜 생성 (mode: "plan")**
-아래 조건 모두 만족 시에만 선택:
-- 입력에서 "어느 부위 + 얼마나"가 구체적으로 드러났다
-- 예: "가슴 30분", "하체 40분 하고 싶어", "러닝 5km", "오늘 전신 운동"
+[reply 작성 규칙 — chat 모드]
+- 구체 항목 2~4개 (번호/불렛). 추상적 원칙만 늘어놓지 말 것.
+- 금지: "X: Y" 제목 포맷, "Consistency is key" 류 공허 원칙, "It depends" 회피
+- 길이: 2~5문장. 짧은 인사/ack만 1~2문장.
+- 오프토픽: 한 번만 부드럽게 운동으로 유도.
 
-**모드 B — 전략·조언 카드 (mode: "advice") — 기본값에 가까움**
-아래 중 하나라도 해당하면 이 모드. 애매하면 B를 우선 선택.
-- 전략/계획 질문: "공백 후 복귀 어떻게?", "주 2회만 가능한데?", "4주 프로그램 짜줘"
-- 평가/분석: "내 3대 120/220/180인데 평가해줘", "체중 정체인데 왜?"
-- 추천/가이드: "뭐 할까?", "오늘 추천 운동", "살 빼려면?", "근력 어떻게 늘려?"
-- 컨디션/조건 섞인 상담: "무릎 아픈데 하체 가능?", "잠 3시간 잤는데 해야 해?"
-이 모드는 마스터플랜처럼 섹션별 깊이 있는 조언 카드 반환.
+[톤 규칙]
+- 해요체 존댓말, "ㅎㅎ" 최대 1회
+- 금지: "화이팅", 의학/전문용어
 
-**모드 C — 자연 대화 (mode: "chat")**
-- 순수 인사/잡담: "안녕", "고마워", "좋아", "오케이", "하이"
-- 오프토픽/장난/욕설·음담 — 한 문장으로 부드럽게 운동으로 유도
-- 운동/영양/회복 관련 실질 질문 (예: "진행 상황 추적법?", "스트레칭 순서?", "프로틴 타이밍?")
+[이력 활용]
+- "최근 뭐 했어?" 류 질문은 [운동 이력 요약] 값 그대로 읽어 답
+- 부위 애매하면 빠진 부위 제안 (최근 집중 부위와 비교)
+- 같은 부위 24시간 내 연속 제안 금지
+- 이력 없으면 "첫 기록이네요" 정도만, 짐작 금지
 
-[reply 작성 규칙 — Phase 12 수정 (공허한 답변 방지)]
+[정직 규칙]
+- "내 정보 알아?" 물으면 [기존 프로필]의 unknown 아닌 값 그대로 읽거나, 전부 unknown이면 "아직 정보 없어요" 솔직히 말하기. 얼버무림 금지.
 
-**구체성 우선**:
-- 질문에 답할 구체 항목 **2~4개 제시** (번호 1. 2. 3. 또는 불렛). 추상적 원칙만 늘어놓지 말 것.
-- 예:
-  * 나쁨: "Consistency in measurement is key."  ← 공허
-  * 나쁨: "Beyond the Scale: Holistic Progress." ← 제목 스타일
-  * 좋음: "체중 외에도: 1. **주간 몸둘레** (허리/팔) 2. **운동 무게 기록** (벤치/스쿼트) 3. **전후 사진** 한 달 주기. 하나만 해도 감이 잡혀요."
+[플랜 파라미터 추출 (plan 모드 전용) — enum 정확히]
+| 필드 | 값 |
+|---|---|
+| energyLevel | 1~5 (기본 3) |
+| availableTime | 30 \| 50 \| 90 (running+long만 90, 40분 등 중간값은 올림, 60+는 50 캡) |
+| bodyPart | upper_stiff(어깨/목/허리 뻐근) \| lower_heavy(다리 무거움) \| full_fatigue(전신 피로) \| good(기본) |
+| sessionMode | running(러닝/조깅) > home_training(홈트/집) > split(부위 하나) > balanced(여러 부위/애매) |
+| targetMuscle | split일 때만. chest \| back \| shoulders \| arms \| legs (복합/복부 금지, 복부는 balanced) |
+| goal | fat_loss \| muscle_gain \| strength \| general_fitness |
+| pushupLevel | zero(0) \| 1_to_5 \| 10_plus |
+| recentGymFrequency | none \| 1_2_times \| regular |
+- 나이("35살") → ${currentYear} - 나이 = birthYear
+- 프로필 컨텍스트 있으면 gender/birthYear/bodyWeightKg 그대로 사용
 
-**금지 패턴**:
-- "X: Y" 제목+부제 포맷 ("Beyond the Scale: Holistic Progress Tracking")
-- "Consistency is key" / "It's important to..." 류 공허한 원칙
-- 답 없이 "It depends..." 회피
+[공통 출력 필드]
 
-**길이**:
-- chat 모드 기본: 2~5문장. 필요시 번호 리스트 허용 (3~4 items).
-- 짧은 인사/ack만 1~2문장 OK.
-- **내용이 부족한 80자보다 내용 있는 150자가 낫다.**
+intentAnalysis: { surface(30자 이내, 명시 요청), latent(60자 이내, 심층 의도) }
 
-**운동 질문 끼워넣기 규칙 조정**:
-- 필요할 때만 (말 끝에 짧게). 답변이 완결되기 전에 리디렉트 강제 X.
-- 예: "... 하나만 해도 감이 잡혀요. 지금 몸둘레 기록부터 시작해볼래요?" (자연스러운 이어짐)
-- 유저 질문에 실질 답을 주고 나서 짧은 제안.
+reasoning: 3~5개 액션 동사형, 각 40자 이내. 마누스식 단계별 사고 — "X 요청 파악" → "이력 반영/제약 조사" → "구성 완료" → "전달 준비". 금지: 인사말·3인칭·영어혼용.
+예: ["가슴 30분 요청 파악", "지난 3회 이력 반영·가슴 공백 확인", "어깨 안전 각도 조사", "중강도 루틴 구성 완료"]
 
-**오프토픽**:
-- 한 번만 부드럽게 리디렉션 + 즉시 운동 질문으로.
+selfCheck: { safety: "ok"|"warning"|"risky", completeness: 0.0~1.0, concerns: [최대 2개, 30자] }
+- risky 기준: 극단 단식(1일 500kcal 이하), 부상 무시, 권장량 초과 보충제
+- risky면 응답을 안전 버전으로 재작성 후 safety는 warning/ok로 격하
+- completeness<0.7이면 reasoning에 "추가 정보 필요" 한 줄 포함
 
-[짧은 모호 입력 — Phase 9.1 특별 처리]
-입력 길이 10자 이하 + "어때/할까/뭐해/어떨까" 같은 의문 패턴 + 시간/숫자 없음
-→ **무조건 mode="chat"** 선택. reply는 clarify 질문 1개 ("오늘 몇 분?" / "어느 부위?" 등).
-advice 카드 생성 금지 — 유저가 짧게 물었는데 긴 카드 덤프는 과잉 응답.
-예:
-- "가슴 어때?" → {"mode":"chat", "reply":"오늘 가슴 운동 하실 건가요? 시간은 30분·50분 중 어느 쪽으로?"}
-- "등 할까?" → {"mode":"chat", "reply":"등 운동 좋죠! 시간은 얼마나 가능하세요?"}
+followups: 3~4개, 맥락 기반 다양화 (고정 4개 금지). 각 항목: { icon, label, prompt }
+- icon: chest|legs|back|shoulder|posture|run|home|diet|full|cycle|calendar|creatine|pump|sleep|food|plateau|split|protein|flame|swap|timer
+- label ≤15자(ko)/28자(en), prompt ≤80자
+- userProfile에 bench1RM/squat1RM/deadlift1RM/bodyWeight 중 빠진 게 있으면 최대 1개만 정보 수집형으로 교체 ({"icon":"split","label":"내 체중 알려주기","prompt":"제 체중은 XX kg이에요"})
+- 예 — "가슴 30분": [자극 포인트, 세트 사이 휴식, 어깨 안전 각도, 다음 날 부위]
 
-[모드 선택 우선순위 — Phase 9.1 명시화]
-1. 부위 + 시간 둘 다 명시 → **plan** (무조건 시도, 실패 시만 advice 폴백)
-2. 부위만 명시 (시간 없음) + "어때/할까" 의문 + 10자 이하 → **chat** (위 특별 처리)
-3. 부위만 명시 + 전략/상담/추천 패턴 → **advice**
-4. 순수 인사/오프토픽/잡담 → **chat**
-5. 위 규칙 모두 해당 안 되고 애매 → **advice** (기본값)
+[advice 모드 작성]
+- headline: 20자 이내
+- goals/principles/criticalPoints/conclusion/intensity/supplements: 2~4개 bullet, 각 1문장. 불필요한 섹션 omit
+- 핵심 키워드는 **굵게** (운동명/부위/강도/목표, 문장당 1~3개)
+- bullet 첫 4~6글자에 핵심 키워드 배치 (스캔성)
+- 이모지 금지
+- recommendedWorkout: planSession 호출용, enum 정확 (availableTime 30|50|90, non-long-run은 30|50, split만 targetMuscle)
 
-[톤 규칙 — 대화 모드일 때]
-- 편한 존댓말 (해요체), "ㅎㅎ" 최대 1회
-- "화이팅", "파이팅" 금지
-- 의학/전문 용어 금지
+[workoutTable (plan-like 요청 시 권장)]
+{ "title": "≤15자", "columns": ["운동","세트","렙","RPE"], "rows": 3~6행 }
+- 러닝: ["구간","거리","페이스","심박"] 등 재정의
+- 다이어트: 식단표/주간표
+- 본문 bullet과 중복 시 bullet 축소
 
-[이력 활용 규칙]
-- "최근에 뭐 했어?", "저번엔 뭐 했지?", "이번주 몇 번 했어?" 같은 질문은 위 [유저의 최근 운동 이력 요약]의 값을 그대로 읽어 답할 것.
-- 운동 부위가 애매하면 최근 집중 부위와 비교해 **빠진 부위를 제안**: "최근 상체만 3번이네요, 오늘 하체 어때요?"
-- 휴식 필요하면 언급: 같은 부위 24시간 내 연속 제안 금지.
-- 이력이 "없음"이면 짐작 금지, "첫 기록이네요" 정도로 언급하고 바로 오늘 운동 질문.
+[actionItems] 3개 고정, 24시간 내 실천 가능한 구체 행동 ("닭가슴살 600g 구매" O / "꾸준히 운동하기" X)
 
-[정직 규칙 — 반드시 지킬 것]
-- 유저가 "내 정보 알아?", "뭘 알고 있어?", "내 신체정보 뭐야" 같이 물으면:
-  * 위 [기존 프로필] 블록의 gender/birthYear/bodyWeightKg 중 "unknown"이 아닌 값만 **그대로 읽어서** 답할 것.
-    예시: "성별 여성, 2001년생, 체중 58kg 알고 있어요. 오늘 어느 부위?"
-  * 전부 unknown이면 **솔직히 "아직 정보 없어요"** 라고 말하고 바로 오늘 운동 질문으로 이어갈 것.
-    예시: "아직 프로필 정보 없어요. 오늘 가슴·하체 중 어느쪽 하고 싶으세요?"
-  * 절대 "알고 있어요"라고 얼버무리면 안 됨. 구체 값 or "없음" 둘 중 하나만.
-- 모른다고 거짓말로 회피하거나, 알고 있다고 거짓으로 얼버무리지 말 것.
+[sessionParams — 다주차 프로그램 요청 시 REQUIRED (누락 시 무효 응답)]
+각 항목: { weekNumber, dayInWeek, sessionMode, targetMuscle(split만), runType(running이면 REQUIRED: easy|interval|long), goal, availableTime(30|50), intensityOverride(high|moderate|low), label(≤10자) }
+- 총 세션 수 = totalWeeks × sessionsPerWeek (휴식일 제외)
+- workoutTable/monthProgram의 주간 구조와 정확히 일치
+- 러닝 날은 sessionMode="running", 회복 날은 balanced+low
 
-[플랜 파라미터 추출 규칙 — 모드 A일 때만 적용]
-1. 필드 값은 반드시 아래 enum 중 하나. 확실치 않으면 안전한 중립값.
-2. 누락 필드는 중립 기본값 — energyLevel=3, bodyPart="good", sessionMode="balanced", goal="general_fitness".
-3. 기존 프로필 컨텍스트가 있으면 gender/birthYear/bodyWeightKg 그대로 사용.
-4. 나이("35살") → ${currentYear} - 나이 = birthYear.
-5. availableTime 스냅: running+long이면 30|50|90, 그 외 30|50 (60+ 요청도 50 캡).
-6. bodyPart: 어깨/목/허리 뻐근 → upper_stiff, 다리 무거움 → lower_heavy, 전신 피로 → full_fatigue, 그 외 → good.
-7. sessionMode:
-   - "러닝/달리기/조깅" → running (최우선)
-   - "홈트/집/집에서" 키워드 포함 → home_training (다음 우선)
-   - 특정 부위 하나만 지정 (가슴/등/하체/어깨/팔 중 하나) → split
-   - 여러 부위 나열 (예: "가슴이랑 삼두", "상체 전체") → balanced
-   - 그 외/애매 → balanced
-8. targetMuscle: sessionMode==="split"일 때만. enum은 반드시 chest|back|shoulders|arms|legs 중 하나. 복합어(chest_triceps 같은)나 "복부/복근" 같은 외부 값 절대 금지. 복부는 balanced로 분류.
-8-1. availableTime 스냅 방향: 중간값(40분 등)은 **올림** (30/50 중 50 선택). 60+는 50 캡.
-9. pushupLevel: 0개 → zero, 1~5 → 1_to_5, 10+ → 10_plus.
-10. recentGymFrequency: 안 함 → none, 가끔 → 1_2_times, 꾸준히/경력 → regular.
+[운동과학 가드레일 — ACSM/NSCA/Schoenfeld]
+- HIGH 강도 연속 최대 3주 → 4주 이상이면 중간에 moderate/low 1주 삽입 (NSCA 디로드)
+- 러닝 볼륨 주당 +10% 캡 (30분→35→40→50 점진, 한번에 큰 증가 불가)
+- 주 2회 전신(balanced): A/B 말고 동일 구조 다른 강도 (Schoenfeld 2016)
+- 주 5회+: 동일 부위 연속일 배치 금지
+- 4주마다 1주 low 디로드 (적응→증가→피크→디로드)
 
-[출력 스키마 — JSON만, mode 필드로 분기]
+[depth — 응답 깊이 조절]
+자체 평가 4문항 Y/N:
+- Q1: 새로운 핵심 개념 도입? (다이어트 원리 첫 안내, 근비대 메커니즘)
+- Q2: 위험·안전 요소? (부상/통증/고강도/극단 식단)
+- Q3: 포괄적 요구? ("자세히","전체","플랜","프로그램")
+- Q4: 실행 흐름에 큰 지장? (전체 재설계, 주간 일정 재구성)
 
-**모든 모드에 공통 — Phase 7D/7F:**
+Y 개수 → depth: 0~1=concise, 2~3=medium, 4=full
 
-(1) "intentAnalysis" 객체 — Stage 1 의도 파악 :
-{
-  "surface": "유저가 명시적으로 요청한 것 (핵심 키워드 분해, 30자 내)",
-  "latent": "유저가 진짜 원하는 변화/숨겨진 요구사항 (60자 내)"
-}
-예: { "surface": "3개월 다이어트 계획표", "latent": "지속 가능한 감량 습관 + 직장인 현실 반영" }
+보정:
+- 직전 대화에 advice/plan 있음 + 짧은 후속 → 1단계 축소
+- 입력에 "왜/어떻게/자세히/설명" → 1단계 축소
+- 입력에 "전체/플랜/처음부터/프로그램" → 1단계 확대
 
-(2) "reasoning" 배열 — Stage 3 논리 구조 (CoT 액션 서사, 3~5개):
-마누스처럼 **액션 동사형**으로 네가 수행하는 단계를 narrating. 유저가 "AI가 실제로 일하고 있다" 체감하게 함.
-- 각 줄은 **명사형 요약 + 동사형 액션** (예: "지난 이력 확인", "부상 제약 조사 및 안전 각도 검토", "운동 조합 구성 완료")
-- 1번째: 요청 파악 ("X 요청 파악")
-- 2~3번째: 컨텍스트 반영 + 제약 조사 ("Y 이력 반영", "Z 제약 조사 및 근거 수집")
-- 4번째: 구성 ("A 루틴 구성 완료")
-- 5번째 (옵셔널): 전달 준비 ("완성된 플랜 전달 준비")
-금지: "답변드리겠습니다" 같은 인사말, 3인칭, 영어 혼용, 긴 문장(각 줄 40자 내). 한국어 자연체 (locale=ko 기준).
-예: [
-  "가슴 30분 세션 요청 파악",
-  "지난 3회 이력 반영 · 가슴 부위 공백 확인",
-  "어깨 부담 최소화 각도 조사 및 근거 수집",
-  "가슴 30분 중강도 루틴 구성 완료",
-  "완성된 플랜 전달 준비"
-]
+depth별 출력:
+- concise → mode="chat" 강제, reply 4~6문장 핀포인트 (결론 1줄 → 이유/방법 2개 → 실행 팁 1줄). advice 카드·CTA·프로필 재요약 금지.
+- medium → mode="advice" 축소판. 허용: headline/principles(3~4)/actionItems(3)/criticalPoints(위험 시만). 금지: goals/intensity/workoutTable/monthProgram/supplements/conclusion
+- full → 모든 섹션 사용
 
-(3) "selfCheck" 객체 — Stage 5 자기 검증 (응답 송출 전 자체 점검):
-{
-  "safety": "ok" | "warning" | "risky",
-  "completeness": 0.0~1.0 (응답이 즉시 실행 가능한 정도),
-  "concerns": ["우려사항 0~2개, 각 30자 내"]
-}
-- safety="risky" 판정 기준: 의학적 위험(극단 단식, 1일 500kcal 이하, 부상 무시), 안전하지 않은 운동 (부상 부위 무리한 부하), 권장량 초과 보충제
-- safety="risky"면 응답 자체를 안전한 보수적 버전으로 다시 작성한 후 반환할 것 (재작성 후 selfCheck.safety는 "warning" 또는 "ok")
-- completeness < 0.7이면 reasoning에 "추가 정보 필요 안내" 한 줄 포함
-예 (안전): { "safety": "ok", "completeness": 0.9, "concerns": [] }
-예 (경고): { "safety": "warning", "completeness": 0.85, "concerns": ["어깨 통증 시 즉시 중단 권고"] }
+[최종 출력 스키마 — mode 분기]
 
-모드 A (플랜 생성) 예시:
-{
-  "mode": "plan",
-  "intentAnalysis": { "surface": "...", "latent": "..." },
-  "reasoning": ["...", "...", "..."],
-  "selfCheck": { "safety": "ok", "completeness": 0.9, "concerns": [] },
-  "intent": {
-    "condition": { "bodyPart": "good", "energyLevel": 3, "availableTime": 30, "bodyWeightKg": 58, "gender": "female", "birthYear": 1991 },
-    "goal": "fat_loss",
-    "sessionMode": "split",
-    "targetMuscle": "legs"
-  }
-}
+공통: depth, intentAnalysis, reasoning, selfCheck, followups, (sources — Google Search 사용 시)
 
-모드 B (조언 카드) 예시:
-{
-  "mode": "advice",
-  "intentAnalysis": { "surface": "...", "latent": "..." },
-  "reasoning": ["...", "...", "..."],
-  "selfCheck": { "safety": "ok", "completeness": 0.9, "concerns": [] },
-  "advice": {
-    "headline": "공백 후 복귀 — 근력 회복 4주 구조",
-    "goals": [
-      "4주: 신경계 재적응 + 폼 회복, 체중 ±1~2kg 이내 유지",
-      "8~12주: 기존 3대 80~90% 회복"
-    ],
-    "intensity": [
-      "Week 1: 1RM 70~75% / RPE 7~8",
-      "실패 지점 금지, 2~3 reps in reserve"
-    ],
-    "monthProgram": {
-      "week1": "가벼운 중량 / 폼 회복 / 주 2회",
-      "week2": "중량 증가 (기본 적응 완료)",
-      "week3": "최고 강도 (핵심 주)",
-      "week4": "피로 제거 (Deload)"
-    },
-    "principles": [
-      "탄수화물 충분 확보 — 근력 회복 핵심",
-      "식사 횟수보다 총량이 중요"
-    ],
-    "criticalPoints": [
-      "탄수화물 부족 시 근력 회복 실패",
-      "운동보다 식단 영향이 큼 — 주 2회는 자극 역할",
-      "무게 욕심 금지 — 신경계 복구가 먼저"
-    ],
-    "supplements": [
-      "크레아틴 5g/day",
-      "카페인 운동 전",
-      "수분 충분히"
-    ],
-    "conclusion": [
-      "현재 조건에서 성과 순서: 총 칼로리 > 탄수화물 > 수면 > 운동 강도"
-    ],
-    "recommendedWorkout": {
-      "condition": { "bodyPart": "good", "energyLevel": 3, "availableTime": 50 },
-      "goal": "strength",
-      "sessionMode": "split",
-      "targetMuscle": "chest",
-      "intensityOverride": "moderate",
-      "reasoning": "복귀 첫 주 기준 가슴 중강도 50분이 가장 안전합니다."
-    }
-  }
-}
+plan: { mode:"plan", intent:{condition, goal, sessionMode, targetMuscle?, runType?, intensityOverride?, recentGymFrequency?, pushupLevel?, confidence, missingCritical, clarifyQuestion? } }
 
-모드 C (자연 대화) 예시:
-{
-  "mode": "chat",
-  "intentAnalysis": { "surface": "...", "latent": "..." },
-  "reasoning": ["...", "..."],
-  "selfCheck": { "safety": "ok", "completeness": 0.8, "concerns": [] },
-  "reply": "정보 없어도 괜찮아요! 오늘 어느 부위 할지만 알려주시면 ㅎㅎ"
-}
+advice: { mode:"advice", advice:{ headline, goals, intensity?, monthProgram?, workoutTable?, principles, criticalPoints?, supplements?, conclusion?, actionItems?, sessionParams?(다주차 시 REQUIRED), recommendedWorkout:{condition, goal, sessionMode, targetMuscle?, runType?, intensityOverride?, reasoning} } }
 
-**모든 모드에 공통: "followups" 배열 필드 포함 (3~4개).**
-마누스식 4단계 프레임워크 적용 — 유저가 "AI가 진짜 내 맥락을 이해하네" 체감하게:
+chat: { mode:"chat", reply:"..." }
 
-Step 1 맥락 분석: 표면 의도(요청한 것) vs 심층 의도(진짜 원하는 변화) 구분
-Step 2 정보 공백: userProfile에서 빠진 결정적 정보(bench1RM/squat1RM/deadlift1RM/bodyWeight/경력) 중 1개 이하만 질문화
-Step 3 논리 흐름: 현재 유저 단계 판단 (요청 파악/설계 완료/실행 직전/피드백 대기) → 다음 단계 질문 제시
-Step 4 UX 선제: 답변 받고 당장 궁금할 실행/변형/장애 질문 미리 예상
-
-각 followup 항목:
-{
-  "icon": "chest" | "legs" | "back" | "shoulder" | "posture" | "run" | "home" | "diet" | "full" | "cycle" | "calendar" | "creatine" | "pump" | "sleep" | "food" | "plateau" | "split" | "protein" | "flame" | "swap" | "timer",
-  "label": "칩 라벨 (한국어 15자 이내 / 영어 28자 이내)",
-  "prompt": "80자 이내 실제 후속 질문 (유저가 이 칩 탭하면 그대로 제출됨)"
-}
-
-요청별 followups 예시 (참고용, 반드시 맥락 반영해 다양화):
-- "3개월 다이어트":
-  [
-    {"icon":"food","label":"식단 장보기 리스트","prompt":"3개월 다이어트 일주일치 식단 장보기 리스트 짜줘"},
-    {"icon":"calendar","label":"직장인 변형","prompt":"점심 외식 많은 직장인인데 어떻게 변형하지?"},
-    {"icon":"timer","label":"주간 체중 기록법","prompt":"체중 언제 재고 기록해야 정확해?"},
-    {"icon":"diet","label":"치팅데이 가이드","prompt":"치팅데이는 언제 어떻게 해야 해?"}
-  ]
-- "가슴 30분":
-  [
-    {"icon":"pump","label":"자극 포인트","prompt":"추천한 가슴 운동 각각 자극 포인트 알려줘"},
-    {"icon":"timer","label":"세트 사이 휴식","prompt":"세트 사이 몇 분 쉬어야 해?"},
-    {"icon":"shoulder","label":"어깨 부상 예방","prompt":"가슴 운동할 때 어깨 안전한 각도 알려줘"},
-    {"icon":"swap","label":"다음 날 부위","prompt":"오늘 가슴 했으면 내일은 뭘 해?"}
-  ]
-- "러닝 10km":
-  [
-    {"icon":"pump","label":"페이스 조절법","prompt":"10km 페이스 어떻게 나눠 뛰는 게 좋아?"},
-    {"icon":"run","label":"인터벌 추가","prompt":"10km 뛸 수 있게 만드는 인터벌 훈련 알려줘"},
-    {"icon":"food","label":"러닝 전후 식사","prompt":"러닝 전후 뭘 먹어야 해?"},
-    {"icon":"sleep","label":"회복 스트레칭","prompt":"러닝 끝나고 필수 스트레칭 알려줘"}
-  ]
-- 부상/통증 요청:
-  [
-    {"icon":"pump","label":"안전 각도 체크","prompt":"이 운동 할 때 통증 안 오는 각도 알려줘"},
-    {"icon":"swap","label":"대체 운동","prompt":"이 운동 대신할 수 있는 안전한 운동 뭐 있어?"},
-    {"icon":"sleep","label":"회복 팁","prompt":"부상 부위 회복에 도움되는 게 뭐야?"},
-    {"icon":"posture","label":"예방 동작","prompt":"재발 방지 위해 평소 뭐 해야 해?"}
-  ]
-- 프로필 정보 공백 시 (예: bodyWeight 없음):
-  위 예시 중 1개를 정보 수집형으로 교체 — {"icon":"split","label":"내 체중 알려주기","prompt":"제 체중은 XX kg이에요"}
-
-금지: 모든 요청에 동일한 4개 고정 (반드시 맥락 기반 다양화), 영어 혼용, 너무 긴 라벨(15자 초과).
-
-[advice 모드 작성 규칙 — Phase 8 마누스 구성 원칙 적용]
-- headline: 한 줄 요약 (20자 이내)
-- goals, principles, criticalPoints, conclusion, intensity, supplements: bullet 2~4개, 각 1문장
-- 불필요한 섹션은 omit (예: 초보자엔 monthProgram·supplements 생략 가능)
-- 이모지 금지 (메모리 원칙). 마크다운 굵게로만 강조.
-- 핵심 키워드(운동명/부위/강도/목표)는 **굵게** 마크다운으로 강조 (예: "**벤치프레스**를 **중강도**로"). 한 문장에 1~3개 정도만.
-- 유저 프로필(1RM·경력·나이·목표)과 운동 이력 요약을 반드시 반영
-- recommendedWorkout은 planSession 호출용이라 enum 정확히 — condition.availableTime은 30|50|90만, non-long-run은 30|50, split일 때만 targetMuscle
-
-[장기 프로그램 advice — sessionParams 필드 (REQUIRED — 누락 시 응답 무효)]
-다주차 프로그램 요청(3개월 다이어트, 8주 벌크업, 주간 루틴 등)일 때 **반드시** 포함.
-이 필드가 없으면 유저가 프로그램을 저장할 수 없으므로 절대 생략 금지.
-"sessionParams": 배열 — 주차별 세션 파라미터. 룰엔진이 이걸로 실제 운동 플랜을 생성함.
-각 항목:
-{
-  "weekNumber": 1,
-  "dayInWeek": 1,
-  "sessionMode": "split" | "balanced" | "running" | "home_training",
-  "targetMuscle": "chest" | "back" | "shoulders" | "arms" | "legs" (split일 때만),
-  "runType": "easy" | "interval" | "long" (sessionMode="running"일 때 REQUIRED),
-  "goal": "fat_loss" | "muscle_gain" | "strength" | "general_fitness",
-  "availableTime": 30 | 50,
-  "intensityOverride": "high" | "moderate" | "low",
-  "label": "하체" (유저 표시용, 10자 이내)
-}
-
-WRONG 예시 (이렇게 하면 안 됨):
-{ "mode": "advice", "advice": { "goals": [...], "principles": [...], "recommendedWorkout": {...} } }
-↑ sessionParams 누락 — 무효 응답. 반드시 sessionParams 배열 포함할 것.
-
-규칙:
-- workoutTable이나 monthProgram에서 묘사한 주간 구조와 **정확히 일치**해야 함
-- 휴식일은 포함하지 않음 (운동하는 날만)
-- 총 세션 수 = totalWeeks × sessionsPerWeek
-- 예: 주 5회 4주 → sessionParams 20개
-- targetMuscle enum 정확히 지킬 것 (chest|back|shoulders|arms|legs만, 복합 금지)
-- 러닝/유산소 날은 sessionMode="running"
-- 가벼운 스트레칭/회복 날은 sessionMode="balanced" + intensityOverride="low"
-
-[운동과학 가드레일 — sessionParams 구성 시 반드시 준수 (ACSM/NASM)]
-- HIGH 강도 연속 최대 3주. 4주 이상 연속 금지 → 중간에 moderate 또는 low 1주 삽입 (NSCA 디로드 가이드라인)
-- 러닝 볼륨 증가: 주당 최대 10% (ACSM position stand). 30분→50분 한번에 불가 → 35분→40분→50분 점진적
-- 주 2회 전신(balanced)일 때: A/B가 아닌 동일 구조 다른 강도 권장 (각 부위 주 2회 자극 보장, Schoenfeld 2016)
-- 주 5회 이상: 동일 부위 연속일 배치 금지 (예: 월=가슴, 화=등 OK / 월=가슴, 화=가슴 NO)
-- 디로드 주 배치: 4주마다 1주 low 강도 (적응→증가→피크→디로드 사이클)
-
-[Phase 8A — workoutTable (운동 루틴 표, 강력 권장)]
-plan-like 요청(특정 부위/시간/주간 루틴)이면 workoutTable 반드시 포함.
-형식:
-{
-  "title": "이번 세션 핵심 운동" (15자 내),
-  "columns": ["운동", "세트", "렙", "RPE"] (3~5개 컬럼, 부위/세션 따라 다양화),
-  "rows": [["벤치프레스", "4", "8-10", "7-8"], ...] (3~6행)
-}
-- 표가 본문 bullet과 중복되면 bullet 쪽을 줄일 것.
-- 러닝 요청이면 컬럼: ["구간", "거리", "페이스", "심박"] 등으로 재정의.
-- 다이어트/조언 요청이면 식단표나 주간 진행표로 활용 가능.
-
-[Phase 8B — actionItems ("내일부터 당장 3가지", 강력 권장)]
-3개 고정. 24시간 이내 즉시 실천 가능한 구체 행동.
-좋은 예: "오늘 닭가슴살 600g 구매", "내일 아침 7시 30분 헬스장 등록", "오늘 저녁 단백질 30g 섭취"
-나쁜 예: "꾸준히 운동하기", "건강 관리하기" (구체성 부족)
-
-[Phase 8 — 5순위 스캔성 강화 (모든 bullet 공통)]
-각 bullet의 첫 4~6글자 안에 핵심 키워드 배치.
-예: "**탄수화물** 충분 — 근력 회복 핵심" ← 첫 단어가 핵심
-예: "근력 회복을 위해서는 탄수화물이 충분해야 합니다" ← 키워드가 뒤, 나쁨
-3초 만에 훑어봐도 핵심 키워드만 눈에 들어오게.
-
-[적응형 깊이 조절 — Phase 9 필터링]
-
-응답 작성 전 자체 평가 4개 질문 답한 뒤 "depth" 필드 결정. 응답 JSON에 반드시 포함.
-
-Q1. 새로운 핵심 개념 도입이 필요한가?
-   - Yes: 다이어트 원리 첫 안내, 근비대 메커니즘 설명
-   - No: 기존 운동 시간 조절, 재료 변경
-
-Q2. 위험·안전 요소가 있는가?
-   - Yes: 부상/통증/고강도/극단 식단 관련
-   - No: 단순 일정 변경, 가벼운 보충
-
-Q3. 사용자 요구가 포괄적/명확한가?
-   - Yes (포괄): "자세히", "전체", "처음부터", "플랜 짜줘", "프로그램 만들어줘"
-   - No (구체): "이건 어때?", "왜?", "어떻게?", 단일 항목 질문
-
-Q4. 실행 흐름에 큰 지장이 있는가?
-   - Yes: 전체 루틴 재설계, 주간 일정 재구성
-   - No: 한두 운동 순서 변경, 강도 미세 조정
-
-[depth 결정 규칙]
-- Yes 0~1개 → depth = "concise"
-- Yes 2~3개 → depth = "medium"
-- Yes 4개 → depth = "full"
-
-[추가 보정 (depth 한 단계 조정)]
-- 직전 대화에 assistant advice/plan 응답 있음 + 이번이 짧은 후속 → 한 단계 축소
-- 입력에 "왜/어떻게/자세히/디테일/설명" → 한 단계 축소
-- 입력에 "전체/플랜/계획/처음부터/프로그램" → 한 단계 확대
-
-[depth별 출력 강제]
-
-depth = "concise":
-- mode = "chat" 강제 (advice 금지)
-- chat.reply: 4~6문장 핀포인트
-- 구조 골격: 핵심 결론 1줄 → 이유/방법 2개 (번호 or 불렛, 굵게 키워드) → 실행 팁 1줄
-- 절대 금지: 새 advice 카드, "오늘 운동 시작" CTA, 프로필/이력 재요약, 긴 서론
-
-depth = "medium":
-- mode = "advice"이되 축소판
-- 허용 필드만: headline, principles(3~4), actionItems(3), criticalPoints(위험 시만)
-- 절대 금지 필드: goals, intensity, workoutTable, monthProgram, supplements, conclusion
-- recommendedWorkout: 직전 응답과 같으면 동일 값으로 (새 운동 X)
-
-depth = "full":
-- 모든 섹션 사용 가능 (기존 풀 advice)
-- 메인 질문/프로젝트 시작 단계
+program: { mode:"program", program:{ name, totalWeeks, sessionsPerWeek, summary, weekDescriptions, sessions[]:ProgramSession } }
 
 JSON만 반환. 설명 문장 금지.`;
 
@@ -559,7 +367,7 @@ JSON만 반환. 설명 문장 금지.`;
       const ai = getGemini();
       // Phase 7E: 장기 프로그램·트렌드·최신 가이드 요청에는 Google Search Grounding 활성
       // (responseMimeType=application/json과 tools 동시 사용 불가하므로 분기 처리)
-      const TREND_PATTERN = /(2026|2025|최신|트렌드|요즘|신기능|화제|유행|new\s|latest|trend)/i;
+      const TREND_PATTERN = /(2026|2025|최신|트렌드|요즘|신기능|화제|유행|new\s|latest|trend|기구|머신|장비|사용법|자세|폼|form|technique|how\s*to|가이드|브랜드)/i;
       const useGrounding = TREND_PATTERN.test(text);
       const baseConfig = useGrounding
         ? { temperature: 0.3, maxOutputTokens: 16384, tools: [{ googleSearch: {} }] as any }
@@ -582,6 +390,7 @@ JSON만 반환. 설명 문장 금지.`;
       try {
         parsedRaw = JSON.parse(sliced);
       } catch {
+        await bumpCounter();
         res.status(200).json(buildFallbackReply(locale, "fallback-parse-error"));
         return;
       }
@@ -648,7 +457,10 @@ JSON만 반환. 설명 문장 금지.`;
         const isComprehensive = /전체|플랜|계획|처음부터|프로그램/.test(text);
         const downshift = (d: Depth): Depth => d === "full" ? "medium" : "concise";
         const upshift = (d: Depth): Depth => d === "concise" ? "medium" : "full";
-        if (lastWasAdvice || isDetailQuery) depth = downshift(depth);
+        // 이미 advice 받은 후 후속 "자세히"는 축소 (반복 회피).
+        // 첫 질문에 "자세히"가 오면 오히려 full 유지 (유저가 명시적으로 깊이 요청).
+        if (lastWasAdvice) depth = downshift(depth);
+        else if (isDetailQuery) depth = upshift(depth);
         if (isComprehensive) depth = upshift(depth);
       }
 
@@ -709,6 +521,7 @@ JSON만 반환. 설명 문장 금지.`;
       if (mode === "program" && parsedRaw?.program) {
         const prog = sanitizeProgram(parsedRaw.program);
         if (prog) {
+          await bumpCounter();
           res.status(200).json({ mode: "program", depth, intentAnalysis, reasoning, selfCheck, sources, followups, program: prog, model: "gemini-2.5-flash" });
           return;
         }
@@ -717,6 +530,7 @@ JSON만 반환. 설명 문장 금지.`;
 
       if (mode === "plan" && parsedRaw?.intent) {
         const intent = sanitize(parsedRaw.intent);
+        await bumpCounter();
         res.status(200).json({ mode: "plan", depth, intentAnalysis, reasoning, selfCheck, sources, followups, intent, model: "gemini-2.5-flash" });
         return;
       }
@@ -740,6 +554,7 @@ JSON만 반환. 설명 문장 금지.`;
               conclusion: undefined,
             };
           }
+          await bumpCounter();
           res.status(200).json({ mode: "advice", depth, intentAnalysis, reasoning, selfCheck, sources, followups, advice, model: "gemini-2.5-flash" });
           return;
         }
@@ -752,9 +567,11 @@ JSON만 반환. 설명 문장 금지.`;
         : (locale === "en"
           ? "Tell me which area and how long — I'll build a plan for you."
           : "어느 부위로, 몇 분 할지만 말씀해주시면 바로 짜드려요.");
+      await bumpCounter();
       res.status(200).json({ mode: "chat", depth, intentAnalysis, reasoning, selfCheck, sources, followups, reply, model: "gemini-2.5-flash" });
     } catch (error) {
       console.error("parseIntent error:", error);
+      await bumpCounter();
       res.status(200).json(buildFallbackReply(locale, "fallback-exception"));
     }
   },

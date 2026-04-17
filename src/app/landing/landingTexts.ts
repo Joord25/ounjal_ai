@@ -117,7 +117,7 @@ const ko: LandingTexts = {
       desc: "부담 없이 시작",
       price: "0원",
       unit: "/월",
-      features: ["비로그인 3회 체험", "무료 4회 AI 운동 플랜", "운동 기록 저장"],
+      features: ["비로그인 1회 체험", "무료 2회 AI 운동 플랜 + 채팅 3회", "운동 기록 저장"],
     },
     premium: {
       badge: "초기 특가",
@@ -133,7 +133,7 @@ const ko: LandingTexts = {
         "AI 코치 피드백",
         "AI 영양 코칭",
         "성장 예측 리포트",
-        "주간 퀘스트 + 시즌 티어",
+        "장기 프로그램 모드 저장",
       ],
     },
   },
@@ -146,7 +146,7 @@ const ko: LandingTexts = {
       },
       {
         q: "AI가 짜준 루틴, 믿고 따라 해도 안전한가요?",
-        a: "단순 텍스트 생성이 아닙니다. 국제 운동 가이드라인 **ACSM·NASM**과 한체대 운동과학 박사진 감수를 거친 알고리즘으로 설계됐어요. 부상·통증 부위를 말하면 해당 관절에 무리 가지 않는 대체 동작을 즉시 제안합니다.",
+        a: "단순 텍스트 생성이 아닙니다. 국제 운동 가이드라인 **ACSM·NASM**과 **한체대** 운동과학 박사진 감수를 거친 알고리즘으로 설계됐어요. 부상·통증 부위를 말하면 해당 관절에 무리 가지 않는 대체 동작을 즉시 제안합니다.",
       },
       {
         q: "PT 받기엔 비싸고 혼자 하긴 막막한데, 도움이 될까요?",
@@ -158,7 +158,7 @@ const ko: LandingTexts = {
       },
       {
         q: "무료로 충분한가요? 프리미엄은 뭐가 좋아요?",
-        a: "무료로도 AI 루틴의 강력함을 충분히 경험할 수 있어요 (월 **4회** 플랜 + 기록 저장). 더 빠른 성장을 원하면 프리미엄: 무제한 플랜, AI 분석 리포트, **AI 영양 코치** 무제한 채팅, 성장 예측 리포트 전부 포함. 월 **6,900원**.",
+        a: "무료로도 AI 루틴의 강력함을 충분히 경험할 수 있어요 (무료 플랜 **2회** + AI 채팅 **3회** + 기록 저장). 더 빠른 성장을 원하면 프리미엄: 무제한 플랜, AI 분석 리포트, **AI 영양 코치** 무제한 채팅, 성장 예측 리포트 전부 포함. 월 **6,900원**.",
       },
       {
         q: "구독 취소 / 환불 / 데이터 보호는?",
@@ -226,7 +226,7 @@ const en: LandingTexts = {
       desc: "No commitment",
       price: "$0",
       unit: "/mo",
-      features: ["3 free trials without sign-up", "4 free AI workout plans", "Workout history saved"],
+      features: ["1 free trial without sign-up", "2 free AI workout plans + 3 AI chats", "Workout history saved"],
     },
     premium: {
       badge: "Early Bird",
@@ -242,7 +242,7 @@ const en: LandingTexts = {
         "AI coach feedback",
         "AI nutrition coaching",
         "Growth prediction report",
-        "Weekly quests + season tiers",
+        "Save long-term programs",
       ],
     },
   },
@@ -267,7 +267,7 @@ const en: LandingTexts = {
       },
       {
         q: "Is free enough? What does Premium add?",
-        a: "Free gives you the full AI routine experience (**4 plans/month** + workout logs). Want faster growth? Premium unlocks unlimited plans, AI analysis reports, **unlimited AI nutrition coach** chat, and growth prediction reports. Just **6,900 KRW/month**.",
+        a: "Free gives you the full AI routine experience (**2 free plans** + **3 AI chats** + workout logs). Want faster growth? Premium unlocks unlimited plans, AI analysis reports, **unlimited AI nutrition coach** chat, and growth prediction reports. Just **6,900 KRW/month**.",
       },
       {
         q: "Cancellation, refunds, data protection?",

@@ -86,16 +86,12 @@ interface DashboardData {
   usage?: {
     guestTrial: {
       total: number;
-      used1: number;
-      used2: number;
       exhausted: number;
     };
     freePlan: {
       total: number;
       used0: number;
       used1: number;
-      used2: number;
-      used3: number;
       exhausted: number;
     };
   };
@@ -876,48 +872,41 @@ export default function AdminPage() {
                       <p className="text-[10px] text-gray-400">누적 lifetime 한도 기준</p>
                     </div>
 
-                    {/* 비로그인 체험 (3회 한도) */}
+                    {/* 비로그인 체험 (1회 한도) */}
                     <div className="mb-4">
                       <div className="flex items-baseline justify-between mb-2">
-                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">비로그인 체험 · 3회 한도</p>
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">비로그인 체험 · 1회 한도</p>
                         <p className="text-[10px] text-gray-400">총 {dashboard.usage.guestTrial.total} IP</p>
                       </div>
                       {(() => {
                         const total = dashboard.usage.guestTrial.total || 1;
-                        const { used1, used2, exhausted } = dashboard.usage.guestTrial;
+                        const { exhausted } = dashboard.usage.guestTrial;
                         const pct = (n: number) => Math.round((n / total) * 100);
-                        const bar = (n: number, color: string, label: string) => (
+                        return (
                           <div className="mb-1.5">
                             <div className="flex items-center justify-between text-[11px] mb-0.5">
-                              <span className="text-gray-500">{label}</span>
-                              <span className="font-bold text-gray-700">{n} IP <span className="text-gray-400">({pct(n)}%)</span></span>
+                              <span className="text-gray-500">1회 소진 (로그인 유도)</span>
+                              <span className="font-bold text-gray-700">{exhausted} IP <span className="text-gray-400">({pct(exhausted)}%)</span></span>
                             </div>
                             <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                              <div className={`h-full rounded-full transition-all ${color}`} style={{ width: `${pct(n)}%` }} />
+                              <div className="h-full rounded-full transition-all bg-red-500" style={{ width: `${pct(exhausted)}%` }} />
                             </div>
                           </div>
-                        );
-                        return (
-                          <>
-                            {bar(used1, "bg-emerald-300", "1회 사용")}
-                            {bar(used2, "bg-amber-400", "2회 사용")}
-                            {bar(exhausted, "bg-red-500", "3회 소진 (페이월 hit)")}
-                          </>
                         );
                       })()}
                     </div>
 
                     <div className="h-px bg-gray-100 my-3" />
 
-                    {/* 로그인 무료 (4회 한도) */}
+                    {/* 로그인 무료 (2회 한도) */}
                     <div>
                       <div className="flex items-baseline justify-between mb-2">
-                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">로그인 무료 · 4회 한도</p>
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">로그인 무료 · 2회 한도</p>
                         <p className="text-[10px] text-gray-400">총 {dashboard.usage.freePlan.total}명 (active 제외)</p>
                       </div>
                       {(() => {
                         const total = dashboard.usage.freePlan.total || 1;
-                        const { used0, used1, used2, used3, exhausted } = dashboard.usage.freePlan;
+                        const { used0, used1, exhausted } = dashboard.usage.freePlan;
                         const pct = (n: number) => Math.round((n / total) * 100);
                         const bar = (n: number, color: string, label: string, clickable?: boolean) => (
                           <div className="mb-1.5">
@@ -940,9 +929,7 @@ export default function AdminPage() {
                           <>
                             {bar(used0, "bg-gray-300", "0회 (미시작)")}
                             {bar(used1, "bg-emerald-300", "1회 사용")}
-                            {bar(used2, "bg-emerald-400", "2회 사용")}
-                            {bar(used3, "bg-amber-400", "3회 사용")}
-                            {bar(exhausted, "bg-red-500", "4회 소진 (페이월 hit)", true)}
+                            {bar(exhausted, "bg-red-500", "2회 소진 (페이월 hit)", true)}
                           </>
                         );
                       })()}

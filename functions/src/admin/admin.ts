@@ -375,16 +375,14 @@ export const adminDashboard = onRequest(
       });
 
       // 1b) 체험/무료 풀 사용 분포 (회의: 소진 현황)
-      // 비로그인 체험 — trial_ips 컬렉션
+      // 비로그인 체험 — trial_ips 컬렉션 (GUEST_TRIAL_LIMIT=1 기준: 1회 쓰면 바로 소진)
       const trialIpsSnap = await db.collection("trial_ips").get();
-      let trialUsed1 = 0, trialUsed2 = 0, trialExhausted = 0;
+      let trialExhausted = 0;
       trialIpsSnap.forEach(doc => {
         const count = Number(doc.data().count || 0);
-        if (count >= 3) trialExhausted++;
-        else if (count === 2) trialUsed2++;
-        else if (count >= 1) trialUsed1++;
+        if (count >= 1) trialExhausted++;
       });
-      const trialIpsTotal = trialUsed1 + trialUsed2 + trialExhausted;
+      const trialIpsTotal = trialExhausted;
 
       // 회의: freePlan 집계 SSOT를 Auth(Google 로그인)로 고정
       // 이유: Firestore users/* 에는 익명·삭제된 고아 문서가 섞여 있어
@@ -409,8 +407,9 @@ export const adminDashboard = onRequest(
       const googleUids = new Set(allAuthUsers.filter(u => !u.isAnonymous).map(u => u.uid));
 
       // 로그인 무료 유저 — users.planCount (Google 계정만, active 구독자 제외)
+      // FREE_PLAN_LIMIT=2 기준: 2회 이상 = 소진 (페이월 hit)
       const usersSnap = await db.collection("users").get();
-      let free0 = 0, free1 = 0, free2 = 0, free3 = 0, freeExhausted = 0;
+      let free0 = 0, free1 = 0, freeExhausted = 0;
       usersSnap.forEach(doc => {
         const uid = doc.id;
         // 익명/고아 문서 제외 — Auth 의 Google 계정만 카운트 (SSOT 정렬)
@@ -419,9 +418,7 @@ export const adminDashboard = onRequest(
         // active 구독자 제외 — 이미 결제해서 소진 관점 무의미
         if (subStatus === "active") return;
         const planCount = Number(doc.data().planCount || 0);
-        if (planCount >= 4) freeExhausted++;
-        else if (planCount === 3) free3++;
-        else if (planCount === 2) free2++;
+        if (planCount >= 2) freeExhausted++;
         else if (planCount === 1) free1++;
         else free0++;
       });
@@ -434,7 +431,7 @@ export const adminDashboard = onRequest(
         if ((uidToSubStatus.get(u.uid) || "free") === "active") return;
         free0++;
       });
-      const freeUsersTotal = free0 + free1 + free2 + free3 + freeExhausted;
+      const freeUsersTotal = free0 + free1 + freeExhausted;
 
       // 2) payments 서브컬렉션 → 실제 결제 기록 기반 매출 집계 (SSOT)
       let monthlyRevenue = 0;
@@ -582,17 +579,13 @@ export const adminDashboard = onRequest(
         usage: {
           guestTrial: {
             total: trialIpsTotal,
-            used1: trialUsed1,
-            used2: trialUsed2,
-            exhausted: trialExhausted,  // >= 3회 사용 (소진)
+            exhausted: trialExhausted,  // >= 1회 사용 (GUEST_TRIAL_LIMIT=1이므로 1회면 소진)
           },
           freePlan: {
             total: freeUsersTotal,
             used0: free0,    // 등록만 하고 아직 안 씀
             used1: free1,
-            used2: free2,
-            used3: free3,
-            exhausted: freeExhausted,  // >= 4회 사용 (소진 = 페이월 hit)
+            exhausted: freeExhausted,  // >= 2회 사용 (소진 = 페이월 hit)
           },
         },
       });
@@ -695,8 +688,8 @@ export const adminListUsers = onRequest(
           return expMs > nowMs && expMs <= nowMs + threeDaysMs;
         });
       } else if (status === "paywall_hit") {
-        // 회의: 무료 4회 소진 후 결제 안 한 유저 (페이월 hit)
-        filtered = searchFiltered.filter(u => u.status !== "active" && u.planCount >= 4);
+        // 회의: 무료 2회 소진 후 결제 안 한 유저 (페이월 hit)
+        filtered = searchFiltered.filter(u => u.status !== "active" && u.planCount >= 2);
       } else {
         filtered = searchFiltered.filter(u => u.status === status);
       }

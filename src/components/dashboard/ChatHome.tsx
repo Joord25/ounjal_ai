@@ -598,6 +598,22 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
       });
 
       if (!res.ok) {
+        // 서버 한도 초과 시 upgrade 카드로 전환 (클라이언트 선제 가드 우회·stale 캐시 대비)
+        if (res.status === 429 || res.status === 403) {
+          let code: string | undefined;
+          try { code = (await res.json())?.code; } catch { /* ignore */ }
+          let trig: UpgradeTrigger | null = null;
+          if (code === "GUEST_CHAT_LIMIT" || code === "TRIAL_LIMIT") trig = "guest_exhausted";
+          else if (code === "FREE_CHAT_LIMIT" || code === "FREE_LIMIT") trig = "free_limit";
+          else if (code === "PREMIUM_REQUIRED") trig = "high_value";
+          if (trig) {
+            trackEvent("chat_plan_failed", { reason: code ?? `http_${res.status}`, latency_ms: Date.now() - submitStart });
+            const finalTrig = trig;
+            setMessages((prev) => [...prev, { role: "assistant", kind: "upgrade", trigger: finalTrig }]);
+            setBusy(false);
+            return;
+          }
+        }
         trackEvent("chat_plan_failed", { reason: `http_${res.status}`, latency_ms: Date.now() - submitStart });
         setMessages((prev) => [...prev, { role: "assistant", content: t("chat_home.error.generic"), tone: "error" }]);
         setBusy(false);
