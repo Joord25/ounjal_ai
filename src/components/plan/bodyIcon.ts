@@ -6,10 +6,12 @@ import { getExerciseMuscleGroups } from "@/constants/workout";
  * false 동안엔 기존 deadlift.svg로 fallback — 런타임 404 방지.
  * Figma: node 24:19184 (glutes), node 26:15589 (Adductor) — kenko-ui-kit-update-1
  */
-const GLUTES_SVG_READY = true;       
-const ADDUCTOR_SVG_READY = true;     
-const WIDE_SQUAT_SVG_READY = true;   
-const CALF_SVG_READY = true;         
+// 2026-04-18 오후: 대표님 SVG 재제작 중. 플래그 모두 false로 되돌려 fallback 아이콘 사용.
+// 새 SVG 도착 시 각 플래그를 true로 전환하면 즉시 활성화.
+const GLUTES_SVG_READY = false;      // fallback: deadlift.svg
+const ADDUCTOR_SVG_READY = false;    // fallback: deadlift.svg
+const WIDE_SQUAT_SVG_READY = false;  // fallback: leg-press.svg
+const CALF_SVG_READY = false;        // fallback: leg-press.svg
 
 const GLUTE: Set<string> = new Set([
   "글루트 브릿지 (Glute Bridge)",
