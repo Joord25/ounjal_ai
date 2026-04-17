@@ -399,16 +399,26 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
       const totalWeeks = 4;
       const totalSessions = totalWeeks * weeklyFreq;
 
-      const muscleRotation: Array<"chest" | "back" | "shoulders" | "arms" | "legs"> = ["chest", "back", "legs", "shoulders", "arms"];
+      // 주간 부위 로테이션 — weeklyFreq에 맞춰 분할
+      const splitByFreq: Record<number, Array<{ mode: "split" | "running" | "balanced"; muscle?: "chest" | "back" | "shoulders" | "arms" | "legs" }>> = {
+        2: [{ mode: "split", muscle: "legs" }, { mode: "split", muscle: "chest" }],
+        3: [{ mode: "split", muscle: "legs" }, { mode: "split", muscle: "chest" }, { mode: "split", muscle: "back" }],
+        4: [{ mode: "split", muscle: "legs" }, { mode: "split", muscle: "chest" }, { mode: "split", muscle: "back" }, { mode: "split", muscle: "shoulders" }],
+        5: [{ mode: "split", muscle: "legs" }, { mode: "split", muscle: "chest" }, { mode: "split", muscle: "back" }, { mode: "split", muscle: "shoulders" }, { mode: "split", muscle: "arms" }],
+        6: [{ mode: "split", muscle: "legs" }, { mode: "split", muscle: "chest" }, { mode: "split", muscle: "back" }, { mode: "split", muscle: "shoulders" }, { mode: "split", muscle: "arms" }, { mode: "running" }],
+      };
+      const weekPattern = splitByFreq[weeklyFreq] ?? splitByFreq[3];
+      // 주차별 강도 프로그레션: 적응→증가→피크→디로드
       const weekIntensity: Array<"moderate" | "moderate" | "high" | "low"> = ["moderate", "moderate", "high", "low"];
 
       const sessionParams = Array.from({ length: totalSessions }, (_, idx) => {
         const weekIdx = Math.floor(idx / weeklyFreq);
+        const dayPattern = weekPattern[idx % weekPattern.length];
         return {
           condition: { ...rec.condition },
           goal: rec.goal,
-          sessionMode: rec.sessionMode,
-          targetMuscle: rec.sessionMode === "split" ? muscleRotation[idx % muscleRotation.length] : rec.targetMuscle,
+          sessionMode: dayPattern.mode,
+          targetMuscle: dayPattern.muscle,
           intensityOverride: weekIntensity[weekIdx] ?? "moderate",
         };
       });
