@@ -879,7 +879,7 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
           </div>
 
           {/* 회의 62: 비로그인·이력無 유저용 초기 CTA 카드 + 후속질문 칩 (Hershey 원칙) */}
-          {initialSuggestion && messages.length === 0 && !busy && !routing && !pendingIntent && (
+          {initialSuggestion && messages.length === 0 && !busy && !pendingIntent && (
             <div className="mt-5">
               <div className="bg-white rounded-2xl px-3.5 py-3 border border-[#2D6A4F]/30 shadow-sm">
                 <p className="text-[11px] font-medium text-gray-400 mb-0.5">
