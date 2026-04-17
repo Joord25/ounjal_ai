@@ -708,6 +708,10 @@ JSON만 반환. 설명 문장 금지.`;
       }
 
       if (mode === "advice" && parsedRaw?.advice) {
+        // Gemini 원본 sessionParams 로깅
+        console.log("[GEMINI_DEBUG] advice.sessionParams raw:", JSON.stringify(parsedRaw.advice.sessionParams ?? "NOT_PROVIDED"));
+        console.log("[GEMINI_DEBUG] advice.workoutTable:", JSON.stringify(parsedRaw.advice.workoutTable ?? "NOT_PROVIDED"));
+        console.log("[GEMINI_DEBUG] advice.monthProgram:", JSON.stringify(parsedRaw.advice.monthProgram ?? "NOT_PROVIDED"));
         let advice = sanitizeAdvice(parsedRaw.advice);
         if (advice) {
           // Phase 9: depth=medium이면 금지 필드 강제 제거 (축소 advice)

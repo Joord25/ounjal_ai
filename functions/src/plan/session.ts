@@ -207,6 +207,16 @@ export const generateProgramSessions = onRequest(
     }
 
     try {
+      // 입력 로깅: Gemini가 보낸 sessionParams 전체
+      console.log("[PROGRAM_DEBUG] Input sessionParams:", JSON.stringify(body.sessions.map((s: any, i: number) => ({
+        idx: i,
+        sessionMode: s.sessionMode,
+        targetMuscle: s.targetMuscle,
+        goal: s.goal,
+        availableTime: s.condition?.availableTime,
+        intensityOverride: s.intensityOverride,
+      }))));
+
       const results = [];
       let lastUpper: "push" | "pull" | undefined = undefined;
       for (let i = 0; i < body.sessions.length; i++) {
@@ -229,6 +239,17 @@ export const generateProgramSessions = onRequest(
         }
         results.push(session);
       }
+
+      // 출력 로깅: 룰엔진이 만든 세션 요약
+      console.log("[PROGRAM_DEBUG] Output sessions:", JSON.stringify(results.map((s, i) => ({
+        idx: i,
+        title: s.title,
+        description: s.description,
+        exerciseCount: s.exercises.length,
+        strengthCount: s.exercises.filter((e: any) => e.type === "strength").length,
+        weights: s.exercises.filter((e: any) => e.type === "strength").map((e: any) => ({ name: e.name, weight: e.weight })),
+      }))));
+
       res.status(200).json({ sessions: results });
     } catch (error) {
       console.error("generateProgramSessions error:", error);

@@ -635,7 +635,7 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
       const reasoning = Array.isArray(data.reasoning) ? data.reasoning.filter(Boolean) : [];
       for (const line of reasoning) {
         setReasoningLines((prev) => [...prev, line]);
-        await new Promise((resolve) => setTimeout(resolve, 800));
+        await new Promise((resolve) => setTimeout(resolve, 400));
       }
 
       // Phase 7C: Gemini 개인화 followups 저장 (ChipIconType로 좁혀서)

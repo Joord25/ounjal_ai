@@ -581,6 +581,22 @@ const deriveStrengthIntensity = (
   return "moderate";
 };
 
+/** 맨몸 운동 감지 — TRX, 풀업, 딥스, 푸쉬업, 플랭크 등 */
+const isBodyweightExercise = (name: string): boolean =>
+  /TRX|trx|풀업|pull[\s-]?up|친업|chin[\s-]?up|턱걸이|딥스|dip|푸쉬업|푸시업|push[\s-]?up|플랭크|plank|버피|burpee|인버티드|inverted|마운틴|mountain|레그레이즈|leg raise|크런치|crunch|데드버그|deadbug|바디웨이트|bodyweight/i.test(name);
+
+/** 장비 타입 → 성별/연령별 기본 무게 (kg) */
+const getEquipmentDefaultKg = (name: string, gender?: "male" | "female", birthYear?: number): number => {
+  const age = birthYear ? new Date().getFullYear() - birthYear : 30;
+  const isFemaleOrSenior = gender === "female" || age >= 60;
+  if (/덤벨|dumbbell/i.test(name)) return isFemaleOrSenior ? 5 : 10;
+  if (/케틀벨|kettlebell/i.test(name)) return isFemaleOrSenior ? 8 : 12;
+  if (/스미스|smith/i.test(name)) return isFemaleOrSenior ? 10 : 15;
+  if (/케이블|cable|머신|machine|풀다운|pulldown|레그\s?프레스|레그\s?익스텐션|레그\s?컬|펙덱|pec\s?deck|체스트\s?프레스|시티드|햄머|핵\s?스쿼트/i.test(name)) return isFemaleOrSenior ? 10 : 15;
+  if (/바벨|barbell/i.test(name)) return isFemaleOrSenior ? 15 : 20;
+  return isFemaleOrSenior ? 10 : 15;
+};
+
 const getWeightGuide = (role: "compound" | "accessory" | "isolation" | "light" | "bodyweight", goal: WorkoutGoal, intensityOverride?: "high" | "moderate" | "low"): string => {
   if (role === "bodyweight") return "맨몸";
   if (role === "light") {
@@ -1239,18 +1255,36 @@ export const generateAdaptiveWorkout = (
   runType?: RunType,
   lastUpperType?: "push" | "pull",
 ): WorkoutSessionData => {
+  /** 후처리: 맨몸 운동 weight 수정 + 장비별 기본 kg 설정 */
+  const postProcessWeights = (session: WorkoutSessionData): WorkoutSessionData => {
+    session.exercises = session.exercises.map(ex => {
+      if (ex.type !== "strength") return ex;
+      // 맨몸 운동이면 weight를 "맨몸"으로
+      if (isBodyweightExercise(ex.name)) {
+        return { ...ex, weight: "맨몸" };
+      }
+      // 텍스트 가이드("점진적 증량" 등)이면 실제 kg로 교체
+      if (ex.weight && !/\d+\s*kg/i.test(ex.weight)) {
+        const defaultKg = getEquipmentDefaultKg(ex.name, condition.gender, condition.birthYear);
+        return { ...ex, weight: `${defaultKg}kg` };
+      }
+      return ex;
+    });
+    return session;
+  };
+
   // ====== SessionMode routing ======
   if (sessionMode === "balanced") {
-    return generateBalancedWorkout(condition, goal, intensityOverride || undefined, lastUpperType);
+    return postProcessWeights(generateBalancedWorkout(condition, goal, intensityOverride || undefined, lastUpperType));
   }
   if (sessionMode === "split" && targetMuscle) {
-    return generateSplitWorkout(condition, goal, targetMuscle, intensityOverride || undefined);
+    return postProcessWeights(generateSplitWorkout(condition, goal, targetMuscle, intensityOverride || undefined));
   }
   if (sessionMode === "running" && runType) {
-    return generateRunningWorkout(condition, runType, intensityOverride || undefined);
+    return postProcessWeights(generateRunningWorkout(condition, runType, intensityOverride || undefined));
   }
   if (sessionMode === "home_training") {
-    return generateHomeWorkout(condition, goal, intensityOverride || undefined);
+    return postProcessWeights(generateHomeWorkout(condition, goal, intensityOverride || undefined));
   }
 
   // ====== Legacy fallback: day-based schedule ======
@@ -1538,10 +1572,10 @@ export const generateAdaptiveWorkout = (
     ? (workoutType === "run_easy" ? "low" : workoutType === "run_long" ? "moderate" : "high") // run_speed = high
     : deriveStrengthIntensity(intensityOverride, goal);
 
-  return {
+  return postProcessWeights({
     title: isGoalFirst ? titleBase : `${dayName}: ${titleBase}`,
     description: getSessionDescription(workoutType, goal, sets, condition),
     exercises,
     intendedIntensity: legacyIntendedIntensity,
-  };
+  });
 };
