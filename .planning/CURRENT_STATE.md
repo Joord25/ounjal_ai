@@ -1,6 +1,6 @@
 # CURRENT_STATE.md — 앱 UI/기능 인벤토리 SSOT
 
-**최종 갱신:** 2026-04-18 (회의 62: 비로그인 첫 진입 후킹 재설계)
+**최종 갱신:** 2026-04-18 PM (회의 63: Admin 대시보드 메트릭 정합성 감사)
 
 이 문서는 "오운잘 앱의 각 화면에 어떤 UI와 기능이 실제로 구현되어 있는지"의 단일 진실 공급원입니다.
 모든 항목은 코드 검증 기반 (`file:line` 인용). 추측 금지. 미검증은 **⚠ 미검증** 마킹.
@@ -519,13 +519,15 @@ Timer/Running: 완료 or 자동 → DONE 펄스 → handleSetComplete
 
 **탭 6개:**
 
-**① 대시보드**
+**① 대시보드** (회의 63 보강)
 - **오늘 할 일** (Inbox Zero) — 환불 대기 / 3일 내 만료 / 7일 해지 피드백 (0건이면 🎉)
 - **핵심 메트릭 카드** (드릴다운) — 전체/구독중/무료/3일만료
 - **매출 카드** — 이번 달 매출 + 전월 대비 %, ARPU, 결제 건수
-- **성장 지표** — CVR(체험→가입/가입→결제/체험→결제) · LTV · Churn(색상: 초록 ≤5/주황 5~10/빨강 ≥10) · Total Revenue
+- **성장 지표** — CVR(체험→가입/가입→결제/체험→결제) · **ARPU 누적(구 LTV, 회의 63 명칭 정정)** · Churn(누적 기준 명시) · Total Revenue
+- **월간 추이 6개월** (회의 63 신설) — 매출 바차트 + 가입/신규결제 듀오 바 + 테이블 (신규가입/신규결제/매출/해지)
+- **Funnel · GA4** (회의 63 신설) — 7/14/30일 window 토글. ① 차별성 KPI (plan→start→complete) ② 후킹 효과 (greeting→CTA) ③ 페이월 트리거 분포. `GA_PROPERTY_ID` 미설정 시 "설정 필요" 안내 표시
 - **무료 풀 소진** — 비로그인 1회 한도 / 로그인 무료 2회 한도 (페이월 hit 클릭 시 해당 유저 필터)
-- **사용자 세그먼트** — 체험/가입/결제 × 오늘·어제·이번주·이번달·전체 + 증감률
+- **사용자 세그먼트** — 체험(**trial_ips SSOT, 회의 63**)/가입/결제 × 오늘·어제·이번주·이번달·전체 + 증감률
 
 **② 유저 탭**
 - 실시간 필터 (이메일·이름·UID, 300ms debounce)
@@ -545,7 +547,7 @@ Timer/Running: 완료 or 자동 → DONE 펄스 → handleSetComplete
 **⑥ 이력 탭** — 관리자 활동 로그 (3개월 활성화, 비활성화 등 타임스탬프)
 
 **API 엔드포인트:**
-`/api/adminCheckSelf`, `/api/adminDashboard`, `/api/adminListUsers`, `/api/adminCheckUser`, `/api/adminActivate`, `/api/adminDeactivate`, `/api/adminLogs`, `/api/adminCancelFeedbacks`, `/api/adminRefundRequests`, `/api/adminProcessRefund`, `/api/adminListPayments`
+`/api/adminCheckSelf`, `/api/adminDashboard`, `/api/adminListUsers`, `/api/adminCheckUser`, `/api/adminActivate`, `/api/adminDeactivate`, `/api/adminLogs`, `/api/adminCancelFeedbacks`, `/api/adminRefundRequests`, `/api/adminProcessRefund`, `/api/adminListPayments`, `/api/adminAnalyticsFunnel` (회의 63 신설)
 
 **상태 색상 토큰:** active(emerald) · free(gray) · cancelled(amber) · expired(red)
 

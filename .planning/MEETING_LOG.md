@@ -2,6 +2,67 @@
 
 ---
 
+### 회의 63: Admin 대시보드 메트릭 정합성 감사 (2026-04-18 PM)
+
+**참석:** 대표(임주용), 기획자, 평가자, 백엔드, Sarah Friar, David Skok, Patrick Campbell, Tomasz Tunguz, 황보현우
+
+**배경:**
+- 회의 62 (당일 오전) 후킹 재설계 후 "효과 정량 검증 수단" 필요
+- admin 대시보드는 매출·구독 Firestore 기반으로만 동작 — GA funnel 지표 全無
+- 메트릭 명칭·분모 정의의 개념적 오류 4건 지적 (자문단)
+
+**평가자 발견 (코드 검증):**
+1. `trial` 세그먼트 테이블 분모 = `isAnonymous` Auth 유저 ≈ 모든 `/app` 방문자 (signInAnonymously 자동 발화 [page.tsx:450](src/app/app/page.tsx#L450)). 봇/재방문 로그아웃 유저 포함 → 과대 집계
+2. CVR 분모가 위와 동일 → 업계 벤치마크 비교 불가 (Tunguz)
+3. "LTV" 표시값은 사실상 "ARPU 누적" (코호트 아님) — Campbell 레이블 교정 지시
+4. "Churn" 누적 기준 (해지+만료)/(전체 구독 이력) — 월간 Churn 아님 (Skok)
+5. 신규 이벤트 `chat_home_initial_*` 3종은 GA4로만 전송, admin 0 연동
+
+**결정 (대표 승인, 전체 진행):**
+
+| 우선순위 | 조치 | 진행 상태 |
+|---|---|---|
+| P0 | 라벨 정정: "LTV" → "ARPU 누적 (보수)", Churn "월간 아님" 명시, 세그먼트 주석 | ✓ |
+| Q3-B | `trial` 세그먼트를 **`trial_ips`(실제 플랜 시도 IP) SSOT**로 재정의 + CVR 분모 교체 | ✓ |
+| P1 | GA4 Data API 연동 Cloud Function `adminAnalyticsFunnel` + admin 카드 3종 (차별성/후킹/페이월 트리거) | ✓ |
+| P2 | 월별 추이 6개월 (신규가입/신규결제/매출/해지) + 바차트 | ✓ |
+
+**구현:**
+
+| 항목 | 파일 |
+|---|---|
+| trial 재정의 + CVR 분모 교체 | [functions/src/admin/admin.ts:381](functions/src/admin/admin.ts#L381) (trialIpRecords), [:528](functions/src/admin/admin.ts#L528) (trialCount) |
+| 월별 타임라인 집계 | [functions/src/admin/admin.ts:521-585](functions/src/admin/admin.ts#L521-L585) |
+| GA4 Funnel Cloud Function 신설 | [functions/src/admin/analyticsFunnel.ts](functions/src/admin/analyticsFunnel.ts) (신규) |
+| Firebase rewrite 추가 | [firebase.json](firebase.json) `/api/adminAnalyticsFunnel` |
+| 라벨 정정 + 월간 추이 카드 + GA funnel 카드 | [src/app/admin/page.tsx](src/app/admin/page.tsx) |
+| package.json 의존성 | `@google-analytics/data@^5.1.0` 추가 |
+
+**배포 전 대표가 직접 세팅해야 하는 것 (P1):**
+1. GA4 속성 ID 확인 (관리 > 속성 설정)
+2. `.env` 또는 Cloud Functions 환경변수: `GA_PROPERTY_ID=<속성ID>`
+3. GA4 관리 > 속성 액세스 관리 > Cloud Functions 기본 서비스 계정 (`<project>@appspot.gserviceaccount.com`) "뷰어" 권한 부여
+4. `cd functions && npm install && firebase deploy --only functions`
+5. 설정 미완 시 admin 카드는 "⚙ 설정이 필요합니다" 안내 자동 표시
+
+**빌드 검증:**
+- 루트 `npx tsc --noEmit` ✓
+- `functions && npm run build` ✓
+- `npm run lint` — 수정 파일 0 에러 (pre-existing 경고만 잔존)
+
+**후속 과제 (회의 63 잔여):**
+- 월간 gross/net MRR Churn (현재는 updatedAt 근사 — 정확한 event timestamp 스키마 설계 필요)
+- 코호트 리텐션 히트맵 (월별 가입 코호트 → N일 후 결제율)
+- 표본 크기 충족 시점 체크 (황보현우) — 현재는 데이터량 부족으로 노이즈
+
+**자문단 합의사항 (다음 review 기준):**
+- Skok: CAC 측정 인프라(광고 채널별 가입 귀속) 필요 — 현재 인스타 광고 ROI 블랙박스
+- Friar: 차별성 KPI (plan→complete) 업계 30%+ 수준이면 가격 인상 재검토 가능
+- Campbell: 6,900원 가격 재검증은 결제 샘플 100건 이후 (현재 1건)
+- Tunguz: trial→paid 0.2% → 2%까지가 1차 목표 (업계 B2C 앱 평균 2~5%)
+
+---
+
 ### 회의 62: 비로그인 첫 진입 후킹 재설계 — 욕구 자극 시즌 카피 + 원클릭 CTA (2026-04-18)
 **참석:** 대표(임주용), 기획자, 평가자, Nir Eyal, David Hershey, 박충환, Dan Ariely, Robert Cialdini, BJ Fogg, Amanda Askell, 카피라이터·MD·그로스
 

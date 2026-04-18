@@ -82,6 +82,15 @@ interface DashboardData {
     paidUniqueUsers: number;
     totalRevenue: number;
   };
+  // 회의 63: 월별 추이 (최근 6개월) — 신규가입/신규결제유저/매출/churn
+  monthlyTimeline?: Array<{
+    ym: string;
+    label: string;
+    signups: number;
+    newPaidUsers: number;
+    revenue: number;
+    churnedSubs: number;
+  }>;
   // 체험/무료 풀 소진 현황
   usage?: {
     guestTrial: {
@@ -134,6 +143,31 @@ interface CancelFeedback {
   email: string;
   reason: string;
   date: string;
+}
+
+// 회의 63: GA4 funnel 응답 타입
+interface AnalyticsFunnelData {
+  configured: boolean;
+  reason?: string;
+  setup?: string[];
+  windowDays?: number;
+  hooking?: {
+    greetingShown: number;
+    ctaClick: number;
+    followupTap: number;
+    ctaRate: number | null;
+    followupRate: number | null;
+  };
+  differentiation?: {
+    planGenerated: number;
+    workoutStart: number;
+    workoutComplete: number;
+    workoutAbandon: number;
+    planToStart: number | null;
+    startToComplete: number | null;
+    planToComplete: number | null;
+  };
+  paywallTriggers?: Array<{ trigger: string; count: number }>;
 }
 
 interface RefundRequest {
@@ -217,6 +251,11 @@ export default function AdminPage() {
   const [paymentsTotalAmount, setPaymentsTotalAmount] = useState(0);
   const [loadingPayments, setLoadingPayments] = useState(false);
 
+  // 회의 63: GA4 funnel 3종 (후킹/차별성/페이월)
+  const [analyticsFunnel, setAnalyticsFunnel] = useState<AnalyticsFunnelData | null>(null);
+  const [funnelWindowDays, setFunnelWindowDays] = useState<7 | 14 | 30>(7);
+  const [loadingFunnel, setLoadingFunnel] = useState(false);
+
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
       setUser(u);
@@ -252,9 +291,16 @@ export default function AdminPage() {
       loadDashboard();
       loadLogs();
       loadFeedback(); // 환불/해지 피드백도 대시보드에 요약으로 필요
+      loadAnalyticsFunnel(); // 회의 63: GA4 funnel 3종
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAdmin]);
+
+  // 회의 63: 윈도우 변경 시 재조회
+  useEffect(() => {
+    if (isAdmin) loadAnalyticsFunnel();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [funnelWindowDays]);
 
   useEffect(() => {
     if (isAdmin && tab === "users") loadUserList();
@@ -342,6 +388,21 @@ export default function AdminPage() {
       }
     } catch { /* ignore */ }
     setLoadingFeedback(false);
+  };
+
+  // 회의 63: GA4 funnel 3종 로드
+  const loadAnalyticsFunnel = async () => {
+    setLoadingFunnel(true);
+    try {
+      const token = await getToken();
+      const res = await fetch("/api/adminAnalyticsFunnel", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+        body: JSON.stringify({ windowDays: funnelWindowDays }),
+      });
+      if (res.ok) setAnalyticsFunnel(await res.json());
+    } catch { /* ignore */ }
+    setLoadingFunnel(false);
   };
 
   // 결제 내역 로드 — Firestore payments 서브컬렉션 collectionGroup 기반
@@ -816,12 +877,12 @@ export default function AdminPage() {
 
                     <div className="h-px bg-gray-100 my-3" />
 
-                    {/* LTV */}
+                    {/* ARPU 누적 (회의 63: 원래 LTV 라 부르던 값 — 코호트 아니므로 명칭 정정) */}
                     <div className="flex items-baseline justify-between mb-3">
                       <div>
-                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">LTV · 생애가치</p>
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">ARPU 누적 (보수)</p>
                         <p className="text-[9px] text-gray-400 mt-0.5">
-                          누적매출 ÷ 유니크 결제유저 ({dashboard.growth.paidUniqueUsers}명)
+                          누적매출 ÷ 유니크 결제유저 ({dashboard.growth.paidUniqueUsers}명) · 코호트 아님
                         </p>
                       </div>
                       <p className="text-lg font-black text-[#1B4332]">₩{dashboard.growth.ltv.toLocaleString()}</p>
@@ -834,7 +895,7 @@ export default function AdminPage() {
                       <div>
                         <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Churn · 이탈률</p>
                         <p className="text-[9px] text-gray-400 mt-0.5">
-                          (해지 + 만료) ÷ 전체 구독 이력
+                          (해지 + 만료) ÷ 전체 구독 이력 · 월간 아님
                         </p>
                       </div>
                       <p className={`text-lg font-black ${
@@ -859,10 +920,249 @@ export default function AdminPage() {
                     </div>
 
                     <p className="text-[9px] text-gray-400 mt-3 leading-relaxed">
-                      ⓘ 모든 수치는 현재 시점 누적값입니다. 시계열 추이는 Looker Studio 권장.
+                      ⓘ 현재 시점 누적. 월간 gross/net churn 및 코호트 기반 LTV는 아래 &quot;월간 추이&quot; 카드에서 확인 (회의 63).
                     </p>
                   </div>
                 )}
+
+                {/* 회의 63: 월별 추이 6개월 — 신규가입/신규결제/매출/해지 */}
+                {dashboard.monthlyTimeline && dashboard.monthlyTimeline.length > 0 && (
+                  <div className="bg-white rounded-2xl border border-gray-200 p-5 mb-4">
+                    <div className="flex items-baseline justify-between mb-3">
+                      <p className="font-bold text-[#1B4332]">월간 추이 · 6개월</p>
+                      <p className="text-[10px] text-gray-400">신규가입 · 신규결제 · 매출</p>
+                    </div>
+                    {(() => {
+                      const rows = dashboard.monthlyTimeline!;
+                      const maxRevenue = Math.max(...rows.map(r => r.revenue), 1);
+                      const maxSignups = Math.max(...rows.map(r => Math.max(r.signups, r.newPaidUsers)), 1);
+                      return (
+                        <>
+                          {/* 매출 바 */}
+                          <div className="mb-3">
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">매출 (원)</p>
+                            <div className="flex items-end gap-1.5 h-20">
+                              {rows.map((r) => {
+                                const h = Math.round((r.revenue / maxRevenue) * 100);
+                                return (
+                                  <div key={r.ym} className="flex-1 flex flex-col items-center justify-end">
+                                    <span className="text-[9px] text-gray-500 font-bold mb-0.5">{r.revenue > 0 ? (r.revenue >= 10000 ? `${Math.round(r.revenue/1000)}k` : r.revenue) : "-"}</span>
+                                    <div className="w-full bg-emerald-500 rounded-t" style={{ height: `${Math.max(h, r.revenue > 0 ? 4 : 0)}%` }} />
+                                  </div>
+                                );
+                              })}
+                            </div>
+                            <div className="flex gap-1.5 mt-1">
+                              {rows.map(r => (
+                                <span key={r.ym} className="flex-1 text-[9px] text-gray-400 text-center">{r.label}</span>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div className="h-px bg-gray-100 my-3" />
+
+                          {/* 가입 · 신규결제유저 duo */}
+                          <div className="mb-3">
+                            <div className="flex items-center justify-between mb-2">
+                              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">가입 vs 신규결제 유저</p>
+                              <div className="flex items-center gap-3">
+                                <span className="text-[9px] text-gray-500 flex items-center gap-1"><span className="w-2 h-2 bg-gray-400 rounded-sm"/>가입</span>
+                                <span className="text-[9px] text-gray-500 flex items-center gap-1"><span className="w-2 h-2 bg-emerald-500 rounded-sm"/>신규결제</span>
+                              </div>
+                            </div>
+                            <div className="flex items-end gap-1.5 h-20">
+                              {rows.map((r) => {
+                                const hSign = Math.round((r.signups / maxSignups) * 100);
+                                const hPaid = Math.round((r.newPaidUsers / maxSignups) * 100);
+                                return (
+                                  <div key={r.ym} className="flex-1 flex gap-0.5 items-end justify-center">
+                                    <div className="w-1/2 bg-gray-400 rounded-t" style={{ height: `${Math.max(hSign, r.signups > 0 ? 4 : 0)}%` }} title={`가입 ${r.signups}`} />
+                                    <div className="w-1/2 bg-emerald-500 rounded-t" style={{ height: `${Math.max(hPaid, r.newPaidUsers > 0 ? 4 : 0)}%` }} title={`결제 ${r.newPaidUsers}`} />
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+
+                          <div className="h-px bg-gray-100 my-3" />
+
+                          {/* 테이블 요약 */}
+                          <table className="w-full text-[11px]">
+                            <thead>
+                              <tr className="text-[9px] text-gray-400">
+                                <th className="text-left pb-1 font-medium">월</th>
+                                <th className="text-right pb-1 font-medium">가입</th>
+                                <th className="text-right pb-1 font-medium">신규결제</th>
+                                <th className="text-right pb-1 font-medium">매출</th>
+                                <th className="text-right pb-1 font-medium">해지</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {rows.map(r => (
+                                <tr key={r.ym} className="border-t border-gray-50">
+                                  <td className="py-1.5 text-gray-500 font-mono">{r.label}</td>
+                                  <td className="py-1.5 text-right text-gray-700 font-bold">{r.signups}</td>
+                                  <td className="py-1.5 text-right text-emerald-700 font-bold">{r.newPaidUsers}</td>
+                                  <td className="py-1.5 text-right text-[#1B4332] font-bold">₩{r.revenue.toLocaleString()}</td>
+                                  <td className="py-1.5 text-right text-amber-600 font-bold">{r.churnedSubs || "-"}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                          <p className="text-[9px] text-gray-400 mt-2 leading-relaxed">
+                            ⓘ 신규결제 = 해당 월 첫 결제 유저 · 해지 = subscriptions.updatedAt 기준 근사 (정확한 event ts 부재로 근사값)
+                          </p>
+                        </>
+                      );
+                    })()}
+                  </div>
+                )}
+
+                {/* 회의 63: GA4 funnel 3종 — 후킹 / 차별성 / 페이월 트리거 */}
+                <div className="bg-white rounded-2xl border border-gray-200 p-5 mb-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div>
+                      <p className="font-bold text-[#1B4332]">Funnel · GA4</p>
+                      <p className="text-[10px] text-gray-400 mt-0.5">차별성 KPI · 후킹 효과 · 페이월 트리거</p>
+                    </div>
+                    <div className="flex gap-1 bg-gray-100 rounded-lg p-0.5">
+                      {([7, 14, 30] as const).map(d => (
+                        <button
+                          key={d}
+                          onClick={() => setFunnelWindowDays(d)}
+                          className={`px-2 py-1 text-[10px] font-bold rounded-md transition-colors ${
+                            funnelWindowDays === d ? "bg-white text-[#1B4332] shadow-sm" : "text-gray-400"
+                          }`}
+                        >{d}일</button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {loadingFunnel ? (
+                    <p className="text-xs text-gray-400 py-4 text-center">불러오는 중...</p>
+                  ) : !analyticsFunnel ? (
+                    <p className="text-xs text-gray-400 py-4 text-center">데이터 없음</p>
+                  ) : !analyticsFunnel.configured ? (
+                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                      <p className="text-[11px] font-bold text-amber-800 mb-2">⚙ 설정이 필요합니다</p>
+                      <p className="text-[11px] text-amber-700 leading-relaxed mb-2">{analyticsFunnel.reason}</p>
+                      {analyticsFunnel.setup && (
+                        <ol className="text-[10px] text-amber-700 space-y-1 list-none">
+                          {analyticsFunnel.setup.map((line, i) => (
+                            <li key={i} className="leading-relaxed">{line}</li>
+                          ))}
+                        </ol>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {/* ① 차별성 KPI — 가장 중요 (회의 57 GA 가이드 핵심) */}
+                      {analyticsFunnel.differentiation && (
+                        <div>
+                          <div className="flex items-baseline justify-between mb-2">
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">차별성 KPI</p>
+                            <p className="text-[9px] text-gray-400">plan → start → complete</p>
+                          </div>
+                          <div className="grid grid-cols-3 gap-2">
+                            <div className="bg-gray-50 rounded-lg p-2.5 text-center">
+                              <p className="text-[9px] text-gray-400 mb-0.5">플랜 생성</p>
+                              <p className="text-lg font-black text-gray-700">{analyticsFunnel.differentiation.planGenerated}</p>
+                            </div>
+                            <div className="bg-gray-50 rounded-lg p-2.5 text-center">
+                              <p className="text-[9px] text-gray-400 mb-0.5">운동 시작</p>
+                              <p className="text-lg font-black text-gray-700">{analyticsFunnel.differentiation.workoutStart}</p>
+                              {analyticsFunnel.differentiation.planToStart !== null && (
+                                <p className="text-[9px] text-[#2D6A4F] font-bold mt-0.5">{analyticsFunnel.differentiation.planToStart}%</p>
+                              )}
+                            </div>
+                            <div className="bg-emerald-50 rounded-lg p-2.5 text-center">
+                              <p className="text-[9px] text-gray-400 mb-0.5">운동 완료</p>
+                              <p className="text-lg font-black text-emerald-700">{analyticsFunnel.differentiation.workoutComplete}</p>
+                              {analyticsFunnel.differentiation.startToComplete !== null && (
+                                <p className="text-[9px] text-emerald-600 font-bold mt-0.5">{analyticsFunnel.differentiation.startToComplete}%</p>
+                              )}
+                            </div>
+                          </div>
+                          <p className="text-[9px] text-gray-400 mt-1.5 leading-relaxed">
+                            plan → complete 전체 전환: <span className="font-bold text-[#1B4332]">{analyticsFunnel.differentiation.planToComplete !== null ? `${analyticsFunnel.differentiation.planToComplete}%` : "-"}</span>
+                            {analyticsFunnel.differentiation.workoutAbandon > 0 && (
+                              <> · abandon {analyticsFunnel.differentiation.workoutAbandon}건</>
+                            )}
+                          </p>
+                        </div>
+                      )}
+
+                      <div className="h-px bg-gray-100" />
+
+                      {/* ② 후킹 효과 — 회의 62 검증 */}
+                      {analyticsFunnel.hooking && (
+                        <div>
+                          <div className="flex items-baseline justify-between mb-2">
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">후킹 효과 · 회의 62</p>
+                            <p className="text-[9px] text-gray-400">greeting → CTA</p>
+                          </div>
+                          <div className="grid grid-cols-3 gap-2">
+                            <div className="bg-gray-50 rounded-lg p-2.5 text-center">
+                              <p className="text-[9px] text-gray-400 mb-0.5">인사 노출</p>
+                              <p className="text-lg font-black text-gray-700">{analyticsFunnel.hooking.greetingShown}</p>
+                            </div>
+                            <div className="bg-gray-50 rounded-lg p-2.5 text-center">
+                              <p className="text-[9px] text-gray-400 mb-0.5">첫 CTA 클릭</p>
+                              <p className="text-lg font-black text-gray-700">{analyticsFunnel.hooking.ctaClick}</p>
+                              {analyticsFunnel.hooking.ctaRate !== null && (
+                                <p className="text-[9px] text-[#2D6A4F] font-bold mt-0.5">{analyticsFunnel.hooking.ctaRate}%</p>
+                              )}
+                            </div>
+                            <div className="bg-gray-50 rounded-lg p-2.5 text-center">
+                              <p className="text-[9px] text-gray-400 mb-0.5">후속칩 탭</p>
+                              <p className="text-lg font-black text-gray-700">{analyticsFunnel.hooking.followupTap}</p>
+                              {analyticsFunnel.hooking.followupRate !== null && (
+                                <p className="text-[9px] text-gray-500 font-bold mt-0.5">{analyticsFunnel.hooking.followupRate}%</p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="h-px bg-gray-100" />
+
+                      {/* ③ 페이월 트리거 분포 */}
+                      {analyticsFunnel.paywallTriggers && analyticsFunnel.paywallTriggers.length > 0 && (
+                        <div>
+                          <div className="flex items-baseline justify-between mb-2">
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">페이월 트리거 분포</p>
+                            <p className="text-[9px] text-gray-400">paywall_view.trigger</p>
+                          </div>
+                          {(() => {
+                            const total = analyticsFunnel.paywallTriggers.reduce((s, r) => s + r.count, 0) || 1;
+                            return (
+                              <div className="space-y-1.5">
+                                {analyticsFunnel.paywallTriggers.slice(0, 6).map((r, i) => {
+                                  const pct = Math.round((r.count / total) * 100);
+                                  return (
+                                    <div key={i}>
+                                      <div className="flex items-center justify-between text-[11px] mb-0.5">
+                                        <span className="text-gray-500 font-mono">{r.trigger || "(not_set)"}</span>
+                                        <span className="font-bold text-gray-700">{r.count} <span className="text-gray-400">({pct}%)</span></span>
+                                      </div>
+                                      <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                                        <div className="h-full bg-[#1B4332] rounded-full" style={{ width: `${pct}%` }} />
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            );
+                          })()}
+                        </div>
+                      )}
+
+                      <p className="text-[9px] text-gray-400 leading-relaxed">
+                        ⓘ GA4 Data API · 지연 4~24시간. 최근 {analyticsFunnel.windowDays}일 합계.
+                      </p>
+                    </div>
+                  )}
+                </div>
 
                 {/* 무료 풀 소진 현황 카드 — 회의: 체험/무료 lifetime 사용량 분포 */}
                 {dashboard.usage && (
@@ -1026,7 +1326,9 @@ export default function AdminPage() {
                           )}
                         </tbody>
                       </table>
-                      <p className="text-[9px] text-gray-400 mt-2 leading-relaxed">▲▼ 지난 주/지난 달 대비 증감률</p>
+                      <p className="text-[9px] text-gray-400 mt-2 leading-relaxed">
+                        ▲▼ 지난 주/지난 달 대비 증감률 · 체험 = trial_ips SSOT(실제 플랜 시도 IP, firstSeenAt 기준)
+                      </p>
                     </div>
                   );
                 })()}

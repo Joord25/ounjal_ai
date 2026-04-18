@@ -376,11 +376,22 @@ export const adminDashboard = onRequest(
 
       // 1b) 체험/무료 풀 사용 분포 (회의: 소진 현황)
       // 비로그인 체험 — trial_ips 컬렉션 (GUEST_TRIAL_LIMIT=1 기준: 1회 쓰면 바로 소진)
+      // 회의 63: trial_ips 를 "체험" 세그먼트의 SSOT 로 승격.
+      //   이전엔 anonymous Auth 유저 수(= /app 진입한 모든 방문자)를 "체험" 으로 셌으나,
+      //   이 집합은 봇·재방문 로그아웃 유저까지 포함되어 CVR 분모가 과대 → 업계 비교 불가.
+      //   SSOT 를 "실제 플랜 생성을 시도한 IP" 로 고정해 funnel 정의를 명확화.
       const trialIpsSnap = await db.collection("trial_ips").get();
       let trialExhausted = 0;
+      // trialIpRecords: 기간별 카운트용. firstSeenAt 없는 레거시 문서는 Date(0) 으로 찍어
+      // total 합계엔 포함되지만 기간 필터엔 걸리지 않도록 한다.
+      const trialIpRecords: Array<{ createdAt: Date }> = [];
       trialIpsSnap.forEach(doc => {
-        const count = Number(doc.data().count || 0);
-        if (count >= 1) trialExhausted++;
+        const data = doc.data();
+        const count = Number(data.count || 0);
+        if (count < 1) return;
+        trialExhausted++;
+        const firstSeen = data.firstSeenAt?.toDate?.() as Date | undefined;
+        trialIpRecords.push({ createdAt: firstSeen instanceof Date ? firstSeen : new Date(0) });
       });
       const trialIpsTotal = trialExhausted;
 
@@ -490,22 +501,91 @@ export const adminDashboard = onRequest(
       // Auth 유저 수집은 상단 freePlan 집계에서 이미 수행됨 (allAuthUsers 재사용)
       const allUsers = allAuthUsers;
 
-      // Segment: Google accounts vs anonymous (trial)
+      // Segment: Google accounts (가입) — 회의 63: "체험" 은 이제 trialIpRecords 사용
       const googleUsers = allUsers.filter(u => !u.isAnonymous);
-      const trialUsers = allUsers.filter(u => u.isAnonymous);
 
       // Time ranges는 위에서 이미 계산됨 (payments iteration 전에 선언)
 
-      const countByRange = (users: typeof allUsers) => ({
-        today: users.filter(u => u.createdAt >= todayStart).length,
-        yesterday: users.filter(u => u.createdAt >= yesterdayStart && u.createdAt < todayStart).length,
-        week: users.filter(u => u.createdAt >= weekStart).length,
+      const countByRange = <T extends { createdAt: Date }>(rows: T[]) => ({
+        today: rows.filter(u => u.createdAt >= todayStart).length,
+        yesterday: rows.filter(u => u.createdAt >= yesterdayStart && u.createdAt < todayStart).length,
+        week: rows.filter(u => u.createdAt >= weekStart).length,
         // 회의 57 Tier 2: 증감률 계산용 이전 기간
-        lastWeek: users.filter(u => u.createdAt >= lastWeekStart && u.createdAt < weekStart).length,
-        month: users.filter(u => u.createdAt >= monthStartDate).length,
-        lastMonth: users.filter(u => u.createdAt >= lastMonthStartDate && u.createdAt < monthStartDate).length,
-        total: users.length,
+        lastWeek: rows.filter(u => u.createdAt >= lastWeekStart && u.createdAt < weekStart).length,
+        month: rows.filter(u => u.createdAt >= monthStartDate).length,
+        lastMonth: rows.filter(u => u.createdAt >= lastMonthStartDate && u.createdAt < monthStartDate).length,
+        total: rows.length,
       });
+
+      // 회의 63: 월별 추이 (최근 6개월) — 신규가입 · 신규결제유저 · 매출
+      //   cohort 리텐션 본격 구현은 후속 과제. 지금은 단순 타임라인으로 추이 가시성만 확보.
+      const monthlyTimeline: Array<{
+        ym: string;            // YYYY-MM
+        label: string;         // "MM월"
+        signups: number;       // 해당 월 Auth 가입 (Google)
+        newPaidUsers: number;  // 해당 월 첫 결제 유저
+        revenue: number;       // 해당 월 매출
+        churnedSubs: number;   // 해당 월 해지/만료된 subscription 수 (기록 기반 근사)
+      }> = [];
+      {
+        const monthsBack = 6;
+        const firstPaidByUid = new Map<string, Date>();
+        paymentsSnap.forEach(doc => {
+          const p = doc.data();
+          if (!p.paidAt) return;
+          if (p.status && p.status !== "paid") return;
+          const uid = doc.ref.parent.parent?.id;
+          if (!uid) return;
+          const d = new Date(p.paidAt);
+          const prev = firstPaidByUid.get(uid);
+          if (!prev || d < prev) firstPaidByUid.set(uid, d);
+        });
+        // 월별 해지/만료 — subscriptions.updatedAt 기준 근사 (정확한 event ts 없음)
+        const monthChurnCount = new Map<string, number>();
+        subsSnap.forEach(doc => {
+          const d = doc.data();
+          if (d.status !== "cancelled" && d.status !== "expired") return;
+          const upd = d.updatedAt?.toDate?.() as Date | undefined;
+          if (!(upd instanceof Date)) return;
+          const ym = `${upd.getFullYear()}-${String(upd.getMonth() + 1).padStart(2, "0")}`;
+          monthChurnCount.set(ym, (monthChurnCount.get(ym) || 0) + 1);
+        });
+
+        for (let i = monthsBack - 1; i >= 0; i--) {
+          const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
+          const nextMonthDate = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
+          const ym = `${monthDate.getFullYear()}-${String(monthDate.getMonth() + 1).padStart(2, "0")}`;
+          const label = `${monthDate.getMonth() + 1}월`;
+
+          let signups = 0;
+          googleUsers.forEach(u => {
+            if (u.createdAt >= monthDate && u.createdAt < nextMonthDate) signups++;
+          });
+
+          let newPaidUsers = 0;
+          firstPaidByUid.forEach(firstPaid => {
+            if (firstPaid >= monthDate && firstPaid < nextMonthDate) newPaidUsers++;
+          });
+
+          let revenue = 0;
+          paymentsSnap.forEach(doc => {
+            const p = doc.data();
+            if (!p.paidAt) return;
+            if (p.status && p.status !== "paid") return;
+            const pd = new Date(p.paidAt);
+            if (pd >= monthDate && pd < nextMonthDate) revenue += Number(p.amount || 0);
+          });
+
+          monthlyTimeline.push({
+            ym,
+            label,
+            signups,
+            newPaidUsers,
+            revenue,
+            churnedSubs: monthChurnCount.get(ym) || 0,
+          });
+        }
+      }
 
       // 회의 57 Tier 2: 매출 분해 데이터
       const avgPayment = monthlyPaymentCount > 0 ? Math.round(monthlyRevenue / monthlyPaymentCount) : 0;
@@ -513,8 +593,9 @@ export const adminDashboard = onRequest(
         ? Math.round(((monthlyRevenue - lastMonthRevenue) / lastMonthRevenue) * 100)
         : null;
 
-      // 회의: 성장 지표 — CVR (전환율) / LTV (생애가치) / Churn (이탈률)
-      const trialCount = trialUsers.length;
+      // 회의 63: CVR 분모를 trial_ips (실제 플랜 생성 시도 IP) 로 재정의
+      //   이전 분모(anonymous Auth = /app 방문자 전체) 대비 더 좁고 엄격 → 업계 벤치마크 비교 가능
+      const trialCount = trialIpRecords.length;
       const registeredCount = googleUsers.length;
 
       // CVR — 각 단계 전환율 (%)
@@ -553,7 +634,9 @@ export const adminDashboard = onRequest(
         lastMonthRevenue,
         lastMonthPaymentCount,
         revenueChangePercent,
-        trial: countByRange(trialUsers),
+        // 회의 63: trial = trial_ips (실제 플랜 생성 시도 IP) SSOT.
+        //   firstSeenAt 이 없는 레거시 문서는 lifetime total 집계에만 포함, 기간별에선 제외.
+        trial: countByRange(trialIpRecords),
         registered: countByRange(googleUsers),
         // 회의: 결제 행 (체험/가입 테이블 3번째 행) — 기간별 건수
         paid: {
@@ -575,6 +658,8 @@ export const adminDashboard = onRequest(
           paidUniqueUsers,          // 유니크 결제 유저 수
           totalRevenue,             // 누적 총 매출
         },
+        // 회의 63: 월별 추이 (최근 6개월)
+        monthlyTimeline,
         // 회의: 체험/무료 풀 소진 현황
         usage: {
           guestTrial: {

@@ -11,3 +11,4 @@ export { savePlan, listSavedPlans, deleteSavedPlan, markSavedPlanUsed, saveProgr
 export { subscribe, getSubscription, cancelSubscription, submitRefundRequest } from "./billing/subscription";
 export { selfDeleteAccount } from "./billing/selfDelete";
 export { adminActivate, adminCheckUser, adminCheckSelf, adminDeactivate, adminDashboard, adminListUsers, adminListPayments, adminLogs, adminCancelFeedbacks, adminRefundRequests, adminProcessRefund } from "./admin/admin";
+export { adminAnalyticsFunnel } from "./admin/analyticsFunnel";
