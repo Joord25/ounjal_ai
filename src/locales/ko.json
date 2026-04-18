@@ -1106,7 +1106,7 @@
   "running_program.entry.aria": "러닝 여정 시작",
   "running_program.step1.title": "어디까지 가볼까요?",
   "running_program.step1.subtitle": "목표를 고르면 자동으로 여정이 짜집니다",
-  "running_program.step1.notice": "목표마다 권장 베이스가 달라요. 무리하지 않는 선에서 시작해보세요.",
+  "running_program.step1.notice": "권장 베이스\n• 10K 50분 — 30분 연속 러닝 경험\n• Half 2시간 — 최근 10K 55분 이내\n• Full 3시간 — 주 50km+ + Half 1:30 이내",
   "running_program.program.full.recommend_tag": "주 50km+ 권장",
   "running_program.program.vo2_boost.title": "VO2 max 키우기",
   "running_program.program.vo2_boost.sub": "숨이 덜 차는 몸으로 · 2단계 · 두 달",

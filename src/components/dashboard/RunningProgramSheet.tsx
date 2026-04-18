@@ -322,12 +322,12 @@ const StepSelect: React.FC<{ t: TFn; onSelect: (id: RunningProgramId) => void; o
       <button onClick={onClose} className="text-sm text-gray-400 font-bold">{t("running_program.close")}</button>
     </div>
     <p className="text-[12px] text-gray-500 mb-3">{t("running_program.step1.subtitle")}</p>
-    {/* 회의 64-F: 권장 베이스 안내 배너 — 차단 대신 정보 노출 */}
-    <div className="mb-4 px-3 py-2 rounded-xl bg-amber-50/70 border border-amber-200/60 flex items-start gap-2">
+    {/* 회의 64-F/H: 권장 베이스 안내 배너 — 구체 조건 리스트 */}
+    <div className="mb-4 px-3 py-2.5 rounded-xl bg-amber-50/70 border border-amber-200/60 flex items-start gap-2">
       <svg className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
       </svg>
-      <p className="text-[11px] text-amber-800 leading-snug">{t("running_program.step1.notice")}</p>
+      <p className="text-[11px] text-amber-800 leading-relaxed whitespace-pre-line">{t("running_program.step1.notice")}</p>
     </div>
     <div className="flex flex-col gap-2.5">
       {PROGRAM_META.map(p => (

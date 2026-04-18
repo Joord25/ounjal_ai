@@ -1106,7 +1106,7 @@
   "running_program.entry.aria": "Start running journey",
   "running_program.step1.title": "How far do you want to go?",
   "running_program.step1.subtitle": "Pick a goal and your journey will be built automatically",
-  "running_program.step1.notice": "Each goal has a recommended base. Start within what's safe for you.",
+  "running_program.step1.notice": "Recommended base\n• 10K sub-50 — 30-min continuous run experience\n• Half sub-2 — recent 10K under 55:00\n• Full sub-3 — 50km+/week + Half under 1:30",
   "running_program.program.full.recommend_tag": "50km+/week recommended",
   "running_program.program.vo2_boost.title": "Boost VO2 max",
   "running_program.program.vo2_boost.sub": "Less out of breath · 2 chapters · 2 months",
