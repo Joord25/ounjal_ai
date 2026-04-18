@@ -24,12 +24,15 @@ interface WorkoutSessionProps {
     runningStats?: RunningStats,  // 회의 41: 러닝 세션 전용
   ) => void;
   onBack: () => void;
+  /** 회의 63-A: workout_start funnel 분리용 source 태그 */
+  source?: "chat" | "saved" | "program" | "resume";
 }
 
 export const WorkoutSession: React.FC<WorkoutSessionProps> = ({
   sessionData,
   onComplete,
   onBack,
+  source = "chat",
 }) => {
   const { t, locale } = useTranslation();
   // Initialize exercises with a deep copy to allow mutations for adaptive logic
@@ -54,7 +57,8 @@ export const WorkoutSession: React.FC<WorkoutSessionProps> = ({
   const [addSets, setAddSets] = useState(3);
   const [addReps, setAddReps] = useState(12);
 
-  useEffect(() => { trackEvent("workout_start", { exercise_count: sessionData.exercises.length }); }, []);
+  // 회의 63-A: source 포함 (chat/saved/program/resume) — 획득 funnel vs 리텐션 분리
+  useEffect(() => { trackEvent("workout_start", { exercise_count: sessionData.exercises.length, source }); }, []);
 
   // Timing: session start + per-exercise tracking
   const sessionStartRef = useRef(Date.now());

@@ -30,6 +30,8 @@ interface MasterPlanPreviewProps {
   onGuestSaveAttempt?: () => void;
   /** saved plan에서 진입한 경우: 해당 플랜 ID. 저장 동작이 "업데이트"로 바뀜 */
   savedPlanId?: string;
+  /** 회의 63-A: plan_preview_view / plan_preview_start funnel 분리용 source 태그 */
+  source?: "chat" | "saved" | "program" | "resume";
 }
 
 const MUSCLE_GROUP_EN: Record<string, string> = {
@@ -205,6 +207,7 @@ export const MasterPlanPreview: React.FC<MasterPlanPreviewProps> = ({
   isLoggedIn = false,
   onGuestSaveAttempt,
   savedPlanId,
+  source = "chat",
 }) => {
   const { t, locale } = useTranslation();
   // Local mutable copy of exercises (for set count adjustments)
@@ -212,7 +215,8 @@ export const MasterPlanPreview: React.FC<MasterPlanPreviewProps> = ({
     sessionData.exercises.map(ex => ({ ...ex, count: rebuildCount(ex, t, locale) }))
   );
 
-  useEffect(() => { trackEvent("plan_preview_view", { exercise_count: sessionData.exercises.length }); }, []);
+  // 회의 63-A: source 포함 (chat / saved / program / resume)
+  useEffect(() => { trackEvent("plan_preview_view", { exercise_count: sessionData.exercises.length, source }); }, []);
 
   // Sync when sessionData changes (e.g. after regenerate)
   useEffect(() => {

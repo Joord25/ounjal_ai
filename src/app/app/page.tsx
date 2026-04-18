@@ -345,6 +345,14 @@ export default function Home() {
   const [completedRitualIds, setCompletedRitualIds] = useState<string[]>([]);
   const [currentWorkoutSession, setCurrentWorkoutSession] = useState<WorkoutSessionData | null>(null);
   const [activeSavedPlanId, setActiveSavedPlanId] = useState<string | null>(null);
+  // 회의 63-A: workout_start/complete 가 저장 플랜 재실행 / 프로그램 / 재개 / 신규 채팅을 구분 못 해서
+  //   funnel 분모 오염 (plan_generated 17 vs workout_start 204). source 태그로 분리.
+  //   source 값 근거 (코드 진입점 전수 조사, 2026-04-18):
+  //     - chat   : page.tsx:584, 695, 1280 (ChatHome / AdviceCard / chat 로딩 완료)
+  //     - saved  : 1078 (MyPlansScreen onSelectPlan, plan.programId 없음)
+  //     - program: 1078 (MyPlansScreen onSelectPlan, plan.programId 있음)
+  //     - resume : 1159 (home "이전 플랜 이어서" 버튼)
+  const [currentPlanSource, setCurrentPlanSource] = useState<"chat" | "saved" | "program" | "resume">("chat");
   const [currentCondition, setCurrentCondition] = useState<UserCondition | null>(null);
   const [currentGoal, setCurrentGoal] = useState<WorkoutGoal | null>(null);
   const [currentSession, setCurrentSession] = useState<SessionSelection | null>(null);
@@ -581,6 +589,8 @@ export default function Home() {
             // ChatHome 확인 경로: 오버레이 건너뛰고 즉시 마스터플랜 진입 (대표 지시)
             if (skipLoadingAnim) {
                 setCurrentWorkoutSession(session);
+                setActiveSavedPlanId(null);
+                setCurrentPlanSource("chat"); // 회의 63-A
                 setView("master_plan_preview");
                 return;
             }
@@ -692,6 +702,8 @@ export default function Home() {
     // planCount는 운동 시작(onStart) 시점에 증가 — 생성만 하고 취소해도 횟수 차감 안 됨
     // sessionMode path: view transition handled by onComplete callback
     if (!session?.sessionMode) {
+      setActiveSavedPlanId(null);
+      setCurrentPlanSource("chat"); // 회의 63-A: handleGeneratePlan 경로 — 새 채팅 플랜
       setView("master_plan_preview");
     }
   };
@@ -923,8 +935,9 @@ export default function Home() {
         return (
           <MasterPlanPreview
             sessionData={currentWorkoutSession}
+            source={currentPlanSource}
             onStart={(modifiedData) => {
-              trackEvent("plan_preview_start");
+              trackEvent("plan_preview_start", { source: currentPlanSource }); // 회의 63-A
               incrementPlanCount();
               // 저장 플랜 실행도 게스트 트라이얼 소진시킴 (평가자 P0 지적)
               if (activeSavedPlanId) {
@@ -936,7 +949,7 @@ export default function Home() {
               setView("workout_session");
             }}
             onBack={() => {
-              trackEvent("plan_preview_reject", { exercise_count: currentWorkoutSession?.exercises.length ?? 0 });
+              trackEvent("plan_preview_reject", { exercise_count: currentWorkoutSession?.exercises.length ?? 0, source: currentPlanSource });
               if (activeSavedPlanId) { setActiveSavedPlanId(null); setView("my_plans"); }
               else setView("home_chat");
             }}
@@ -961,8 +974,9 @@ export default function Home() {
         return (
           <WorkoutSession
             sessionData={currentWorkoutSession}
+            source={currentPlanSource}
             onComplete={(completedData, logs, timing, runningStats) => {
-              trackEvent("workout_complete", { session_number: getPlanCount(), duration_min: Math.round(timing.totalDurationSec / 60) });
+              trackEvent("workout_complete", { session_number: getPlanCount(), duration_min: Math.round(timing.totalDurationSec / 60), source: currentPlanSource });
               setCurrentWorkoutSession(completedData);
               setWorkoutLogs(logs);
               setWorkoutDurationSec(timing.totalDurationSec);
@@ -1004,7 +1018,7 @@ export default function Home() {
               // 게스트 체험 카운트는 플랜 생성 시점에 이미 증가됨 (handleConditionComplete)
               setView("workout_report");
             }}
-            onBack={() => { trackEvent("workout_abandon"); setView("master_plan_preview"); }}
+            onBack={() => { trackEvent("workout_abandon", { source: currentPlanSource }); setView("master_plan_preview"); }}
           />
         );
 
@@ -1075,6 +1089,8 @@ export default function Home() {
               }
               setCurrentWorkoutSession(plan.sessionData);
               setActiveSavedPlanId(plan.id);
+              // 회의 63-A: program session 은 plan.programId 로 구분
+              setCurrentPlanSource(plan.programId ? "program" : "saved");
               setView("master_plan_preview");
             }}
           />
@@ -1156,7 +1172,10 @@ export default function Home() {
               exerciseCount: currentWorkoutSession.exercises.length,
             } : null}
             onResumeLastPlan={() => {
-              if (currentWorkoutSession) setView("master_plan_preview");
+              if (currentWorkoutSession) {
+                setCurrentPlanSource("resume"); // 회의 63-A
+                setView("master_plan_preview");
+              }
             }}
           />
         );
@@ -1277,6 +1296,8 @@ export default function Home() {
                   setCurrentWorkoutSession(pendingSessionRef.current);
                   pendingSessionRef.current = null;
                   setIsLoading(false);
+                  setActiveSavedPlanId(null);
+                  setCurrentPlanSource("chat"); // 회의 63-A: 로딩 오버레이 완료 → 새 채팅 플랜
                   setView("master_plan_preview");
                 } else if (pollCount < 20) {
                   pollCount++;

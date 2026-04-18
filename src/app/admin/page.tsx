@@ -145,20 +145,23 @@ interface CancelFeedback {
   date: string;
 }
 
-// 회의 63: GA4 funnel 응답 타입
+// 회의 63-A: GA4 funnel 응답 타입 — 획득/리텐션 분리 + 후킹 + 페이월
 interface AnalyticsFunnelData {
   configured: boolean;
   reason?: string;
   setup?: string[];
   windowDays?: number;
+  sampleThreshold?: number;
   hooking?: {
     greetingShown: number;
     ctaClick: number;
     followupTap: number;
     ctaRate: number | null;
     followupRate: number | null;
+    lowSample?: boolean;
   };
-  differentiation?: {
+  // 회의 63-A: 획득 funnel (source=chat) — 신규 플랜 가치 측정
+  acquisition?: {
     planGenerated: number;
     workoutStart: number;
     workoutComplete: number;
@@ -166,7 +169,25 @@ interface AnalyticsFunnelData {
     planToStart: number | null;
     startToComplete: number | null;
     planToComplete: number | null;
+    lowSample?: boolean;
   };
+  // 회의 63-A: 리텐션 (source=saved+program) — 저장 플랜 재실행 볼륨
+  retention?: {
+    workoutStart: number;
+    workoutComplete: number;
+    resumeStart: number;
+    completionRate: number | null;
+    reuseShare: number | null;
+  };
+  // 전체 집계 (비교용)
+  aggregate?: {
+    planGenerated: number;
+    workoutStart: number;
+    workoutComplete: number;
+    workoutAbandon: number;
+    startToComplete: number | null;
+  };
+  sourceSplitError?: string | null;
   paywallTriggers?: Array<{ trigger: string; count: number }>;
   paywallError?: string | null;
 }
@@ -1057,37 +1078,51 @@ export default function AdminPage() {
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      {/* ① 차별성 KPI — 가장 중요 (회의 57 GA 가이드 핵심) */}
-                      {analyticsFunnel.differentiation && (
+                      {/* source 분리 실패 안내 (맞춤 측정기준 미등록 등) */}
+                      {analyticsFunnel.sourceSplitError && (
+                        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                          <p className="text-[11px] font-bold text-amber-800 mb-1">⚙ source 맞춤 측정기준 등록 필요</p>
+                          <p className="text-[11px] text-amber-700 leading-relaxed">{analyticsFunnel.sourceSplitError}</p>
+                          <p className="text-[10px] text-amber-600 mt-2 leading-relaxed">등록 전까진 "전체 집계" 기준으로만 표시됩니다 (신규/저장/재개 섞인 값).</p>
+                        </div>
+                      )}
+
+                      {/* ① 획득 funnel — 신규 플랜 가치 측정 (source=chat) · Campbell */}
+                      {analyticsFunnel.acquisition && (
                         <div>
                           <div className="flex items-baseline justify-between mb-2">
-                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">차별성 KPI</p>
-                            <p className="text-[9px] text-gray-400">plan → start → complete</p>
+                            <div>
+                              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">획득 funnel · 신규 플랜</p>
+                              {analyticsFunnel.acquisition.lowSample && (
+                                <p className="text-[9px] text-amber-600 font-bold mt-0.5">⚠ 표본 부족 (plan_generated &lt; {analyticsFunnel.sampleThreshold}) — 해석 주의</p>
+                              )}
+                            </div>
+                            <p className="text-[9px] text-gray-400">source=chat</p>
                           </div>
                           <div className="grid grid-cols-3 gap-2">
                             <div className="bg-gray-50 rounded-lg p-2.5 text-center">
                               <p className="text-[9px] text-gray-400 mb-0.5">플랜 생성</p>
-                              <p className="text-lg font-black text-gray-700">{analyticsFunnel.differentiation.planGenerated}</p>
+                              <p className="text-lg font-black text-gray-700">{analyticsFunnel.acquisition.planGenerated}</p>
                             </div>
                             <div className="bg-gray-50 rounded-lg p-2.5 text-center">
                               <p className="text-[9px] text-gray-400 mb-0.5">운동 시작</p>
-                              <p className="text-lg font-black text-gray-700">{analyticsFunnel.differentiation.workoutStart}</p>
-                              {analyticsFunnel.differentiation.planToStart !== null && (
-                                <p className="text-[9px] text-[#2D6A4F] font-bold mt-0.5">{analyticsFunnel.differentiation.planToStart}%</p>
+                              <p className="text-lg font-black text-gray-700">{analyticsFunnel.acquisition.workoutStart}</p>
+                              {analyticsFunnel.acquisition.planToStart !== null && (
+                                <p className="text-[9px] text-[#2D6A4F] font-bold mt-0.5">{analyticsFunnel.acquisition.planToStart}%</p>
                               )}
                             </div>
                             <div className="bg-emerald-50 rounded-lg p-2.5 text-center">
                               <p className="text-[9px] text-gray-400 mb-0.5">운동 완료</p>
-                              <p className="text-lg font-black text-emerald-700">{analyticsFunnel.differentiation.workoutComplete}</p>
-                              {analyticsFunnel.differentiation.startToComplete !== null && (
-                                <p className="text-[9px] text-emerald-600 font-bold mt-0.5">{analyticsFunnel.differentiation.startToComplete}%</p>
+                              <p className="text-lg font-black text-emerald-700">{analyticsFunnel.acquisition.workoutComplete}</p>
+                              {analyticsFunnel.acquisition.startToComplete !== null && (
+                                <p className="text-[9px] text-emerald-600 font-bold mt-0.5">{analyticsFunnel.acquisition.startToComplete}%</p>
                               )}
                             </div>
                           </div>
                           <p className="text-[9px] text-gray-400 mt-1.5 leading-relaxed">
-                            plan → complete 전체 전환: <span className="font-bold text-[#1B4332]">{analyticsFunnel.differentiation.planToComplete !== null ? `${analyticsFunnel.differentiation.planToComplete}%` : "-"}</span>
-                            {analyticsFunnel.differentiation.workoutAbandon > 0 && (
-                              <> · abandon {analyticsFunnel.differentiation.workoutAbandon}건</>
+                            plan → complete 전환: <span className="font-bold text-[#1B4332]">{analyticsFunnel.acquisition.planToComplete !== null ? `${analyticsFunnel.acquisition.planToComplete}%` : "-"}</span>
+                            {analyticsFunnel.acquisition.workoutAbandon > 0 && (
+                              <> · abandon {analyticsFunnel.acquisition.workoutAbandon}건</>
                             )}
                           </p>
                         </div>
@@ -1095,11 +1130,48 @@ export default function AdminPage() {
 
                       <div className="h-px bg-gray-100" />
 
-                      {/* ② 후킹 효과 — 회의 62 검증 */}
+                      {/* ② 리텐션 — 저장 플랜 재실행 볼륨 (source=saved + program) · Skok */}
+                      {analyticsFunnel.retention && (
+                        <div>
+                          <div className="flex items-baseline justify-between mb-2">
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">리텐션 · 저장 플랜 재실행</p>
+                            <p className="text-[9px] text-gray-400">source=saved+program</p>
+                          </div>
+                          <div className="grid grid-cols-3 gap-2">
+                            <div className="bg-gray-50 rounded-lg p-2.5 text-center">
+                              <p className="text-[9px] text-gray-400 mb-0.5">재실행 시작</p>
+                              <p className="text-lg font-black text-gray-700">{analyticsFunnel.retention.workoutStart}</p>
+                            </div>
+                            <div className="bg-gray-50 rounded-lg p-2.5 text-center">
+                              <p className="text-[9px] text-gray-400 mb-0.5">재실행 완료</p>
+                              <p className="text-lg font-black text-gray-700">{analyticsFunnel.retention.workoutComplete}</p>
+                              {analyticsFunnel.retention.completionRate !== null && (
+                                <p className="text-[9px] text-[#2D6A4F] font-bold mt-0.5">{analyticsFunnel.retention.completionRate}%</p>
+                              )}
+                            </div>
+                            <div className="bg-gray-50 rounded-lg p-2.5 text-center">
+                              <p className="text-[9px] text-gray-400 mb-0.5">전체 대비 비중</p>
+                              <p className="text-lg font-black text-gray-700">{analyticsFunnel.retention.reuseShare !== null ? `${analyticsFunnel.retention.reuseShare}%` : "-"}</p>
+                            </div>
+                          </div>
+                          <p className="text-[9px] text-gray-400 mt-1.5 leading-relaxed">
+                            resume(이전 플랜 이어서) {analyticsFunnel.retention.resumeStart}건 · 재실행률 높을수록 습관화 시그널 (Skok)
+                          </p>
+                        </div>
+                      )}
+
+                      <div className="h-px bg-gray-100" />
+
+                      {/* ③ 후킹 효과 — 회의 62 검증 */}
                       {analyticsFunnel.hooking && (
                         <div>
                           <div className="flex items-baseline justify-between mb-2">
-                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">후킹 효과 · 회의 62</p>
+                            <div>
+                              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">후킹 효과 · 회의 62</p>
+                              {analyticsFunnel.hooking.lowSample && (
+                                <p className="text-[9px] text-amber-600 font-bold mt-0.5">⚠ 표본 부족 (greeting &lt; {analyticsFunnel.sampleThreshold}) — Tunguz 권고 해석 주의</p>
+                              )}
+                            </div>
                             <p className="text-[9px] text-gray-400">greeting → CTA</p>
                           </div>
                           <div className="grid grid-cols-3 gap-2">

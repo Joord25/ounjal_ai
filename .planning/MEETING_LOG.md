@@ -2,6 +2,72 @@
 
 ---
 
+### 회의 63-A: GA funnel source 분리 + 평가자 편향 감사 (2026-04-18 저녁)
+
+**참석:** 대표, 기획자, 평가자, David Skok, Sarah Friar, Patrick Campbell, Tomasz Tunguz, 황보현우
+
+**배경 (회의 63 배포 직후 실측):**
+- 30일 GA 실측: chat_plan_generated=17, workout_start=204, workout_complete=82
+- 비율 1200% (start/plan_generated), 482% (complete/plan_generated) — funnel 붕괴
+- 원인: `workout_start` 가 저장 플랜 재실행 · 프로그램 세션 · 이전 플랜 이어서 등 **모든 세션 진입**에서 발화 ([WorkoutSession.tsx:57](src/components/workout/WorkoutSession.tsx#L57))
+
+**평가자 감사 — 제시안 편향 6건 발견 ([feedback_source_grounded_opinions.md](~/memory/feedback_source_grounded_opinions.md) 메모리 채택 촉발):**
+1. 자문단 만장일치로 Option B 찬성 → Tunguz "표본 < 100 → 측정 정교화 ROI 낮음" 반대 의견 탈락
+2. "업계 평균 완주율 15~25%" 등 근거 없는 수치 3건
+3. BigQuery Export 대안 미검토 (코드 편향)
+4. "구현 30분" 과소 추정 → 실측 2시간
+5. source 5종 스펙을 황보현우 귀속시킴 (실제 본인 설계)
+6. Skok "12x reuse rate" 순환논리 (측정 불가한 수치를 분석 결과로 표현)
+
+**대표 결정 (정직성 > 설득력):**
+- `feedback_source_grounded_opinions.md` 메모리 영구 기록 — 향후 의견/자문단 발언은 출처·프레임워크 근거 명시 의무
+- Option B 진행 결정 (편향 인정 후)
+
+**Option B 구현 — 코드 기반 source 4종 (진입점 전수 조사):**
+
+| source | 트리거 진입점 | 의미 |
+|---|---|---|
+| `chat` | [page.tsx:584](src/app/app/page.tsx#L584), [:695](src/app/app/page.tsx#L695), [:1280](src/app/app/page.tsx#L1280) | ChatHome / AdviceCard / 로딩 오버레이 완료 — 신규 AI 플랜 |
+| `saved` | [page.tsx:1078](src/app/app/page.tsx#L1078) `plan.programId` 없음 | 저장된 단일 플랜 재실행 |
+| `program` | [page.tsx:1078](src/app/app/page.tsx#L1078) `plan.programId` 있음 | 장기 프로그램 세션 (프리미엄) |
+| `resume` | [page.tsx:1159](src/app/app/page.tsx#L1159) onResumeLastPlan | 홈 "이전 플랜 이어서" 버튼 |
+
+**태깅된 이벤트 (6종):**
+- `plan_preview_view`, `plan_preview_start`, `plan_preview_reject`
+- `workout_start`, `workout_complete`, `workout_abandon`
+
+**Backend 쿼리 재구조 ([analyticsFunnel.ts](functions/src/admin/analyticsFunnel.ts)):**
+- `runEventCountBySource` 신규 — eventName × customEvent:source 이중 그룹핑
+- `acquisition` (source=chat): 신규 플랜 → 운동 완료 전환 (Campbell "AI 가치 측정")
+- `retention` (source=saved+program): 저장 플랜 재실행 볼륨 + 완주율 (Skok "리텐션 KPI")
+- `aggregate` (전체): backward compat + 비교용
+- 표본 < 100 → `lowSample: true` 플래그 (Tunguz 권고)
+- source 맞춤 측정기준 미등록 시 → `sourceSplitError` 응답 → UI 안내
+
+**Admin UI 4섹션 ([src/app/admin/page.tsx](src/app/admin/page.tsx)):**
+- ① 획득 funnel (source=chat) + lowSample 경고
+- ② 리텐션 (source=saved+program) + 전체 대비 비중
+- ③ 후킹 효과 (회의 62) + lowSample 경고
+- ④ 페이월 트리거 분포
+
+**배포 전 대표 세팅:**
+1. GA4 관리 > 맞춤 정의 > 맞춤 측정기준 만들기:
+   - 이름: `source`, 범위: `이벤트`, 매개변수: `source` (24~48h 데이터 수집 필요)
+2. `cd functions && firebase deploy --only functions`
+
+**빌드 검증:** `functions npm run build` ✓ · 루트 `tsc --noEmit` ✓
+
+**자문단 합의 지표 컷오프 (참고용 — 표본 충분 후):**
+- 획득 funnel plan → complete: 업계 참고 없음 (추정), 자체 베이스라인 설정 예정
+- 리텐션 완주율: 저장 플랜이라 base가 높을 것 — 자체 트렌드 추적
+- 표본 100건 채우기 전엔 A/B 결론 보류 (Tunguz 원본 권고)
+
+**후속 과제:**
+- 맞춤 측정기준 등록 후 24~48h 대기 → 획득/리텐션 분리 데이터 확보
+- 100건 표본 누적 시 재해석 회의 (회의 63-B 예상)
+
+---
+
 ### 회의 63: Admin 대시보드 메트릭 정합성 감사 (2026-04-18 PM)
 
 **참석:** 대표(임주용), 기획자, 평가자, 백엔드, Sarah Friar, David Skok, Patrick Campbell, Tomasz Tunguz, 황보현우
