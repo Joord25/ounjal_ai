@@ -243,6 +243,8 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
   const [planIconPulse, setPlanIconPulse] = useState(false);
   const [routing, setRouting] = useState(false);
   const [showMoreExamples, setShowMoreExamples] = useState(false);
+  // 회의 64-O (2026-04-19): 번개(바로 플랜 4칩) 팝오버 — 격자(심화 7칩)와 분리
+  const [showQuickPlan, setShowQuickPlan] = useState(false);
   // 회의 64-D: 러닝 프로그램 바텀시트 + 성공 토스트
   const [showRunningSheet, setShowRunningSheet] = useState(false);
   const [runningToast, setRunningToast] = useState<string | null>(null);
@@ -1283,14 +1285,26 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
                     <path d="M30.9375,22l-1.4189,5.0771A2.7758,2.7758,0,0,1,27,29H20" />
                   </svg>
                 </button>
-                {/* 회의 64-J: 추천 운동 모음 아이콘 — 기존 EXAMPLE_CHIPS 팝오버 진입점 */}
+                {/* 회의 64-O: 번개 = 기본 4칩 바로 플랜 숏컷 */}
                 <button
-                  onClick={() => setShowMoreExamples(v => !v)}
+                  onClick={() => { setShowQuickPlan(v => !v); setShowMoreExamples(false); }}
                   disabled={busy}
                   className="w-9 h-9 flex items-center justify-center text-[#2D6A4F] active:scale-95 transition-transform shrink-0 disabled:opacity-40"
-                  aria-label={locale === "en" ? "Workout suggestions" : "추천 운동 모음"}
+                  aria-label={locale === "en" ? "Quick plan" : "바로 플랜"}
                 >
-                  {/* Squares 2×2 (Heroicons, MIT) — "메뉴·선택지 모음" 직관 */}
+                  {/* Bolt (Heroicons, MIT) — "즉시 실행" 뉘앙스 */}
+                  <svg className="w-[19px] h-[19px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                </button>
+                {/* 회의 64-J: 격자 = 심화 7칩 예시 (채팅 경로) */}
+                <button
+                  onClick={() => { setShowMoreExamples(v => !v); setShowQuickPlan(false); }}
+                  disabled={busy}
+                  className="w-9 h-9 flex items-center justify-center text-[#2D6A4F] active:scale-95 transition-transform shrink-0 disabled:opacity-40"
+                  aria-label={locale === "en" ? "Workout suggestions" : "추천 예시"}
+                >
+                  {/* Squares 2×2 (Heroicons, MIT) — "예시 모음" */}
                   <svg className="w-[19px] h-[19px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <rect x="3.5" y="3.5" width="7" height="7" rx="1.5" />
                     <rect x="13.5" y="3.5" width="7" height="7" rx="1.5" />
@@ -1354,44 +1368,41 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
       </div>
       )}
 
-      {/* 추천 운동 모음 팝오버 — 회의 64-J: 기본 4칩 + 심화 7칩 = 11개 전체 노출 */}
-      {showMoreExamples && (
+      {/* 회의 64-O: 번개 팝오버 — 기본 4칩만, 바로 Master Plan 생성 */}
+      {showQuickPlan && (
         <>
-          <div
-            className="absolute inset-0 z-40"
-            onClick={() => setShowMoreExamples(false)}
-          />
+          <div className="absolute inset-0 z-40" onClick={() => setShowQuickPlan(false)} />
           <div className="absolute left-4 right-4 bottom-[72px] z-50 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden max-h-[60vh] overflow-y-auto py-1.5">
-            {/* 기본 4칩: 회의 64-M — 채팅 경유 없이 바로 Master Plan 생성 */}
             {EXAMPLE_CHIPS.map((chip) => (
               <button
                 key={chip.key}
-                onClick={() => handleDirectPlan(chip.key)}
+                onClick={() => { handleDirectPlan(chip.key); setShowQuickPlan(false); }}
                 disabled={busy}
                 className="w-full flex items-center gap-2.5 px-3 py-2 text-left hover:bg-gray-50 active:bg-emerald-50/40 transition-colors disabled:opacity-50"
               >
-                <span className="text-[#1B4332] shrink-0">
-                  <ChipIcon type={chip.icon} />
-                </span>
+                <span className="text-[#1B4332] shrink-0"><ChipIcon type={chip.icon} /></span>
                 <span className="text-[12.5px] text-[#1B4332] whitespace-nowrap overflow-hidden text-ellipsis flex-1">
                   {locale === "en" ? chip.labelEn : chip.labelKo}
                 </span>
               </button>
             ))}
-            {/* 심화 7칩: 자연어 이해 필요 — 채팅 경로 유지 (입력창 자동 채움 후 유저가 수정·전송) */}
+          </div>
+        </>
+      )}
+
+      {/* 회의 64-J: 격자 팝오버 — 심화 7칩, 채팅 경유 */}
+      {showMoreExamples && (
+        <>
+          <div className="absolute inset-0 z-40" onClick={() => setShowMoreExamples(false)} />
+          <div className="absolute left-4 right-4 bottom-[72px] z-50 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden max-h-[60vh] overflow-y-auto py-1.5">
             {EXAMPLE_CHIPS_MORE.map((chip) => (
               <button
                 key={chip.key}
-                onClick={() => {
-                  fillExample(chip.key);
-                  setShowMoreExamples(false);
-                }}
+                onClick={() => { fillExample(chip.key); setShowMoreExamples(false); }}
                 disabled={busy}
                 className="w-full flex items-center gap-2.5 px-3 py-2 text-left hover:bg-gray-50 active:bg-emerald-50/40 transition-colors disabled:opacity-50"
               >
-                <span className="text-[#1B4332] shrink-0">
-                  <ChipIcon type={chip.icon} />
-                </span>
+                <span className="text-[#1B4332] shrink-0"><ChipIcon type={chip.icon} /></span>
                 <span className="text-[12.5px] text-[#1B4332] whitespace-nowrap overflow-hidden text-ellipsis flex-1">
                   {locale === "en" ? chip.labelEn : chip.labelKo}
                 </span>
