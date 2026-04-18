@@ -215,14 +215,16 @@ export function deleteProgram(programId: string): void {
 }
 
 /** 서버에 프로그램 일괄 저장 */
-export async function remoteSaveProgram(sessions: SavedPlan[]): Promise<{ ok: true } | { ok: false; reason: string }> {
+export async function remoteSaveProgram(sessions: SavedPlan[]): Promise<{ ok: true } | { ok: false; reason: "limit" | "auth" | "error"; detail?: string }> {
   try {
     const res = await authedFetch("/api/saveProgram", { sessions });
-    if (!res) return { ok: false, reason: "Not authenticated" };
-    if (!res.ok) return { ok: false, reason: `HTTP ${res.status}` };
+    if (!res) return { ok: false, reason: "auth", detail: "Not authenticated" };
+    // 서버가 403(Premium required for programs) 반환 시 "limit"로 통일 — 페이월 유도 트리거
+    if (res.status === 403) return { ok: false, reason: "limit" };
+    if (!res.ok) return { ok: false, reason: "error", detail: `HTTP ${res.status}` };
     return { ok: true };
   } catch (e) {
-    return { ok: false, reason: (e as Error).message };
+    return { ok: false, reason: "error", detail: (e as Error).message };
   }
 }
 

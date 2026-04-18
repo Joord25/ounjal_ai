@@ -14,7 +14,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "@/hooks/useTranslation";
 import { trackEvent } from "@/utils/analytics";
-import { newProgramId, saveProgramSessions, remoteSaveProgram, type SavedPlan } from "@/utils/savedPlans";
+import { newProgramId, saveProgramSessions, remoteSaveProgram, deleteProgram, type SavedPlan } from "@/utils/savedPlans";
 import { getCachedWorkoutHistory } from "@/utils/workoutHistory";
 
 type RunningProgramId = "vo2_boost" | "10k_sub_50" | "half_sub_2" | "full_sub_3";
@@ -162,13 +162,17 @@ export const RunningProgramSheet: React.FC<RunningProgramSheetProps> = ({
 
   const handleGenerate = async () => {
     if (!selectedProgram) return;
+
+    // 회의 64-G (2026-04-18): 장기 프로그램 저장은 프리미엄만. 무료 유저는 페이월 유도.
+    const { auth } = await import("@/lib/firebase");
+    if (!auth.currentUser) { onClose(); onRequestLogin(); return; }
+    if (!isPremium) { onClose(); onRequestPaywall(); return; }
+
     setStep("loading");
     setError(null);
 
     try {
-      const { auth } = await import("@/lib/firebase");
-      const token = await auth.currentUser?.getIdToken();
-      if (!token) { onClose(); onRequestLogin(); return; }
+      const token = await auth.currentUser.getIdToken();
 
       // limiter 판정 — 초심자 단순화: Full/Half/10K = break_ceiling, VO2 = build_aerobic
       const limiter = selectedProgram === "vo2_boost" ? "build_aerobic" : "break_ceiling";
@@ -194,14 +198,23 @@ export const RunningProgramSheet: React.FC<RunningProgramSheetProps> = ({
       const localProgramId = newProgramId();
       const sessions: SavedPlan[] = data.sessions.map(s => ({ ...s, programId: localProgramId }));
 
-      // 로컬 저장
+      // 로컬 저장 (낙관적)
       saveProgramSessions(sessions);
 
-      // 서버 저장 (premium 하드락 체크)
+      // 서버 저장 — 실패 시 로컬 롤백 (데이터 유실 방지, 회의 64-G)
       const remoteRes = await remoteSaveProgram(sessions);
       if (!remoteRes.ok) {
-        // 저장 실패 — 롤백 대신 로컬 유지하고 에러 표시. Phase 4에서 재동기화 로직.
         console.error("remoteSaveProgram failed:", remoteRes);
+        deleteProgram(localProgramId); // 로컬 롤백
+        // 서버가 403(premium 또는 한도) 반환 시 페이월로 유도. 그 외는 일반 에러.
+        if ("reason" in remoteRes && remoteRes.reason === "limit") {
+          onClose();
+          onRequestPaywall();
+        } else {
+          setError(t("running_program.error.generic"));
+          setStep("preview");
+        }
+        return;
       }
 
       trackEvent("running_program_created", {
