@@ -2,6 +2,85 @@
 
 ---
 
+### 회의 64-XYZ: 러닝 리포트 3대 버그 수정 스프린트 (2026-04-19)
+
+**참석:** 대표(임주용), 기획자 Agent, 평가자 Agent, 러닝 자문단(Seiler/San Millán/Ferber/Esteve-Lanao/Canova/Sang/사내코치), 사내 러닝코치(서브3)
+
+**배경 (대표 실측 보고):**
+대표가 "10k 50분 돌파" 프로그램 1회차 세션(2km 전력 러닝 + 워밍업/쿨다운) 실행 후 리포트에서 3가지 문제 발견:
+1. 내 플랜에서 1회차 세션이 완료 마크 안 뜸, 2회차로 자동 진행 안 됨
+2. 러닝 완료했는데도 "30대 남성 100명 중" 체력 축이 "-", 피트니스 나이 미표시
+3. "SPRINT INTERVAL" 카드 제목이 인터벌 아닌 연속 TT에 표시됨. "9m 27s elapsed" 표현 어색. 연속 주행에서 거리 목표 도달 신호 없음 (수동 완료만 가능)
+
+**조사 결과 (평가자 직접 코드 읽기):**
+- Issue 1: `SavedPlan.completedAt` 필드·`markSessionCompleted` 함수·MyPlans 체크마크 UI 전부 존재. 문제는 `page.tsx:999` onComplete에서 `markSessionCompleted` 호출 누락
+- Issue 2: `StatusTab.tsx:66-68`에서 cardio 축이 하드코딩 `hasData:false` 반환. 주석에 "runningStats 전달 안 되어 일단 false" — 미완성 코드
+- Issue 3: "2km 전력(2K All-out)"이 `runningProgram.ts:376`에서 `runType: "sprint"`로 태깅됨. 연속 주행 useEffect(`FitScreen.tsx:570-592`)에 거리 도달 감지 로직 없음 (인터벌 모드에만 있음)
+
+**자문단 소환 내역 + 출처 (source-grounded opinions 원칙):**
+- **회의 64-X (체력 축 반영)**: Esteve-Lanao [PubMed 23752040](https://pubmed.ncbi.nlm.nih.gov/23752040/) (recreational 10주 RCT 5% 개선) / San Millán [Peter Attia #201](https://peterattiamd.com/inigosanmillan2/) (1회 페이스 퍼센타일 반대) / Ferber [McCaig UCalgary](https://mccaig.ucalgary.ca/ferber) (웨어러블 다회 평균) / 사내 코치
+- **회의 64-Y (runType 재분류)**: Seiler [PubMed 20861519](https://pubmed.ncbi.nlm.nih.gov/20861519/) (2km all-out = Z3 race-simulation test, interval 아님) / Canova [Running Writings](https://runningwritings.com/2023/07/renato-canova-marathon-training-lecture.html) (control test / verifica 개념) / Sang [World Athletics](https://worldathletics.org/news/feature/patrick-sang-distance-running-coach-kenya-kipchoge-kamworor-kipyegon) (직접 TT 출처 미확보 — 추정 꼬리표)
+- **만장일치 경계**: San Millán "1회 페이스 퍼센타일 반대" 이견 기록. 잠정/확정 2단계 표시로 부분 수용.
+
+**대표 확정 9개 결정:**
+
+| 회의 | Q | 결정 | 근거 |
+|---|---|---|---|
+| 64-X | Q1 | A — 1회부터 잠정 퍼센타일 표시 (회색 틴트 + "3회 후 확정" 마이크로카피) | UX: 1회 뛰었는데 반영 없으면 이탈 |
+| 64-X | Q2 | D — 3회 OR 2주 경과 (먼저 도달한 쪽) | Esteve-Lanao 10주 유의변화 + UX 속도 트레이드오프 |
+| 64-X | Q3 | A — 1km 이상 러닝 반영 (2km→1km 완화) | 초보 러너 실내 러닝머신 우호 |
+| 64-X | Q4 | A — 인터벌(walkrun/vo2_interval/sprint_interval) cardio 배제 유지 | 왜곡 방지, v2로 전력 구간만 반영 이월 |
+| 64-X | Q5 | A — 러닝 단독 시 피트니스 나이 "체력축만 계산됨" amber 경고 | 투명성 + 다른 운동 동기부여 |
+| 64-Y | Q1 | A — 과거 Firestore 데이터 소급 재태깅 | 일관성 우선 |
+| 64-Y | Q2 | 동의 — fartlek → vo2_interval (Norwegian 4×4는 fartlek 아님, Canova 근거) | 과학 용어 정확성 |
+| 64-Y | Q3 | B — Bakken 2x15 threshold 카드는 전체 평균만 (2블록 시각화 skip) | MVP 단순 유지 |
+| 64-Y | Q4 | A — TT 카드 v1 = PR 뱃지 + 목표 대비 차이 한 줄만 | 첫 TT는 기준선, 추이 차트는 v2 |
+| 64-Z | — | B 변형 — 신호(종소리+진동+뱃지) + 완료버튼 펄스, 자동 종료 X | 트레이너 관점: 쿨다운 조깅 유연성 |
+
+**runType 8종 재분류 (6종 → 8종):**
+walkrun / easy / long / tempo / threshold(신규) / vo2_interval(fartlek 개명) / sprint_interval(sprint 세분화) / time_trial(sprint 세분화)
+
+**구현 실행 구조 (기획자 + 평가자 교차 검증):**
+- 기획자 Agent: `.planning/SPEC-64-XYZ.md` 작성 (5개 Batch, 파일별 구체 변경 + AC + grep 검증 명령)
+- 구현자: Batch A→B→C→D→E 순서 atomic commit
+- 평가자 Agent: 각 Batch 완료 시 코드 직접 읽고 AC 검증 + 스펙 외 변경 감지
+
+**커밋 이력:**
+- `221a7e5` fix: 장기 프로그램 세션 완료 표시 + 러닝 리포트 시간 라벨 한글화 (이슈 1 + 3-2 즉시분)
+- `963477b` feat: 연속 주행 거리 목표 달성 자동 신호 (Batch A, 회의 64-Z)
+- `19a0267` feat: runType 6종 → 8종 재분류 + 서버 태깅 (Batch B, 회의 64-Y)
+- `e2fa940` feat: Firestore 과거 runType 소급 재태깅 admin 함수 (Batch C, 회의 64-Y)
+- `2643a0e` feat: 러닝 리포트 카드 레이아웃 8종 분기 + Time Trial v1 카드 (Batch D, 회의 64-Y)
+- `86b0de3` feat: 러닝 → 체력 축 연결 + 잠정/확정 상태 UX (Batch E, 회의 64-X)
+
+**모든 Batch 평가자 PASS:**
+- Batch A: 9/9 AC 통과
+- Batch B: 14/14 AC 통과
+- Batch C: 7/7 AC 통과
+- Batch D: 10/10 AC 통과
+- Batch E: 11/11 AC 통과
+
+**배포 순서 (대표 수행):**
+1. `git push` (클라 Batch A, D, E 자동 배포)
+2. `cd functions && firebase deploy --only functions` (Batch B 서버 태깅 + Batch C 마이그 함수)
+3. 마이그레이션 실행 순서:
+   - `curl -X POST .../api/adminMigrateRunTypeV2 -H "Authorization: Bearer <token>" -d '{"dryRun":true}'` → 보고서 확인
+   - 확인 후 `dryRun:false`로 실행
+4. Firestore 랜덤 샘플 3건 확인 → 과거 "sprint" 레코드가 time_trial/vo2_interval/sprint_interval로 올바르게 분기되었는지
+
+**미해결·이월 과제:**
+- Sang TT 직접 인용 확보 (worldathletics 피처에 Kipchoge 매주 TT 언급만, 명명법 불명)
+- 400m(~75초) sprint vs vo2 경계선 (미검증, 현재 vo2_interval로 분류)
+- Norwegian 4×4 paceGuide가 threshold면 실질 threshold_interval (단일 태그 부족 가능)
+- PACE_TABLE 30대 남성 50th=6:45/km가 한국 아마추어 분포 대비 적절한지 실증 없음 (90일 후 자사 데이터 재보정 마일스톤)
+- TT 카드 v2: 이전 3회 추이 차트
+- Threshold 2x15 세션 2블록 시각화 (v2 이월)
+- Ferber 웨어러블 단일 세션 신뢰도 공개 출처 미확보
+
+**Q 이벤트는 별도 파일로 문서화됨:** `.planning/SPEC-64-XYZ.md` (기획자 초안, 평가자 검증 기반)
+
+---
+
 ### 회의 63-A: GA funnel source 분리 + 평가자 편향 감사 (2026-04-18 저녁)
 
 **참석:** 대표, 기획자, 평가자, David Skok, Sarah Friar, Patrick Campbell, Tomasz Tunguz, 황보현우
