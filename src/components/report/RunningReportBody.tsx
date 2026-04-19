@@ -68,52 +68,52 @@ export const RunningReportBody: React.FC<RunningReportBodyProps> = ({ runningSta
           )}
         </div>
 
-        {/* 상단 블록: 대표 스탯 (숫자 옆 인라인 단위) */}
-        {hasGpsData ? (
-          <div className="flex flex-col items-start">
-            <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.18em] mb-2">
-              {t("running.stats.distance")}
-            </p>
-            <p className="text-[56px] font-black text-[#1B4332] leading-none tabular-nums">
-              {formatRunDistanceKm(runningStats.distance)}
-              <span className="text-xl text-gray-400 ml-2 font-black uppercase tracking-[0.15em]">km</span>
-            </p>
-          </div>
-        ) : (
-          <div className="flex flex-col items-start">
-            <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.18em] mb-2">
-              {t("running.stats.rounds")}
-            </p>
-            <p className="text-[56px] font-black text-[#1B4332] leading-none tabular-nums">
-              {(runningStats.intervalRounds || []).length || "—"}
-              <span className="text-xl text-gray-400 ml-2 font-black uppercase tracking-[0.15em]">rounds</span>
-            </p>
-          </div>
-        )}
+        {/* 3분할: 거리 / 페이스 / 총 시간 (각 셀: 라벨 위 · 숫자 가운데 · 단위 아래 · 중앙 정렬) */}
+        <div className="grid grid-cols-3 gap-2">
+          {/* 거리 or Rounds */}
+          {hasGpsData ? (
+            <div className="flex flex-col items-center text-center">
+              <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.18em] mb-2">
+                {t("running.stats.distance")}
+              </p>
+              <p className="text-4xl font-black text-[#1B4332] leading-none tabular-nums">
+                {formatRunDistanceKm(runningStats.distance)}
+              </p>
+              <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] mt-2">km</p>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center text-center">
+              <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.18em] mb-2">
+                {t("running.stats.rounds")}
+              </p>
+              <p className="text-4xl font-black text-[#1B4332] leading-none tabular-nums">
+                {(runningStats.intervalRounds || []).length || "—"}
+              </p>
+              <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] mt-2">rounds</p>
+            </div>
+          )}
 
-        {/* 구분선 */}
-        <div className="border-t border-gray-100 mt-6 pt-6" />
-
-        {/* 하단 블록: Pace + Time 2분할 (숫자 옆 인라인 단위, 시간은 제목을 '총 시간'으로 통일) */}
-        <div className="grid grid-cols-2 gap-6">
-          {/* Pace (전력 평균 우선 노출 — 러닝 코치 권고) */}
-          <div className="flex flex-col items-start">
+          {/* Pace */}
+          <div className="flex flex-col items-center text-center">
             <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.18em] mb-2">
               {runningStats.sprintAvgPace != null ? t("running.stats.sprintPace") : t("running.stats.pace")}
             </p>
             <p className="text-4xl font-black text-[#1B4332] leading-none tabular-nums">
               {formatPace(runningStats.sprintAvgPace ?? runningStats.avgPace)}
-              <span className="text-base text-gray-400 ml-1.5 font-black">/km</span>
             </p>
+            <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] mt-2">/km</p>
           </div>
 
-          {/* Time — 제목을 '총 시간'으로 통일 (숫자 아래 중복 라벨 제거) */}
-          <div className="flex flex-col items-start">
+          {/* Time — 상단 '총 시간', 하단 '시간' (스왑 완료) */}
+          <div className="flex flex-col items-center text-center">
             <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.18em] mb-2">
               {t("running.stats.timeUnit")}
             </p>
             <p className="text-4xl font-black text-[#1B4332] leading-none tabular-nums">
               {formatRunDuration(runningStats.duration)}
+            </p>
+            <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] mt-2">
+              {t("running.stats.time")}
             </p>
           </div>
         </div>
