@@ -3331,3 +3331,32 @@ ExerciseStep.intervalSpec?: {
 - tsc 통과, Vitest 22/22 통과
 
 **배포**: 클라만 (서버 스키마 변경 없음).
+
+---
+
+## 회의 64-β (2026-04-19): 월간 러닝 과학데이터 3서브탭
+
+### 요청
+"히스토리>운동과학데이터>이번달 러닝 데이터가 있어야겠는데?
+저정도면 운동과학데이터도 탭을 나눠야하는거아닌가여?"
+
+### 자문 합의 (Seiler/Esteve-Lanao/Bakken/Davis/Sang)
+- 7지표: 볼륨(거리/횟수/시간/페이스) + 시간가중 Z1/Z2/Z3 + Davis 10% + 지난달 delta + 요일 히트맵 + 세션믹스 4종
+- 3서브탭 구조: 볼륨 / 강도 / 패턴
+- Zone 매핑 (duration-based, Seiler 원논문 기준):
+  - Z1(저): easy · long · walkrun
+  - Z2(중): tempo · threshold
+  - Z3(고): vo2_interval · sprint_interval · time_trial + legacy(fartlek/sprint)
+
+### 변경
+- 신규: `src/utils/monthlyRunning.ts` — 월간 집계 + 지난달 비교
+- 신규: `src/components/report/MonthlyRunningScience.tsx` — Kenko 3탭 UI
+- 수정: `src/components/report/WorkoutReport.tsx` — `isRunningSession` 플래그 + 과학데이터 펼치기 러닝 분기 추가
+- 선행(63cddd7): `ProofTab.tsx` 부위도감 유산소 카운트 버그 수정 (runningStats 가드 → strength 정규식 앞)
+
+### 평가자 결과
+- PASS: isRunningSession 판별, 버튼 조건, mixed 세션 회귀 방지, Seiler duration-based 매핑, 빈 상태 3탭, 부위도감 runningStats 가드 순서, tsc, Kenko 스타일
+- FLAG (경미): (1) i18n 인라인 → locales 리소스 이전 권장(JA/ZH 확장 대비) (2) 영문 요일 T/S 중복 (3) 세션믹스 interval 0 임계 8회
+
+### 배포
+클라만. 커밋 d697893, push 완료.
