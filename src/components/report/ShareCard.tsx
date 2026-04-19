@@ -151,8 +151,13 @@ export const ShareCard: React.FC<ShareCardProps> = ({
   const captureCard = async (): Promise<Blob | null> => {
     if (!cardRef.current) return null;
     const html2canvas = (await import("html2canvas-pro")).default;
+    // 회의 64-α 후속: 폰트 로딩 완료 대기 (Rubik 등 Google Fonts가 캡처 전 준비되도록)
+    if (typeof document !== "undefined" && "fonts" in document) {
+      try { await (document as Document & { fonts: { ready: Promise<void> } }).fonts.ready; } catch {}
+    }
     const canvas = await html2canvas(cardRef.current, {
-      backgroundColor: "rgba(0,0,0,0)",
+      // iOS Safari에서 transparent 폴백 시 흰 배경으로 나오는 이슈 방지 — 필드 시 solid 다크 지정
+      backgroundColor: mode === "filled" ? "#1B4332" : null,
       scale: 3,
       useCORS: true,
       logging: false,
@@ -245,7 +250,10 @@ export const ShareCard: React.FC<ShareCardProps> = ({
           ref={cardRef}
           className="w-[300px] h-[533px] flex flex-col justify-center items-center p-5"
           style={{
-            background: mode === "filled" ? "linear-gradient(135deg, #0a1a14 0%, #1B4332 50%, #2D6A4F 100%)" : "transparent",
+            // 회의 64-α 후속 (2026-04-19): iOS Safari html2canvas 캡처에서 linear-gradient가 빠지는 이슈 대응
+            // backgroundColor(solid) + backgroundImage(gradient) 분리 → gradient 실패해도 solid는 유지
+            backgroundColor: mode === "filled" ? "#1B4332" : "transparent",
+            backgroundImage: mode === "filled" ? "linear-gradient(135deg, #0a1a14 0%, #1B4332 50%, #2D6A4F 100%)" : "none",
             fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', 'Helvetica Neue', sans-serif",
           }}
         >
