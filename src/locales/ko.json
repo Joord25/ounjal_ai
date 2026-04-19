@@ -721,6 +721,7 @@
   "running.stats.distance": "거리",
   "running.stats.pace": "페이스",
   "running.stats.time": "시간",
+  "running.stats.timeUnit": "총 시간",
   "running.stats.rounds": "라운드",
   "running.stats.sprintPace": "전력 페이스",
   "running.stats.recoveryPace": "회복 페이스",

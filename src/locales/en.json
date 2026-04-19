@@ -721,6 +721,7 @@
   "running.stats.distance": "Distance",
   "running.stats.pace": "Pace",
   "running.stats.time": "Time",
+  "running.stats.timeUnit": "total",
   "running.stats.rounds": "Rounds",
   "running.stats.sprintPace": "Sprint Pace",
   "running.stats.recoveryPace": "Recovery Pace",

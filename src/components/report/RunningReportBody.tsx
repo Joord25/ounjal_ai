@@ -110,7 +110,7 @@ export const RunningReportBody: React.FC<RunningReportBodyProps> = ({ runningSta
             <p className="text-3xl font-black text-[#1B4332] leading-none tabular-nums">
               {formatRunDuration(runningStats.duration)}
             </p>
-            <p className="text-[10px] font-bold text-gray-400 mt-1">elapsed</p>
+            <p className="text-[10px] font-bold text-gray-400 mt-1">{t("running.stats.timeUnit")}</p>
           </div>
         </div>
       </div>

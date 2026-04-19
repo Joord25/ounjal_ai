@@ -20,7 +20,7 @@ import { PlanLoadingOverlay } from "@/components/plan/PlanLoadingOverlay";
 import { FitnessReading } from "@/components/dashboard/FitnessReading";
 import { ChatHome } from "@/components/dashboard/ChatHome";
 import { MyPlansScreen } from "@/components/dashboard/MyPlansScreen";
-import { markPlanUsed, remoteMarkPlanUsed } from "@/utils/savedPlans";
+import { markPlanUsed, markSessionCompleted, remoteMarkPlanUsed } from "@/utils/savedPlans";
 import { Onboarding } from "@/components/layout/Onboarding";
 import { NutritionTab } from "@/components/report/tabs/NutritionTab";
 import { loadUserProfile, getPlanCount, incrementPlanCount, loadPlanCount } from "@/utils/userProfile";
@@ -1028,6 +1028,11 @@ export default function Home() {
               };
 
               saveWorkoutHistory(historyEntry);
+
+              // 회의 64-X (2026-04-19): 장기 프로그램 세션 완료 시 "내 플랜"에 체크 마크 반영
+              if (currentPlanSource === "program" && activeSavedPlanId) {
+                markSessionCompleted(activeSavedPlanId);
+              }
 
               // Process EXP once at completion (NOT in WorkoutReport render) — 회의 52: 유틸 경유
               const recentHist: WorkoutHistory[] = getCachedWorkoutHistory();
