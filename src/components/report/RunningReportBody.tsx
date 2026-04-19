@@ -72,7 +72,7 @@ export const RunningReportBody: React.FC<RunningReportBodyProps> = ({ runningSta
         <div className="grid grid-cols-3 divide-x divide-gray-100">
           {/* 거리 or Rounds */}
           {hasGpsData ? (
-            <div className="flex flex-col items-center text-center px-2">
+            <div className="flex flex-col items-center text-center px-4">
               <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.18em] mb-2">
                 {t("running.stats.distance")}
               </p>
@@ -82,7 +82,7 @@ export const RunningReportBody: React.FC<RunningReportBodyProps> = ({ runningSta
               <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] mt-2">km</p>
             </div>
           ) : (
-            <div className="flex flex-col items-center text-center px-2">
+            <div className="flex flex-col items-center text-center px-4">
               <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.18em] mb-2">
                 {t("running.stats.rounds")}
               </p>
@@ -94,7 +94,7 @@ export const RunningReportBody: React.FC<RunningReportBodyProps> = ({ runningSta
           )}
 
           {/* Pace */}
-          <div className="flex flex-col items-center text-center px-2">
+          <div className="flex flex-col items-center text-center px-4">
             <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.18em] mb-2">
               {runningStats.sprintAvgPace != null ? t("running.stats.sprintPace") : t("running.stats.pace")}
             </p>
@@ -105,7 +105,7 @@ export const RunningReportBody: React.FC<RunningReportBodyProps> = ({ runningSta
           </div>
 
           {/* Time — 상단 '총 시간', 하단 '시간' */}
-          <div className="flex flex-col items-center text-center px-2">
+          <div className="flex flex-col items-center text-center px-4">
             <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.18em] mb-2">
               {t("running.stats.timeUnit")}
             </p>
