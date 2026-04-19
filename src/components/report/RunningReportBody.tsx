@@ -1,9 +1,37 @@
 "use client";
 
 import React from "react";
-import type { RunningStats, WorkoutHistory } from "@/constants/workout";
+import type { RunningStats, RunningType, WorkoutHistory } from "@/constants/workout";
 import { useTranslation } from "@/hooks/useTranslation";
 import { formatPace, formatRunDistanceKm, formatRunDuration, getRunningTypeShareLabel } from "@/utils/runningFormat";
+import { TTCard } from "./TTCard";
+
+/**
+ * 회의 64-Y (2026-04-19): 8종 runType → 3가지 카드 레이아웃 분기
+ * - interval: 인터벌 상세 카드 (walkrun/vo2_interval/sprint_interval, legacy fartlek/sprint)
+ * - splits: km 스플릿 카드 (easy/long/tempo/threshold)
+ * - time_trial: TT 신규 카드 + 스플릿 (time_trial)
+ */
+type CardLayout = "interval" | "splits" | "time_trial";
+function pickCardLayout(runningType: RunningType): CardLayout {
+  switch (runningType) {
+    case "walkrun":
+    case "vo2_interval":
+    case "sprint_interval":
+    case "fartlek": // legacy
+      return "interval";
+    case "time_trial":
+      return "time_trial";
+    case "sprint": // legacy (Batch C 마이그 전 안전망) — 인터벌로 기본 처리
+      return "interval";
+    case "easy":
+    case "long":
+    case "tempo":
+    case "threshold":
+    default:
+      return "splits";
+  }
+}
 
 interface RunningReportBodyProps {
   runningStats: RunningStats;
@@ -46,6 +74,8 @@ export const RunningReportBody: React.FC<RunningReportBodyProps> = ({ runningSta
   const typeLabel = getRunningTypeShareLabel(runningStats.runningType, locale);
   // 회의 41 후속: GPS 없거나 실내일 때 Distance 자리를 Rounds 또는 Duration으로 대체
   const hasGpsData = runningStats.gpsAvailable && !runningStats.isIndoor && runningStats.distance > 0;
+  // 회의 64-Y: 카드 레이아웃 분기
+  const cardLayout = pickCardLayout(runningStats.runningType);
 
   return (
     <div className="flex flex-col gap-3">
@@ -115,8 +145,15 @@ export const RunningReportBody: React.FC<RunningReportBodyProps> = ({ runningSta
         </div>
       </div>
 
+      {/* ── TT v1 카드 (time_trial 레이아웃 전용, 회의 64-Y Q4) ── */}
+      {cardLayout === "time_trial" && (
+        <TTCard runningStats={runningStats} recentHistory={recentHistory} />
+      )}
+
       {/* ── Interval Breakdown Card (라운드별 전력/회복 — 오운잘 특화) ── */}
       {/* 회의 42 후속: 기록 없어도 카드 기본 양식 노출 */}
+      {/* 회의 64-Y: interval 레이아웃에서만 렌더 (연속 주행/TT는 숨김) */}
+      {cardLayout === "interval" && (
       <div className="bg-white rounded-3xl border border-gray-100 shadow-sm px-5 py-5">
         <div className="flex items-center gap-2 mb-3">
           <div className="w-1 h-5 bg-[#2D6A4F] rounded-full" />
@@ -186,9 +223,11 @@ export const RunningReportBody: React.FC<RunningReportBodyProps> = ({ runningSta
           </div>
         )}
       </div>
+      )}
 
       {/* ── Km Splits ── */}
-      {runningStats.splits && runningStats.splits.length > 0 && (() => {
+      {/* 회의 64-Y: splits 또는 time_trial 레이아웃에서 렌더 */}
+      {(cardLayout === "splits" || cardLayout === "time_trial") && runningStats.splits && runningStats.splits.length > 0 && (() => {
         const splits = runningStats.splits;
         const paces = splits.map(s => s.paceSec);
         const fastest = Math.min(...paces);
