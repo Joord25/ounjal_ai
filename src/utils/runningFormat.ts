@@ -14,14 +14,23 @@ export function formatRunDistanceKm(meters: number | null | undefined): string {
   return (meters / 1000).toFixed(2);
 }
 
-/** Strava 스타일 지속시간 포맷 "32m 22s" 또는 "1h 12m 40s". */
+/**
+ * 지속시간 포맷 (회의 64 후속, 2026-04-19): 콜론 표기로 통일
+ * - < 1시간: "9:27" (m:ss) — 페이스 "4:43/km"와 시각 쌍
+ * - ≥ 1시간: "1:09:27" (h:mm:ss)
+ * 기존 "9m 27s" / "1h 12m 40s" 대비 30~33% 폭 압축, 한 줄 표시 안정.
+ */
 export function formatRunDuration(totalSec: number): string {
-  if (!isFinite(totalSec) || totalSec < 0) return "0m 0s";
+  if (!isFinite(totalSec) || totalSec < 0) return "0:00";
   const h = Math.floor(totalSec / 3600);
   const m = Math.floor((totalSec % 3600) / 60);
   const s = Math.floor(totalSec % 60);
-  if (h > 0) return `${h}h ${m}m ${s}s`;
-  return `${m}m ${s}s`;
+  const ss = String(s).padStart(2, "0");
+  if (h > 0) {
+    const mm = String(m).padStart(2, "0");
+    return `${h}:${mm}:${ss}`;
+  }
+  return `${m}:${ss}`;
 }
 
 /**
