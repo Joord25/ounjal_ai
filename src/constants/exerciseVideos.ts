@@ -288,8 +288,8 @@ export const EXERCISE_VIDEOS: Record<string, string> = {
   "점핑 런지": "_5kDxC0flg0",
   "스쿼트 점프": "IfqrxS_-8oU",
   // 회의 62 후속 (2026-04-18): 와이드 스쿼트 3종 신규 추가. 맨몸 버전만 영상 확정 (2026-04-19).
-  "케틀벨 와이드 스쿼트": "",
-  "덤벨 와이드 스쿼트": "",
+  "케틀벨 와이드 스쿼트": "ta3yfY9Y7S0",
+  "덤벨 와이드 스쿼트": "ta3yfY9Y7S0",
   "와이드 스쿼트": "ta3yfY9Y7S0",
   "버피": "1YI2HvMsKug",
   "슬로우 버피": "AU2Rw0rMHeg",
