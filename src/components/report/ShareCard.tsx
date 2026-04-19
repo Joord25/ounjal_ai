@@ -322,7 +322,7 @@ export const ShareCard: React.FC<ShareCardProps> = ({
               {/* html2canvas 호환 위해 gap 대신 marginBottom 사용 */}
 
               {/* Distance */}
-              <div style={{ textAlign: "center", marginBottom: 20 }}>
+              <div style={{ textAlign: "center", marginBottom: 12 }}>
                 <p style={{ color: "white", fontSize: 15, fontWeight: 600, letterSpacing: "0em", marginBottom: 4, lineHeight: 1, fontFamily: "var(--font-rubik), -apple-system, BlinkMacSystemFont, sans-serif" }}>
                   {t("share.running.distance")}
                 </p>
@@ -333,7 +333,7 @@ export const ShareCard: React.FC<ShareCardProps> = ({
               </div>
 
               {/* Pace */}
-              <div style={{ textAlign: "center", marginBottom: 20 }}>
+              <div style={{ textAlign: "center", marginBottom: 12 }}>
                 <p style={{ color: "white", fontSize: 15, fontWeight: 600, letterSpacing: "0em", marginBottom: 4, lineHeight: 1, fontFamily: "var(--font-rubik), -apple-system, BlinkMacSystemFont, sans-serif" }}>
                   {t("share.running.pace")}
                 </p>
@@ -344,7 +344,7 @@ export const ShareCard: React.FC<ShareCardProps> = ({
               </div>
 
               {/* Time */}
-              <div style={{ textAlign: "center", marginBottom: 28 }}>
+              <div style={{ textAlign: "center", marginBottom: 20 }}>
                 <p style={{ color: "white", fontSize: 15, fontWeight: 600, letterSpacing: "0em", marginBottom: 4, lineHeight: 1, fontFamily: "var(--font-rubik), -apple-system, BlinkMacSystemFont, sans-serif" }}>
                   {t("share.running.time")}
                 </p>
