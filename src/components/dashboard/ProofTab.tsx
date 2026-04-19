@@ -19,6 +19,7 @@ import { HelpCardModal } from "./HelpCardModal";
 import { WeightTrendChart } from "./WeightTrendChart";
 import { LoadTimelineChart } from "./LoadTimelineChart";
 import { VolumeTrendChart } from "./VolumeTrendChart";
+import { MonthlyRunningScience } from "@/components/report/MonthlyRunningScience";
 
 const GRASS_COLORS = [
   { bg: "bg-gray-50", text: "text-gray-300", shadow: "" },
@@ -652,6 +653,11 @@ export const ProofTab: React.FC<ProofTabProps> = ({ onShowPrediction }) => {
 
           {/* Volume Trend Graph */}
           <VolumeTrendChart monthHistory={monthHistory} />
+
+          {/* 회의 64-β: 월간 러닝 과학데이터 (3서브탭) */}
+          <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden pt-6">
+            <MonthlyRunningScience history={history} />
+          </div>
 
           {/* 성장 예측 리포트 */}
           {onShowPrediction && (
