@@ -309,42 +309,40 @@ export const ShareCard: React.FC<ShareCardProps> = ({
 
           {/* ===== Card 1: Running Summary (회의 41, Strava 세로 3스탯) ===== */}
           {currentCard === 0 && isRunning && runningType && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 20, alignItems: "center", textAlign: "center", width: "100%" }}>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", width: "100%" }}>
               {/* 날짜·타입 헤더 제거 (대표 지시 2026-04-19): 깔끔한 스탯 중심 카드 */}
+              {/* html2canvas 호환 위해 gap 대신 marginBottom 사용 */}
 
-              {/* Strava 스타일 세로 3스탯 — 굵기 완화, 크기 적정, 줄간격은 타이트 유지 */}
-              <div style={{ display: "flex", flexDirection: "column", gap: 16, alignItems: "center" }}>
-                {/* Distance */}
-                <div style={{ textAlign: "center" }}>
-                  <p style={{ color: "white", fontSize: 15, fontWeight: 600, letterSpacing: "0em", marginBottom: 4, lineHeight: 1, fontFamily: "var(--font-rubik), -apple-system, BlinkMacSystemFont, sans-serif" }}>
-                    {t("share.running.distance")}
-                  </p>
-                  <p style={{ color: "white", fontSize: 52, fontWeight: 700, lineHeight: 1, textShadow: shadow, letterSpacing: "-0.02em", fontFamily: "var(--font-rubik), -apple-system, BlinkMacSystemFont, sans-serif" }}>
-                    {formatRunDistanceKm(runningStats?.distance)}
-                    <span style={{ fontSize: 20, color: "white", marginLeft: 5, fontWeight: 600, letterSpacing: "-0.01em", fontFamily: "var(--font-rubik), -apple-system, BlinkMacSystemFont, sans-serif" }}>{t("share.running.unitKm")}</span>
-                  </p>
-                </div>
+              {/* Distance */}
+              <div style={{ textAlign: "center", marginBottom: 20 }}>
+                <p style={{ color: "white", fontSize: 15, fontWeight: 600, letterSpacing: "0em", marginBottom: 4, lineHeight: 1, fontFamily: "var(--font-rubik), -apple-system, BlinkMacSystemFont, sans-serif" }}>
+                  {t("share.running.distance")}
+                </p>
+                <p style={{ color: "white", fontSize: 52, fontWeight: 700, lineHeight: 1, textShadow: shadow, letterSpacing: "-0.02em", fontFamily: "var(--font-rubik), -apple-system, BlinkMacSystemFont, sans-serif" }}>
+                  {formatRunDistanceKm(runningStats?.distance)}
+                  <span style={{ fontSize: 20, color: "white", marginLeft: 5, fontWeight: 600, letterSpacing: "-0.01em", fontFamily: "var(--font-rubik), -apple-system, BlinkMacSystemFont, sans-serif" }}>{t("share.running.unitKm")}</span>
+                </p>
+              </div>
 
-                {/* Pace */}
-                <div style={{ textAlign: "center" }}>
-                  <p style={{ color: "white", fontSize: 15, fontWeight: 600, letterSpacing: "0em", marginBottom: 4, lineHeight: 1, fontFamily: "var(--font-rubik), -apple-system, BlinkMacSystemFont, sans-serif" }}>
-                    {t("share.running.pace")}
-                  </p>
-                  <p style={{ color: "white", fontSize: 52, fontWeight: 700, lineHeight: 1, textShadow: shadow, letterSpacing: "-0.02em", fontFamily: "var(--font-rubik), -apple-system, BlinkMacSystemFont, sans-serif" }}>
-                    {formatPace(runningStats?.sprintAvgPace ?? runningStats?.avgPace)}
-                    <span style={{ fontSize: 20, color: "white", marginLeft: 5, fontWeight: 600, letterSpacing: "-0.01em", fontFamily: "var(--font-rubik), -apple-system, BlinkMacSystemFont, sans-serif" }}>{t("share.running.unitPerKm")}</span>
-                  </p>
-                </div>
+              {/* Pace */}
+              <div style={{ textAlign: "center", marginBottom: 20 }}>
+                <p style={{ color: "white", fontSize: 15, fontWeight: 600, letterSpacing: "0em", marginBottom: 4, lineHeight: 1, fontFamily: "var(--font-rubik), -apple-system, BlinkMacSystemFont, sans-serif" }}>
+                  {t("share.running.pace")}
+                </p>
+                <p style={{ color: "white", fontSize: 52, fontWeight: 700, lineHeight: 1, textShadow: shadow, letterSpacing: "-0.02em", fontFamily: "var(--font-rubik), -apple-system, BlinkMacSystemFont, sans-serif" }}>
+                  {formatPace(runningStats?.sprintAvgPace ?? runningStats?.avgPace)}
+                  <span style={{ fontSize: 20, color: "white", marginLeft: 5, fontWeight: 600, letterSpacing: "-0.01em", fontFamily: "var(--font-rubik), -apple-system, BlinkMacSystemFont, sans-serif" }}>{t("share.running.unitPerKm")}</span>
+                </p>
+              </div>
 
-                {/* Time */}
-                <div style={{ textAlign: "center" }}>
-                  <p style={{ color: "white", fontSize: 15, fontWeight: 600, letterSpacing: "0em", marginBottom: 4, lineHeight: 1, fontFamily: "var(--font-rubik), -apple-system, BlinkMacSystemFont, sans-serif" }}>
-                    {t("share.running.time")}
-                  </p>
-                  <p style={{ color: "white", fontSize: 52, fontWeight: 700, lineHeight: 1, textShadow: shadow, letterSpacing: "-0.02em", fontFamily: "var(--font-rubik), -apple-system, BlinkMacSystemFont, sans-serif" }}>
-                    {formatRunDuration(runningStats?.duration ?? totalDurationSec).replace(/:/g, " : ")}
-                  </p>
-                </div>
+              {/* Time */}
+              <div style={{ textAlign: "center", marginBottom: 28 }}>
+                <p style={{ color: "white", fontSize: 15, fontWeight: 600, letterSpacing: "0em", marginBottom: 4, lineHeight: 1, fontFamily: "var(--font-rubik), -apple-system, BlinkMacSystemFont, sans-serif" }}>
+                  {t("share.running.time")}
+                </p>
+                <p style={{ color: "white", fontSize: 52, fontWeight: 700, lineHeight: 1, textShadow: shadow, letterSpacing: "-0.02em", fontFamily: "var(--font-rubik), -apple-system, BlinkMacSystemFont, sans-serif" }}>
+                  {formatRunDuration(runningStats?.duration ?? totalDurationSec).replace(/:/g, " : ")}
+                </p>
               </div>
 
               <BrandFooter />
