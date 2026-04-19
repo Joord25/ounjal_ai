@@ -176,7 +176,8 @@ export const PlanExerciseDetail: React.FC<PlanExerciseDetailProps> = ({
 
       <div className="h-px bg-gray-100 mx-4" />
 
-      {/* 회의 64-T (2026-04-19): 인터벌 SET 행 — 웨이트 SET 카드와 동일 레이아웃, 콘텐츠만 분기 */}
+      {/* 회의 64-T (2026-04-19): 인터벌 SET 행 — 웨이트 SET 카드와 동일 레이아웃, 콘텐츠만 분기.
+          회의 64-V (2026-04-19): × 기호가 수학 연산자로 오독 → → 화살표로 교체, 전력 셀에 페이스 인라인 표기. */}
       {isInterval && intervalSpec && (() => {
         const sprintText = intervalSpec.sprintDist != null
           ? formatIntervalDistance(intervalSpec.sprintDist)
@@ -195,16 +196,23 @@ export const PlanExerciseDetail: React.FC<PlanExerciseDetailProps> = ({
                 </span>
                 <div className="flex-1 flex flex-col items-center justify-center">
                   <span className="font-plan-num text-lg font-black text-[#2D6A4F] leading-none">{sprintText}</span>
-                  <span className="text-[9px] font-bold text-gray-400 mt-0.5 tracking-wider uppercase">{sprintLabelText}</span>
+                  <span className="text-[9px] font-bold text-gray-400 mt-0.5 tracking-wider uppercase">
+                    {sprintLabelText}
+                    {intervalSpec.paceGuide && intervalSpec.sprintDist != null && (
+                      <span className="text-[9px] font-bold text-[#2D6A4F] ml-1 normal-case tracking-normal">· {intervalSpec.paceGuide}</span>
+                    )}
+                  </span>
                 </div>
-                <span className="text-gray-300 text-xs shrink-0">×</span>
+                <svg className="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
                 <div className="flex-1 flex flex-col items-center justify-center">
                   <span className="font-plan-num text-lg font-black text-[#1B4332] leading-none">{recoveryText}</span>
                   <span className="text-[9px] font-bold text-gray-400 mt-0.5 tracking-wider uppercase">{recoveryLabelText}</span>
                 </div>
               </div>
             ))}
-            {intervalSpec.paceGuide && (
+            {intervalSpec.paceGuide && intervalSpec.sprintDist == null && (
               <div className="mt-2 px-2 py-2 bg-gray-50 rounded-lg">
                 <span className="text-[10px] font-bold text-gray-500 tracking-wider uppercase mr-1">{t("interval.pace_guide")}</span>
                 <span className="text-[11px] font-black text-[#2D6A4F]">{intervalSpec.paceGuide}</span>
