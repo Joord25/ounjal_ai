@@ -48,8 +48,6 @@
       { "source": "/api/adminRefundRequests", "function": { "functionId": "adminRefundRequests", "region": "us-central1" } },
       { "source": "/api/adminProcessRefund", "function": { "functionId": "adminProcessRefund", "region": "us-central1" } },
       { "source": "/api/adminAnalyticsFunnel", "function": { "functionId": "adminAnalyticsFunnel", "region": "us-central1" } },
-      { "source": "/api/adminMigrateRunTypeV2", "function": { "functionId": "adminMigrateRunTypeV2", "region": "us-central1" } },
-      { "source": "/api/adminBackfillSessionCompletion", "function": { "functionId": "adminBackfillSessionCompletion", "region": "us-central1" } },
       { "source": "/api/planSession", "function": { "functionId": "planSession", "region": "us-central1" } },
       { "source": "/api/parseIntent", "function": { "functionId": "parseIntent", "region": "us-central1" } },
       { "source": "/api/getGuestTrialStatus", "function": { "functionId": "getGuestTrialStatus", "region": "us-central1" } },

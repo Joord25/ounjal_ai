@@ -13,5 +13,3 @@ export { subscribe, getSubscription, cancelSubscription, submitRefundRequest } f
 export { selfDeleteAccount } from "./billing/selfDelete";
 export { adminActivate, adminCheckUser, adminCheckSelf, adminDeactivate, adminDashboard, adminListUsers, adminListPayments, adminLogs, adminCancelFeedbacks, adminRefundRequests, adminProcessRefund } from "./admin/admin";
 export { adminAnalyticsFunnel } from "./admin/analyticsFunnel";
-export { adminMigrateRunTypeV2 } from "./admin/migrateRunTypeV2";
-export { adminBackfillSessionCompletion } from "./admin/backfillSessionCompletion";
