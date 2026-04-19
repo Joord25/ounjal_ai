@@ -347,11 +347,18 @@ export const FitScreen: React.FC<FitScreenProps> = ({
   };
 
   // 회의 43 후속: 러닝 완료 버튼 클릭 래퍼 — 자연 완료 전이면 확인 모달, 이미 완료된 상태면 바로 진행
+  // 회의 64-V 후속 (2026-04-19): 인터벌 모드에서 마지막 라운드 끝나기 전이면 페이즈 전환 (중간 "완료" 버튼 통합)
   const handleRunningCompleteClick = () => {
     if (timerCompleted) {
       handleDoneClick();
       return;
     }
+    // 인터벌 모드 중이면 현재 페이즈 강제 종료 (마지막 라운드 recovery가 끝나지 않은 경우에만 의미)
+    if (isIntervalMode && isPlaying) {
+      manualCompleteRef.current = true;
+      return;
+    }
+    // 연속 러닝이거나 pause 중 → 기존 조기 종료 확인 모달
     setRunCompleteConfirmOpen(true);
   };
 
@@ -1333,15 +1340,7 @@ export const FitScreen: React.FC<FitScreenProps> = ({
                             : `${t(intervalConfig.phase1Key)} ${intervalConfig.phase1Sec}s`)}
                     </p>
 
-                    {/* 회의 64-V (2026-04-19): 수동 "완료" 버튼 — 현재 페이즈 강제 종료 (GPS 오차·조기 회복 시 유용) */}
-                    {isPlaying && (
-                      <button
-                        onClick={() => { manualCompleteRef.current = true; }}
-                        className="mt-4 px-6 py-2 rounded-full bg-[#2D6A4F] text-white text-xs font-black tracking-wider active:scale-95 active:bg-[#1B4332] transition-all"
-                      >
-                        {t("fit.complete")}
-                      </button>
-                    )}
+                    {/* 회의 64-V 후속 (2026-04-19): 중간 "완료" 버튼 제거 — 하단 완료 버튼(handleRunningCompleteClick)으로 통합 */}
 
                     {/* 회의 41: 3분할 실시간 스탯 (Distance / Pace / Time) */}
                     {!isIndoor && gpsPermissionAsked && (
