@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Cormorant_Garamond, Questrial, Manrope } from "next/font/google";
+import { Cormorant_Garamond, Questrial, Manrope, Rubik } from "next/font/google";
 // Pretendard loaded via CDN in <head> for cross-platform reliability
 import "./globals.css";
 
@@ -21,6 +21,15 @@ const questrial = Questrial({
 // 공유 카드 숫자에 적용. 500/600/700/800 weight 로 스펙트럼 확보.
 const manrope = Manrope({
   variable: "--font-manrope",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+  display: "swap",
+});
+
+// 회의 64-α 후속 3 (대표 지시 2026-04-19): Rubik — 약간 둥근 geometric sans
+// Manrope보다 친근한 러닝앱 톤. 공유 카드 숫자에 적용.
+const rubik = Rubik({
+  variable: "--font-rubik",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700", "800"],
   display: "swap",
@@ -237,7 +246,7 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={`${cormorant.variable} ${questrial.variable} ${manrope.variable} antialiased`}
+        className={`${cormorant.variable} ${questrial.variable} ${manrope.variable} ${rubik.variable} antialiased`}
       >
         {children}
         <noscript>

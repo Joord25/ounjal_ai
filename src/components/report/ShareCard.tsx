@@ -328,32 +328,32 @@ export const ShareCard: React.FC<ShareCardProps> = ({
               <div style={{ display: "flex", flexDirection: "column", gap: 16, alignItems: "center" }}>
                 {/* Distance */}
                 <div style={{ textAlign: "center" }}>
-                  <p style={{ color: "white", fontSize: 15, fontWeight: 600, letterSpacing: "0em", marginBottom: 4, lineHeight: 1, fontFamily: "var(--font-manrope), -apple-system, BlinkMacSystemFont, sans-serif" }}>
+                  <p style={{ color: "white", fontSize: 15, fontWeight: 600, letterSpacing: "0em", marginBottom: 4, lineHeight: 1, fontFamily: "var(--font-rubik), -apple-system, BlinkMacSystemFont, sans-serif" }}>
                     {t("share.running.distance")}
                   </p>
-                  <p style={{ color: "white", fontSize: 52, fontWeight: 700, lineHeight: 1, textShadow: shadow, letterSpacing: "-0.02em", fontFamily: "var(--font-manrope), -apple-system, BlinkMacSystemFont, sans-serif" }}>
+                  <p style={{ color: "white", fontSize: 52, fontWeight: 700, lineHeight: 1, textShadow: shadow, letterSpacing: "-0.02em", fontFamily: "var(--font-rubik), -apple-system, BlinkMacSystemFont, sans-serif" }}>
                     {formatRunDistanceKm(runningStats?.distance)}
-                    <span style={{ fontSize: 20, color: "white", marginLeft: 5, fontWeight: 600, letterSpacing: "-0.01em", fontFamily: "var(--font-manrope), -apple-system, BlinkMacSystemFont, sans-serif" }}>{t("share.running.unitKm")}</span>
+                    <span style={{ fontSize: 20, color: "white", marginLeft: 5, fontWeight: 600, letterSpacing: "-0.01em", fontFamily: "var(--font-rubik), -apple-system, BlinkMacSystemFont, sans-serif" }}>{t("share.running.unitKm")}</span>
                   </p>
                 </div>
 
                 {/* Pace */}
                 <div style={{ textAlign: "center" }}>
-                  <p style={{ color: "white", fontSize: 15, fontWeight: 600, letterSpacing: "0em", marginBottom: 4, lineHeight: 1, fontFamily: "var(--font-manrope), -apple-system, BlinkMacSystemFont, sans-serif" }}>
+                  <p style={{ color: "white", fontSize: 15, fontWeight: 600, letterSpacing: "0em", marginBottom: 4, lineHeight: 1, fontFamily: "var(--font-rubik), -apple-system, BlinkMacSystemFont, sans-serif" }}>
                     {t("share.running.pace")}
                   </p>
-                  <p style={{ color: "white", fontSize: 52, fontWeight: 700, lineHeight: 1, textShadow: shadow, letterSpacing: "-0.02em", fontFamily: "var(--font-manrope), -apple-system, BlinkMacSystemFont, sans-serif" }}>
+                  <p style={{ color: "white", fontSize: 52, fontWeight: 700, lineHeight: 1, textShadow: shadow, letterSpacing: "-0.02em", fontFamily: "var(--font-rubik), -apple-system, BlinkMacSystemFont, sans-serif" }}>
                     {formatPace(runningStats?.sprintAvgPace ?? runningStats?.avgPace)}
-                    <span style={{ fontSize: 20, color: "white", marginLeft: 5, fontWeight: 600, letterSpacing: "-0.01em", fontFamily: "var(--font-manrope), -apple-system, BlinkMacSystemFont, sans-serif" }}>{t("share.running.unitPerKm")}</span>
+                    <span style={{ fontSize: 20, color: "white", marginLeft: 5, fontWeight: 600, letterSpacing: "-0.01em", fontFamily: "var(--font-rubik), -apple-system, BlinkMacSystemFont, sans-serif" }}>{t("share.running.unitPerKm")}</span>
                   </p>
                 </div>
 
                 {/* Time */}
                 <div style={{ textAlign: "center" }}>
-                  <p style={{ color: "white", fontSize: 15, fontWeight: 600, letterSpacing: "0em", marginBottom: 4, lineHeight: 1, fontFamily: "var(--font-manrope), -apple-system, BlinkMacSystemFont, sans-serif" }}>
+                  <p style={{ color: "white", fontSize: 15, fontWeight: 600, letterSpacing: "0em", marginBottom: 4, lineHeight: 1, fontFamily: "var(--font-rubik), -apple-system, BlinkMacSystemFont, sans-serif" }}>
                     {t("share.running.time")}
                   </p>
-                  <p style={{ color: "white", fontSize: 52, fontWeight: 700, lineHeight: 1, textShadow: shadow, letterSpacing: "-0.02em", fontFamily: "var(--font-manrope), -apple-system, BlinkMacSystemFont, sans-serif" }}>
+                  <p style={{ color: "white", fontSize: 52, fontWeight: 700, lineHeight: 1, textShadow: shadow, letterSpacing: "-0.02em", fontFamily: "var(--font-rubik), -apple-system, BlinkMacSystemFont, sans-serif" }}>
                     {formatRunDuration(runningStats?.duration ?? totalDurationSec)}
                   </p>
                 </div>
