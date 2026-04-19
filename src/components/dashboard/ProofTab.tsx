@@ -466,13 +466,22 @@ export const ProofTab: React.FC<ProofTabProps> = ({ onShowPrediction }) => {
               const partCount: Record<string, number> = {};
               for (const h of monthHistory) {
                 const title = (h.sessionData.title || h.sessionData.description || "").toLowerCase();
+                // runningStats 존재 = 러닝 세션 확정 (title 매칭보다 신뢰도 높음)
+                // 러닝 프로그램 세션 제목(예: "2K Time Trial", "Norwegian 4×4", "스트라이드")엔 '러닝/run' 키워드 없을 수 있음
+                if (h.runningStats) {
+                  partCount["cardio"] = (partCount["cardio"] || 0) + 1;
+                  continue; // 러닝 세션은 cardio로만 카운트 (웨이트 정규식 영향 제외)
+                }
                 if (/가슴|chest|push|푸쉬/.test(title)) partCount["chest"] = (partCount["chest"] || 0) + 1;
                 if (/등|back|pull|당기/.test(title)) partCount["back"] = (partCount["back"] || 0) + 1;
                 if (/어깨|shoulder|숄더/.test(title)) partCount["shoulder"] = (partCount["shoulder"] || 0) + 1;
                 if (/하체|leg|lower|스쿼트|squat/.test(title)) partCount["legs"] = (partCount["legs"] || 0) + 1;
                 if (/팔|arm|이두|삼두|bicep|tricep/.test(title)) partCount["arms"] = (partCount["arms"] || 0) + 1;
                 if (/코어|core|복근|abs/.test(title)) partCount["core"] = (partCount["core"] || 0) + 1;
-                if (/러닝|유산소|cardio|run|hiit|서킷/.test(title)) partCount["cardio"] = (partCount["cardio"] || 0) + 1;
+                // runningStats 없는 세션도 제목에 러닝 키워드 있으면 cardio (HIIT/서킷 등)
+                if (/러닝|유산소|cardio|run|hiit|서킷|인터벌|interval|템포|tempo|스프린트|sprint|스트라이드|strides/.test(title)) {
+                  partCount["cardio"] = (partCount["cardio"] || 0) + 1;
+                }
               }
               const parts = [
                 { key: "chest", ko: "가슴", en: "Chest" }, { key: "back", ko: "등", en: "Back" },
