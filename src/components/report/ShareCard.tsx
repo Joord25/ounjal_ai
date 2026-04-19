@@ -310,19 +310,7 @@ export const ShareCard: React.FC<ShareCardProps> = ({
           {/* ===== Card 1: Running Summary (회의 41, Strava 세로 3스탯) ===== */}
           {currentCard === 0 && isRunning && runningType && (
             <div style={{ display: "flex", flexDirection: "column", gap: 20, alignItems: "center", textAlign: "center", width: "100%" }}>
-              {/* 날짜 — 기존 위치/스타일 유지 */}
-              <div>
-                <p style={{ color: labelColor, fontSize: 12, fontWeight: 700, letterSpacing: "0.05em" }}>
-                  {dateStr}
-                </p>
-              </div>
-
-              {/* 러닝 타입 라벨 — 기존 EXERCISES 위치에 한 줄 */}
-              <div>
-                <p style={{ color: "white", fontSize: 14, fontWeight: 800, letterSpacing: "0.15em", textShadow: shadow }}>
-                  {runningStats?.isIndoor ? t("share.running.indoor").toUpperCase() : getRunningTypeShareLabel(runningType, locale)}
-                </p>
-              </div>
+              {/* 날짜·타입 헤더 제거 (대표 지시 2026-04-19): 깔끔한 스탯 중심 카드 */}
 
               {/* Strava 스타일 세로 3스탯 — 굵기 완화, 크기 적정, 줄간격은 타이트 유지 */}
               <div style={{ display: "flex", flexDirection: "column", gap: 16, alignItems: "center" }}>
