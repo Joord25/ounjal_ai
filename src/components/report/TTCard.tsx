@@ -72,9 +72,9 @@ export const TTCard: React.FC<TTCardProps> = ({ runningStats, recentHistory }) =
       {/* 구분선 */}
       <div className="border-t border-gray-100 mb-5" />
 
-      {/* Hero 카드 스타일 3분할 그리드 — 현재 / 다음 목표 / 단축 폭 */}
-      <div className="grid grid-cols-3 gap-2">
-        <div className="flex flex-col items-center text-center">
+      {/* Hero 카드 스타일 3분할 그리드 + 수직 구분선 — 현재 / 다음 목표 / 단축 폭 */}
+      <div className="grid grid-cols-3 divide-x divide-gray-100">
+        <div className="flex flex-col items-center text-center px-2">
           <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.18em] mb-2">
             {t("running.tt.currentPaceLabel")}
           </p>
@@ -83,7 +83,7 @@ export const TTCard: React.FC<TTCardProps> = ({ runningStats, recentHistory }) =
           </p>
           <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] mt-2">/km</p>
         </div>
-        <div className="flex flex-col items-center text-center">
+        <div className="flex flex-col items-center text-center px-2">
           <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.18em] mb-2">
             {t("running.tt.nextTargetLabel")}
           </p>
@@ -94,7 +94,7 @@ export const TTCard: React.FC<TTCardProps> = ({ runningStats, recentHistory }) =
           </p>
           <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] mt-2">/km</p>
         </div>
-        <div className="flex flex-col items-center text-center">
+        <div className="flex flex-col items-center text-center px-2">
           <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.18em] mb-2">
             {t("running.tt.diffLabel")}
           </p>

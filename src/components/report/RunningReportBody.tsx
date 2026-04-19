@@ -68,11 +68,11 @@ export const RunningReportBody: React.FC<RunningReportBodyProps> = ({ runningSta
           )}
         </div>
 
-        {/* 3분할: 거리 / 페이스 / 총 시간 (각 셀: 라벨 위 · 숫자 가운데 · 단위 아래 · 중앙 정렬) */}
-        <div className="grid grid-cols-3 gap-2">
+        {/* 3분할: 거리 / 페이스 / 총 시간 (수직 구분선 포함) */}
+        <div className="grid grid-cols-3 divide-x divide-gray-100">
           {/* 거리 or Rounds */}
           {hasGpsData ? (
-            <div className="flex flex-col items-center text-center">
+            <div className="flex flex-col items-center text-center px-2">
               <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.18em] mb-2">
                 {t("running.stats.distance")}
               </p>
@@ -82,7 +82,7 @@ export const RunningReportBody: React.FC<RunningReportBodyProps> = ({ runningSta
               <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] mt-2">km</p>
             </div>
           ) : (
-            <div className="flex flex-col items-center text-center">
+            <div className="flex flex-col items-center text-center px-2">
               <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.18em] mb-2">
                 {t("running.stats.rounds")}
               </p>
@@ -94,7 +94,7 @@ export const RunningReportBody: React.FC<RunningReportBodyProps> = ({ runningSta
           )}
 
           {/* Pace */}
-          <div className="flex flex-col items-center text-center">
+          <div className="flex flex-col items-center text-center px-2">
             <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.18em] mb-2">
               {runningStats.sprintAvgPace != null ? t("running.stats.sprintPace") : t("running.stats.pace")}
             </p>
@@ -104,8 +104,8 @@ export const RunningReportBody: React.FC<RunningReportBodyProps> = ({ runningSta
             <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] mt-2">/km</p>
           </div>
 
-          {/* Time — 상단 '총 시간', 하단 '시간' (스왑 완료) */}
-          <div className="flex flex-col items-center text-center">
+          {/* Time — 상단 '총 시간', 하단 '시간' */}
+          <div className="flex flex-col items-center text-center px-2">
             <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.18em] mb-2">
               {t("running.stats.timeUnit")}
             </p>
