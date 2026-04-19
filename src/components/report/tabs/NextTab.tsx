@@ -344,22 +344,22 @@ export const NextTab: React.FC<NextTabProps> = ({
   })();
 
   return (
-    <div className="space-y-3 mb-4">
-      {/* 메인 조언 카드 */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
-        <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-3">{t("report.next.title")}</p>
-        <p className="text-sm font-medium text-[#1B4332] leading-relaxed mb-4">
+    <div className="flex flex-col gap-5 mb-4">
+      {/* 메인 조언 카드 (회의 64-α: Kenko 적용) */}
+      <div className="bg-white rounded-3xl border border-gray-100 p-6 py-7 shadow-sm">
+        <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.18em] mb-4">{t("report.next.title")}</p>
+        <p className="text-sm font-medium text-[#1B4332] leading-relaxed mb-5">
           &ldquo;{advice.message}&rdquo;
         </p>
-        <div className="space-y-3">
+        <div className="border-t border-gray-100 pt-4 space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-xs text-gray-500">{t("report.next.recommendedPart")}</span>
-            <span className="text-sm font-bold text-[#1B4332]">{advice.recommendedPart}</span>
+            <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.18em]">{t("report.next.recommendedPart")}</span>
+            <span className="text-sm font-black text-[#1B4332]">{advice.recommendedPart}</span>
           </div>
-          <div className="h-px bg-gray-100" />
+          <div className="border-t border-gray-100" />
           <div className="flex items-center justify-between">
-            <span className="text-xs text-gray-500">{t("report.next.recommendedIntensity")}</span>
-            <span className="text-sm font-bold text-[#1B4332]">
+            <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.18em]">{t("report.next.recommendedIntensity")}</span>
+            <span className="text-sm font-black text-[#1B4332]">
               {questBasedIntensity.level === "high" ? (ko ? "고강도" : "High")
                 : questBasedIntensity.level === "moderate" ? (ko ? "중강도" : "Moderate")
                 : questBasedIntensity.level === "low" ? (ko ? "저강도" : "Low")
@@ -367,39 +367,44 @@ export const NextTab: React.FC<NextTabProps> = ({
             </span>
           </div>
           {weightGoal && <>
-            <div className="h-px bg-gray-100" />
+            <div className="border-t border-gray-100" />
             <div className="flex items-center justify-between">
-              <span className="text-xs text-gray-500">{ko ? "무게 목표" : "Weight Goal"}</span>
-              <span className="text-sm font-bold text-[#2D6A4F]">{weightGoal.exerciseName} {toDispW(weightGoal.targetWeight)}{unitLabels.weight}</span>
+              <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.18em]">{ko ? "무게 목표" : "Weight Goal"}</span>
+              <span className="text-sm font-black text-[#2D6A4F]">{weightGoal.exerciseName} {toDispW(weightGoal.targetWeight)}{unitLabels.weight}</span>
             </div>
           </>}
         </div>
       </div>
 
-      {/* 이번 주 퀘스트 */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
-        <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-3">
-          {ko ? "이번 주 퀘스트" : "Weekly Quest"}
-        </p>
-        <p className="text-xs text-[#2D6A4F] font-bold mb-4">{questBasedIntensity.message}</p>
-        <div className="space-y-3">
+      {/* 이번 주 퀘스트 (회의 64-α: Kenko 적용, emerald 톤 통일) */}
+      <div className="bg-white rounded-3xl border border-gray-100 p-6 py-7 shadow-sm">
+        <div className="flex items-baseline justify-between mb-5">
+          <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.18em]">
+            {ko ? "이번 주 퀘스트" : "Weekly Quest"}
+          </span>
+          <span className="text-sm font-black text-[#1B4332] tabular-nums">
+            {questProgress.total.done}/{questProgress.total.target}
+          </span>
+        </div>
+        <p className="text-xs text-[#2D6A4F] font-bold mb-5">{questBasedIntensity.message}</p>
+        <div className="space-y-4">
           {([
-            { label: ko ? "고강도" : "High", ...questProgress.high, color: "bg-red-400" },
-            { label: ko ? "중강도" : "Moderate", ...questProgress.moderate, color: "bg-amber-400" },
-            { label: ko ? "저강도" : "Low", ...questProgress.low, color: "bg-blue-400" },
-            { label: ko ? "총 운동" : "Total", ...questProgress.total, color: "bg-[#2D6A4F]" },
+            { label: ko ? "고강도" : "High", ...questProgress.high, color: "bg-[#2D6A4F]" },
+            { label: ko ? "중강도" : "Moderate", ...questProgress.moderate, color: "bg-[#2D6A4F]/60" },
+            { label: ko ? "저강도" : "Low", ...questProgress.low, color: "bg-[#2D6A4F]/35" },
+            { label: ko ? "총 운동" : "Total", ...questProgress.total, color: "bg-[#1B4332]" },
           ] as const).map((q, i) => (
             <div key={i}>
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-xs text-gray-500">{q.label}</span>
-                <span className="text-xs font-bold text-[#1B4332]">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.18em]">{q.label}</span>
+                <span className="text-xs font-black text-[#1B4332] tabular-nums">
                   {q.done}/{q.target}{ko ? "회" : "x"}
-                  {q.done >= q.target && q.target > 0 && <span className="text-[#2D6A4F] ml-1">{ko ? "달성" : "Done"}</span>}
+                  {q.done >= q.target && q.target > 0 && <span className="text-[#2D6A4F] ml-1.5">{ko ? "달성" : "Done"}</span>}
                 </span>
               </div>
               <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
                 <div
-                  className={`h-full rounded-full transition-all ${q.color}`}
+                  className={`h-full rounded-full transition-[width] duration-500 ease-out ${q.color}`}
                   style={{ width: `${q.target > 0 ? Math.min(100, (q.done / q.target) * 100) : 0}%` }}
                 />
               </div>
@@ -408,27 +413,29 @@ export const NextTab: React.FC<NextTabProps> = ({
         </div>
         {/* 이번 주 운동 기록 */}
         {weekSummary.sessions.length > 0 && <>
-          <div className="h-px bg-gray-100 my-3" />
-          <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-2">
+          <div className="border-t border-gray-100 my-5" />
+          <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.18em] mb-3">
             {ko ? "이번 주 기록" : "This Week"}
           </p>
-          {weekSummary.sessions.map((s, i) => (
-            <div key={i} className="flex items-center justify-between py-1">
-              <span className="text-xs font-bold text-[#1B4332]">{s.dayLabel}</span>
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-gray-500">{s.desc}</span>
-                {s.intensity && (
-                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
-                    s.intensity.includes("고") || s.intensity === "High" ? "bg-red-50 text-red-500"
-                    : s.intensity.includes("중") || s.intensity === "Mod" ? "bg-amber-50 text-amber-600"
-                    : "bg-blue-50 text-blue-500"
-                  }`}>
-                    {s.intensity}
-                  </span>
-                )}
+          <div className="space-y-2">
+            {weekSummary.sessions.map((s, i) => (
+              <div key={i} className="flex items-center justify-between py-0.5">
+                <span className="text-xs font-black text-[#1B4332] tabular-nums w-6">{s.dayLabel}</span>
+                <div className="flex-1 flex items-center justify-end gap-2 min-w-0">
+                  <span className="text-xs text-gray-500 truncate">{s.desc}</span>
+                  {s.intensity && (
+                    <span className={`text-[10px] font-black uppercase tracking-[0.12em] ${
+                      s.intensity.includes("고") || s.intensity === "High" ? "text-[#2D6A4F]"
+                      : s.intensity.includes("중") || s.intensity === "Mod" ? "text-gray-600"
+                      : "text-gray-400"
+                    }`}>
+                      {s.intensity}
+                    </span>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </>}
       </div>
     </div>
