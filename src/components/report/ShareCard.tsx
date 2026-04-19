@@ -324,11 +324,11 @@ export const ShareCard: React.FC<ShareCardProps> = ({
                 </p>
               </div>
 
-              {/* Strava 스타일 세로 3스탯 — 줄간격 Strava 매칭: 라벨→숫자 tight 10px / 그룹 간 44px */}
-              <div style={{ display: "flex", flexDirection: "column", gap: 44, alignItems: "center" }}>
+              {/* Strava 스타일 세로 3스탯 — 빽빽하게: 라벨→숫자 4px / 그룹 간 24px */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 24, alignItems: "center" }}>
                 {/* Distance */}
                 <div style={{ textAlign: "center" }}>
-                  <p style={{ color: labelColor, fontSize: 14, fontWeight: 700, letterSpacing: "0.08em", marginBottom: 10, lineHeight: 1 }}>
+                  <p style={{ color: labelColor, fontSize: 14, fontWeight: 700, letterSpacing: "0.08em", marginBottom: 4, lineHeight: 1 }}>
                     {t("share.running.distance")}
                   </p>
                   <p style={{ color: "white", fontSize: 60, fontWeight: 900, lineHeight: 1, textShadow: shadow, letterSpacing: "-0.02em" }}>
@@ -339,7 +339,7 @@ export const ShareCard: React.FC<ShareCardProps> = ({
 
                 {/* Pace */}
                 <div style={{ textAlign: "center" }}>
-                  <p style={{ color: labelColor, fontSize: 14, fontWeight: 700, letterSpacing: "0.08em", marginBottom: 10, lineHeight: 1 }}>
+                  <p style={{ color: labelColor, fontSize: 14, fontWeight: 700, letterSpacing: "0.08em", marginBottom: 4, lineHeight: 1 }}>
                     {t("share.running.pace")}
                   </p>
                   <p style={{ color: "white", fontSize: 60, fontWeight: 900, lineHeight: 1, textShadow: shadow, letterSpacing: "-0.02em" }}>
@@ -350,7 +350,7 @@ export const ShareCard: React.FC<ShareCardProps> = ({
 
                 {/* Time */}
                 <div style={{ textAlign: "center" }}>
-                  <p style={{ color: labelColor, fontSize: 14, fontWeight: 700, letterSpacing: "0.08em", marginBottom: 10, lineHeight: 1 }}>
+                  <p style={{ color: labelColor, fontSize: 14, fontWeight: 700, letterSpacing: "0.08em", marginBottom: 4, lineHeight: 1 }}>
                     {t("share.running.time")}
                   </p>
                   <p style={{ color: "white", fontSize: 60, fontWeight: 900, lineHeight: 1, textShadow: shadow, letterSpacing: "-0.02em" }}>
