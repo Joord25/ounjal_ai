@@ -74,7 +74,7 @@ export const TTCard: React.FC<TTCardProps> = ({ runningStats, recentHistory }) =
 
       {/* Hero 카드 스타일 3분할 — grid 3등분 + border-r 구분선 */}
       <div className="grid grid-cols-3">
-        <div className="flex flex-col items-center text-center border-r border-gray-100 px-2">
+        <div className="flex flex-col items-center text-center border-r border-gray-100">
           <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.18em] mb-2">
             {t("running.tt.currentPaceLabel")}
           </p>
@@ -84,7 +84,7 @@ export const TTCard: React.FC<TTCardProps> = ({ runningStats, recentHistory }) =
           <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] mt-2">/km</p>
         </div>
 
-        <div className="flex flex-col items-center text-center border-r border-gray-100 px-2">
+        <div className="flex flex-col items-center text-center border-r border-gray-100">
           <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.18em] mb-2">
             {t("running.tt.nextTargetLabel")}
           </p>
@@ -96,7 +96,7 @@ export const TTCard: React.FC<TTCardProps> = ({ runningStats, recentHistory }) =
           <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] mt-2">/km</p>
         </div>
 
-        <div className="flex flex-col items-center text-center px-2">
+        <div className="flex flex-col items-center text-center">
           <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.18em] mb-2">
             {t("running.tt.diffLabel")}
           </p>
