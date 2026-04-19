@@ -409,6 +409,8 @@ export const FitScreen: React.FC<FitScreenProps> = ({
   const phaseStartDistRef = useRef<number>(0);
   // tick 내부에서 최신 gpsDistance 참조 (stale closure 회피)
   const gpsDistanceRef = useRef<number>(0);
+  // 회의 64-V: 수동 "완료" 요청 플래그 — 다음 tick에서 현재 페이즈 강제 종료
+  const manualCompleteRef = useRef(false);
 
   // 회의 64-V: gpsDistance → gpsDistanceRef 동기화 (stale closure 방지)
   useEffect(() => {
@@ -470,8 +472,12 @@ export const FitScreen: React.FC<FitScreenProps> = ({
         && !isIndoor
         && (gpsDistanceRef.current - phaseStartDistRef.current) >= cfg.sprintDist;
 
+      // 회의 64-V: 유저 수동 "완료" 탭 → 강제 페이즈 종료
+      const manualComplete = manualCompleteRef.current;
+      if (manualComplete) manualCompleteRef.current = false;
+
       // 페이즈 전환
-      if (remainingFloat <= 0 || distanceReached) {
+      if (remainingFloat <= 0 || distanceReached || manualComplete) {
         midpointFiredRef.current = false;
         lastTickSecondRef.current = -1;
 
@@ -1326,6 +1332,16 @@ export const FitScreen: React.FC<FitScreenProps> = ({
                             ? t("fit.complete")
                             : `${t(intervalConfig.phase1Key)} ${intervalConfig.phase1Sec}s`)}
                     </p>
+
+                    {/* 회의 64-V (2026-04-19): 수동 "완료" 버튼 — 현재 페이즈 강제 종료 (GPS 오차·조기 회복 시 유용) */}
+                    {isPlaying && (
+                      <button
+                        onClick={() => { manualCompleteRef.current = true; }}
+                        className="mt-4 px-6 py-2 rounded-full bg-[#2D6A4F] text-white text-xs font-black tracking-wider active:scale-95 active:bg-[#1B4332] transition-all"
+                      >
+                        {t("fit.complete")}
+                      </button>
+                    )}
 
                     {/* 회의 41: 3분할 실시간 스탯 (Distance / Pace / Time) */}
                     {!isIndoor && gpsPermissionAsked && (
