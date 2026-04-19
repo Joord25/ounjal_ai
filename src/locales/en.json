@@ -237,6 +237,7 @@
   "run.zone.easy": "Zone 2 · Conversational",
   "run.zone.tempo": "Threshold",
   "run.zone.long": "Zone 1 · LSD",
+  "run.zone.sprint": "Time Trial",
   "run.pace_guide_label": "Target Pace",
   "run.duration_label": "Duration",
   "plan.regenerate": "Regenerate Plan",

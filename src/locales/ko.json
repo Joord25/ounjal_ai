@@ -237,6 +237,7 @@
   "run.zone.easy": "Zone 2 · 대화 가능",
   "run.zone.tempo": "역치 · Threshold",
   "run.zone.long": "Zone 1 · LSD",
+  "run.zone.sprint": "시간 측정 · Time Trial",
   "run.pace_guide_label": "목표 페이스",
   "run.duration_label": "시간",
   "plan.regenerate": "다른 구성으로 다시 생성",

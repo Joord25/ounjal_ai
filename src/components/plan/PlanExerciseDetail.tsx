@@ -45,11 +45,13 @@ export const PlanExerciseDetail: React.FC<PlanExerciseDetailProps> = ({
   const intervalSpec = deriveIntervalSpec(exercise);
   const isInterval = intervalSpec !== null;
   // 회의 64-T Wave 2 (2026-04-19): 연속 유산소 (easy/tempo/long) 분기 — Zone 뱃지 + tempoGuide 노출
+  // 회의 64-W Wave 3: sprint(TT 2K/5K) 추가 — 단발 전력 측정 세션
   const isContinuousRun = !isInterval && exercise.runKind === "continuous";
   const continuousZoneKey = isContinuousRun && exercise.runType
     ? exercise.runType === "easy" ? "run.zone.easy"
       : exercise.runType === "tempo" ? "run.zone.tempo"
-      : exercise.runType === "long" ? "run.zone.long" : null
+      : exercise.runType === "long" ? "run.zone.long"
+      : exercise.runType === "sprint" ? "run.zone.sprint" : null
     : null;
   // 단순 시간 패턴 ("N초"/"N분"/"N-M초") + 인터벌 마커 없음 → 세트별 시간 편집 모드
   const timeMatch = exercise.count.match(/(\d+)(?:-(\d+))?\s*(초|분|sec|min)/);

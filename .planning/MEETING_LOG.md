@@ -3160,3 +3160,37 @@ ExerciseStep.intervalSpec?: {
 - FitScreen 불변 (Wave 1과 동일)
 
 **배포**: 서버 스키마 변경 없음(Wave 1에 포함됨). 클라만 `git push`.
+
+---
+
+## 회의 64-W — 러닝 UI 리디자인 Wave 3 (하이브리드 D + 특수 E) (2026-04-19)
+
+**맥락**: Wave 1(인터벌) + Wave 2(연속 유산소) 완료 후 Wave 3 착수. 분석 결과 대부분의 D/E 세션이 Wave 2의 연속 러닝 렌더로 자동 커버됨.
+
+### 분석 결과 — 이미 커버되는 세션
+
+| 빌더 | 렌더 경로 | 상태 |
+|---|---|---|
+| Threshold 2×15 | 3개 연속 러닝 카드 (tempo/easy/tempo) | Wave 2 Zone 뱃지 ✓ |
+| Long with MP | 2개 연속 카드 (long + tempo) | Wave 2 ✓ |
+| Specific Long | runType별 Zone 뱃지 | Wave 2 ✓ |
+| Race-Pace Interval | intervalSpec 있음 → Wave 1 | Wave 1 ✓ |
+| Dress Rehearsal | runType="tempo" → "역치" 뱃지 | Wave 2 ✓ |
+
+### 유일한 갭 — TT 2K/5K
+
+- `buildTT2K`, `buildTT5K` — runType="sprint" 연속 카드 (단발 전력 측정)
+- Wave 2 Zone 뱃지 매핑에 sprint 누락 → 뱃지 안 나옴
+- 추가: `run.zone.sprint` = "시간 측정 · Time Trial" / "Time Trial"
+
+### 변경
+
+- [ko.json](../src/locales/ko.json) / [en.json](../src/locales/en.json) — `run.zone.sprint` 키 추가
+- [PlanExerciseDetail.tsx](../src/components/plan/PlanExerciseDetail.tsx) — `continuousZoneKey` 매핑에 sprint 추가
+
+### 회귀
+
+- 웨이트 / 코어 / 인터벌 / 연속 러닝 UI 전부 불변
+- tsc 통과, Vitest 22/22 통과
+
+**배포**: 클라만 (서버 스키마 변경 없음).
