@@ -150,68 +150,85 @@ export const RunningReportBody: React.FC<RunningReportBodyProps> = ({ runningSta
         <TTCard runningStats={runningStats} recentHistory={recentHistory} />
       )}
 
-      {/* ── Interval Breakdown Card (라운드별 전력/회복 — 오운잘 특화) ── */}
-      {/* 회의 42 후속: 기록 없어도 카드 기본 양식 노출 */}
+      {/* ── Interval Breakdown Card (회의 64-α: Kenko 미니 바 리스트) ── */}
       {/* 회의 64-Y: interval 레이아웃에서만 렌더 (연속 주행/TT는 숨김) */}
       {cardLayout === "interval" && (
-      <div className="bg-white rounded-3xl border border-gray-100 shadow-sm px-5 py-5">
-        <div className="flex items-center gap-2 mb-3">
-          <div className="w-1 h-5 bg-[#2D6A4F] rounded-full" />
-          <span className="text-[9px] font-black text-gray-400 uppercase tracking-[0.15em]">
+      <div className="bg-white rounded-3xl border border-gray-100 shadow-sm px-6 py-7">
+        <div className="mb-5">
+          <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.18em]">
             {t("running.report.breakdown")}
           </span>
         </div>
 
         {/* 전력 평균 / 회복 평균 요약 */}
-        <div className="grid grid-cols-2 gap-2 mb-4">
-          <div className="bg-gray-50 rounded-2xl p-3">
-            <p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.15em] mb-0.5">
+        <div className="grid grid-cols-2 gap-3 mb-5">
+          <div className="bg-gray-50 rounded-2xl p-4">
+            <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.18em] mb-2">
               {t("running.report.sprintAvg")}
             </p>
-            <p className="text-lg font-black text-[#1B4332] leading-none tabular-nums">
+            <p className="text-2xl font-black text-[#1B4332] leading-none tabular-nums">
               {formatPace(runningStats.sprintAvgPace)}
             </p>
           </div>
-          <div className="bg-gray-50 rounded-2xl p-3">
-            <p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.15em] mb-0.5">
+          <div className="bg-gray-50 rounded-2xl p-4">
+            <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.18em] mb-2">
               {t("running.report.recoveryAvg")}
             </p>
-            <p className="text-lg font-black text-[#1B4332] leading-none tabular-nums">
+            <p className="text-2xl font-black text-[#1B4332] leading-none tabular-nums">
               {formatPace(runningStats.recoveryAvgPace)}
             </p>
           </div>
         </div>
 
-        {/* 라운드별 상세 — 데이터 있으면 리스트, 없으면 빈 상태 안내 */}
-        {(runningStats.intervalRounds || []).length > 0 ? (
-          <div className="flex flex-col gap-1.5">
-            {runningStats.intervalRounds.map((round) => (
-              <div key={round.round} className="flex items-center justify-between py-1.5 border-b border-gray-50 last:border-b-0">
-                <span className="text-[11px] font-bold text-gray-500">
-                  {t("running.stats.rounds")} {round.round}
-                </span>
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-1">
-                    <span className="text-[9px] font-bold text-red-500 uppercase">
-                      {t("running.phase.sprint")}
-                    </span>
-                    <span className="text-xs font-black text-[#1B4332] tabular-nums">
+        {/* 라운드별 상세 — Kenko 수평 미니 바 2개 (전력/회복 정규화) */}
+        {(runningStats.intervalRounds || []).length > 0 ? (() => {
+          const rounds = runningStats.intervalRounds;
+          const sprintPaces = rounds.map(r => r.sprintPace).filter((p): p is number => p != null && p > 0);
+          const recoveryPaces = rounds.map(r => r.recoveryPace).filter((p): p is number => p != null && p > 0);
+          const sprintMin = sprintPaces.length > 0 ? Math.min(...sprintPaces) : 0;
+          const sprintMax = sprintPaces.length > 0 ? Math.max(...sprintPaces) : 1;
+          const recoveryMin = recoveryPaces.length > 0 ? Math.min(...recoveryPaces) : 0;
+          const recoveryMax = recoveryPaces.length > 0 ? Math.max(...recoveryPaces) : 1;
+          // 페이스 값이 낮을수록 빠름 → 더 긴 바 (fastest=100%, slowest=40%)
+          const barPct = (pace: number | null | undefined, min: number, max: number): number => {
+            if (pace == null || pace <= 0) return 0;
+            if (max === min) return 80;
+            return Math.max(40, 100 - ((pace - min) / (max - min)) * 60);
+          };
+          return (
+            <div className="flex flex-col gap-2.5">
+              {rounds.map((round) => (
+                <div key={round.round} className="flex items-center gap-3 py-1.5">
+                  <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] w-14 shrink-0">
+                    {t("running.stats.rounds")} {round.round}
+                  </span>
+                  <div className="flex-1 flex flex-col gap-1">
+                    <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-[#2D6A4F] transition-[width] duration-500 ease-out"
+                        style={{ width: `${barPct(round.sprintPace, sprintMin, sprintMax)}%` }}
+                      />
+                    </div>
+                    <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-[#2D6A4F]/50 transition-[width] duration-500 ease-out"
+                        style={{ width: `${barPct(round.recoveryPace, recoveryMin, recoveryMax)}%` }}
+                      />
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-end gap-0.5 shrink-0 w-14">
+                    <span className="text-xs font-black text-[#1B4332] tabular-nums leading-none">
                       {formatPace(round.sprintPace)}
                     </span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span className="text-[9px] font-bold text-emerald-600 uppercase">
-                      {t("running.phase.recovery")}
-                    </span>
-                    <span className="text-xs font-black text-[#1B4332] tabular-nums">
+                    <span className="text-xs font-black text-gray-400 tabular-nums leading-none">
                       {formatPace(round.recoveryPace)}
                     </span>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        ) : (
+              ))}
+            </div>
+          );
+        })() : (
           <div className="py-4 text-center">
             <p className="text-[11px] font-medium text-gray-400">
               {runningStats.isIndoor
