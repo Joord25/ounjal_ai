@@ -113,8 +113,8 @@ export const TTCard: React.FC<TTCardProps> = ({ runningStats, recentHistory }) =
         </div>
       </div>
 
-      {/* 힌트 문구 — 오른쪽 정렬 */}
-      <p className="text-xs font-medium text-gray-500 mt-5 text-right">
+      {/* 힌트 문구 — 중앙 정렬 */}
+      <p className="text-xs font-medium text-gray-500 mt-5 text-center">
         {isFirstRecord
           ? t("running.tt.nextTargetHint")
           : diffSec != null && diffSec < 0
