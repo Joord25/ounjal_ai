@@ -74,41 +74,41 @@ export const TTCard: React.FC<TTCardProps> = ({ runningStats, recentHistory }) =
       {/* 구분선 — 타이틀과 콘텐츠 분리 */}
       <div className="border-t border-gray-100 mb-5" />
 
-      {/* 첫 기록: NEXT TARGET — 타이포 위계만, 배경 없음 */}
+      {/* 첫 기록: NEXT TARGET — 중앙 정렬 hero 레이아웃 */}
       {isFirstRecord && nextTargetPace != null && (
-        <>
-          <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.18em] mb-2">
+        <div className="flex flex-col items-center text-center py-4">
+          <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.18em] mb-4">
             {t("running.tt.nextTargetLabel")}
           </p>
-          <p className="text-4xl font-black text-[#1B4332] leading-none tabular-nums">
+          <p className="text-[56px] font-black text-[#1B4332] leading-none tabular-nums">
             {formatPace(nextTargetPace)}
-            <span className="text-lg text-gray-400 ml-2">/km</span>
           </p>
-          <p className="text-xs font-medium text-gray-500 mt-3">
+          <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] mt-3">/km</p>
+          <p className="text-xs font-medium text-gray-500 mt-5">
             {t("running.tt.nextTargetHint")}
           </p>
-        </>
+        </div>
       )}
 
-      {/* 2회차+: 방향 아이콘 + 초 차이 */}
+      {/* 2회차+: 방향 아이콘 + 초 차이 — 중앙 정렬 */}
       {!isFirstRecord && diffSec != null && (
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col items-center text-center py-4 gap-3">
           {diffSec < 0 && (
-            <svg className="w-5 h-5 shrink-0" viewBox="0 0 16 16" fill="none" aria-label="faster">
+            <svg className="w-8 h-8" viewBox="0 0 16 16" fill="none" aria-label="faster">
               <path d="M8 2v10m-4-4l4 4 4-4" stroke="#2D6A4F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           )}
           {diffSec > 0 && (
-            <svg className="w-5 h-5 shrink-0" viewBox="0 0 16 16" fill="none" aria-label="slower">
+            <svg className="w-8 h-8" viewBox="0 0 16 16" fill="none" aria-label="slower">
               <path d="M8 14V4m-4 4l4-4 4 4" stroke="#F59E0B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           )}
           {diffSec === 0 && (
-            <svg className="w-5 h-5 shrink-0" viewBox="0 0 16 16" fill="none" aria-label="same">
+            <svg className="w-8 h-8" viewBox="0 0 16 16" fill="none" aria-label="same">
               <path d="M3 6h10M3 10h10" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" />
             </svg>
           )}
-          <p className={`text-base font-black ${diffSec < 0 ? "text-[#2D6A4F]" : diffSec > 0 ? "text-amber-600" : "text-gray-500"}`}>
+          <p className={`text-2xl font-black ${diffSec < 0 ? "text-[#2D6A4F]" : diffSec > 0 ? "text-amber-600" : "text-gray-500"}`}>
             {diffSec < 0
               ? t("running.tt.fasterShort", { sec: String(Math.abs(diffSec)) })
               : diffSec === 0
