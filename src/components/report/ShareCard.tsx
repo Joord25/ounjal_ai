@@ -243,10 +243,10 @@ export const ShareCard: React.FC<ShareCardProps> = ({
       >
         <div
           ref={cardRef}
-          className="w-[300px] h-[533px] flex flex-col justify-center items-center p-7"
+          className="w-[300px] h-[533px] flex flex-col justify-center items-center p-5"
           style={{
             background: mode === "filled" ? "linear-gradient(135deg, #0a1a14 0%, #1B4332 50%, #2D6A4F 100%)" : "transparent",
-            fontFamily: "system-ui, -apple-system, sans-serif",
+            fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', 'Helvetica Neue', sans-serif",
           }}
         >
           {/* ===== Card 1: Summary ===== */}
@@ -324,36 +324,36 @@ export const ShareCard: React.FC<ShareCardProps> = ({
                 </p>
               </div>
 
-              {/* Strava 스타일 세로 3스탯 — 빽빽하게: 라벨→숫자 4px / 그룹 간 24px */}
-              <div style={{ display: "flex", flexDirection: "column", gap: 24, alignItems: "center" }}>
+              {/* Strava 스타일 세로 3스탯 — 숫자 크고 굵고, 줄간격 매우 타이트 */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 14, alignItems: "center" }}>
                 {/* Distance */}
                 <div style={{ textAlign: "center" }}>
-                  <p style={{ color: labelColor, fontSize: 14, fontWeight: 700, letterSpacing: "0.08em", marginBottom: 4, lineHeight: 1 }}>
+                  <p style={{ color: "white", fontSize: 16, fontWeight: 800, letterSpacing: "0em", marginBottom: 2, lineHeight: 1 }}>
                     {t("share.running.distance")}
                   </p>
-                  <p style={{ color: "white", fontSize: 60, fontWeight: 900, lineHeight: 1, textShadow: shadow, letterSpacing: "-0.02em" }}>
+                  <p style={{ color: "white", fontSize: 72, fontWeight: 900, lineHeight: 1, textShadow: shadow, letterSpacing: "-0.04em" }}>
                     {formatRunDistanceKm(runningStats?.distance)}
-                    <span style={{ fontSize: 22, color: "rgba(255,255,255,0.55)", marginLeft: 6, fontWeight: 700 }}>{t("share.running.unitKm")}</span>
+                    <span style={{ fontSize: 26, color: "white", marginLeft: 6, fontWeight: 800, letterSpacing: "-0.02em" }}>{t("share.running.unitKm")}</span>
                   </p>
                 </div>
 
                 {/* Pace */}
                 <div style={{ textAlign: "center" }}>
-                  <p style={{ color: labelColor, fontSize: 14, fontWeight: 700, letterSpacing: "0.08em", marginBottom: 4, lineHeight: 1 }}>
+                  <p style={{ color: "white", fontSize: 16, fontWeight: 800, letterSpacing: "0em", marginBottom: 2, lineHeight: 1 }}>
                     {t("share.running.pace")}
                   </p>
-                  <p style={{ color: "white", fontSize: 60, fontWeight: 900, lineHeight: 1, textShadow: shadow, letterSpacing: "-0.02em" }}>
+                  <p style={{ color: "white", fontSize: 72, fontWeight: 900, lineHeight: 1, textShadow: shadow, letterSpacing: "-0.04em" }}>
                     {formatPace(runningStats?.sprintAvgPace ?? runningStats?.avgPace)}
-                    <span style={{ fontSize: 22, color: "rgba(255,255,255,0.55)", marginLeft: 6, fontWeight: 700 }}>{t("share.running.unitPerKm")}</span>
+                    <span style={{ fontSize: 26, color: "white", marginLeft: 6, fontWeight: 800, letterSpacing: "-0.02em" }}>{t("share.running.unitPerKm")}</span>
                   </p>
                 </div>
 
                 {/* Time */}
                 <div style={{ textAlign: "center" }}>
-                  <p style={{ color: labelColor, fontSize: 14, fontWeight: 700, letterSpacing: "0.08em", marginBottom: 4, lineHeight: 1 }}>
+                  <p style={{ color: "white", fontSize: 16, fontWeight: 800, letterSpacing: "0em", marginBottom: 2, lineHeight: 1 }}>
                     {t("share.running.time")}
                   </p>
-                  <p style={{ color: "white", fontSize: 60, fontWeight: 900, lineHeight: 1, textShadow: shadow, letterSpacing: "-0.02em" }}>
+                  <p style={{ color: "white", fontSize: 72, fontWeight: 900, lineHeight: 1, textShadow: shadow, letterSpacing: "-0.04em" }}>
                     {formatRunDuration(runningStats?.duration ?? totalDurationSec)}
                   </p>
                 </div>
