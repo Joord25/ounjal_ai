@@ -53,6 +53,8 @@ const ANTERIOR_LEG: Set<string> = new Set([
   // 회의 62 후속 (2026-04-18, 대표 지시): 스쿼트 점프 맨몸 → 레그프레스 부위 아이콘
   "스쿼트 점프 (Squat Jump)",
   "스쿼트 점프 (Squat Jumps)",
+  // 에어 스쿼트 맨몸 — 대퇴사두 주도, 레그프레스 아이콘 (대표 지시 2026-04-19)
+  "에어 스쿼트 (Air Squat)",
 ]);
 
 const POSTERIOR_LEG: Set<string> = new Set([
