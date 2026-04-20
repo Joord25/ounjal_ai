@@ -258,48 +258,51 @@ export const ShareCard: React.FC<ShareCardProps> = ({
         >
           {/* ===== Card 1: Summary (회의 64-η 2026-04-21: Rubik 통일·날짜 헤더 제거·운동 목록 타이트) ===== */}
           {currentCard === 0 && !isRunning && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 20, alignItems: "center", textAlign: "center", width: "100%", fontFamily: "var(--font-rubik), -apple-system, BlinkMacSystemFont, sans-serif" }}>
-              {/* Main Exercises */}
-              <div>
-                <p style={{ color: labelColor, fontSize: 11, fontWeight: 600, letterSpacing: "0.18em", textTransform: "uppercase" as const, marginBottom: 10, fontFamily: "var(--font-rubik), -apple-system, BlinkMacSystemFont, sans-serif" }}>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", width: "100%", fontFamily: "var(--font-rubik), -apple-system, BlinkMacSystemFont, sans-serif" }}>
+              {/* Main Exercises — html2canvas 호환: gap 대신 각 블록 marginBottom 사용 */}
+              <div style={{ marginBottom: 24 }}>
+                <p style={{ color: labelColor, fontSize: 11, fontWeight: 600, letterSpacing: "0.18em", textTransform: "uppercase" as const, margin: 0, marginBottom: 10, fontFamily: "var(--font-rubik), -apple-system, BlinkMacSystemFont, sans-serif" }}>
                   EXERCISES
                 </p>
-                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                {/* html2canvas 호환: flex gap 미지원 → marginBottom 명시 (회의 64-α 기록 · Running 카드 동일 패턴) */}
+                <div>
                   {mainExercises.slice(0, 6).map((ex, i) => (
                     <p key={i} style={{
                       color: "white",
                       fontSize: 15,
                       fontWeight: 700,
-                      lineHeight: 1.25,
+                      lineHeight: 1.2,
                       letterSpacing: "-0.01em",
                       textShadow: shadow,
                       fontFamily: "var(--font-rubik), -apple-system, BlinkMacSystemFont, sans-serif",
+                      margin: 0,
+                      marginBottom: 6,
                     }}>
                       {ex.displayName}
                     </p>
                   ))}
                   {mainExercises.length > 6 && (
-                    <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 12, fontWeight: 600, fontFamily: "var(--font-rubik), -apple-system, BlinkMacSystemFont, sans-serif" }}>
+                    <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 12, fontWeight: 600, margin: 0, fontFamily: "var(--font-rubik), -apple-system, BlinkMacSystemFont, sans-serif" }}>
                       +{mainExercises.length - 6}
                     </p>
                   )}
                 </div>
               </div>
 
-              {/* Volume + Time row */}
-              <div style={{ display: "flex", gap: 28, justifyContent: "center" }}>
+              {/* Volume + Time row — html2canvas 호환: flex gap 대신 marginRight 사용 */}
+              <div style={{ display: "flex", justifyContent: "center", marginBottom: 20 }}>
                 {isStrength && totalVolume > 0 && (
-                  <div>
-                    <p style={{ color: labelColor, fontSize: 11, fontWeight: 600, letterSpacing: "0.18em", textTransform: "uppercase" as const, marginBottom: 6, fontFamily: "var(--font-rubik), -apple-system, BlinkMacSystemFont, sans-serif" }}>Volume</p>
-                    <p style={{ color: "white", fontSize: 32, fontWeight: 700, lineHeight: 1, letterSpacing: "-0.02em", textShadow: shadow, fontFamily: "var(--font-rubik), -apple-system, BlinkMacSystemFont, sans-serif" }}>
+                  <div style={{ marginRight: 28 }}>
+                    <p style={{ color: labelColor, fontSize: 11, fontWeight: 600, letterSpacing: "0.18em", textTransform: "uppercase" as const, marginBottom: 6, margin: 0, fontFamily: "var(--font-rubik), -apple-system, BlinkMacSystemFont, sans-serif" }}>Volume</p>
+                    <p style={{ color: "white", fontSize: 32, fontWeight: 700, lineHeight: 1, letterSpacing: "-0.02em", textShadow: shadow, margin: 0, marginTop: 6, fontFamily: "var(--font-rubik), -apple-system, BlinkMacSystemFont, sans-serif" }}>
                       {Math.round(toDispW(totalVolume)).toLocaleString()}
                       <span style={{ fontSize: 16, color: "rgba(255,255,255,0.6)", marginLeft: 3, fontWeight: 600, fontFamily: "var(--font-rubik), -apple-system, BlinkMacSystemFont, sans-serif" }}>{U}</span>
                     </p>
                   </div>
                 )}
                 <div>
-                  <p style={{ color: labelColor, fontSize: 11, fontWeight: 600, letterSpacing: "0.18em", textTransform: "uppercase" as const, marginBottom: 6, fontFamily: "var(--font-rubik), -apple-system, BlinkMacSystemFont, sans-serif" }}>Time</p>
-                  <p style={{ color: "white", fontSize: 32, fontWeight: 700, lineHeight: 1, letterSpacing: "-0.02em", textShadow: shadow, fontFamily: "var(--font-rubik), -apple-system, BlinkMacSystemFont, sans-serif" }}>
+                  <p style={{ color: labelColor, fontSize: 11, fontWeight: 600, letterSpacing: "0.18em", textTransform: "uppercase" as const, margin: 0, fontFamily: "var(--font-rubik), -apple-system, BlinkMacSystemFont, sans-serif" }}>Time</p>
+                  <p style={{ color: "white", fontSize: 32, fontWeight: 700, lineHeight: 1, letterSpacing: "-0.02em", textShadow: shadow, margin: 0, marginTop: 6, fontFamily: "var(--font-rubik), -apple-system, BlinkMacSystemFont, sans-serif" }}>
                     {formatDuration(totalDurationSec)}
                   </p>
                 </div>
