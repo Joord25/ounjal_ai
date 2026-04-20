@@ -404,7 +404,7 @@ export default function LandingContent({ locale = "ko" }: { locale?: LandingLoca
       </section>
 
       {/* ═══ Section 4: Pricing ═══ */}
-      <section className="snap-start min-h-screen flex flex-col justify-center py-10 sm:py-20 px-6 bg-[#111111]">
+      <section id="pricing" className="snap-start min-h-screen flex flex-col justify-center py-10 sm:py-20 px-6 bg-[#111111] scroll-mt-20">
         <div className="max-w-2xl mx-auto text-center w-full">
           <RevealOnScroll>
             <p className="text-sm text-[#34d399] font-bold tracking-wide mb-2 sm:mb-3">{t.pricing.label}</p>
