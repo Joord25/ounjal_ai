@@ -13,6 +13,7 @@ export interface LandingTexts {
     line1: string;
     line1b?: string;
     line2: string;
+    line2b?: string;
     line3: string;
     sub: HeroSub;
     stats: { prefix: string; suffix: string; label: string }[];
@@ -68,10 +69,10 @@ export interface LandingTexts {
 const ko: LandingTexts = {
   nav: { brand: "오운잘 AI", cta: "바로 시작" },
   hero: {
-    line1: "체중감량, 벌크업, 러닝",
-    line2: "어떻게 할지,",
-    line3: "AI가 3초 만에 끝내줌.",
-    sub: "10명 중 9명이 끝까지 함. PT 없이, 매일 내 컨디션에 맞게.",
+    line1: "챗GPT랑 다른게 뭐냐구요?",
+    line2: "말만 하는 AI 말고,",
+    line3: "오늘 뛰게 하는 앱",
+    sub: ["한체대 석사 트레이너가 직접 개발한 앱.", "다이어트, 러닝, 근력운동까지"],
     stats: [
       { prefix: "주 ", suffix: "회", label: "평균 운동 빈도" },
       { prefix: "", suffix: "%", label: "루틴 완주율" },
@@ -83,7 +84,8 @@ const ko: LandingTexts = {
     title: "HOW IT WORKS",
     steps: [
       { title: "AI와 대화 시작", desc: "\"3개월 다이어트 플랜\" 한마디면 끝" },
-      { title: "오늘 루틴 완성", desc: "고민 0초, 바로 운동 시작" },
+      { title: "오늘 루틴 완성", desc: "고민 0초, 바로 준비 완료" },
+      { title: "운동 시작", desc: "AI와 함께 오늘 한 세트부터" },
       { title: "AI 코치 피드백", desc: "PT 없이도 뭘 잘했는지 알게 됨" },
       { title: "영양까지 한 번에", desc: "뭘 먹어야 하는지도 끝", premium: true },
     ],
@@ -186,11 +188,10 @@ const ko: LandingTexts = {
 const en: LandingTexts = {
   nav: { brand: "Ohunjal AI", cta: "Get Started" },
   hero: {
-    line1: "Lose Weight",
-    line1b: "Build Muscle",
-    line2: "Run Further",
-    line3: "No PT needed",
-    sub: "Your daily workout, built by AI in 3 seconds",
+    line1: "Beyond ChatGPT?",
+    line2: "Not just talk.",
+    line3: "Plan to done.",
+    sub: ["Built by a 10-year trainer.", "Diet, running, strength — all in one app."],
     stats: [
       { prefix: "", suffix: "x", label: "Avg. weekly sessions" },
       { prefix: "", suffix: "%", label: "Completion rate" },
@@ -202,7 +203,8 @@ const en: LandingTexts = {
     title: "HOW IT WORKS",
     steps: [
       { title: "Talk to AI", desc: "\"3-month diet plan\" — one line, done" },
-      { title: "Today's Routine Ready", desc: "Zero thinking, start working out" },
+      { title: "Today's Routine Ready", desc: "Zero thinking, ready to go" },
+      { title: "Start the Workout", desc: "One set at a time, with AI" },
       { title: "AI Coach Feedback", desc: "Know what you did right, no PT needed" },
       { title: "Nutrition Included", desc: "What to eat — done", premium: true },
     ],

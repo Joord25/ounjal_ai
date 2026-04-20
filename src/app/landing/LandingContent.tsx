@@ -33,37 +33,6 @@ function useBodyScroll() {
   }, []);
 }
 
-function useCountUp(target: number, suffix: string, duration = 1200) {
-  const [display, setDisplay] = useState(`0${suffix}`);
-  const ref = useRef<HTMLDivElement>(null);
-  const triggered = useRef(false);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting && !triggered.current) {
-          triggered.current = true;
-          const start = performance.now();
-          const animate = (now: number) => {
-            const elapsed = now - start;
-            const progress = Math.min(elapsed / duration, 1);
-            const eased = 1 - Math.pow(1 - progress, 3);
-            const current = Math.round(target * eased);
-            setDisplay(`${current}${suffix}`);
-            if (progress < 1) requestAnimationFrame(animate);
-          };
-          requestAnimationFrame(animate);
-        }
-      },
-      { threshold: 0.3 }
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [target, suffix, duration]);
-  return { ref, display };
-}
-
 function RevealOnScroll({ children, className = "", delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -89,8 +58,6 @@ function RevealOnScroll({ children, className = "", delay = 0 }: { children: Rea
 }
 
 // ─── Shared data ─────────────────────────────────────────────────
-const STAT_VALUES = [3.2, 94, 28] as const;
-
 const LOGOS = [
   { name: "KNSU", logo: "/korea natinal sports univ..png" },
   { name: "Inha Univ.", logo: "/inha univ.jpeg" },
@@ -153,10 +120,6 @@ export default function LandingContent({ locale = "ko" }: { locale?: LandingLoca
     return () => clearInterval(interval);
   }, [t.howItWorks.steps.length]);
 
-  const stat0 = useCountUp(STAT_VALUES[0] * 10, "", 1000);
-  const stat1 = useCountUp(STAT_VALUES[1], t.hero.stats[1].suffix, 1200);
-  const stat2 = useCountUp(STAT_VALUES[2], t.hero.stats[2].suffix, 1000);
-
   const ctaHref = `/app?lang=${locale}`;
   const onCtaClick = (section: "nav" | "bottom_sticky") => trackEvent("landing_cta_click", { locale, section });
 
@@ -213,48 +176,36 @@ export default function LandingContent({ locale = "ko" }: { locale?: LandingLoca
           </RevealOnScroll>
 
           <RevealOnScroll delay={200}>
-            <h1 className={`${locale === "ko" ? "text-[7vw]" : "text-[10vw]"} sm:text-5xl lg:text-6xl font-black leading-[1.1] tracking-tight mb-4 sm:mb-6`} style={{ wordBreak: "keep-all" }}>
+            <h1 className={`${locale === "ko" ? "text-[11vw]" : "text-[10vw]"} sm:text-5xl lg:text-6xl font-black leading-[1.1] tracking-tight mb-5 sm:mb-6`} style={{ wordBreak: "keep-all" }}>
               <span className="text-white">{t.hero.line1}</span><br />
+              <span aria-hidden="true" className="block h-4 sm:h-6" />
               {t.hero.line1b && <><span className="text-white">{t.hero.line1b}</span><br /></>}
               {t.hero.line2 && <><span className="text-white">{t.hero.line2}</span><br /></>}
-              <span className={`text-[#34d399] ${locale !== "ko" ? "text-[12vw] sm:text-5xl lg:text-6xl" : ""}`}>{t.hero.line3}</span>
+              {t.hero.line2b && <><span className="text-white">{t.hero.line2b}</span><br /></>}
+              <span className="text-[#34d399]">{t.hero.line3}</span>
             </h1>
           </RevealOnScroll>
 
           <RevealOnScroll delay={400}>
-            <p className="text-sm sm:text-lg text-white/50 leading-relaxed mb-8 sm:mb-10 max-w-md mx-auto">
+            <p className="text-base sm:text-lg text-white/60 leading-relaxed mb-8 sm:mb-10 max-w-md sm:max-w-2xl mx-auto">
               {typeof t.hero.sub === "string" ? (
                 t.hero.sub
               ) : (
                 t.hero.sub.map((line, i) => (
                   <React.Fragment key={i}>
                     {line}
-                    {i < (t.hero.sub as string[]).length - 1 && <br />}
+                    {i < (t.hero.sub as string[]).length - 1 && (
+                      <>
+                        <br className="sm:hidden" />
+                        <span className="hidden sm:inline"> </span>
+                      </>
+                    )}
                   </React.Fragment>
                 ))
               )}
             </p>
           </RevealOnScroll>
 
-          <RevealOnScroll delay={600} className="mt-10 sm:mt-20">
-            <div className="grid grid-cols-3 gap-3 sm:gap-8 max-w-lg mx-auto">
-              <div className="text-center" ref={stat0.ref}>
-                <p className="text-xl sm:text-4xl font-black text-white tabular-nums">
-                  {t.hero.stats[0].prefix}{(Number(stat0.display) / 10).toFixed(1)}{t.hero.stats[0].suffix}
-                </p>
-                <p className="text-[10px] sm:text-sm text-white/40 mt-1">{t.hero.stats[0].label}</p>
-              </div>
-              <div className="text-center" ref={stat1.ref}>
-                <p className="text-xl sm:text-4xl font-black text-white tabular-nums">{stat1.display}</p>
-                <p className="text-[10px] sm:text-sm text-white/40 mt-1">{t.hero.stats[1].label}</p>
-              </div>
-              <div className="text-center" ref={stat2.ref}>
-                <p className="text-xl sm:text-4xl font-black text-[#34d399] tabular-nums">{t.hero.stats[2].prefix}{stat2.display}</p>
-                <p className="text-[10px] sm:text-sm text-white/40 mt-1">{t.hero.stats[2].label}</p>
-              </div>
-            </div>
-            <p className="text-[11px] text-white/20 mt-4">{t.hero.statNote}</p>
-          </RevealOnScroll>
         </div>
 
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce">
@@ -277,9 +228,21 @@ export default function LandingContent({ locale = "ko" }: { locale?: LandingLoca
               <div className="relative">
                 <div className="rounded-[36px] border-[4px] border-white/10 bg-[#1a1a1a] shadow-2xl overflow-hidden aspect-[9/19.5]">
                   <div className="w-full h-full transition-all duration-500">
-                    {[0, 1, 2, 3].map((idx) => (
+                    {t.howItWorks.steps.map((step, idx) => (
                       activeDemo === idx && (
-                        <img key={idx} src={locale === "ko" ? `/how it works ${idx + 1}.png` : `/how it works${idx + 1}_en.png`} alt={t.howItWorks.steps[idx]?.title} className="w-full h-full object-cover animate-[fadeSlideUp_0.5s_ease-out_forwards]" />
+                        <img
+                          key={idx}
+                          src={locale === "ko" ? `/how it works ${idx + 1}.png` : `/how it works${idx + 1}_en.png`}
+                          alt={step.title}
+                          className="w-full h-full object-cover animate-[fadeSlideUp_0.5s_ease-out_forwards]"
+                          onError={(e) => {
+                            // 신규 스텝(운동 시작 등) 이미지 아직 없을 때 이전 이미지로 폴백
+                            const img = e.currentTarget;
+                            const fallbackIdx = Math.max(0, idx - 1);
+                            const fallback = locale === "ko" ? `/how it works ${fallbackIdx + 1}.png` : `/how it works${fallbackIdx + 1}_en.png`;
+                            if (img.src !== window.location.origin + fallback) img.src = fallback;
+                          }}
+                        />
                       )
                     ))}
                   </div>
@@ -333,6 +296,12 @@ export default function LandingContent({ locale = "ko" }: { locale?: LandingLoca
                           src={locale === "ko" ? `/how it works ${i + 1}.png` : `/how it works${i + 1}_en.png`}
                           alt={step.title}
                           className="w-full h-full object-cover"
+                          onError={(e) => {
+                            const img = e.currentTarget;
+                            const fallbackIdx = Math.max(0, i - 1);
+                            const fallback = locale === "ko" ? `/how it works ${fallbackIdx + 1}.png` : `/how it works${fallbackIdx + 1}_en.png`;
+                            if (img.src !== window.location.origin + fallback) img.src = fallback;
+                          }}
                         />
                       </div>
                       <div className="absolute -inset-4 rounded-[38px] -z-10 opacity-40 blur-2xl bg-[#059669]/20" />
