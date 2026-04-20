@@ -72,7 +72,7 @@ const ko: LandingTexts = {
     line1: "챗GPT랑 다른게 뭐냐구요?",
     line2: "말만 하는 AI 말고,",
     line3: "오늘 뛰게 하는 앱",
-    sub: ["ACSM·NASM 국제 가이드라인 기반, 한체대 박사진 검수.", "다이어트, 러닝, 근력운동까지"],
+    sub: ["ACSM·NASM 국제 가이드라인 기반", "한체대 박사진 검수 · 다이어트, 러닝, 근력운동까지"],
     stats: [
       { prefix: "주 ", suffix: "회", label: "평균 운동 빈도" },
       { prefix: "", suffix: "%", label: "루틴 완주율" },
@@ -191,7 +191,7 @@ const en: LandingTexts = {
     line1: "Beyond ChatGPT?",
     line2: "Not just talk.",
     line3: "Plan to done.",
-    sub: ["Built on ACSM·NASM international standards, reviewed by KNSU PhDs.", "Diet, running, strength — all in one app."],
+    sub: ["Built on ACSM·NASM international standards", "Reviewed by KNSU PhDs · Diet, running, strength"],
     stats: [
       { prefix: "", suffix: "x", label: "Avg. weekly sessions" },
       { prefix: "", suffix: "%", label: "Completion rate" },
