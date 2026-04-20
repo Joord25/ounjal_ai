@@ -461,6 +461,8 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
         totalSessions,
         programName,
         completedAt: null,
+        // 회의 64-ζ-β (2026-04-21 평가자 지적): strength 장기 프로그램이 programCategory 미지정되던 갭 수정
+        programCategory: "strength" as const,
       }));
 
     if (savedSessions.length > 0) {

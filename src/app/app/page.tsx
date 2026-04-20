@@ -1093,7 +1093,11 @@ export default function Home() {
               saveWorkoutHistory(historyEntry);
 
               // 회의 64-X (2026-04-19): 장기 프로그램 세션 완료 시 "내 플랜"에 체크 마크 반영
-              if (currentPlanSource === "program" && activeSavedPlanId) {
+              // 회의 64-ζ-β (2026-04-21): resume 경로 포함. "이전 플랜 이어서" 버튼으로 복귀 시
+              // planSource가 "resume"으로 덮어써지면서 완료 마킹이 누락되던 버그 수정.
+              // saved/resume 모두에서 activeSavedPlanId가 있으면 마킹 — markSessionCompleted는 id로
+              // SavedPlan 찾아서 completedAt 찍을 뿐이라 program 여부 체크는 불필요(단일 플랜이어도 무해).
+              if (activeSavedPlanId && (currentPlanSource === "program" || currentPlanSource === "resume" || currentPlanSource === "saved")) {
                 markSessionCompleted(activeSavedPlanId);
               }
 
