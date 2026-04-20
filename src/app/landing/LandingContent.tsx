@@ -57,6 +57,21 @@ function RevealOnScroll({ children, className = "", delay = 0 }: { children: Rea
   );
 }
 
+// ─── Helpers ─────────────────────────────────────────────────────
+/**
+ * 문자열 내 [[...]] 마커를 emerald 하이라이트로 변환.
+ * 예: "오운잘 [[에이전트]]가" → "오운잘 <span class='text-[#34d399]'>에이전트</span>가"
+ */
+function highlightText(text: string): React.ReactNode {
+  const parts = text.split(/(\[\[[^\]]+\]\])/);
+  return parts.map((part, i) => {
+    if (part.startsWith("[[") && part.endsWith("]]")) {
+      return <span key={i} className="text-[#34d399]">{part.slice(2, -2)}</span>;
+    }
+    return <React.Fragment key={i}>{part}</React.Fragment>;
+  });
+}
+
 // ─── Shared data ─────────────────────────────────────────────────
 const LOGOS = [
   { name: "KNSU", logo: "/korea natinal sports univ..png" },
@@ -110,6 +125,18 @@ export default function LandingContent({ locale = "ko" }: { locale?: LandingLoca
     return () => observer.disconnect();
   }, []);
 
+  // 회의 64-λ (2026-04-21): 섹션별 스냅 스크롤 (유저 요청)
+  // proximity 로 설정 — mandatory 는 마지막 스냅 이후(푸터) 스크롤 차단 이슈.
+  // prefers-reduced-motion 사용자는 접근성 위해 비활성화.
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    if (mq.matches) return;
+    const html = document.documentElement;
+    const prev = html.style.scrollSnapType;
+    html.style.scrollSnapType = "y proximity";
+    return () => { html.style.scrollSnapType = prev; };
+  }, []);
+
   // 회의 58 후속: 모바일은 각 스텝이 자기 폰 프레임을 가지는 순차 레이아웃.
   // activeDemo는 데스크톱 auto-cycle + 클릭 전용.
   const [activeDemo, setActiveDemo] = useState(0);
@@ -157,7 +184,7 @@ export default function LandingContent({ locale = "ko" }: { locale?: LandingLoca
       </div>
 
       {/* ═══ Section 1: Hero ═══ */}
-      <section className="relative min-h-screen flex flex-col items-center justify-center px-6 pt-20 pb-16" style={{ background: "linear-gradient(to bottom, #0a1a14 0%, #0f2a1f 30%, #143728 60%, #1B4332 85%, #111111 100%)" }}>
+      <section className="snap-start relative min-h-screen flex flex-col items-center justify-center px-6 pt-20 pb-16" style={{ background: "linear-gradient(to bottom, #0a1a14 0%, #0f2a1f 30%, #143728 60%, #1B4332 85%, #111111 100%)" }}>
         <div className="absolute inset-0 bg-black/60" />
 
         <div className="relative z-10 text-center max-w-2xl mx-auto">
@@ -216,7 +243,7 @@ export default function LandingContent({ locale = "ko" }: { locale?: LandingLoca
       </section>
 
       {/* ═══ Section 2: HOW IT WORKS ═══ */}
-      <section ref={demoSectionRef} className="py-20 sm:py-28 px-6 bg-[#111111]">
+      <section ref={demoSectionRef} className="snap-start py-20 sm:py-28 px-6 bg-[#111111]">
         <div className="max-w-4xl mx-auto">
           <RevealOnScroll>
             <h2 className="text-2xl sm:text-4xl font-black text-center text-white mb-12 sm:mb-16">{t.howItWorks.title}</h2>
@@ -268,14 +295,14 @@ export default function LandingContent({ locale = "ko" }: { locale?: LandingLoca
                     </div>
                     <div>
                       <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className={`text-xl font-bold transition-colors duration-300 ${activeDemo === i ? "text-white" : "text-white/40"}`}>{step.title}</h3>
+                        <h3 className={`text-xl font-bold transition-colors duration-300 ${activeDemo === i ? "text-white" : "text-white/40"}`}>{highlightText(step.title)}</h3>
                         {step.premium && (
                           <span className={`text-[10px] font-black px-2 py-0.5 rounded-full bg-[#059669]/20 border border-[#059669]/40 ${activeDemo === i ? "text-[#10d67f]" : "text-white/40"}`}>
                             {locale === "en" ? "Premium" : "프리미엄만 가능"}
                           </span>
                         )}
                       </div>
-                      <p className={`text-sm mt-1 transition-colors duration-300 ${activeDemo === i ? "text-white/60" : "text-white/20"}`}>{step.desc}</p>
+                      <p className={`text-sm mt-1 transition-colors duration-300 ${activeDemo === i ? "text-white/60" : "text-white/20"}`}>{highlightText(step.desc)}</p>
                     </div>
                   </button>
                 </RevealOnScroll>
@@ -283,57 +310,13 @@ export default function LandingContent({ locale = "ko" }: { locale?: LandingLoca
             </div>
           </div>
 
-          {/* 모바일 (sm 미만): 회의 58 후속 — 각 스텝 독립 유닛 순차 배치 */}
-          <div className="sm:hidden space-y-16">
-            {t.howItWorks.steps.map((step, i) => (
-              <RevealOnScroll key={i}>
-                <div>
-                  {/* 폰 프레임 — 해당 스텝 이미지 */}
-                  <div className="mx-auto w-[80%] max-w-[320px] mb-6">
-                    <div className="relative">
-                      <div className="rounded-[30px] border-[3px] border-white/10 bg-[#1a1a1a] shadow-2xl overflow-hidden aspect-[9/19.5]">
-                        <img
-                          src={locale === "ko" ? `/how it works ${i + 1}.png` : `/how it works${i + 1}_en.png`}
-                          alt={step.title}
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            const img = e.currentTarget;
-                            const fallbackIdx = Math.max(0, i - 1);
-                            const fallback = locale === "ko" ? `/how it works ${fallbackIdx + 1}.png` : `/how it works${fallbackIdx + 1}_en.png`;
-                            if (img.src !== window.location.origin + fallback) img.src = fallback;
-                          }}
-                        />
-                      </div>
-                      <div className="absolute -inset-4 rounded-[38px] -z-10 opacity-40 blur-2xl bg-[#059669]/20" />
-                    </div>
-                  </div>
-
-                  {/* 텍스트 — 해당 스텝 설명 */}
-                  <div className="flex items-start gap-4 px-2">
-                    <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 font-black text-sm bg-[#059669] text-white">
-                      {String(i + 1).padStart(2, "0")}
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="text-lg font-bold text-white">{step.title}</h3>
-                        {step.premium && (
-                          <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-[#059669]/20 border border-[#059669]/40 text-[#10d67f]">
-                            {locale === "en" ? "Premium" : "프리미엄만 가능"}
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-sm mt-1 text-white/60">{step.desc}</p>
-                    </div>
-                  </div>
-                </div>
-              </RevealOnScroll>
-            ))}
-          </div>
+          {/* 모바일 (sm 미만): 가로 스와이프 캐러셀 — 회의 64-λ */}
+          <MobileHowItWorksCarousel steps={t.howItWorks.steps} locale={locale} />
         </div>
       </section>
 
-      {/* ═══ Section 3: Trust (white) ═══ */}
-      <section className="py-24 sm:py-32 bg-white min-h-screen flex flex-col justify-center">
+      {/* ═══ Section 3: Trust (white) + Reviews ═══ */}
+      <section className="snap-start py-24 sm:py-32 bg-white min-h-screen flex flex-col justify-center">
         <div className="max-w-5xl mx-auto px-6 mb-10 sm:mb-14">
           <RevealOnScroll>
             <h2 className="text-3xl sm:text-6xl lg:text-7xl font-medium text-[#1B4332] leading-[1.1] tracking-tight whitespace-pre-line">{t.trust.heading}</h2>
@@ -421,7 +404,7 @@ export default function LandingContent({ locale = "ko" }: { locale?: LandingLoca
       </section>
 
       {/* ═══ Section 4: Pricing ═══ */}
-      <section className="py-20 sm:py-28 px-6 bg-[#111111]">
+      <section className="snap-start py-20 sm:py-28 px-6 bg-[#111111]">
         <div className="max-w-2xl mx-auto text-center">
           <RevealOnScroll>
             <p className="text-sm text-[#34d399] font-bold tracking-wide mb-3">{t.pricing.label}</p>
@@ -484,7 +467,7 @@ export default function LandingContent({ locale = "ko" }: { locale?: LandingLoca
       </section>
 
       {/* ═══ FAQ — 흰 배경 섹션 (푸터 직전) ═══ */}
-      <section className="bg-white py-16 sm:py-24 px-6">
+      <section className="snap-start bg-white py-16 sm:py-24 px-6">
         <div className="max-w-3xl mx-auto">
           <h2 className="text-2xl sm:text-4xl font-black text-center text-[#1B4332] mb-10 sm:mb-14">
             {t.faq.title}
@@ -556,6 +539,105 @@ export default function LandingContent({ locale = "ko" }: { locale?: LandingLoca
           </div>
         </div>
       </footer>
+    </div>
+  );
+}
+
+// ─── Mobile HOW IT WORKS Carousel ───────────────────────────────
+// 회의 64-λ (2026-04-21): 세로 슬라이드 나열 → 가로 스와이프 캐러셀.
+// 유저가 스텝별로 '폰과 텍스트가 한 덩어리' 로 인지하도록 1스텝 = 1뷰포트.
+interface StepData {
+  title: string;
+  desc: string;
+  premium?: boolean;
+}
+
+function MobileHowItWorksCarousel({ steps, locale }: { steps: StepData[]; locale: LandingLocale }) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [activeIdx, setActiveIdx] = useState(0);
+
+  const handleScroll = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const idx = Math.round(el.scrollLeft / el.offsetWidth);
+    if (idx !== activeIdx) setActiveIdx(idx);
+  };
+
+  const scrollToStep = (idx: number) => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollTo({ left: idx * el.offsetWidth, behavior: "smooth" });
+  };
+
+  return (
+    <div className="sm:hidden">
+      {/* 가로 스와이프 트랙 — -mx-6 로 섹션 패딩 상쇄 후 w-screen 으로 full viewport */}
+      <div
+        ref={scrollRef}
+        onScroll={handleScroll}
+        className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide scroll-smooth -mx-6"
+      >
+        {steps.map((step, i) => (
+          <div key={i} className="snap-center shrink-0 w-screen px-6">
+            {/* 텍스트 먼저 — 라벨·타이틀·설명 */}
+            <div className="flex items-start gap-4 mb-6">
+              <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 font-black text-sm bg-[#059669] text-white">
+                {String(i + 1).padStart(2, "0")}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="text-lg font-bold text-white leading-snug">{highlightText(step.title)}</h3>
+                  {step.premium && (
+                    <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-[#059669]/20 border border-[#059669]/40 text-[#10d67f]">
+                      {locale === "en" ? "Premium" : "프리미엄만 가능"}
+                    </span>
+                  )}
+                </div>
+                <p className="text-sm mt-2 text-white/60 leading-relaxed">{highlightText(step.desc)}</p>
+              </div>
+            </div>
+
+            {/* 폰 프레임 */}
+            <div className="mx-auto w-[75%] max-w-[280px]">
+              <div className="relative">
+                <div className="rounded-[30px] border-[3px] border-white/10 bg-[#1a1a1a] shadow-2xl overflow-hidden aspect-[9/19.5]">
+                  <img
+                    src={locale === "ko" ? `/how it works ${i + 1}.png` : `/how it works${i + 1}_en.png`}
+                    alt={step.title}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      const img = e.currentTarget;
+                      const fallbackIdx = Math.max(0, i - 1);
+                      const fallback = locale === "ko" ? `/how it works ${fallbackIdx + 1}.png` : `/how it works${fallbackIdx + 1}_en.png`;
+                      if (img.src !== window.location.origin + fallback) img.src = fallback;
+                    }}
+                  />
+                </div>
+                <div className="absolute -inset-4 rounded-[38px] -z-10 opacity-40 blur-2xl bg-[#059669]/20" />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* 도트 인디케이터 */}
+      <div className="flex justify-center items-center gap-2 mt-8">
+        {steps.map((_, i) => (
+          <button
+            key={i}
+            onClick={() => scrollToStep(i)}
+            aria-label={`Step ${i + 1}`}
+            className={`h-1.5 rounded-full transition-all duration-300 ${
+              activeIdx === i ? "w-8 bg-[#10d67f]" : "w-1.5 bg-white/25"
+            }`}
+          />
+        ))}
+      </div>
+
+      {/* 스와이프 힌트 (첫 로드 시에만 텍스트 힌트) */}
+      <p className="text-center text-xs text-white/30 mt-4">
+        {locale === "ko" ? "← 좌우로 넘겨보세요 →" : "← swipe →"}
+      </p>
     </div>
   );
 }

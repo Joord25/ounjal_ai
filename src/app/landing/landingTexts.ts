@@ -85,7 +85,7 @@ const ko: LandingTexts = {
     steps: [
       { title: "AI와 대화 시작", desc: "\"3개월 다이어트 플랜\" 한마디면 끝" },
       { title: "오늘 루틴 완성", desc: "고민 0초, 바로 준비 완료" },
-      { title: "운동 시작", desc: "AI와 함께 오늘 한 세트부터" },
+      { title: "[[바로 운동 시작!]]", desc: "글만 주는 AI 말고, [[오운잘 에이전트]]가 옆에서" },
       { title: "AI 코치 피드백", desc: "PT 없이도 뭘 잘했는지 알게 됨" },
       { title: "영양까지 한 번에", desc: "뭘 먹어야 하는지도 끝", premium: true },
     ],
@@ -204,7 +204,7 @@ const en: LandingTexts = {
     steps: [
       { title: "Talk to AI", desc: "\"3-month diet plan\" — one line, done" },
       { title: "Today's Routine Ready", desc: "Zero thinking, ready to go" },
-      { title: "Start the Workout", desc: "One set at a time, with AI" },
+      { title: "[[Start — for real]]", desc: "Not text-only AI. [[Ohunjal agent]], right beside you" },
       { title: "AI Coach Feedback", desc: "Know what you did right, no PT needed" },
       { title: "Nutrition Included", desc: "What to eat — done", premium: true },
     ],
