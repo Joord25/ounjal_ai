@@ -92,18 +92,22 @@ export default function AbandonPreviewPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
               </svg>
             </button>
-            <div className="flex items-center gap-2">
-              <span className="text-[11px] font-medium text-gray-400">4월 22일 (수)</span>
+            <span className="text-[11px] font-medium text-gray-400">4월 22일 (수)</span>
+            <div className="flex items-center gap-2 -mr-2 min-w-[36px] justify-end">
               <span className="flex items-center gap-1">
-                <svg className="w-3 h-3 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <svg className="w-3 h-3 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M4.93 19h14.14c1.54 0 2.5-1.67 1.73-3L13.73 4a2 2 0 00-3.46 0L3.2 16c-.77 1.33.19 3 1.73 3z" />
                 </svg>
-                <span className="text-[10px] font-bold text-amber-700 tracking-wide">{t("report.abandonedBadge")}</span>
+                <span className="text-[10px] font-bold text-red-600 tracking-wide">{t("report.abandonedBadge")}</span>
               </span>
+              <button className="p-2">
+                <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                </svg>
+              </button>
             </div>
-            <div className="w-9" />
           </div>
-          <p className="text-center text-xs text-gray-400 mt-4">(날짜 아래 한 줄 인라인 — 배경 없음)</p>
+          <p className="text-center text-xs text-gray-400 mt-4">(공유 왼쪽에 인라인 · 붉은색 · 배경 없음)</p>
         </div>
       </section>
 
