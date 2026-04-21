@@ -889,7 +889,7 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ user, on
               className={
                 locale === "ko"
                   ? "w-full py-4 rounded-2xl bg-[#FEE500] text-[#3C1E1E] font-bold text-base active:scale-[0.98] transition-all shadow-lg disabled:opacity-50"
-                  : "w-full py-4 rounded-2xl bg-[#1B4332] text-white font-bold text-base active:scale-[0.98] transition-all shadow-lg disabled:opacity-50 hover:bg-[#143728]"
+                  : "w-full py-[15px] rounded-xl bg-black text-white font-semibold text-[15px] tracking-tight active:scale-[0.99] transition-all disabled:opacity-50 hover:bg-gray-900"
               }
             >
               {isProcessing ? (
@@ -902,9 +902,33 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ user, on
               )}
             </button>
 
-            <p className="text-[10px] text-gray-400 text-center">
-              {t("sub.autoRenew")}
-            </p>
+            {locale === "ko" ? (
+              <p className="text-[10px] text-gray-400 text-center">
+                {t("sub.autoRenew")}
+              </p>
+            ) : (
+              <div className="flex flex-col items-center gap-2.5 mt-1">
+                <div className="flex items-center gap-1.5 text-[11px] text-gray-500">
+                  <svg width="11" height="13" viewBox="0 0 11 13" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M8.5 5V3.5C8.5 1.84315 7.15685 0.5 5.5 0.5C3.84315 0.5 2.5 1.84315 2.5 3.5V5M1.5 5H9.5C10.0523 5 10.5 5.44772 10.5 6V11.5C10.5 12.0523 10.0523 12.5 9.5 12.5H1.5C0.947715 12.5 0.5 12.0523 0.5 11.5V6C0.5 5.44772 0.947715 5 1.5 5Z" stroke="currentColor" strokeWidth="1" strokeLinecap="round"/>
+                  </svg>
+                  <span className="font-medium tracking-tight">Secure checkout powered by Paddle</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  {["VISA", "Mastercard", "Amex", "Apple Pay", "PayPal"].map((m) => (
+                    <span
+                      key={m}
+                      className="px-2 py-1 rounded-md bg-gray-100 text-[9px] font-semibold text-gray-600 tracking-wide"
+                    >
+                      {m}
+                    </span>
+                  ))}
+                </div>
+                <p className="text-[10px] text-gray-400 text-center mt-1">
+                  Cancel anytime. No commitments.
+                </p>
+              </div>
+            )}
           </div>
         )}
 
