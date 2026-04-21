@@ -236,11 +236,16 @@ export type RunType = "interval" | "easy" | "long";
  * 세션 의도 묶음. 회의 57: ConditionCheck 폐기 이후 ChatHome/page가 공용 타입으로 사용.
  * Phase 4에서 ConditionCheck.tsx 삭제와 함께 이곳으로 이관됨.
  */
+/** 회의 64-M4: 장비 제약 — 챗에서 "맨몸만/덤벨 없이" 요청 시 Gemini가 bodyweight_only 세팅.
+ *  현재는 BW 전용 1종만 지원. 향후 "home_basic (덤벨/케틀벨 허용)", "gym (풀장비)" 확장 여지. */
+export type EquipmentConstraint = "bodyweight_only";
+
 export interface SessionSelection {
   goal: WorkoutGoal;
   sessionMode: SessionMode;
   targetMuscle?: TargetMuscle;
   runType?: RunType;
+  equipment?: EquipmentConstraint;
 }
 
 // === UI용 운동 풀 (운동 교체 검색에 사용) ===

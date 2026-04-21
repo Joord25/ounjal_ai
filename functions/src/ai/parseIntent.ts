@@ -45,6 +45,8 @@ export interface ParsedIntent {
   targetMuscle?: "chest" | "back" | "shoulders" | "arms" | "legs";
   runType?: "interval" | "easy" | "long";
   intensityOverride?: "high" | "moderate" | "low";
+  /** 회의 64-M4: 장비 제약 — "맨몸만/덤벨 없이" 명시 시 "bodyweight_only". 미지정 시 undefined (home_training 기본 = BW+덤벨 혼합). */
+  equipment?: "bodyweight_only";
   recentGymFrequency?: "none" | "1_2_times" | "regular";
   pushupLevel?: "zero" | "1_to_5" | "10_plus";
   confidence: number;            // 0~1
@@ -92,6 +94,8 @@ export interface AdviceContent {
     targetMuscle?: ParsedIntent["targetMuscle"];
     runType?: ParsedIntent["runType"];
     intensityOverride?: ParsedIntent["intensityOverride"];
+    /** 회의 64-M4: 장비 제약 — "맨몸만"/"덤벨 없이" 등 유저 명시 시 "bodyweight_only" */
+    equipment?: "bodyweight_only";
     reasoning: string;              // 왜 이 운동을 추천했는지 (1문장)
   };
 }
@@ -282,6 +286,7 @@ mode는 "주 의도 힌트"입니다. **응답 필드는 자유 조합** 가능 
 - targetMuscle: split일 때만 chest|back|shoulders|arms|legs
 - runType: running일 때 easy|interval|long
 - intensityOverride: high|moderate|low
+- equipment: "bodyweight_only" — 유저가 "맨몸만/덤벨 없이/노기구/bodyweight only" 명시 시에만. 기본값 미설정(undefined). sessionMode=home_training과 함께 쓰는 게 자연스러움.
 
 **reasoning 마지막 단계는 "실행 경로 연결 완료" 같이 명시.**
 </execution_link>
@@ -357,8 +362,10 @@ FULL_BODY(홈트/서킷):
 | goal | fat_loss \| muscle_gain \| strength \| general_fitness |
 | pushupLevel | zero(0) \| 1_to_5 \| 10_plus |
 | recentGymFrequency | none \| 1_2_times \| regular |
+| equipment | "bodyweight_only" 만. 유저가 "맨몸만/덤벨 없이/노기구/기구 없음/노이큅먼트/bodyweight only/no equipment" 명시 시. 미지정 시 undefined. |
 - 나이("35살") → ${currentYear} - 나이 = birthYear
 - 프로필 컨텍스트 있으면 gender/birthYear/bodyWeightKg 그대로 사용
+- equipment 는 top-level 과 recommendedWorkout 양쪽에 동일 값으로 세팅 (둘 다 필요). home_training 과 함께 쓰는 게 자연스러움.
 </plan_extraction>
 
 <common_fields>

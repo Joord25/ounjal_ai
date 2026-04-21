@@ -1235,6 +1235,8 @@ function generateHomeWorkout(
   condition: UserCondition,
   goal: WorkoutGoal,
   intensityOverride?: "high" | "moderate" | "low",
+  // 회의 64-M4: "bodyweight_only" 시 덤벨/케틀벨/바벨/머신/TRX 운동 제외
+  equipment?: "bodyweight_only",
 ): WorkoutSessionData {
   const baseSets = adjustVolume(3, condition, goal);
   const sets = intensityOverride === "high" ? Math.min(baseSets + 1, 5) : intensityOverride === "low" ? Math.max(baseSets, 3) : baseSets;
@@ -1246,39 +1248,55 @@ function generateHomeWorkout(
   const exercises: ExerciseStep[] = [];
   exercises.push(...buildWarmup(condition));
 
-  // 맨몸 + 덤벨 전신 서킷 5종
-  const homeSquat = pick([
+  // 회의 64-M4: bodyweight_only 모드에서 덤벨/케틀벨/바벨/머신/TRX 제외
+  //   기본 home_training 은 BW + 덤벨/케틀벨 혼합 유지 (집에 기본 장비 있는 유저 배려).
+  const bwOnly = equipment === "bodyweight_only";
+  const filterBW = (arr: string[]) =>
+    bwOnly
+      ? arr.filter((n) => !/덤벨|dumbbell|케틀벨|kettlebell|바벨|barbell|머신|machine|trx|스미스|smith|케이블|cable/i.test(n))
+      : arr;
+
+  // 5개 풀 — BW 전용 모드 다양성 확보를 위해 Pull/Hinge 보강 (회의 64-M4)
+  const homeSquat = pick(filterBW([
     "에어 스쿼트 (Air Squat)", "고블렛 스쿼트 (Goblet Squat)", "케틀벨 고블릿 스쿼트 (Kettlebell Goblet Squat)",
     "워킹 런지 (Walking Lunges)", "리버스 런지 (Reverse Lunges)", "불가리안 스플릿 스쿼트 (Bulgarian Split Squat)",
     "스텝업 (Step-Up)", "스쿼트 점프 (Squat Jump)",
     "와이드 스쿼트 (Wide Squat)", "덤벨 와이드 스쿼트 (Dumbbell Wide Squat)",
-  ]);
-  const homePush = pick([
+  ]));
+  const homePush = pick(filterBW([
     "푸쉬업 (Push-ups)", "니 푸쉬업 (Knee Push-ups)",
     "다이아몬드 푸쉬업 (Diamond Push-ups)", "와이드 푸쉬업 (Wide Push-ups)", "힌두 푸쉬업 (Hindu Push-ups)",
+    "아처 푸쉬업 (Archer Push-ups)", "가슴 딥스 (Dips - Chest Version)",
     "덤벨 벤치 프레스 (Dumbbell Bench Press)", "케틀벨 플로어 프레스 (Kettlebell Floor Press)",
     "덤벨 플로어 프레스 (Dumbbell Floor Press)",
     "덤벨 숄더 프레스 (Seated Dumbbell Press)", "아놀드 프레스 (Arnold Press)",
-  ]);
-  const homePull = pick([
+  ]));
+  const homePull = pick(filterBW([
     "덤벨 로우 (Dumbbell Row)", "싱글 암 덤벨 로우 (Single Arm Dumbbell Row)",
     "인버티드 로우 (Inverted Row)", "TRX 로우 (TRX Row)",
     "슈퍼맨 동작 (Superman)", "케틀벨 로우 (Kettlebell Row)",
     "덤벨 컬 (Dumbbell Curl)", "해머 컬 (Hammer Curl)",
-  ]);
-  const homeHinge = pick([
+    // BW 보강
+    "리버스 스노우 엔젤 (Reverse Snow Angel)", "Y-T-W 레이즈 (Y-T-W Raises)",
+    "프론 코브라 (Prone Cobra)", "타올 로우 (Towel Row)",
+  ]));
+  const homeHinge = pick(filterBW([
     "케틀벨 스윙 (Kettlebell Swing)", "덤벨 루마니안 데드리프트 (Dumbbell Romanian Deadlift)",
     "글루트 브릿지 (Glute Bridge)", "덤벨 힙 쓰러스트 (Dumbbell Hip Thrust)",
     "싱글 레그 케틀벨 RDL (Single-Leg Kettlebell RDL)",
     "원 레그 루마니안 데드리프트 (Single Leg RDL)",
-  ]);
-  const homeFullBody = pick([
+    // BW 보강
+    "싱글 레그 글루트 브릿지 (Single-Leg Glute Bridge)",
+    "굿모닝 (Bodyweight Good Morning)", "힙 힌지 홀드 (Hip Hinge Hold)",
+    "프론 힙 익스텐션 (Prone Hip Extension)",
+  ]));
+  const homeFullBody = pick(filterBW([
     "버피 (Burpees)", "덤벨 쓰러스터 (Dumbbell Thruster)", "스텝아웃 버피 (Step-out Burpees)",
     "점핑 잭 (Jumping Jacks)", "하이니즈 (High Knees)", "마운틴 클라이머 (Mountain Climber)",
     "베어 크롤 (Bear Crawl)",
     "사이드 레터럴 레이즈 (Side Lateral Raises)", "프론트 레터럴 레이즈 (Front Lateral Raises)",
     "오버헤드 트라이셉 익스텐션 (Overhead Tricep Extension)", "트라이셉스 킥백 (Tricep Kickback)",
-  ]);
+  ]));
 
   // 운동별 실제 장비 매핑 (맨몸 vs 덤벨/케틀벨)
   const getHomeWeight = (name: string): string => {
@@ -1316,6 +1334,8 @@ export const generateAdaptiveWorkout = (
   targetMuscle?: TargetMuscle,
   runType?: RunType,
   lastUpperType?: "push" | "pull",
+  // 회의 64-M4: 장비 제약 — "bodyweight_only" 시 generateHomeWorkout 풀에서 덤벨/케틀벨/바벨/머신/TRX 제외
+  equipment?: "bodyweight_only",
 ): WorkoutSessionData => {
   /** 후처리: 맨몸 운동 weight 수정 + 장비별 기본 kg 설정 */
   const postProcessWeights = (session: WorkoutSessionData): WorkoutSessionData => {
@@ -1346,7 +1366,7 @@ export const generateAdaptiveWorkout = (
     return postProcessWeights(generateRunningWorkout(condition, runType, intensityOverride || undefined));
   }
   if (sessionMode === "home_training") {
-    return postProcessWeights(generateHomeWorkout(condition, goal, intensityOverride || undefined));
+    return postProcessWeights(generateHomeWorkout(condition, goal, intensityOverride || undefined, equipment));
   }
 
   // ====== Legacy fallback: day-based schedule ======

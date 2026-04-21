@@ -118,6 +118,7 @@ export const planSession = onRequest(
       targetMuscle,
       runType,
       lastUpperType,
+      equipment,
     } = req.body;
 
     if (condition === undefined || goal === undefined) {
@@ -136,6 +137,7 @@ export const planSession = onRequest(
         targetMuscle,
         runType,
         lastUpperType,
+        equipment,
       );
 
       // 응답 랜덤 변형: main phase 내 마지막 2개 운동 순서 미세 셔플 (보안: 패턴 감지 방지)

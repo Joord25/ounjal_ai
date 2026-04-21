@@ -71,6 +71,8 @@ interface ParsedIntent {
   targetMuscle?: "chest" | "back" | "shoulders" | "arms" | "legs";
   runType?: "interval" | "easy" | "long";
   intensityOverride?: "high" | "moderate" | "low";
+  /** 회의 64-M4: 장비 제약 — "맨몸만" 명시 시 "bodyweight_only" */
+  equipment?: "bodyweight_only";
   recentGymFrequency?: "none" | "1_2_times" | "regular";
   pushupLevel?: "zero" | "1_to_5" | "10_plus";
   confidence: number;
@@ -318,6 +320,7 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
       sessionMode: pendingIntent.sessionMode,
       targetMuscle: pendingIntent.targetMuscle,
       runType: pendingIntent.runType,
+      equipment: pendingIntent.equipment,
     };
     try {
       // 채팅에서 이미 확인했으므로 PlanLoadingOverlay 스킵 (대표 지시)
