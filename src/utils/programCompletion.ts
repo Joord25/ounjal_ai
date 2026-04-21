@@ -42,6 +42,8 @@ export interface CompletionEntry {
   completedAtMs: number;
   /** 매칭된 history id (디버그·네비게이션용) */
   historyId: string;
+  /** 회의 64-M3: 해당 history 가 중도 종료 기록이면 true. MyPlans 에서 아이콘 분기용. */
+  abandoned?: boolean;
 }
 
 /**
@@ -89,6 +91,7 @@ export function deriveProgramCompletions(
     result.set(nextSession.id, {
       completedAtMs: historyDateMs(h),
       historyId: h.id,
+      abandoned: h.abandoned === true,
     });
   }
 

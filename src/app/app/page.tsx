@@ -352,6 +352,8 @@ export default function Home() {
   // App State
   const [completedRitualIds, setCompletedRitualIds] = useState<string[]>([]);
   const [currentWorkoutSession, setCurrentWorkoutSession] = useState<WorkoutSessionData | null>(null);
+  // 회의 64-M3: 현재 workout_report 가 중도 종료 기록인지 추적 — onAbandon 시 true, onComplete 시 false.
+  const [currentWorkoutAbandoned, setCurrentWorkoutAbandoned] = useState(false);
   const [activeSavedPlanId, setActiveSavedPlanId] = useState<string | null>(null);
   // 회의 64-γ (2026-04-20): 모바일 백그라운드 복귀 시 WorkoutSession/MasterPlanPreview 하위 상태 hydrate용.
   // 복원된 snapshot의 progress/previewExercises를 자식 컴포넌트에 1회 전달.
@@ -1062,6 +1064,7 @@ export default function Home() {
             onComplete={(completedData, logs, timing, runningStats) => {
               trackEvent("workout_complete", { session_number: getPlanCount(), duration_min: Math.round(timing.totalDurationSec / 60), source: currentPlanSource });
               setCurrentWorkoutSession(completedData);
+              setCurrentWorkoutAbandoned(false);
               setWorkoutLogs(logs);
               setWorkoutDurationSec(timing.totalDurationSec);
               setCurrentRunningStats(runningStats ?? null);
@@ -1111,7 +1114,55 @@ export default function Home() {
               // 게스트 체험 카운트는 플랜 생성 시점에 이미 증가됨 (handleConditionComplete)
               setView("workout_report");
             }}
-            onBack={() => { trackEvent("workout_abandon", { source: currentPlanSource }); setView("master_plan_preview"); }}
+            onAbandon={(completedData, logs, timing, runningStats) => {
+              // 회의 64-M3: 중도 종료 — "운동 종료" 버튼 → 팝업 확인으로 진입.
+              // onComplete 와 동일 경로지만 abandoned: true 플래그로 저장, 완주 카운터(markSessionCompleted) 제외.
+              trackEvent("workout_abandon", {
+                source: currentPlanSource,
+                sets_done: Object.values(logs).reduce((s, arr) => s + arr.length, 0),
+                duration_min: Math.round(timing.totalDurationSec / 60),
+              });
+              setCurrentWorkoutSession(completedData);
+              setCurrentWorkoutAbandoned(true);
+              setWorkoutLogs(logs);
+              setWorkoutDurationSec(timing.totalDurationSec);
+              setCurrentRunningStats(runningStats ?? null);
+
+              const wMetrics = buildWorkoutMetrics(completedData.exercises, logs, currentCondition?.bodyWeightKg, timing.totalDurationSec);
+
+              const historyEntry: WorkoutHistory = {
+                id: Date.now().toString(),
+                date: new Date().toISOString(),
+                sessionData: completedData,
+                logs: logs,
+                stats: {
+                  totalVolume: wMetrics.totalVolume,
+                  totalSets: wMetrics.totalSets,
+                  totalReps: wMetrics.totalReps,
+                  totalDurationSec: wMetrics.totalDurationSec,
+                  bestE1RM: wMetrics.bestE1RM?.value,
+                  bwRatio: wMetrics.bwRatio ?? undefined,
+                  successRate: wMetrics.successRate,
+                  loadScore: wMetrics.loadScore,
+                },
+                exerciseTimings: timing.exerciseTimings,
+                abandoned: true,
+                ...(runningStats ? { runningStats } : {}),
+              };
+
+              saveWorkoutHistory(historyEntry);
+
+              // 중도 종료는 프로그램 세션 완주 마킹에서 제외 (markSessionCompleted 호출 안 함).
+              // EXP / 리포트는 기존 경로 그대로 렌더 — 유저가 여기까지 한 기록은 존중.
+              const recentHist: WorkoutHistory[] = getCachedWorkoutHistory();
+              const prevSeasonState = getOrRebuildSeasonExp(recentHist, currentCondition?.birthYear, currentCondition?.gender);
+              const expGained = processWorkoutCompletion(historyEntry, [...recentHist, historyEntry], currentCondition?.birthYear, currentCondition?.gender);
+              setLastPrevExp(prevSeasonState.totalExp);
+              setLastExpGained(expGained);
+
+              setView("workout_report");
+            }}
+            onBack={() => { trackEvent("workout_abandon", { source: currentPlanSource, via: "back" }); setView("master_plan_preview"); }}
           />
         );
 
@@ -1129,6 +1180,7 @@ export default function Home() {
             precomputedPrevExp={lastPrevExp}
             runningStats={currentRunningStats ?? undefined}
             isPremium={subStatus === "active"}
+            abandoned={currentWorkoutAbandoned}
             onReportTabsSaved={(tabs) => {
               try {
                 const history = getCachedWorkoutHistory();
@@ -1299,6 +1351,7 @@ export default function Home() {
                gender={currentCondition?.gender || (localStorage.getItem("ohunjal_gender") as "male" | "female") || undefined}
                birthYear={currentCondition?.birthYear || (() => { const y = parseInt(localStorage.getItem("ohunjal_birth_year") || ""); return isNaN(y) ? undefined : y; })()}
                savedDurationSec={workoutDurationSec}
+               abandoned={currentWorkoutAbandoned}
                onClose={() => {
                  setView("home");
                  setActiveTab("proof");

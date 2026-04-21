@@ -222,6 +222,7 @@ export const MyPlansScreen: React.FC<MyPlansScreenProps> = ({ onBack, onSelectPl
                       {sessions.map((s) => {
                         const completion = prog.completionMap.get(s.id);
                         const isDone = !!completion;
+                        const isAbandoned = isDone && completion?.abandoned === true;
                         const isNext = !isDone && prog.nextSession?.id === s.id;
                         const ctxLabel = getProgramSessionLabel(s);
                         const displayDesc = ctxLabel?.description || s.sessionData.description || s.name;
@@ -231,10 +232,18 @@ export const MyPlansScreen: React.FC<MyPlansScreenProps> = ({ onBack, onSelectPl
                             onClick={() => onSelectPlan(s)}
                             className={`w-full flex items-center gap-3 px-4 py-2.5 text-left border-b border-gray-50 last:border-b-0 active:bg-gray-50 transition-colors ${isDone ? "opacity-50" : ""} ${isNext ? "bg-[#FAFFF7]" : ""}`}
                           >
+                            {/* 회의 64-M3: 완료=emerald check, 중도=amber 하프원, 미완료=번호 */}
                             <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black shrink-0 ${
-                              isDone ? "bg-[#2D6A4F] text-white" : isNext ? "border-2 border-[#2D6A4F] text-[#2D6A4F]" : "bg-gray-100 text-gray-400"
+                              isAbandoned ? "bg-amber-100 text-amber-700 border border-amber-300"
+                              : isDone ? "bg-[#2D6A4F] text-white"
+                              : isNext ? "border-2 border-[#2D6A4F] text-[#2D6A4F]"
+                              : "bg-gray-100 text-gray-400"
                             }`}>
-                              {isDone ? (
+                              {isAbandoned ? (
+                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                  <path strokeLinecap="round" d="M12 8v4M12 16h.01" />
+                                </svg>
+                              ) : isDone ? (
                                 <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                                   <path strokeLinecap="round" d="M5 13l4 4L19 7" />
                                 </svg>

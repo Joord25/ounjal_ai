@@ -169,6 +169,8 @@ export interface WorkoutHistory {
   analysis?: WorkoutAnalysis;
   coachMessages?: string[];
   runningStats?: RunningStats;     // 회의 41: 러닝 세션만 설정
+  /** 회의 64-M3: 중도 종료 여부. 유저가 "운동 종료" 버튼 → 팝업 확인으로 저장된 세션. */
+  abandoned?: boolean;
   /** 회의 37: 4탭 리포트 데이터 */
   reportTabs?: {
     /** 운동 당시 유저 목표 (히스토리 고정 표시용) */

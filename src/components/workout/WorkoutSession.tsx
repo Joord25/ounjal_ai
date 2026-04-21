@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { FitScreen, FeedbackType } from "./FitScreen";
 import type { RunningStats } from "@/constants/workout";
 import { WorkoutSessionData, ExerciseStep, ExerciseLog, ExerciseTiming, LABELED_EXERCISE_POOLS } from "@/constants/workout";
@@ -25,6 +25,14 @@ interface WorkoutSessionProps {
     runningStats?: RunningStats,  // 회의 41: 러닝 세션 전용
   ) => void;
   onBack: () => void;
+  /** 회의 64-M3: 중도 종료 — 최소 1세트 이상 기록된 상태로 유저가 "운동 종료" 확정 시 호출.
+   *  abandoned: true 플래그로 workout_history 에 저장된다. 0세트면 onBack 경로로 폴백. */
+  onAbandon?: (
+    completedSessionData: WorkoutSessionData,
+    logs: Record<number, ExerciseLog[]>,
+    timing: { totalDurationSec: number; exerciseTimings: ExerciseTiming[] },
+    runningStats?: RunningStats,
+  ) => void;
   /** 회의 63-A: workout_start funnel 분리용 source 태그 */
   source?: "chat" | "saved" | "program" | "resume";
   /** 회의 64-γ: 모바일 백그라운드 discard 복귀 시 진행 상태 hydrate */
@@ -35,6 +43,7 @@ export const WorkoutSession: React.FC<WorkoutSessionProps> = ({
   sessionData,
   onComplete,
   onBack,
+  onAbandon,
   source = "chat",
   restoredProgress = null,
 }) => {
@@ -292,6 +301,36 @@ export const WorkoutSession: React.FC<WorkoutSessionProps> = ({
     );
   };
 
+  // 회의 64-M3: 중도 종료 확정 핸들러 — 1세트 이상 기록 시 abandoned 플래그로 저장, 0세트면 onBack 폴백.
+  const [showAbandonModal, setShowAbandonModal] = useState(false);
+  const totalSetsLogged = useMemo(
+    () => Object.values(logs).reduce((sum, arr) => sum + (arr?.length || 0), 0),
+    [logs]
+  );
+  const remainingExerciseCount = Math.max(0, totalExercises - currentExerciseIndex - 1);
+
+  const handleConfirmAbandon = () => {
+    setShowAbandonModal(false);
+    if (totalSetsLogged === 0 || !onAbandon) {
+      onBack();
+      return;
+    }
+    const now = Date.now();
+    const totalDurationSec = Math.round((now - sessionStartRef.current) / 1000);
+    onAbandon(
+      { ...sessionData, exercises },
+      logs,
+      { totalDurationSec, exerciseTimings: timingsRef.current },
+      runningStatsRef.current ?? undefined,
+    );
+  };
+
+  // EN 인용 3인 랜덤 회전 (날짜 시드 고정 — 같은 날 같은 인용)
+  const abandonQuoteId = useMemo(() => {
+    const picks = ["ali", "goggins", "kipchoge"] as const;
+    return picks[new Date().getDate() % picks.length];
+  }, []);
+
   const handleSelectExercise = (exerciseName: string) => {
     setPendingExercise(exerciseName);
     setAddSets(3);
@@ -522,7 +561,60 @@ export const WorkoutSession: React.FC<WorkoutSessionProps> = ({
         nextExerciseName={currentExerciseIndex < totalExercises - 1 ? exercises[currentExerciseIndex + 1].name : undefined}
         lastSessionRecord={lastSessionRecord}
         onRunningStatsComputed={handleRunningStatsComputed}
+        onEndClick={onAbandon ? () => setShowAbandonModal(true) : undefined}
       />
+
+      {/* 회의 64-M3: 중도 종료 확인 팝업 */}
+      {showAbandonModal && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fade-in px-6">
+          <div className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl">
+            <h3 className="text-lg font-black text-[#1B4332] mb-4 text-center">
+              {t("fit.abandon.title")}
+            </h3>
+
+            {/* 인용 블록 */}
+            <div className="bg-[#F0F4F1] rounded-2xl p-4 mb-4">
+              <p className="text-[15px] font-bold text-[#1B4332] whitespace-pre-line text-center leading-relaxed">
+                {locale === "ko"
+                  ? t("fit.abandon.quote", { remaining: String(remainingExerciseCount) })
+                  : t(`fit.abandon.quote.${abandonQuoteId}`)}
+              </p>
+              <p className="text-xs text-gray-500 text-center mt-2">
+                {locale === "ko"
+                  ? t("fit.abandon.quoteAuthor")
+                  : t(`fit.abandon.quote.${abandonQuoteId}Author`)}
+              </p>
+            </div>
+
+            {/* 진행 + 경고 */}
+            <p className="text-sm text-gray-700 text-center mb-1">
+              {t("fit.abandon.progress", {
+                done: String(totalSetsLogged),
+                remaining: String(remainingExerciseCount),
+              })}
+            </p>
+            <p className="text-xs text-gray-400 text-center mb-5">
+              {t("fit.abandon.warning")}
+            </p>
+
+            {/* 2버튼 */}
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowAbandonModal(false)}
+                className="flex-1 py-3 rounded-xl bg-[#1B4332] text-white font-bold text-sm active:scale-[0.98] transition-all"
+              >
+                {t("fit.abandon.continue")}
+              </button>
+              <button
+                onClick={handleConfirmAbandon}
+                className="flex-1 py-3 rounded-xl bg-gray-100 text-gray-500 font-bold text-sm active:scale-[0.98] transition-all"
+              >
+                {t("fit.abandon.endNow")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

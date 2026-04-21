@@ -55,6 +55,8 @@ interface FitScreenProps {
   } | null;
   // 회의 41: 러닝 인터벌 완주 시 runningStats 산출 콜백
   onRunningStatsComputed?: (stats: RunningStats) => void;
+  // 회의 64-M3: 우측 상단 "운동 종료" 버튼 — 팝업 오픈 (기존 skip 기능 대체)
+  onEndClick?: () => void;
 }
 
 export const FitScreen: React.FC<FitScreenProps> = ({
@@ -73,6 +75,7 @@ export const FitScreen: React.FC<FitScreenProps> = ({
   nextExerciseName,
   lastSessionRecord,
   onRunningStatsComputed,
+  onEndClick,
 }) => {
   const { t, locale } = useTranslation();
   const { system: unitSystem, labels: unitLabels } = useUnits();
@@ -1202,17 +1205,17 @@ export const FitScreen: React.FC<FitScreenProps> = ({
           </span>
         </div>
 
-        {/* Skip Button for Timer Mode */}
-        {isTimerMode && (
-            <button
-              onClick={() => onSetComplete(0, "easy")}
-              className="absolute right-6 z-10 text-xs font-black text-gray-400 tracking-widest hover:text-gray-600 transition-colors bg-gray-100 px-3 py-1.5 rounded-full"
-            >
-              {t("fit.skip")}
-            </button>
+        {/* 회의 64-M3: 우측 상단 "운동 종료" 버튼 — 모든 모드 공통, 기존 skip 기능 대체 */}
+        {onEndClick ? (
+          <button
+            onClick={onEndClick}
+            className="absolute right-6 z-10 text-xs font-black text-gray-400 tracking-widest hover:text-gray-600 transition-colors bg-gray-100 px-3 py-1.5 rounded-full"
+          >
+            {t("fit.end")}
+          </button>
+        ) : (
+          <div className="w-10" />
         )}
-
-        {!isTimerMode && <div className="w-10" />}
       </div>
 
       {/* Main Content — justify-evenly로 3그룹 균등 배치 */}

@@ -144,6 +144,8 @@ interface WorkoutReportProps {
   savedReportTabs?: WorkoutHistory["reportTabs"];
   /** 4탭 데이터 저장 콜백 */
   onReportTabsSaved?: (tabs: NonNullable<WorkoutHistory["reportTabs"]>) => void;
+  /** 회의 64-M3: 중도 종료 기록 여부 — 상단 앰버 배지 렌더용 */
+  abandoned?: boolean;
 }
 
 // Sync load of recent history from localStorage (initial render), then async update from Firestore
@@ -181,6 +183,7 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
   isPremium,
   savedReportTabs,
   onReportTabsSaved,
+  abandoned,
 }) => {
   const analysis = initialAnalysis;
   const [showLogs, setShowLogs] = useState(false);
@@ -418,6 +421,16 @@ export const WorkoutReport: React.FC<WorkoutReportProps> = ({
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 sm:px-5 scrollbar-hide" style={{ paddingBottom: "calc(96px + var(--safe-area-bottom, 0px))" }}>
+
+        {/* 회의 64-M3: 중도 종료 배지 */}
+        {abandoned && (
+          <div className="mb-4 flex items-center justify-center gap-2 px-3 py-2 rounded-full bg-amber-50 border border-amber-200 w-fit mx-auto">
+            <svg className="w-3.5 h-3.5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" d="M12 8v4M12 16h.01" />
+            </svg>
+            <span className="text-[11px] font-bold text-amber-700 tracking-wide">{t("report.abandonedBadge")}</span>
+          </div>
+        )}
 
         {/* === 체험 진행 + 오늘의 나 — 회의 53 (박충환 Enrich + 소비심리학) — 현재 세션에서만 === */}
         {!sessionDate && !isPremium && (() => {
