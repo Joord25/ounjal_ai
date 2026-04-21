@@ -620,6 +620,101 @@ export const adminDashboard = onRequest(
         ? Math.round(((cancelled + expired) / totalSubscribersEver) * 1000) / 10
         : null;
 
+      // 회의 64-M2 Step B: 유저 행동 퍼널 집계
+      // 5단계: 앱 진입 → 챗 시작 → 플랜 생성 → 운동 기록 → 운동 완주
+      // 세그먼트 2종 (비로그인 anon / 로그인 가입자) 분리
+      //
+      // 버킷 기준:
+      // - 로그인: Auth createdAt cohort (그 시점에 가입한 유저 중 현재 각 단계 도달 수)
+      // - 비로그인 앱 진입: anon Auth createdAt
+      // - 비로그인 챗/플랜: trial_ips.firstSeenAt (IP 단위 이벤트 시점)
+      // - 비로그인 운동: anon uid의 workout_history 최초 작성 시점
+      //
+      // 비로그인 세그먼트는 anon Auth uid ↔ IP 해시 1:1 매칭 불가능해 서로 다른 타임축 사용.
+      // 따라서 stage 간 strict subset 은 아님 (근사). 로그인 세그먼트는 uid 단일 키라 cohort 일관.
+      const historySnap = await db.collectionGroup("workout_history").get();
+      const uidFirstWorkout = new Map<string, Date>();
+      const uidFirstCompletion = new Map<string, Date>();
+      historySnap.forEach(doc => {
+        const uid = doc.ref.parent.parent?.id;
+        if (!uid) return;
+        const d = doc.data();
+        const tsFromField = d.createdAt?.toDate?.() as Date | undefined;
+        const tsFromDate = typeof d.date === "string" ? new Date(d.date) : undefined;
+        const dateMs = tsFromField instanceof Date ? tsFromField
+          : tsFromDate instanceof Date && !isNaN(tsFromDate.getTime()) ? tsFromDate
+          : new Date(0);
+        const prev = uidFirstWorkout.get(uid);
+        if (!prev || dateMs < prev) uidFirstWorkout.set(uid, dateMs);
+        if (d.abandoned !== true) {
+          const prevC = uidFirstCompletion.get(uid);
+          if (!prevC || dateMs < prevC) uidFirstCompletion.set(uid, dateMs);
+        }
+      });
+
+      // users doc 내 chatCount/planCount 맵 (로그인 세그먼트 chat/plan 스테이지용)
+      const usersDataMap = new Map<string, { chatCount: number; planCount: number }>();
+      usersSnap.forEach(doc => {
+        const d = doc.data();
+        usersDataMap.set(doc.id, {
+          chatCount: Number(d.chatCount || 0),
+          planCount: Number(d.planCount || 0),
+        });
+      });
+
+      // 로그인(email) 세그먼트 — Auth cohort
+      const emailAuthUsers = allAuthUsers.filter(u => !u.isAnonymous);
+      const loggedInRows = emailAuthUsers.map(u => {
+        const data = usersDataMap.get(u.uid);
+        return {
+          createdAt: u.createdAt,
+          hasChat: (data?.chatCount || 0) >= 1,
+          hasPlan: (data?.planCount || 0) >= 1,
+          hasWorkout: uidFirstWorkout.has(u.uid),
+          hasCompletion: uidFirstCompletion.has(u.uid),
+        };
+      });
+
+      // 비로그인(anon) 세그먼트
+      const anonAuthRows = allAuthUsers.filter(u => u.isAnonymous);
+      const anonUidSet = new Set(anonAuthRows.map(u => u.uid));
+      // trial_ips 기반 chat/plan (IP 시점)
+      const trialIpChatRows: Array<{ createdAt: Date }> = [];
+      const trialIpPlanRows: Array<{ createdAt: Date }> = [];
+      trialIpsSnap.forEach(doc => {
+        const data = doc.data();
+        const firstSeen = data.firstSeenAt?.toDate?.() as Date | undefined;
+        const createdAt = firstSeen instanceof Date ? firstSeen : new Date(0);
+        if (Number(data.chatCount || 0) >= 1) trialIpChatRows.push({ createdAt });
+        if (Number(data.count || 0) >= 1) trialIpPlanRows.push({ createdAt });
+      });
+      // workout_history 기반 anon 운동 기록/완주
+      const anonWorkoutRows: Array<{ createdAt: Date }> = [];
+      const anonCompletionRows: Array<{ createdAt: Date }> = [];
+      uidFirstWorkout.forEach((date, uid) => {
+        if (anonUidSet.has(uid)) anonWorkoutRows.push({ createdAt: date });
+      });
+      uidFirstCompletion.forEach((date, uid) => {
+        if (anonUidSet.has(uid)) anonCompletionRows.push({ createdAt: date });
+      });
+
+      const funnel = {
+        anon: {
+          appEntered: countByRange(anonAuthRows),
+          chatStarted: countByRange(trialIpChatRows),
+          planCreated: countByRange(trialIpPlanRows),
+          workoutStarted: countByRange(anonWorkoutRows),
+          workoutCompleted: countByRange(anonCompletionRows),
+        },
+        loggedIn: {
+          appEntered: countByRange(emailAuthUsers),
+          chatStarted: countByRange(loggedInRows.filter(r => r.hasChat)),
+          planCreated: countByRange(loggedInRows.filter(r => r.hasPlan)),
+          workoutStarted: countByRange(loggedInRows.filter(r => r.hasWorkout)),
+          workoutCompleted: countByRange(loggedInRows.filter(r => r.hasCompletion)),
+        },
+      };
+
       res.status(200).json({
         totalUsers: allUsers.length,
         active,
@@ -628,6 +723,7 @@ export const adminDashboard = onRequest(
         expired,
         expiringIn3Days,
         monthlyRevenue,
+        funnel,
         // 회의 57 Tier 2: 매출 분해
         monthlyPaymentCount,
         avgPayment,

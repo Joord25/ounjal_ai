@@ -104,6 +104,19 @@ interface DashboardData {
       exhausted: number;
     };
   };
+  // 회의 64-M2: 유저 행동 퍼널 — 비로그인/로그인 세그먼트 × 5단계 × 5시간 버킷
+  funnel?: {
+    anon: FunnelSegment;
+    loggedIn: FunnelSegment;
+  };
+}
+
+interface FunnelSegment {
+  appEntered: UserStats;
+  chatStarted: UserStats;
+  planCreated: UserStats;
+  workoutStarted: UserStats;
+  workoutCompleted: UserStats;
 }
 
 interface ListUser {
@@ -812,6 +825,82 @@ export default function AdminPage() {
                     </div>
                   )}
                 </div>
+
+                {/* 회의 64-M2 Step B: 유저 행동 퍼널 — 앱 진입 → 챗 → 플랜 → 운동 기록 → 운동 완주 */}
+                {dashboard.funnel && (() => {
+                  const STAGES = [
+                    { key: "appEntered" as const, label: "앱 진입" },
+                    { key: "chatStarted" as const, label: "챗 시작" },
+                    { key: "planCreated" as const, label: "플랜 생성" },
+                    { key: "workoutStarted" as const, label: "운동 기록" },
+                    { key: "workoutCompleted" as const, label: "운동 완주" },
+                  ];
+                  const BUCKETS = [
+                    { key: "today" as const, label: "오늘" },
+                    { key: "yesterday" as const, label: "어제" },
+                    { key: "week" as const, label: "이번 주" },
+                    { key: "month" as const, label: "이번 달" },
+                    { key: "total" as const, label: "전체" },
+                  ];
+                  const SEGS = [
+                    { key: "anon" as const, label: "비로그인", color: "text-gray-500", headerColor: "text-gray-400" },
+                    { key: "loggedIn" as const, label: "로그인(가입자)", color: "text-[#2D6A4F]", headerColor: "text-[#2D6A4F]/70" },
+                  ];
+                  return (
+                    <div className="bg-white rounded-2xl border border-gray-200 p-5 mb-4">
+                      <div className="flex items-baseline justify-between mb-3">
+                        <p className="font-bold text-[#1B4332]">유저 행동 퍼널</p>
+                        <p className="text-[10px] text-gray-400">진입 → 완주 · 이탈률 표시</p>
+                      </div>
+
+                      {SEGS.map((seg, segIdx) => {
+                        const segData = dashboard.funnel![seg.key];
+                        return (
+                          <div key={seg.key} className={segIdx > 0 ? "mt-5 pt-4 border-t border-gray-100" : ""}>
+                            <p className={`text-[10px] font-black ${seg.headerColor} uppercase tracking-widest mb-2`}>{seg.label}</p>
+                            <table className="w-full text-[12px]">
+                              <thead>
+                                <tr className="text-[10px] text-gray-400">
+                                  <th className="text-left pb-2 font-medium"></th>
+                                  {BUCKETS.map(b => <th key={b.key} className="text-center pb-2 font-medium">{b.label}</th>)}
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {STAGES.map((stage, sIdx) => {
+                                  const prevStage = sIdx > 0 ? STAGES[sIdx - 1] : null;
+                                  return (
+                                    <tr key={stage.key} className="border-t border-gray-50">
+                                      <td className={`py-1.5 font-bold ${seg.color}`}>{stage.label}</td>
+                                      {BUCKETS.map(b => {
+                                        const count = segData[stage.key][b.key] ?? 0;
+                                        const prevCount = prevStage ? (segData[prevStage.key][b.key] ?? 0) : null;
+                                        const dropPct = prevCount && prevCount > 0
+                                          ? Math.round(((prevCount - count) / prevCount) * 100)
+                                          : null;
+                                        return (
+                                          <td key={b.key} className="py-1.5 text-center">
+                                            <span className={`font-bold ${seg.color}`}>{count}</span>
+                                            {dropPct !== null && dropPct > 0 && (
+                                              <span className="block text-[9px] text-red-500 font-bold">▼{dropPct}%</span>
+                                            )}
+                                          </td>
+                                        );
+                                      })}
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        );
+                      })}
+
+                      <p className="text-[9px] text-gray-400 mt-3 leading-relaxed">
+                        ⓘ 비로그인 세그먼트는 IP ↔ anon uid 매칭 불가능해 stage마다 다른 타임축 사용 (근사). 로그인은 cohort 일관.
+                      </p>
+                    </div>
+                  );
+                })()}
 
                 {/* 회의 57 Tier 1: 숫자 카드 → drill-down 가능 */}
                 <div className="grid grid-cols-2 gap-3 mb-4">
