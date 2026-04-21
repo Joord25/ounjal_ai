@@ -7,6 +7,7 @@ import { trackEvent } from "@/utils/analytics";
 import { useTranslation } from "@/hooks/useTranslation";
 import { detectPersona } from "@/utils/personaSystem";
 import { getCachedWorkoutHistory } from "@/utils/workoutHistory";
+import { getPaddle, getPaddleMonthlyPriceId } from "@/utils/paddle";
 
 const REFUND_EN = `NOTICE: This English translation is provided for reference purposes only. The legally binding version is the Korean original.
 
@@ -488,13 +489,57 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ user, on
     }
   };
 
+  const handlePaddleSubscribe = async () => {
+    const priceId = getPaddleMonthlyPriceId();
+    if (!priceId) {
+      setError(t("sub.error.generic"));
+      console.error("[Paddle] Price ID missing (NEXT_PUBLIC_PADDLE_PRICE_MONTHLY)");
+      return;
+    }
+
+    setIsProcessing(true);
+    setError(null);
+    trackEvent("paywall_tap_subscribe", { plan: "monthly", value: 4.99, currency: "USD" });
+
+    try {
+      const paddle = await getPaddle();
+      if (!paddle) {
+        setError(t("sub.error.loading"));
+        return;
+      }
+
+      paddle.Checkout.open({
+        items: [{ priceId, quantity: 1 }],
+        customer: { email: user.email || "" },
+        customData: { firebaseUid: user.uid },
+        settings: {
+          displayMode: "overlay",
+          theme: "light",
+          locale: "en",
+          successUrl: `${window.location.origin}/app?paddle_success=1`,
+        },
+      });
+    } catch (err) {
+      console.error("[Paddle Subscribe]", err);
+      setError(t("sub.error.generic"));
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const handleSubscribe = async () => {
+    if (status === "active") return;
+    if (isProcessing) return;
+
+    // Locale-based routing: non-Korean → Paddle (international), Korean → PortOne
+    if (locale !== "ko") {
+      return handlePaddleSubscribe();
+    }
+
     if (!window.PortOne) {
       setError(t("sub.error.loading"));
       return;
     }
-    if (status === "active") return;
-    if (isProcessing) return;
 
     trackEvent("paywall_tap_subscribe", { plan: "monthly", value: 6900, currency: "KRW" });
     setIsProcessing(true);

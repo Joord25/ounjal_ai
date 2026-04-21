@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@google/genai": "^1.42.0",
+    "@paddle/paddle-js": "^1.6.2",
     "firebase": "^12.10.0",
     "framer-motion": "^12.38.0",
     "html2canvas-pro": "^2.0.2",
