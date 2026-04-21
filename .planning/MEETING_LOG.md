@@ -2,6 +2,84 @@
 
 ---
 
+### 회의 64-M3: 운동 중도 종료 기능 Phase 1 (2026-04-22)
+
+**참석:** 대표(임주용), Claude, 김경록(일헥타르), Seth Godin, Kevin Kelly, Nir Eyal, BJ Fogg
+
+**배경:**
+- 유저 중도 이탈자 대응 부재. 현재 onBack 시 workout_history 저장 안 됨 → 기록 소실
+- 대표 요구: 중도 종료도 리포트·캘린더에 남기되 "중도" 구분 + 완주 설득 팝업
+
+**설계 결정 (자문단 논의):**
+
+*설득 카피 원칙 6개:*
+- Loss aversion (Kahneman & Tversky 1979)
+- Progress principle (Amabile HBR 2011)
+- Specificity (BJ Fogg B=MAT)
+- Autonomy (Deci & Ryan SDT)
+- 나의 네러티브 (일헥타르)
+- Identity framing (Godin)
+
+*인용 선정 (거절 불가 문구 자문):*
+- KO: **이순신** 장계 (1597) "아직 N개가 남아 있사옵니다" — Seth Godin "기존 문화 선점"
+- EN 3인 랜덤 회전 (날짜 시드 고정):
+  - Muhammad Ali "Suffer now and live the rest of your life as a champion"
+  - David Goggins "40% Rule"
+  - Eliud Kipchoge "No human is limited"
+- Backup: 유저 본인 goal (Cialdini Commitment, *Influence* Ch.3) — goal 데이터 부재 시 폴백
+
+*정책 결정:*
+- PR 계산: 중도 기록도 포함 (기록 존중)
+- 완주율 지표 하락 수용 (진실 우선)
+- 1세트 미만 = 기존 onBack (기록 미저장)
+- 프로그램 세션 완주 마킹에서 중도 세션 제외
+
+**구현 범위:**
+
+Phase 1 (이번 커밋):
+- FitScreen: skip 버튼 → "운동 종료" 버튼 (모든 모드)
+- WorkoutSession: `onAbandon` prop + 인용 팝업
+- page.tsx: `onAbandon` 핸들러 + `currentWorkoutAbandoned` state
+- WorkoutReport: abandoned 앰버 배지
+- MyPlansScreen: 완료/중도 아이콘 분기
+- ProofTab: 히스토리 뷰 배지 전파
+- WorkoutHistory.abandoned / CompletionEntry.abandoned 필드 추가
+
+Phase 2 (별도 커밋 예정):
+- 전체시간(elapsed timer) 탭 → 전체 세션 pause/resume
+- 앱·탭 이탈 자동 중도 저장 (기존 localStorage 백업 활용, 회의 64-γ 로직 확장)
+
+**파일 수정:**
+- [src/constants/workout.ts](src/constants/workout.ts) (WorkoutHistory.abandoned)
+- [src/locales/ko.json](src/locales/ko.json) + [src/locales/en.json](src/locales/en.json)
+- [src/components/workout/FitScreen.tsx](src/components/workout/FitScreen.tsx)
+- [src/components/workout/WorkoutSession.tsx](src/components/workout/WorkoutSession.tsx)
+- [src/app/app/page.tsx](src/app/app/page.tsx)
+- [src/components/report/WorkoutReport.tsx](src/components/report/WorkoutReport.tsx)
+- [src/components/dashboard/MyPlansScreen.tsx](src/components/dashboard/MyPlansScreen.tsx)
+- [src/components/dashboard/ProofTab.tsx](src/components/dashboard/ProofTab.tsx)
+- [src/utils/programCompletion.ts](src/utils/programCompletion.ts)
+
+**빌드 검증:** `npm run build` 통과.
+
+---
+
+### 회의 64-M2: 관리자 대시보드 단순화 (2026-04-22)
+
+Step A (완료): 데이터 부족·broken 섹션 5종 제거
+- ARPU/Churn (결제 1건 규모 노이즈)
+- 월별 추이 6개월 (데이터 부족)
+- GA4 funnel 3종 (맞춤 측정기준 미등록)
+- 무료 풀 소진 (새 퍼널에 흡수 예정)
+- User Segment Stats 표 (새 퍼널로 대체 예정)
+
+Step B+C (대기): 유저 행동 퍼널 백엔드 집계 + UI
+- 5단계: 앱 진입 → 챗 시작 → 플랜 생성 → 운동 기록 → (중도 vs 완주)
+- 세그먼트: 비로그인 / 로그인 분리
+- 회의 64-M3 완료 후 재개 (중도/완주 구분이 퍼널에 반영돼야 하므로)
+
+---
+
 ### 회의 64-M1: EN 랜딩 Hero 제목 — 네이티브 카피로 교체 (2026-04-22)
 
 **참석:** 대표(임주용), Claude(기획자), 김경록(일헥타르), Seth Godin, Kevin Kelly
