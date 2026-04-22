@@ -25,3 +25,11 @@ export async function getPaddle(): Promise<Paddle | null> {
 export function getPaddleMonthlyPriceId(): string {
   return process.env.NEXT_PUBLIC_PADDLE_PRICE_MONTHLY || "";
 }
+
+/**
+ * Paddle 결제 활성화 여부. 심사 통과 전에는 false 로 두고 "Coming soon" 노출.
+ * 안전한 기본값: unset 이면 비활성. 프로덕션 실수 방지.
+ */
+export function isPaddleEnabled(): boolean {
+  return process.env.NEXT_PUBLIC_PADDLE_ENABLED === "true";
+}

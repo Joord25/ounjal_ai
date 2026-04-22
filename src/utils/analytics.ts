@@ -47,7 +47,8 @@ type FunnelEvent =
   | "running_program_gate_fail"
   | "running_program_created"
   | "running_program_create_failed"
-  | "running_program_sheet_abandoned";
+  | "running_program_sheet_abandoned"
+  | "intl_waitlist_join";
 
 export function trackEvent(event: FunnelEvent, params?: Record<string, string | number | boolean>) {
   try {

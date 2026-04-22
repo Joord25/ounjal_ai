@@ -2,12 +2,13 @@
 
 import React, { useState, useEffect } from "react";
 import { User } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
+import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
 import { trackEvent } from "@/utils/analytics";
 import { useTranslation } from "@/hooks/useTranslation";
 import { detectPersona } from "@/utils/personaSystem";
 import { getCachedWorkoutHistory } from "@/utils/workoutHistory";
-import { getPaddle, getPaddleMonthlyPriceId } from "@/utils/paddle";
+import { getPaddle, getPaddleMonthlyPriceId, isPaddleEnabled } from "@/utils/paddle";
 
 const REFUND_EN = `NOTICE: This English translation is provided for reference purposes only. The legally binding version is the Korean original.
 
@@ -404,6 +405,38 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ user, on
   const [refundReason, setRefundReason] = useState("");
   const [refundSubmitting, setRefundSubmitting] = useState(false);
 
+  // 국제 결제 대기 — Paddle 심사 통과 전까지 EN 유저에게 "Coming soon" + 대기명단 저장
+  const paddleDisabled = locale !== "ko" && !isPaddleEnabled();
+  const [waitlistJoined, setWaitlistJoined] = useState(false);
+  const [waitlistSubmitting, setWaitlistSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!paddleDisabled || !user?.uid) return;
+    getDoc(doc(db, "international_waitlist", user.uid))
+      .then((snap) => { if (snap.exists()) setWaitlistJoined(true); })
+      .catch(() => {});
+  }, [paddleDisabled, user?.uid]);
+
+  const handleJoinWaitlist = async () => {
+    if (waitlistJoined || waitlistSubmitting || !user?.uid) return;
+    setWaitlistSubmitting(true);
+    try {
+      await setDoc(doc(db, "international_waitlist", user.uid), {
+        email: user.email || null,
+        displayName: user.displayName || null,
+        locale,
+        createdAt: serverTimestamp(),
+      });
+      setWaitlistJoined(true);
+      trackEvent("intl_waitlist_join", { locale });
+    } catch (err) {
+      console.error("[Waitlist]", err);
+      setError(t("sub.waitlist.error"));
+    } finally {
+      setWaitlistSubmitting(false);
+    }
+  };
+
   // Handle redirect response from mobile KakaoPay (REDIRECTION mode)
   const processRedirectBillingKey = async (billingKey: string) => {
     setIsProcessing(true);
@@ -533,6 +566,11 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ user, on
 
     // Locale-based routing: non-Korean → Paddle (international), Korean → PortOne
     if (locale !== "ko") {
+      if (!isPaddleEnabled()) {
+        // 심사 통과 전 방어선 — UI는 이미 waitlist 카드로 가려지지만 이중 방어
+        setError(t("sub.waitlist.title"));
+        return;
+      }
       return handlePaddleSubscribe();
     }
 
@@ -883,28 +921,72 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ user, on
               </div>
             )}
 
-            <button
-              onClick={handleSubscribe}
-              disabled={isProcessing}
-              className={
-                locale === "ko"
-                  ? "w-full py-4 rounded-2xl bg-[#FEE500] text-[#3C1E1E] font-bold text-base active:scale-[0.98] transition-all shadow-lg disabled:opacity-50"
-                  : "w-full py-4 rounded-2xl bg-[#1B4332] text-white font-bold text-base active:scale-[0.98] transition-all shadow-lg disabled:opacity-50 hover:bg-[#143728]"
-              }
-            >
-              {isProcessing ? (
-                <span className="flex items-center justify-center gap-2">
-                  <div className={`w-4 h-4 border-2 ${locale === "ko" ? "border-[#3C1E1E]" : "border-white"} border-t-transparent rounded-full animate-spin`} />
-                  {t("sub.cancel.processing")}
-                </span>
-              ) : (
-                locale === "ko" ? t("sub.kakaoPay") : t("sub.subscribeIntl")
-              )}
-            </button>
+            {paddleDisabled ? (
+              <>
+                <div className="bg-[#F0F4F1] rounded-2xl p-4 border border-[#2D6A4F]/15">
+                  <div className="flex items-start gap-2.5 mb-3">
+                    <svg className="w-4 h-4 text-[#2D6A4F] mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <div>
+                      <p className="text-sm font-bold text-[#1B4332] mb-1">{t("sub.waitlist.title")}</p>
+                      <p className="text-xs text-gray-600 leading-relaxed">{t("sub.waitlist.body", { email: user.email || "" })}</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleJoinWaitlist}
+                    disabled={waitlistJoined || waitlistSubmitting}
+                    className={
+                      waitlistJoined
+                        ? "w-full py-3 rounded-xl bg-[#2D6A4F]/10 text-[#2D6A4F] font-bold text-sm flex items-center justify-center gap-2 cursor-default"
+                        : "w-full py-3 rounded-xl bg-[#1B4332] text-white font-bold text-sm active:scale-[0.98] transition-all disabled:opacity-50 hover:bg-[#143728]"
+                    }
+                  >
+                    {waitlistJoined ? (
+                      <>
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                        {t("sub.waitlist.joined")}
+                      </>
+                    ) : waitlistSubmitting ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        {t("sub.cancel.processing")}
+                      </span>
+                    ) : (
+                      t("sub.waitlist.cta")
+                    )}
+                  </button>
+                </div>
+                <p className="text-[10px] text-gray-400 text-center">{t("sub.waitlist.note")}</p>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={handleSubscribe}
+                  disabled={isProcessing}
+                  className={
+                    locale === "ko"
+                      ? "w-full py-4 rounded-2xl bg-[#FEE500] text-[#3C1E1E] font-bold text-base active:scale-[0.98] transition-all shadow-lg disabled:opacity-50"
+                      : "w-full py-4 rounded-2xl bg-[#1B4332] text-white font-bold text-base active:scale-[0.98] transition-all shadow-lg disabled:opacity-50 hover:bg-[#143728]"
+                  }
+                >
+                  {isProcessing ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <div className={`w-4 h-4 border-2 ${locale === "ko" ? "border-[#3C1E1E]" : "border-white"} border-t-transparent rounded-full animate-spin`} />
+                      {t("sub.cancel.processing")}
+                    </span>
+                  ) : (
+                    locale === "ko" ? t("sub.kakaoPay") : t("sub.subscribeIntl")
+                  )}
+                </button>
 
-            <p className="text-[10px] text-gray-400 text-center">
-              {t("sub.autoRenew")}
-            </p>
+                <p className="text-[10px] text-gray-400 text-center">
+                  {t("sub.autoRenew")}
+                </p>
+              </>
+            )}
           </div>
         )}
 

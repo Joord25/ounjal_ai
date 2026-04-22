@@ -16,5 +16,11 @@ service cloud.firestore {
         allow read, write: if request.auth != null && request.auth.uid == userId;
       }
     }
+
+    // 국제 결제 대기명단 (Paddle 심사 통과 전 EN 유저 관심 수집)
+    // 본인 doc 만 읽기/쓰기. doc ID = uid
+    match /international_waitlist/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
   }
 }
