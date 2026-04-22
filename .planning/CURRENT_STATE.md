@@ -368,7 +368,7 @@
 - **세션 중 운동 추가** — 모든 세트 완료 후 검색/필터 화면 → 추가하거나 "마침"
 - **운동 스킵** — Timer SKIP 버튼
 - **중간 이탈** — 뒤로가기 누를 때마다 세트 역추적, 첫 세트에서 누르면 세션 이탈
-- **중도 종료** (회의 64-M3, 2026-04-22) — FitScreen 하단 "운동 종료" 버튼 → 인용 기반 설득 팝업 (명언 + 진행도 + 경고) → 2버튼(계속 / 지금 종료). 1세트 이상 기록 시 `abandoned: true` 플래그로 workout_history 저장, 0세트면 onBack 폴백. onAbandon prop 있을 때만 버튼 노출. 프리뷰 디버그 라우트: [/debug/abandon-preview](../src/app/debug/abandon-preview/page.tsx)
+- **중도 종료** (회의 64-M3, 2026-04-22) — FitScreen 하단 "운동 종료" 버튼 → 인용 기반 설득 팝업 (명언 + 진행도 + 경고) → 2버튼(계속 / 지금 종료). 1세트 이상 기록 시 `abandoned: true` 플래그로 workout_history 저장, 0세트면 onBack 폴백. onAbandon prop 있을 때만 버튼 노출.
 - **백그라운드 복귀 자동 복원** (회의 64-γ, 2026-04-20) — 카톡/인스타 앱 전환 후 브라우저가 페이지 discard 시 `ohunjal_active_session` (localStorage, TTL 12h) 에서 view/sessionData/progress 자동 hydrate. 러닝은 `isPlaying=false` 기본값으로 재개 버튼 필요 (GPS 백그라운드 추적 불가 물리 제약). 유틸: [activeSessionPersistence.ts](../src/utils/activeSessionPersistence.ts).
 
 **완료 흐름:**
@@ -630,7 +630,6 @@ Timer/Running: 완료 or 자동 → DONE 펄스 → handleSetComplete
 - ProofTab 캘린더 앰버 색상 + 혼합일 느낌표 + 하단 범례
 - WorkoutReport 헤더 공유 버튼 옆 붉은색 인라인 라벨
 - Coach/feedback 영역 숨김 (`!abandoned` 조건)
-- 프리뷰 라우트: [/debug/abandon-preview](../src/app/debug/abandon-preview/page.tsx)
 
 **브랜드 전략 시스템** (2026-04-21):
 - 마케팅 자문단 + 브랜드 캐즘 전략 시스템 구축 — [.planning/strategies/brand-chasm-marketing.md](./strategies/brand-chasm-marketing.md) / [.planning/advisors/marketing.md](./advisors/marketing.md)
