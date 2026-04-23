@@ -136,9 +136,11 @@ export const subscribe = onRequest(
 
       await subRef.update({
         billingKey,
+        provider: "portone", // renewPortOneSubscriptions 가 provider 필드로 분기
         status: "active",
         plan: "monthly",
         amount: SUBSCRIPTION_AMOUNT,
+        currency: "KRW",
         lastPaymentId: paymentId,
         lastPaymentAt: now.toISOString(),
         expiresAt: expiresAt.toISOString(),
