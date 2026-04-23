@@ -358,20 +358,30 @@ export const adminDashboard = onRequest(
       const lastMonthStartDate = new Date(Date.UTC(kstYear, kstMonth - 1, 1) - 9 * 60 * 60 * 1000);
 
       // 1) subscriptions 상위 문서 → 구독 상태 카운트만 (매출은 분리)
+      // 회의: expireSubscriptions 크론은 하루 1회 03:00 KST 에만 돌아 drift 발생 가능.
+      // 대시보드 읽기 시점에 expiresAt < now 를 expired 로 간주해 실시간 정확도 확보.
       const subsSnap = await db.collection("subscriptions").get();
       let active = 0, cancelled = 0, expired = 0, expiringIn3Days = 0;
       const uidToSubStatus = new Map<string, string>();
       subsSnap.forEach(doc => {
         const d = doc.data();
-        uidToSubStatus.set(doc.id, d.status || "free");
-        if (d.status === "active") {
+        const rawStatus = d.status || "free";
+        const expiresAt = d.expiresAt ? new Date(d.expiresAt) : null;
+        const isExpired = expiresAt !== null && !isNaN(expiresAt.getTime()) && expiresAt < now;
+
+        // lazy expire: active/cancelled 이지만 만료일 지났으면 expired 로 재분류
+        const effectiveStatus =
+          (rawStatus === "active" || rawStatus === "cancelled") && isExpired
+            ? "expired"
+            : rawStatus;
+
+        uidToSubStatus.set(doc.id, effectiveStatus);
+
+        if (effectiveStatus === "active") {
           active++;
-          if (d.expiresAt) {
-            const exp = new Date(d.expiresAt);
-            if (exp <= threeDaysLater && exp > now) expiringIn3Days++;
-          }
-        } else if (d.status === "cancelled") { cancelled++; }
-        else if (d.status === "expired") { expired++; }
+          if (expiresAt && expiresAt <= threeDaysLater && expiresAt > now) expiringIn3Days++;
+        } else if (effectiveStatus === "cancelled") { cancelled++; }
+        else if (effectiveStatus === "expired") { expired++; }
       });
 
       // 1b) 체험/무료 풀 사용 분포 (회의: 소진 현황)

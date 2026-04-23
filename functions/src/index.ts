@@ -11,6 +11,7 @@ export { savePlan, listSavedPlans, deleteSavedPlan, markSavedPlanUsed, saveProgr
 export { generateRunningProgramFn, checkFullSub3GateFn } from "./plan/runningProgramApi";
 export { subscribe, getSubscription, cancelSubscription, submitRefundRequest } from "./billing/subscription";
 export { paddleWebhook } from "./billing/paddleWebhook";
+export { expireSubscriptions } from "./billing/expireSubscriptions";
 export { selfDeleteAccount } from "./billing/selfDelete";
 export { adminActivate, adminCheckUser, adminCheckSelf, adminDeactivate, adminDashboard, adminListUsers, adminListPayments, adminLogs, adminCancelFeedbacks, adminRefundRequests, adminProcessRefund } from "./admin/admin";
 export { adminAnalyticsFunnel } from "./admin/analyticsFunnel";
