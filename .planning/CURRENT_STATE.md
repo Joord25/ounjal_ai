@@ -1,6 +1,6 @@
 # CURRENT_STATE.md — 앱 UI/기능 인벤토리 SSOT
 
-**최종 갱신:** 2026-04-23 (회의 64-M2/M3 · 64-ζ/η · 랜딩 브랜드 캐즘 재작성 · Paddle 통합 · 러닝 UI Wave 1~3 · 중도 종료 반영)
+**최종 갱신:** 2026-04-23 PM (Paddle 통합 + 자동갱신/만료 스케줄러 + 챗 한도 UX + 어드민 통화 분리 + GA 안정화 + 게스트 잠김 fix)
 
 이 문서는 "오운잘 앱의 각 화면에 어떤 UI와 기능이 실제로 구현되어 있는지"의 단일 진실 공급원입니다.
 모든 항목은 코드 검증 기반 (`file:line` 인용). 추측 금지. 미검증은 **⚠ 미검증** 마킹.
@@ -603,6 +603,26 @@ Timer/Running: 완료 or 자동 → DONE 펄스 → handleSetComplete
 ---
 
 # 🔧 내부 인프라 (유저 미노출)
+
+**구독 결제 자동화** (2026-04-23):
+- **Paddle 백엔드 통합** — `functions/src/billing/paddleWebhook.ts` HMAC-SHA256 서명 검증, `subscription.activated/updated/canceled/resumed/past_due` + `transaction.completed/paid` 이벤트 처리. `custom_data.firebaseUid` 로 유저 매칭, `subscriptions/{uid}` 에 `provider:"paddle"` upsert. cancelSubscription provider 분기 (Paddle Management API `effective_from: next_billing_period`). subscription.updated 시 `canceled_at`/`scheduled_change.action==="cancel"` 있으면 cancelled 보존 (race fix).
+- **PortOne 자동갱신** (`functions/src/billing/renewPortOneSubscriptions.ts`, 매시 정각 KST) — expiresAt 6시간 내 도래하는 active PortOne 구독 재결제, +1개월 연장. 실패 시 다음 사이클 재시도. 만료까지 실패하면 expireSubscriptions가 expired 마킹.
+- **만료 자동 비활성화** (`functions/src/billing/expireSubscriptions.ts`, 03:00 KST) — active/cancelled + expiresAt < now → expired 배치 업데이트. adminDashboard 는 lazy expiry 체크 추가로 크론 전에도 즉시 정확.
+- **Paddle waitlist 게이트** — `NEXT_PUBLIC_PADDLE_ENABLED` flag (unset=비활성). 비한국어 + 비활성 시 SubscriptionScreen 에 "Coming soon" + Notify me 버튼 → `international_waitlist/{uid}` Firestore 저장. firestore.rules 권한 추가.
+- **결제 탭 통화 분리** (어드민) — KRW/USD totalsByCurrency 별도 합계, formatMoney 유틸로 행별 통화 표기, paddle 배지.
+
+**GA / 어드민 분석 안정화** (2026-04-23):
+- **유저 행동 퍼널 stage 레이블 정정** — "앱 진입" → "계정 생성" / "챗 시작" → "첫 채팅". 코드 감사 결과 anonAuthRows/emailAuthUsers 가 실제로는 Auth 가입 시점 카운트라 "방문" 이 아님. 헤더 부제 "방문 ≠ 계정 생성 주의".
+- **퍼널 커스텀 날짜 범위** — adminDashboard `req.body.customStart/customEnd` ISO date 파싱, countByRange 가 custom 버킷 추가. 어드민 UI date input + 적용/초기화 + "MM.DD~MM.DD" 6번째 컬럼.
+- **trackEvent 이중화** — `window.dataLayer.push` 직접 push + gtag 호출 병행. async gtag 늦게 로드되면 queue 드롭되던 케이스 대응. dev 모드 console.debug.
+- **chat_home_initial_greeting_shown 2x 중복 fix** — useRef 가드로 세션 1회.
+
+**ChatHome UX 보강** (2026-04-23):
+- 페이월 트리거 분리: `free_chat_limit` (parseIntent 3회) vs `free_plan_limit` (planSession 2회). "이번 달 무료 대화 다 썼어요" / "이번 달 무료 플랜 다 썼어요" 분리 표기.
+- 첫 로그인 무료 한도 안내 배너 (1회, localStorage `ohunjal_trial_intro_shown`).
+- 배지 옆 ? 툴팁 바텀시트 — 플랜 2회 / 대화 3회 + 러닝·기록·리포트 무제한 안내.
+- 배지 카피 "1/2" → "1번 남음" 으로 전환 (남은 횟수 기준 친절도).
+- 게스트 한도 소진 시 textarea·송신 버튼·기본 칩·Quick plan·More examples 팝오버 disabled. placeholder 안내.
 
 **러닝 룰엔진 Phase 1+2+3** (2026-04-18, 회의 64-B/64-C/64-D):
 - **서버**: [functions/src/runningProgram.ts](../functions/src/runningProgram.ts) — 엔진 + 오케스트레이터 (`generateRunningProgram()`, 17 SlotType, 4 chapter phase, TT/Dress Rehearsal 경계). [functions/src/plan/runningProgramApi.ts](../functions/src/plan/runningProgramApi.ts) — 2개 엔드포인트 `/api/generateRunningProgram`, `/api/checkFullSub3Gate`
