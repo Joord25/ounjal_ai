@@ -561,7 +561,9 @@ export const FitScreen: React.FC<FitScreenProps> = ({
           phaseRef.current = "recovery";
           phaseStartMsRef.current = nowTick;
           phaseStartDistRef.current = gpsDistanceRef.current;
-          playAlarmSound("rest_end");
+          // 회의 2026-04-24: sprint 종료(=rest 시작) 신호는 짧은 퍼커션 "start".
+          //   기존 "rest_end"(3 bells) 는 의미상 rest 가 끝나는 순간에 써야 함 (rec→sprint 쪽으로 이동).
+          playAlarmSound("start");
           if (navigator.vibrate && localStorage.getItem("ohunjal_settings_vibration") !== "false") navigator.vibrate([200, 100, 200]);
           setIntervalPhase("recovery");
           setIntervalTime(cfg.phase2Sec);
@@ -599,8 +601,11 @@ export const FitScreen: React.FC<FitScreenProps> = ({
           phaseRef.current = "sprint";
           phaseStartMsRef.current = nowTick;
           phaseStartDistRef.current = gpsDistanceRef.current;
-          playAlarmSound("start");
-          if (navigator.vibrate && localStorage.getItem("ohunjal_settings_vibration") !== "false") navigator.vibrate(100);
+          // 회의 2026-04-24: rest 종료(=다음 sprint 시작) 신호는 "rest_end"(3 bells).
+          //   기존 "start"(짧은 퍼커션) 는 너무 조용해서 유저가 놓침. 강엉잠 rest 종료(L838)와 동일 사운드로 통일.
+          //   진동도 2-pulse 로 강화.
+          playAlarmSound("rest_end");
+          if (navigator.vibrate && localStorage.getItem("ohunjal_settings_vibration") !== "false") navigator.vibrate([200, 100, 200]);
           setIntervalRound(roundRef.current);
           setIntervalPhase("sprint");
           setIntervalTime(cfg.phase1Sec);
@@ -611,8 +616,22 @@ export const FitScreen: React.FC<FitScreenProps> = ({
       }
 
       // 중간 지점 알림 (페이즈당 1회)
-      const midpoint = Math.floor(phaseTotal / 2);
-      if (!midpointFiredRef.current && midpoint > 0 && remainingInt <= midpoint) {
+      // 회의 2026-04-24: 거리기반 sprint(400m/800m 등) 는 거리 절반에서 발동.
+      //   시간 기반 절반은 estimateSprintSec 추정치라, 유저가 추정보다 빠르면
+      //   시간 절반 시점 = 이미 더 먼 거리 도달(예: 400m 목표인데 230m 에서 울림).
+      //   GPS 가능 + sprintDist 있는 경우만 거리 기준, 나머지(시간 인터벌·recovery) 는 기존 시간 기준.
+      const isDistanceSprint = phaseRef.current === "sprint"
+        && cfg.sprintDist != null
+        && gpsIsAvailable
+        && !isIndoor;
+      let midReached = false;
+      if (isDistanceSprint) {
+        midReached = (gpsDistanceRef.current - phaseStartDistRef.current) >= (cfg.sprintDist! / 2);
+      } else {
+        const midpoint = Math.floor(phaseTotal / 2);
+        midReached = midpoint > 0 && remainingInt <= midpoint;
+      }
+      if (!midpointFiredRef.current && midReached) {
         midpointFiredRef.current = true;
         playAlarmSound("half");
         if (navigator.vibrate && localStorage.getItem("ohunjal_settings_vibration") !== "false") navigator.vibrate(150);
