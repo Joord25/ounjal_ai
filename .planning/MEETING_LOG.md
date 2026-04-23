@@ -3805,3 +3805,50 @@ ExerciseStep.intervalSpec?: {
 - 풀에 없는 운동명 → `other` 그룹 수납되어 title 이 "기타 N종" 어색할 수 있음. 로그 추적 후 catalog 보강.
 - home_training + exerciseList 조합 시 equipment=bodyweight_only 필터가 exerciseList 경로에 적용 안 됨 — Gemini 프롬프트 책임에 의존. 실제 BW 위반 발생 시 서버 필터 추가.
 - 배포 순서: **functions 먼저** (`firebase deploy --only functions`) → Hosting (`git push` CI).
+
+---
+
+## 회의 2026-04-24 후속 — 인터벌 러닝 마지막 라운드 sprint 수동 완료 UX fix
+
+### 유저 리포트
+"인터벌 러닝 완료시 완료 버튼 클릭이 안되던데 확인해줄래?"
+
+### 원인
+[FitScreen.tsx:382-385](../src/components/workout/FitScreen.tsx#L382) 의 `handleRunningCompleteClick` 에서 인터벌 플레이 중 수동 완료는 `manualCompleteRef.current = true` 플래그로 다음 tick 에서 페이즈 전환. 하지만 tick 처리부 [L521-530](../src/components/workout/FitScreen.tsx#L521) 은 `phaseRef.current === "sprint"` 면 **무조건 recovery 로 전환** — 라운드가 마지막이어도 같음. 결과: 마지막 라운드 sprint 에서 완료 클릭 → sprint → recovery 전이만 되고 세션 종료 안 됨. 버튼 라벨이 "완료" 인데 동작은 "다음 페이즈" 라 유저가 "안 눌림" 으로 인식.
+
+회의 64-V 후속 주석("마지막 라운드 recovery가 끝나지 않은 경우에만 의미") 으로 이미 설계 누락 자체는 인지 상태였으나 처리가 빠져있었음.
+
+### 수정
+
+[src/components/workout/FitScreen.tsx](../src/components/workout/FitScreen.tsx) 인터벌 tick 핸들러에 가드 추가:
+
+```ts
+if (manualComplete && phaseRef.current === "sprint" && roundRef.current >= cfg.rounds) {
+  setIsPlaying(false);
+  setTimerCompleted(true);
+  playAlarmSound("end");
+  navigator.vibrate([300, 100, 300, 100, 300]);
+  if (onRunningStatsComputed) {
+    // computeRunningStats + 콜백 (기존 recovery-end 로직과 동일)
+  }
+  return;
+}
+```
+
+조건 3개 모두 충족해야 발동:
+- `manualComplete`: 유저 수동 완료 (자연 `remainingFloat<=0` 이나 `distanceReached` 는 기존 recovery 전환 유지)
+- `phaseRef.current === "sprint"`: sprint 페이즈
+- `roundRef.current >= cfg.rounds`: 마지막 라운드
+
+### 영향 범위
+- **마지막 라운드 sprint + 수동 완료**: 즉시 세션 종료 (새 동작) ← 수정 대상
+- **마지막 라운드 recovery + 수동 완료**: 기존대로 즉시 종료 (기존 else 분기)
+- **비마지막 라운드 sprint + 수동 완료**: 기존대로 recovery 로 전환 (페이즈 스킵 유지)
+- **자연 완료**: 기존대로 recovery-end 에서 종료
+
+### 검증
+- Next.js `npm run build` PASS.
+- FitScreen.tsx 고위험 파일 — share-card.md / workout-session.md 룰 재확인 후 편집.
+
+### 배포
+클라만 (서버 변경 없음). `git push` 하면 CI 자동 배포.

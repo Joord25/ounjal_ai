@@ -518,6 +518,36 @@ export const FitScreen: React.FC<FitScreenProps> = ({
         midpointFiredRef.current = false;
         lastTickSecondRef.current = -1;
 
+        // 회의 2026-04-24: 마지막 라운드에서 유저 수동 완료 → 즉시 세션 종료.
+        // 기존 동작은 페이즈 전환만 해서 "완료 버튼 안 눌림" 처럼 보였음 (sprint→recovery로 전이만).
+        // 단, 자연 종료(remainingFloat<=0)나 distanceReached는 기존 sprint→recovery 흐름 유지.
+        if (manualComplete && phaseRef.current === "sprint" && roundRef.current >= cfg.rounds) {
+          setIsPlaying(false);
+          setTimerCompleted(true);
+          playAlarmSound("end");
+          if (navigator.vibrate && localStorage.getItem("ohunjal_settings_vibration") !== "false") navigator.vibrate([300, 100, 300, 100, 300]);
+          if (onRunningStatsComputed) {
+            const snap = gpsGetSnapshot();
+            const runningType: RunningType =
+              cfg.type === "walkrun" ? "walkrun"
+              : cfg.type === "fartlek" ? "fartlek"
+              : "sprint";
+            const stats = computeRunningStats({
+              runningType,
+              isIndoor,
+              gpsAvailable: gpsIsAvailable,
+              points: snap.points,
+              phaseMarks: snap.phaseMarks,
+              sessionStartMs: snap.sessionStartMs || nowTick,
+              sessionEndMs: nowTick,
+              completedRounds: cfg.rounds,
+              totalRounds: cfg.rounds,
+            });
+            onRunningStatsComputed(stats);
+          }
+          return;
+        }
+
         if (phaseRef.current === "sprint") {
           phaseRef.current = "recovery";
           phaseStartMsRef.current = nowTick;
