@@ -7,6 +7,7 @@
 declare global {
   interface Window {
     gtag?: (...args: unknown[]) => void;
+    dataLayer?: unknown[];
   }
 }
 
@@ -40,7 +41,6 @@ type FunnelEvent =
   | "chat_home_initial_greeting_shown"
   | "chat_home_initial_cta_click"
   | "chat_home_initial_followup_tap"
-  // 회의 64-D: 러닝 프로그램 룰엔진 — 바텀시트 진입/생성 퍼널
   | "running_program_sheet_open"
   | "running_program_select"
   | "running_program_gate_pass"
@@ -52,7 +52,19 @@ type FunnelEvent =
 
 export function trackEvent(event: FunnelEvent, params?: Record<string, string | number | boolean>) {
   try {
+    // 회의 2026-04-23: gtag 로더가 늦게 로드되면 queue 된 이벤트가 드롭되는 케이스 발견.
+    // dataLayer 직접 push 를 병행해 GTM 이 어떻게 감싸든 이벤트 레코드가 남도록 이중화.
+    if (typeof window !== "undefined") {
+      window.dataLayer = window.dataLayer || [];
+      window.dataLayer.push({ event, ...(params || {}) });
+    }
     window.gtag?.("event", event, params);
+
+    if (process.env.NODE_ENV === "development") {
+      // 개발 환경에서만 콘솔에 노출 — Network 탭 /g/collect 대조 쉽게
+      // eslint-disable-next-line no-console
+      console.debug("[trackEvent]", event, params ?? {});
+    }
   } catch {
     // 트래킹 실패해도 앱 동작에 영향 없음
   }

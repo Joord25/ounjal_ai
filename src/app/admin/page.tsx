@@ -852,11 +852,14 @@ export default function AdminPage() {
                   )}
                 </div>
 
-                {/* 회의 64-M2 Step B: 유저 행동 퍼널 — 앱 진입 → 챗 → 플랜 → 운동 기록 → 운동 완주 */}
+                {/* 회의 64-M2 Step B: 유저 행동 퍼널 — 회의 2026-04-23 레이블 재정의:
+                    "앱 진입" 은 실제로 Auth 계정 생성 시점이라 "계정 생성" 으로 정정.
+                    "챗 시작" 은 첫 parseIntent 호출이라 "첫 채팅" 으로 명시.
+                    Agent 코드 감사 결과 (2026-04-23) 반영. */}
                 {dashboard.funnel && (() => {
                   const STAGES = [
-                    { key: "appEntered" as const, label: "앱 진입" },
-                    { key: "chatStarted" as const, label: "챗 시작" },
+                    { key: "appEntered" as const, label: "계정 생성" },
+                    { key: "chatStarted" as const, label: "첫 채팅" },
                     { key: "planCreated" as const, label: "플랜 생성" },
                     { key: "workoutStarted" as const, label: "운동 기록" },
                     { key: "workoutCompleted" as const, label: "운동 완주" },
@@ -885,7 +888,7 @@ export default function AdminPage() {
                     <div className="bg-white rounded-2xl border border-gray-200 p-5 mb-4">
                       <div className="flex items-baseline justify-between mb-3">
                         <p className="font-bold text-[#1B4332]">유저 행동 퍼널</p>
-                        <p className="text-[10px] text-gray-400">진입 → 완주 · 이탈률 표시</p>
+                        <p className="text-[10px] text-gray-400">계정 생성 → 완주 · 이탈률 표시 (방문 ≠ 계정 생성 주의)</p>
                       </div>
                       {/* 회의 2026-04-23: 커스텀 날짜 범위 입력 */}
                       <div className="flex items-center flex-wrap gap-2 mb-3 text-[11px]">

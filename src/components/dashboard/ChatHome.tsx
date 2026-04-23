@@ -256,6 +256,9 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
   const [showTrialIntro, setShowTrialIntro] = useState(false);
   // 배지 ? 툴팁 — 무료 한도 상시 확인용 (플랜/대화 2개 카운터 설명)
   const [showTrialTooltip, setShowTrialTooltip] = useState(false);
+  // 회의 2026-04-23: canSubmit 결과를 렌더 시점에 캡처해 입력/버튼 비활성화에 반영.
+  // 가드 없이는 유저가 입력해도 아무 반응 없는 "먹통" UX 발생.
+  const submissionBlocked = !!(canSubmit && !canSubmit());
   const [reasoningLines, setReasoningLines] = useState<string[]>([]); // Phase 7 B-lite 사고 과정 스트림
   const [aiFollowups, setAiFollowups] = useState<Array<{ icon: ChipIconType; label: string; prompt: string }>>([]); // Phase 7C Gemini 개인화 후속 질문
 
@@ -365,16 +368,20 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
   ]);
 
   // 초기 선제안 노출 시 analytics 이벤트 1회 발화
+  // 회의 2026-04-23: useMemo 로 만든 initialSuggestion 이 리렌더마다 reference 재생성되어
+  // 2번 발화되던 버그 수정 (GA greeting impression 2x 과대 집계). useRef 로 세션 1회 가드.
+  const greetingFiredRef = useRef(false);
   useEffect(() => {
     if (!initialSuggestion) return;
     if (messages.length > 0) return;
+    if (greetingFiredRef.current) return;
+    greetingFiredRef.current = true;
     trackEvent("chat_home_initial_greeting_shown", {
       hour: new Date().getHours(),
       session_mode: initialSuggestion.sessionMode,
       available_time: initialSuggestion.availableTime,
       label: initialSuggestion.label,
     });
-    // messages가 0일 때 최초 1회만 (initialSuggestion reference 안정성: useMemo 의존성)
   }, [initialSuggestion, messages.length]);
 
   // 무료 한도 최초 안내 배너 — 로그인 + 무료 단계 + 아직 미노출 유저에게 1회
@@ -1337,8 +1344,10 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
                   handleSubmit();
                 }
               }}
-              placeholder={t("chat_home.placeholder")}
-              disabled={busy}
+              placeholder={submissionBlocked
+                ? (locale === "en" ? "Free usage reached. Sign in or unlock Premium to continue." : "무료 한도를 다 썼어요. 로그인 또는 프리미엄으로 계속할 수 있어요.")
+                : t("chat_home.placeholder")}
+              disabled={busy || submissionBlocked}
               rows={1}
               className="w-full text-[14px] bg-transparent px-0 py-1 border-0 focus:outline-none text-[#1B4332] placeholder-gray-400 disabled:opacity-50 resize-none overflow-y-auto leading-[1.5]"
             />
@@ -1400,7 +1409,7 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
               ) : (
                 <button
                   onClick={() => handleSubmit()}
-                  disabled={!text.trim()}
+                  disabled={!text.trim() || submissionBlocked}
                   className="w-9 h-9 bg-[#1B4332] text-white rounded-full flex items-center justify-center disabled:opacity-30 disabled:bg-gray-300 active:scale-95 transition-all shrink-0"
                   aria-label={t("chat_home.send")}
                 >
@@ -1422,7 +1431,7 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
             <button
               key={chip.key}
               onClick={() => fillExample(chip.key)}
-              disabled={busy}
+              disabled={busy || submissionBlocked}
               className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-gray-200 hover:border-[#2D6A4F]/40 hover:bg-emerald-50/40 active:scale-[0.97] transition-all text-[12px] font-medium text-gray-700 disabled:opacity-50 whitespace-nowrap"
             >
               <ChipIcon type={chip.icon} />
@@ -1451,7 +1460,7 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
               <button
                 key={chip.key}
                 onClick={() => { handleDirectPlan(chip.key); setShowQuickPlan(false); }}
-                disabled={busy}
+                disabled={busy || submissionBlocked}
                 className="w-full flex items-center gap-2.5 px-3 py-2 text-left hover:bg-gray-50 active:bg-emerald-50/40 transition-colors disabled:opacity-50"
               >
                 <span className="text-[#1B4332] shrink-0"><ChipIcon type={chip.icon} /></span>
@@ -1473,7 +1482,7 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
               <button
                 key={chip.key}
                 onClick={() => { fillExample(chip.key); setShowMoreExamples(false); }}
-                disabled={busy}
+                disabled={busy || submissionBlocked}
                 className="w-full flex items-center gap-2.5 px-3 py-2 text-left hover:bg-gray-50 active:bg-emerald-50/40 transition-colors disabled:opacity-50"
               >
                 <span className="text-[#1B4332] shrink-0"><ChipIcon type={chip.icon} /></span>
