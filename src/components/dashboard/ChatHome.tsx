@@ -252,6 +252,10 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
   // 회의 64-D: 러닝 프로그램 바텀시트 + 성공 토스트
   const [showRunningSheet, setShowRunningSheet] = useState(false);
   const [runningToast, setRunningToast] = useState<string | null>(null);
+  // 첫 로그인 무료 한도 안내 (회의 2026-04-23) — localStorage 플래그로 1회만 노출
+  const [showTrialIntro, setShowTrialIntro] = useState(false);
+  // 배지 ? 툴팁 — 무료 한도 상시 확인용 (플랜/대화 2개 카운터 설명)
+  const [showTrialTooltip, setShowTrialTooltip] = useState(false);
   const [reasoningLines, setReasoningLines] = useState<string[]>([]); // Phase 7 B-lite 사고 과정 스트림
   const [aiFollowups, setAiFollowups] = useState<Array<{ icon: ChipIconType; label: string; prompt: string }>>([]); // Phase 7C Gemini 개인화 후속 질문
 
@@ -372,6 +376,21 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
     });
     // messages가 0일 때 최초 1회만 (initialSuggestion reference 안정성: useMemo 의존성)
   }, [initialSuggestion, messages.length]);
+
+  // 무료 한도 최초 안내 배너 — 로그인 + 무료 단계 + 아직 미노출 유저에게 1회
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!isLoggedIn || isPremium) return;
+    try {
+      if (localStorage.getItem("ohunjal_trial_intro_shown") === "1") return;
+      setShowTrialIntro(true);
+    } catch { /* localStorage 접근 실패 시 조용히 skip */ }
+  }, [isLoggedIn, isPremium]);
+
+  const dismissTrialIntro = () => {
+    setShowTrialIntro(false);
+    try { localStorage.setItem("ohunjal_trial_intro_shown", "1"); } catch { /* ignore */ }
+  };
 
   const handleInitialStart = async () => {
     if (!initialSuggestion || routing || busy) return;
@@ -896,16 +915,27 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
             }
             if (trial.stage === "premium") return null;
             const isGuest = trial.stage === "guest";
+            // "남은 횟수" 기준으로 전환 (회의 2026-04-23: "1/2" 모호함 해소). exhausted 일 때는 "완료".
             const label = locale === "ko"
-              ? (trial.stage === "exhausted" ? "무료 완료" : (isGuest ? "체험" : "무료") + ` ${trial.currentCompleted}/${trial.currentLimit}`)
-              : (trial.stage === "exhausted" ? "Trial done" : (isGuest ? "Trial" : "Free") + ` ${trial.currentCompleted}/${trial.currentLimit}`);
+              ? (trial.stage === "exhausted" ? "무료 완료" : (isGuest ? "체험 " : "무료 ") + `${trial.remaining}번 남음`)
+              : (trial.stage === "exhausted" ? "Trial done" : (isGuest ? "Trial: " : "Free: ") + `${trial.remaining} left`);
             const warn = trial.remaining <= 1;
             return (
-              <span className={`shrink-0 px-2.5 py-1 rounded-full text-[10px] font-bold whitespace-nowrap ${
-                warn ? "bg-amber-100 text-amber-700" : "bg-gray-100 text-[#1B4332]"
-              }`}>
-                {label}
-              </span>
+              <div className="flex items-center gap-1 shrink-0">
+                <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold whitespace-nowrap ${
+                  warn ? "bg-amber-100 text-amber-700" : "bg-gray-100 text-[#1B4332]"
+                }`}>
+                  {label}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setShowTrialTooltip(true)}
+                  aria-label={locale === "en" ? "About free usage" : "무료 사용 안내"}
+                  className="w-5 h-5 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center active:scale-95 transition-transform"
+                >
+                  <span className="text-[11px] font-bold leading-none">?</span>
+                </button>
+              </div>
             );
           })()}
         </div>
@@ -915,6 +945,29 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
       <div className="mt-3 border-t border-gray-200 flex-1 flex flex-col min-h-0">
         {/* 메시지 영역 */}
         <div className="px-6 py-4 flex-1 overflow-y-auto min-h-0 scrollbar-hide">
+          {/* 무료 한도 최초 안내 배너 (회의 2026-04-23) — 로그인 + 무료 + 미노출 유저 1회 */}
+          {showTrialIntro && (
+            <div className="mb-4 relative rounded-2xl bg-gradient-to-br from-[#F0FDF4] to-white border border-[#2D6A4F]/25 px-4 py-3 pr-9">
+              <p className="text-[13px] font-black text-[#1B4332] mb-1">
+                {locale === "en" ? "Welcome to Ohunjal" : "오운잘에 오신 걸 환영해요"}
+              </p>
+              <p className="text-[12px] text-gray-700 leading-relaxed">
+                {locale === "en"
+                  ? "You can generate 2 free plans and send 3 free chats each month. Upgrade to Premium for unlimited access."
+                  : "이번 달 무료로 플랜 2회 · 대화 3회 쓸 수 있어요. 다 쓰면 프리미엄에서 무제한이에요."}
+              </p>
+              <button
+                type="button"
+                onClick={dismissTrialIntro}
+                aria-label={locale === "en" ? "Dismiss" : "닫기"}
+                className="absolute top-2 right-2 w-6 h-6 rounded-full text-gray-400 hover:text-gray-600 active:scale-95 transition flex items-center justify-center"
+              >
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                  <path d="M2 2L10 10M10 2L2 10" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                </svg>
+              </button>
+            </div>
+          )}
           {/* 최초 안내 (항상 노출) — 비로그인·이력無는 시즌 후킹 선제안, 그 외는 이력 기반 */}
           <div>
             <AssistantMiniHeader locale={locale} planLabel={miniPlanLabel} />
@@ -1459,6 +1512,58 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
       {runningToast && (
         <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-[60] px-4 py-2.5 rounded-full bg-[#1B4332] text-white text-[12px] font-bold shadow-lg animate-fade-in">
           {runningToast}
+        </div>
+      )}
+
+      {/* 무료 한도 설명 바텀시트 (회의 2026-04-23) — 상시 열람 가능 */}
+      {showTrialTooltip && (
+        <div className="absolute inset-0 z-[70] flex items-end animate-fade-in" onClick={() => setShowTrialTooltip(false)}>
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" />
+          <div
+            className="relative z-10 w-full bg-white rounded-t-[2rem] px-6 pt-5 pb-7 animate-slide-in-bottom"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-4" />
+            <h3 className="text-[#1B4332] text-base font-bold mb-3">
+              {locale === "en" ? "Your free usage this month" : "이번 달 무료 사용 한도"}
+            </h3>
+            <div className="flex flex-col gap-2.5 mb-4">
+              <div className="flex items-start gap-3 p-3 rounded-xl bg-[#F0F4F1]">
+                <div className="w-7 h-7 rounded-lg bg-[#2D6A4F]/15 text-[#1B4332] font-black text-[12px] flex items-center justify-center shrink-0">2</div>
+                <div className="flex-1">
+                  <p className="text-[13px] font-bold text-[#1B4332]">
+                    {locale === "en" ? "AI workout plan generation" : "AI 운동 플랜 생성"}
+                  </p>
+                  <p className="text-[11px] text-gray-500 leading-relaxed">
+                    {locale === "en" ? "2 free plans per month." : "월 2회까지 무료로 플랜 받을 수 있어요"}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3 p-3 rounded-xl bg-[#F0F4F1]">
+                <div className="w-7 h-7 rounded-lg bg-[#2D6A4F]/15 text-[#1B4332] font-black text-[12px] flex items-center justify-center shrink-0">3</div>
+                <div className="flex-1">
+                  <p className="text-[13px] font-bold text-[#1B4332]">
+                    {locale === "en" ? "AI chat conversation" : "AI 대화 (채팅 입력)"}
+                  </p>
+                  <p className="text-[11px] text-gray-500 leading-relaxed">
+                    {locale === "en" ? "3 free chats per month." : "월 3회까지 자유롭게 대화할 수 있어요"}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <p className="text-[11px] text-gray-400 text-center leading-relaxed mb-4">
+              {locale === "en"
+                ? "Running programs, workout records, and reports are always free."
+                : "러닝 프로그램, 운동 기록, 리포트는 언제나 무제한이에요"}
+            </p>
+            <button
+              type="button"
+              onClick={() => setShowTrialTooltip(false)}
+              className="w-full py-3 rounded-xl bg-[#1B4332] text-white font-bold text-sm active:scale-[0.98] transition-all"
+            >
+              {locale === "en" ? "Got it" : "알겠어요"}
+            </button>
+          </div>
         </div>
       )}
     </div>
