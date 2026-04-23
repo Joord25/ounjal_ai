@@ -119,6 +119,7 @@ export const planSession = onRequest(
       runType,
       lastUpperType,
       equipment,
+      exerciseList,
     } = req.body;
 
     if (condition === undefined || goal === undefined) {
@@ -138,13 +139,16 @@ export const planSession = onRequest(
         runType,
         lastUpperType,
         equipment,
+        Array.isArray(exerciseList) ? exerciseList : undefined,
       );
 
       // 응답 랜덤 변형: main phase 내 마지막 2개 운동 순서 미세 셔플 (보안: 패턴 감지 방지)
       // 회의 37: 러닝 세션은 시간 순서가 엄격 (워밍업→드릴→메인→쿨다운).
       // 셔플이 마무리 조깅 ↔ 인터벌 스프린트를 바꿔버려 부상 위험 + UX 버그.
       // 러닝 세션은 셔플 제외, 웨이트 세션만 적용 (보안 목적 유지).
-      if (sessionMode !== "running") {
+      // 회의 2026-04-24: exerciseList 경로는 유저가 지정한 순서 = 계약. 셔플 제외.
+      const hasExerciseList = Array.isArray(exerciseList) && exerciseList.length > 0;
+      if (sessionMode !== "running" && !hasExerciseList) {
         const mainIndices: number[] = [];
         session.exercises.forEach((e, i) => { if ((e.phase || e.type) === "main") mainIndices.push(i); });
         if (mainIndices.length >= 3 && Math.random() > 0.5) {

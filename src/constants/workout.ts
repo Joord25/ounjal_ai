@@ -246,6 +246,17 @@ export interface SessionSelection {
   targetMuscle?: TargetMuscle;
   runType?: RunType;
   equipment?: EquipmentConstraint;
+  /**
+   * 회의 2026-04-24: AdviceCard workoutTable ↔ MasterPlan 동기화.
+   * 존재 시 서버가 고정 balanced/split 템플릿 대신 이 리스트로 main phase 구성.
+   * main 운동만 — warmup/core/cardio는 서버 자동.
+   */
+  exerciseList?: Array<{
+    name: string;
+    sets: number;
+    reps: string;
+    rpe?: string;
+  }>;
 }
 
 // === UI용 운동 풀 (운동 교체 검색에 사용) ===

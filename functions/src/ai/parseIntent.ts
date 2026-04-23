@@ -97,6 +97,18 @@ export interface AdviceContent {
     /** 회의 64-M4: 장비 제약 — "맨몸만"/"덤벨 없이" 등 유저 명시 시 "bodyweight_only" */
     equipment?: "bodyweight_only";
     reasoning: string;              // 왜 이 운동을 추천했는지 (1문장)
+    /**
+     * 회의 2026-04-24: workoutTable과 1:1 동기화되는 실행용 운동 리스트.
+     * 존재 시 서버 룰엔진이 고정 balanced/split 템플릿 대신 이 리스트로 main phase 구성.
+     * main 운동만 담음 (warmup/core/cardio는 룰엔진이 자동 추가).
+     * 유저가 채팅에서 본 workoutTable ≠ 실제 세션 문제(구조적 결함) 해소용.
+     */
+    exerciseList?: Array<{
+      name: string;       // exercise_catalog의 한국어 풀명
+      sets: number;
+      reps: string;       // "8-12회" / "12회" / "60초" 등
+      rpe?: string;       // "7-8" 등 (메타, 룰엔진 미사용)
+    }>;
   };
 }
 
@@ -289,6 +301,18 @@ mode는 "주 의도 힌트"입니다. **응답 필드는 자유 조합** 가능 
 - equipment: "bodyweight_only" — 유저가 "맨몸만/덤벨 없이/노기구/bodyweight only" 명시 시에만. 기본값 미설정(undefined). sessionMode=home_training과 함께 쓰는 게 자연스러움.
 
 **reasoning 마지막 단계는 "실행 경로 연결 완료" 같이 명시.**
+
+**exerciseList (workoutTable ↔ 실제 세션 동기화 — 핵심):**
+- workoutTable에 운동 행을 채웠으면 **반드시** recommendedWorkout.exerciseList도 동일 main 운동으로 복제.
+- 이유: workoutTable만 있고 exerciseList 없으면 서버가 고정 balanced/split 템플릿으로 다른 운동을 재생성해서 "유저가 본 것 ≠ 실제 실행 세션" 신뢰 훼손.
+- name: 위 <exercise_catalog>에 실제 존재하는 한국어 이름만 (브랜드·신조어·외부 운동 금지).
+- sets: 숫자 (1~10)
+- reps: "8-12회" / "12회" / "60초" 형식 문자열
+- rpe: "7-8" 형식 문자열 (선택)
+- 최대 8개. **main 운동 중심** — 워밍업·카디오는 서버가 자동 추가하므로 포함 X.
+  - 예외: 유저가 "코어 5개만" 같이 명시적으로 코어 위주를 요청한 경우는 코어 운동(플랭크·크런치 등) 허용. 서버가 type=core로 자동 전환.
+- 복합 비율 요청("하체 1·어깨 2·팔 2") 같이 targetMuscle enum으로 표현 불가능한 조합은 exerciseList가 유일한 전달 경로. 이때 sessionMode는 "balanced"로 두되 exerciseList를 반드시 채울 것.
+- **러닝 요청은 exerciseList 금지** — sessionMode="running" + runType 으로만 전달. 러닝은 인터벌 구조/페이스 가이드가 필요해서 명시 운동 리스트로 대체 불가.
 </execution_link>
 
 <exercise_catalog comment="실제 룰엔진(workoutEngine)에 등록된 운동만 사용. 외부 운동·신규 머신·없는 이름 절대 금지. 브랜드 머신은 카탈로그 항목으로 매핑.">
@@ -439,7 +463,7 @@ depth는 자유 판단. 유저 만족이 우선.
 
 plan: { mode:"plan", intent:{condition, goal, sessionMode, targetMuscle?, runType?, intensityOverride?, recentGymFrequency?, pushupLevel?, confidence, missingCritical, clarifyQuestion? } }
 
-advice: { mode:"advice", advice:{ headline, goals, intensity?, monthProgram?, workoutTable?, principles, criticalPoints?, supplements?, conclusion?, actionItems?, sessionParams?(다주차 시 REQUIRED), recommendedWorkout:{condition, goal, sessionMode, targetMuscle?, runType?, intensityOverride?, reasoning} } }
+advice: { mode:"advice", advice:{ headline, goals, intensity?, monthProgram?, workoutTable?, principles, criticalPoints?, supplements?, conclusion?, actionItems?, sessionParams?(다주차 시 REQUIRED), recommendedWorkout:{condition, goal, sessionMode, targetMuscle?, runType?, intensityOverride?, reasoning, exerciseList?[{name,sets,reps,rpe?}](workoutTable 있거나 복합 부위 요청 시 REQUIRED)} } }
 
 chat: { mode:"chat", reply:"..." }
 
@@ -561,7 +585,66 @@ program: { mode:"program", program:{ name, totalWeeks, sessionsPerWeek, summary,
       "goal": "fat_loss",
       "sessionMode": "home_training",
       "intensityOverride": "high",
-      "reasoning": "지금 바로 첫 옵션(전신 서킷 30분) 시작 가능합니다."
+      "reasoning": "지금 바로 첫 옵션(전신 서킷 30분) 시작 가능합니다.",
+      "exerciseList": [
+        { "name": "고블렛 스쿼트", "sets": 3, "reps": "12-15회", "rpe": "7-8" },
+        { "name": "푸쉬업", "sets": 3, "reps": "10-15회", "rpe": "7-8" },
+        { "name": "워킹 런지", "sets": 3, "reps": "12회", "rpe": "7-8" },
+        { "name": "마운틴 클라이머", "sets": 3, "reps": "30초", "rpe": "8" }
+      ]
+    }
+  }
+}
+</output>
+</example>
+
+<example name="advice-mode-composite-ratio" comment="복합 부위 비율 요청 — exerciseList 필수 (targetMuscle enum 표현 불가)">
+<user_input>그날 하루 운동 플랜에 하체 1가지 · 어깨 2가지 · 팔 2가지 운동으로 총 메인운동 5개 구성</user_input>
+<output>
+{
+  "mode": "advice",
+  "depth": "medium",
+  "intentAnalysis": { "surface": "복합 비율 하루 플랜", "latent": "상체 디테일 + 하체 1축" },
+  "reasoning": ["복합 비율 요청 파악 (하체1 어깨2 팔2)", "targetMuscle 단일 enum 표현 불가 → exerciseList로 정확 구성", "실행 경로 연결 완료"],
+  "selfCheck": { "safety": "ok", "completeness": 0.95, "concerns": [] },
+  "followups": [
+    { "icon": "pump", "label": "어깨 자극", "prompt": "사이드 레터럴 자극 포인트?" },
+    { "icon": "swap", "label": "팔 교체", "prompt": "바벨 컬 대신 덤벨 컬?" },
+    { "icon": "timer", "label": "휴식 시간", "prompt": "어깨 고립 세트 사이 휴식?" },
+    { "icon": "calendar", "label": "다음 날 추천", "prompt": "내일 어느 부위 조합?" }
+  ],
+  "advice": {
+    "headline": "하체1 + 어깨2 + 팔2 균형 플랜",
+    "goals": ["상체 디테일 + 하체 1축 유지", "50분 내 균형 자극"],
+    "workoutTable": {
+      "title": "오늘의 5가지 메인 운동",
+      "columns": ["운동", "세트", "렙", "RPE"],
+      "rows": [
+        ["바벨 백 스쿼트", "3", "8-12회", "7-8"],
+        ["덤벨 숄더 프레스", "3", "10-12회", "7-8"],
+        ["사이드 레터럴 레이즈", "3", "12-15회", "7-8"],
+        ["바벨 컬", "3", "8-12회", "7-8"],
+        ["트라이셉 로프 푸쉬다운", "3", "10-15회", "7-8"]
+      ]
+    },
+    "principles": [
+      "**정확한 자세**로 부상 방지 및 목표 근육 자극 극대화",
+      "**점진적 과부하**: 매 세트 조금씩 중량 또는 횟수 늘리기",
+      "**RPE 활용**: 운동 강도를 스스로 조절하며 안전하게 진행"
+    ],
+    "recommendedWorkout": {
+      "condition": { "bodyPart": "good", "energyLevel": 3, "availableTime": 50 },
+      "goal": "muscle_gain",
+      "sessionMode": "balanced",
+      "intensityOverride": "high",
+      "reasoning": "요청하신 하체1·어깨2·팔2 구성으로 50분 균형 세션 바로 시작 가능합니다.",
+      "exerciseList": [
+        { "name": "바벨 백 스쿼트", "sets": 3, "reps": "8-12회", "rpe": "7-8" },
+        { "name": "덤벨 숄더 프레스", "sets": 3, "reps": "10-12회", "rpe": "7-8" },
+        { "name": "사이드 레터럴 레이즈", "sets": 3, "reps": "12-15회", "rpe": "7-8" },
+        { "name": "바벨 컬", "sets": 3, "reps": "8-12회", "rpe": "7-8" },
+        { "name": "트라이셉 로프 푸쉬다운", "sets": 3, "reps": "10-15회", "rpe": "7-8" }
+      ]
     }
   }
 }
@@ -909,8 +992,42 @@ function sanitizeAdvice(a: any): AdviceContent | null {
       reasoning: typeof a.recommendedWorkout?.reasoning === "string"
         ? a.recommendedWorkout.reasoning.trim().slice(0, 140)
         : "",
+      exerciseList: sanitizeExerciseList(a.recommendedWorkout?.exerciseList),
     } : undefined,
   };
+}
+
+/**
+ * 회의 2026-04-24: recommendedWorkout.exerciseList sanitize.
+ * Gemini 출력이 유효 배열이 아니거나 비어있으면 undefined 반환 → 서버 룰엔진은 기존 경로로 fallback.
+ */
+type ExerciseListItem = { name: string; sets: number; reps: string; rpe?: string };
+
+function sanitizeExerciseList(raw: any): ExerciseListItem[] | undefined {
+  if (!Array.isArray(raw) || raw.length === 0) return undefined;
+  const cleaned: ExerciseListItem[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== "object") continue;
+    const name = typeof item.name === "string" ? item.name.trim() : "";
+    if (!name) continue;
+    const setsRaw = Number(item.sets);
+    const sets = Number.isFinite(setsRaw) ? Math.max(1, Math.min(10, Math.round(setsRaw))) : 3;
+    let reps: string;
+    if (typeof item.reps === "string" && item.reps.trim()) {
+      reps = item.reps.trim().slice(0, 20);
+    } else if (typeof item.reps === "number" && Number.isFinite(item.reps)) {
+      reps = `${Math.max(1, Math.round(item.reps))}회`;
+    } else {
+      reps = "10-12회";
+    }
+    const entry: ExerciseListItem = { name: name.slice(0, 60), sets, reps };
+    if (typeof item.rpe === "string" && item.rpe.trim()) {
+      entry.rpe = item.rpe.trim().slice(0, 10);
+    }
+    cleaned.push(entry);
+    if (cleaned.length >= 8) break;
+  }
+  return cleaned.length > 0 ? cleaned : undefined;
 }
 
 /** sessionParams sanitize — advice 내 장기 프로그램 세션 파라미터 */

@@ -56,6 +56,16 @@ export interface AdviceContent {
     runType?: "interval" | "easy" | "long";
     intensityOverride?: "high" | "moderate" | "low";
     reasoning: string;
+    /**
+     * 회의 2026-04-24: workoutTable ↔ MasterPlan 동기화. AdviceCard가 본 main 운동 리스트를
+     * 서버 룰엔진에 그대로 전달해서 고정 balanced/split 템플릿 우회.
+     */
+    exerciseList?: Array<{
+      name: string;
+      sets: number;
+      reps: string;
+      rpe?: string;
+    }>;
   };
 }
 

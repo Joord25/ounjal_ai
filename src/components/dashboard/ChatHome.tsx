@@ -1140,6 +1140,8 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
                               sessionMode: rec.sessionMode,
                               targetMuscle: rec.targetMuscle,
                               runType: rec.runType,
+                              // 회의 2026-04-24: workoutTable ↔ MasterPlan 동기화
+                              exerciseList: rec.exerciseList,
                             },
                             { skipLoadingAnim: true },
                           );

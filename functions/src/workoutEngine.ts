@@ -1324,6 +1324,205 @@ function generateHomeWorkout(
   };
 }
 
+// ====== Exercise List Mode (회의 2026-04-24) ======
+// workoutTable ↔ 실제 세션 동기화. recommendedWorkout.exerciseList가 있으면
+// 고정 balanced/split 템플릿 대신 유저가 본 운동 그대로 main phase 구성.
+
+export interface ExerciseListInput {
+  name: string;
+  sets: number;
+  reps: string;
+  rpe?: string;
+}
+
+type MuscleGroup = "legs" | "chest" | "back" | "shoulders" | "arms" | "core" | "other";
+type ExerciseRole = "compound" | "accessory" | "isolation" | "bodyweight";
+
+interface PoolEntry {
+  fullName: string;     // "바벨 백 스쿼트 (Barbell Back Squat)"
+  korean: string;       // "바벨 백 스쿼트"
+  normalized: string;   // "바벨백스쿼트" — 공백 제거 소문자
+  group: MuscleGroup;
+  role: ExerciseRole;
+}
+
+/** "바벨 백 스쿼트 (Barbell Back Squat)" → "바벨 백 스쿼트" */
+const koreanPart = (full: string): string => full.split("(")[0].trim();
+/** 비교용 정규화: 공백 제거 + 소문자 */
+const normalizeName = (s: string): string => s.replace(/\s+/g, "").toLowerCase();
+
+/** 풀 인덱스 — 운동명 매칭 + 그룹/역할 태깅. 호출 시 lazy 초기화 */
+let poolIndexCache: PoolEntry[] | null = null;
+function getPoolIndex(): PoolEntry[] {
+  if (poolIndexCache) return poolIndexCache;
+  const entries: PoolEntry[] = [];
+  const push = (names: string[], group: MuscleGroup, role: ExerciseRole) => {
+    for (const fullName of names) {
+      entries.push({
+        fullName,
+        korean: koreanPart(fullName),
+        normalized: normalizeName(koreanPart(fullName)),
+        group,
+        role,
+      });
+    }
+  };
+  // LEGS
+  push(LEG_EXERCISES.squat, "legs", "compound");
+  push(LEG_EXERCISES.hinge, "legs", "compound");
+  push(LEG_EXERCISES.unilateral, "legs", "accessory");
+  push(LEG_EXERCISES.isolation, "legs", "accessory");
+  push(LEG_EXERCISES.calf, "legs", "isolation");
+  push(HEAVY_LEG_SQUAT, "legs", "compound");
+  push(HEAVY_LEG_HINGE, "legs", "compound");
+  push(HEAVY_LEG_COMPOUND, "legs", "compound");
+  // CHEST (PUSH mainCompound = 벤치/딥 계열)
+  push(PUSH_EXERCISES.mainCompound, "chest", "compound");
+  push(PUSH_EXERCISES.accessory, "chest", "accessory");
+  push(HEAVY_PUSH_COMPOUND, "chest", "compound");
+  push(HEAVY_PUSH_ACCESSORY, "chest", "accessory");
+  // SHOULDERS (PUSH verticalPress/isoShoulder + PULL rearDelt)
+  push(PUSH_EXERCISES.verticalPress, "shoulders", "compound");
+  push(PUSH_EXERCISES.isoShoulder, "shoulders", "isolation");
+  push(PULL_EXERCISES.rearDelt, "shoulders", "isolation");
+  // ARMS (PUSH isoTricep + PULL bicep)
+  push(PUSH_EXERCISES.isoTricep, "arms", "isolation");
+  push(PULL_EXERCISES.bicep, "arms", "isolation");
+  // BACK (PULL verticalPull/horizontalPull/unilateral)
+  push(PULL_EXERCISES.verticalPull, "back", "compound");
+  push(PULL_EXERCISES.horizontalPull, "back", "compound");
+  push(PULL_EXERCISES.unilateral, "back", "accessory");
+  push(HEAVY_PULL_COMPOUND, "back", "compound");
+  push(HEAVY_PULL_ACCESSORY, "back", "accessory");
+  // CORE
+  push(CORE_EXERCISES.plank, "core", "bodyweight");
+  push(CORE_EXERCISES.dynamic, "core", "bodyweight");
+
+  poolIndexCache = entries;
+  return entries;
+}
+
+/**
+ * 유저/Gemini 입력 운동명 → 풀 엔트리 매칭.
+ * 정확 매칭 → 한국어 전체 매칭 → normalize 포함 매칭(양방향) 순. 실패 시 "other".
+ */
+function resolveExercise(input: string): PoolEntry {
+  const index = getPoolIndex();
+  const rawTrim = input.trim();
+  const inputKorean = koreanPart(rawTrim);
+  const inputNorm = normalizeName(inputKorean);
+
+  // 1. 정확 매칭 (full name 또는 korean)
+  const exact = index.find(e => e.fullName === rawTrim || e.korean === inputKorean);
+  if (exact) return exact;
+
+  // 2. normalize 정확 매칭
+  const normExact = index.find(e => e.normalized === inputNorm);
+  if (normExact) return normExact;
+
+  // 3. 부분 포함 (입력이 풀명을 포함하거나, 풀명이 입력을 포함)
+  const partial = index.find(e => e.normalized.includes(inputNorm) || inputNorm.includes(e.normalized));
+  if (partial) return partial;
+
+  // 4. 실패 — 입력 그대로 "other", accessory 기본
+  return {
+    fullName: rawTrim,
+    korean: inputKorean,
+    normalized: inputNorm,
+    group: "other",
+    role: "accessory",
+  };
+}
+
+/** exerciseList 기반 세션 생성. warmup/core/cardio는 기존 빌더 재사용, main만 유저 요청대로. */
+function generateFromExerciseList(
+  items: ExerciseListInput[],
+  condition: UserCondition,
+  goal: WorkoutGoal,
+  intensityOverride?: "high" | "moderate" | "low",
+): WorkoutSessionData {
+  const exercises: ExerciseStep[] = [];
+
+  // 1. Warmup (기존 로직)
+  exercises.push(...buildWarmup(condition));
+
+  // 2. Main — 유저 요청 운동 그대로
+  // 회의 2026-04-24 시뮬 BUG 2: core 그룹 아이템은 main/strength 대신 core/core로 분류.
+  //   예: 유저가 exerciseList에 "플랭크 3세트"를 넣으면 FitScreen 웨이트 픽커 UI로 잘못 렌더되는 걸 방지.
+  const resolvedEntries: PoolEntry[] = [];
+  let userSpecifiedCore = false;
+  for (const item of items) {
+    const resolved = resolveExercise(item.name);
+    resolvedEntries.push(resolved);
+
+    // reps: 숫자 추출 시도 ("8-12회" → 8, "60초" → 60, "12회" → 12)
+    const repsMatch = item.reps.match(/(\d+)/);
+    const repsVal = repsMatch ? parseInt(repsMatch[1], 10) : 10;
+
+    // RPE 있으면 count에 병기
+    const countStr = item.rpe
+      ? `${formatCountKo(item.sets, item.reps)} · RPE ${item.rpe}`
+      : formatCountKo(item.sets, item.reps);
+
+    const isCore = resolved.group === "core";
+    if (isCore) userSpecifiedCore = true;
+
+    const step: ExerciseStep = {
+      type: isCore ? "core" : "strength",
+      phase: isCore ? "core" : "main",
+      name: resolved.fullName,
+      count: countStr,
+      sets: item.sets,
+      reps: repsVal,
+    };
+    // weight: 코어는 무게 개념 없음 (시간/횟수만). strength만 weight guide.
+    if (!isCore) {
+      step.weight = resolved.role === "bodyweight"
+        ? "맨몸"
+        : getWeightGuide(resolved.role, goal, intensityOverride);
+    }
+    exercises.push(step);
+  }
+
+  // 3. ACSM 2025 tempo guide (근비대/근력 시) — main 운동에만
+  if (goal === "muscle_gain" || goal === "strength") {
+    exercises.filter(e => e.phase === "main").forEach(e => {
+      e.tempoGuide = "천천히 내리기 3초";
+    });
+  }
+
+  // 4. Core + Cardio (기존)
+  // 유저가 이미 core를 직접 지정했다면 자동 core 추가 스킵 (중복 방지).
+  const isoRepsKo = intensityOverride === "high" ? "8-10회" : intensityOverride === "low" ? "20회" : "12-15회";
+  const isoRepsVal = parseInt(isoRepsKo) || 15;
+  if (!userSpecifiedCore) {
+    exercises.push(...buildCore(isoRepsKo, isoRepsVal));
+  }
+  exercises.push(...buildAdditionalCardio(condition, intensityOverride, goal));
+
+  // 5. Title/description — 그룹 카운트로 생성
+  const groupCount: Partial<Record<MuscleGroup, number>> = {};
+  for (const r of resolvedEntries) {
+    groupCount[r.group] = (groupCount[r.group] ?? 0) + 1;
+  }
+  const groupLabels: Record<MuscleGroup, string> = {
+    legs: "하체", chest: "가슴", back: "등", shoulders: "어깨", arms: "팔", core: "코어", other: "기타",
+  };
+  const orderedGroups: MuscleGroup[] = ["legs", "chest", "back", "shoulders", "arms", "core", "other"];
+  const descParts = orderedGroups
+    .filter(g => (groupCount[g] ?? 0) > 0)
+    .map(g => `${groupLabels[g]} ${groupCount[g]}종`);
+  const goalLabel = goal === "fat_loss" ? "살 빼기" : goal === "muscle_gain" ? "근육 키우기" : goal === "strength" ? "힘 세지기" : "기초체력";
+  const description = descParts.length > 0 ? descParts.join(" + ") : `메인 ${items.length}종`;
+
+  return {
+    title: `${goalLabel} · 맞춤 플랜`,
+    description,
+    exercises,
+    intendedIntensity: deriveStrengthIntensity(intensityOverride, goal),
+  };
+}
+
 export const generateAdaptiveWorkout = (
   dayIndex: number, // 0(Mon) - 6(Sun)
   condition: UserCondition,
@@ -1336,6 +1535,8 @@ export const generateAdaptiveWorkout = (
   lastUpperType?: "push" | "pull",
   // 회의 64-M4: 장비 제약 — "bodyweight_only" 시 generateHomeWorkout 풀에서 덤벨/케틀벨/바벨/머신/TRX 제외
   equipment?: "bodyweight_only",
+  // 회의 2026-04-24: workoutTable 기반 명시 운동 리스트. 존재 시 최우선 (sessionMode 무시).
+  exerciseList?: ExerciseListInput[],
 ): WorkoutSessionData => {
   /** 후처리: 맨몸 운동 weight 수정 + 장비별 기본 kg 설정 */
   const postProcessWeights = (session: WorkoutSessionData): WorkoutSessionData => {
@@ -1355,15 +1556,26 @@ export const generateAdaptiveWorkout = (
     return session;
   };
 
+  // ====== Running guard (회의 2026-04-24 시뮬 BUG 1) ======
+  // 러닝은 시간 순서(워밍업→드릴→메인→쿨다운)와 인터벌 구조가 엄격하므로 exerciseList 경로로 빠지면
+  // 구조 손실. Gemini가 실수로 러닝 요청에 exerciseList를 채워도 여기서 차단.
+  if (sessionMode === "running" && runType) {
+    return postProcessWeights(generateRunningWorkout(condition, runType, intensityOverride || undefined));
+  }
+
+  // ====== exerciseList routing (회의 2026-04-24) ======
+  // workoutTable과 동기화된 명시 운동 리스트가 오면 sessionMode 무시하고 그대로 구성.
+  // 복합 부위 비율 요청("하체1 어깨2 팔2") 등 enum으로 표현 불가능한 조합 지원.
+  if (Array.isArray(exerciseList) && exerciseList.length > 0) {
+    return postProcessWeights(generateFromExerciseList(exerciseList, condition, goal, intensityOverride || undefined));
+  }
+
   // ====== SessionMode routing ======
   if (sessionMode === "balanced") {
     return postProcessWeights(generateBalancedWorkout(condition, goal, intensityOverride || undefined, lastUpperType));
   }
   if (sessionMode === "split" && targetMuscle) {
     return postProcessWeights(generateSplitWorkout(condition, goal, targetMuscle, intensityOverride || undefined));
-  }
-  if (sessionMode === "running" && runType) {
-    return postProcessWeights(generateRunningWorkout(condition, runType, intensityOverride || undefined));
   }
   if (sessionMode === "home_training") {
     return postProcessWeights(generateHomeWorkout(condition, goal, intensityOverride || undefined, equipment));

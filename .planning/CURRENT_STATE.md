@@ -1,6 +1,6 @@
 # CURRENT_STATE.md — 앱 UI/기능 인벤토리 SSOT
 
-**최종 갱신:** 2026-04-23 PM (Paddle 통합 + 자동갱신/만료 스케줄러 + 챗 한도 UX + 어드민 통화 분리 + GA 안정화 + 게스트 잠김 fix)
+**최종 갱신:** 2026-04-24 (AdviceCard ↔ MasterPlan 운동 동기화 — workoutTable exerciseList 바인딩)
 
 이 문서는 "오운잘 앱의 각 화면에 어떤 UI와 기능이 실제로 구현되어 있는지"의 단일 진실 공급원입니다.
 모든 항목은 코드 검증 기반 (`file:line` 인용). 추측 금지. 미검증은 **⚠ 미검증** 마킹.
@@ -603,6 +603,15 @@ Timer/Running: 완료 or 자동 → DONE 펄스 → handleSetComplete
 ---
 
 # 🔧 내부 인프라 (유저 미노출)
+
+**AdviceCard ↔ MasterPlan 운동 동기화** (2026-04-24, 회의 2026-04-24):
+- **배경**: AdviceCard `workoutTable` 은 디스플레이용 텍스트였고, "오늘 이 운동 시작" 클릭 시 서버는 `sessionMode/targetMuscle/goal` enum 3개만 받아 고정 balanced/split 템플릿으로 재생성 → 유저가 본 운동과 실제 세션 불일치.
+- **해결**: `AdviceContent.recommendedWorkout.exerciseList?: Array<{name, sets, reps, rpe?}>` 신설 + 서버 `generateFromExerciseList()` 최우선 routing.
+- 서버: [functions/src/ai/parseIntent.ts](../functions/src/ai/parseIntent.ts) 타입/프롬프트/sanitize + [functions/src/workoutEngine.ts](../functions/src/workoutEngine.ts) `POOL_INDEX` + `resolveExercise()` (4단계 매칭) + [functions/src/plan/session.ts](../functions/src/plan/session.ts) body 파싱·보안 셔플 제외.
+- 클라: [src/constants/workout.ts](../src/constants/workout.ts) `SessionSelection.exerciseList` + [src/app/app/page.tsx](../src/app/app/page.tsx) `lazyGenerateWorkout` body 확장 + push/pull rotation 스킵 가드 + [src/components/dashboard/ChatHome.tsx](../src/components/dashboard/ChatHome.tsx) `onStartRecommended` forward + [src/components/dashboard/AdviceCard.tsx](../src/components/dashboard/AdviceCard.tsx) 타입 미러링.
+- **안전 장치**: exerciseList 부재 → 기존 sessionMode 라우팅 완전 fallback. 풀 매칭 실패 → 입력값 그대로 사용 + 그룹=`other`.
+- **복합 부위 비율 요청** (예: "하체1 어깨2 팔2") 지원 — `targetMuscle` enum 단일 제약 해소. sessionMode 는 "balanced" 유지하되 exerciseList 가 실제 구성 결정.
+- **배포 주문**: functions 먼저 (`firebase deploy --only functions`) → Hosting (`git push` CI). 순서 바뀌면 클라가 새 필드 보내도 서버가 무시.
 
 **구독 결제 자동화** (2026-04-23):
 - **Paddle 백엔드 통합** — `functions/src/billing/paddleWebhook.ts` HMAC-SHA256 서명 검증, `subscription.activated/updated/canceled/resumed/past_due` + `transaction.completed/paid` 이벤트 처리. `custom_data.firebaseUid` 로 유저 매칭, `subscriptions/{uid}` 에 `provider:"paddle"` upsert. cancelSubscription provider 분기 (Paddle Management API `effective_from: next_billing_period`). subscription.updated 시 `canceled_at`/`scheduled_change.action==="cancel"` 있으면 cancelled 보존 (race fix).

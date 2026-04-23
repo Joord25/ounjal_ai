@@ -3733,3 +3733,75 @@ ExerciseStep.intervalSpec?: {
 
 ### 배포
 클라만. 커밋 d697893, push 완료.
+
+---
+
+## 회의 2026-04-24 — AdviceCard ↔ MasterPlan 운동 동기화 (workoutTable exerciseList 바인딩)
+
+### 유저 리포트
+"그날 하루 운동 플랜에 하체 1·어깨 2·팔 2로 짜달라 했는데, 플랜엔 하체 2·등 2·팔 1이 나옴. 확인 부탁."
+
+### 근본 원인 (구조적 결함)
+
+- AdviceCard 의 `workoutTable` 은 Gemini가 직접 채운 **디스플레이 텍스트**였음.
+- "오늘 이 운동 시작" 클릭 시 클라이언트는 `recommendedWorkout.{sessionMode, targetMuscle, goal, ...}` **enum 3개만** 서버로 전송.
+- 서버 `generateAdaptiveWorkout` 은 workoutTable 을 모른 채 `sessionMode==="balanced"` 분기로 진입 → `generateBalancedWorkout()` 의 **하드코딩된 "하체 2 + 상체 3 (push/pull 교대)" 템플릿** 실행.
+- 결과: 유저가 본 운동(workoutTable) ≠ MasterPlan 운동. 이번 케이스는 고강도 pull day → 하체2(트랩바 데드리프트/힙쓰러스트) + 등2(펜들레이/체스트 서포티드) + 이두1(프리처 컬).
+- `targetMuscle` enum(`chest|back|shoulders|arms|legs`)은 **단일 부위**만 허용 — "하체1+어깨2+팔2" 같은 복합 비율 표현 자체가 불가능.
+
+### 결정
+
+"유저 needs 최우선" 원칙 → Option 2(workoutTable → 실행 연동) 채택. 구조 결함 해소를 위해 AdviceCard 에 표시된 운동 = MasterPlan 에 실행되는 운동 **일치 보장**.
+
+### 변경
+
+**Server (functions/):**
+- `functions/src/ai/parseIntent.ts`:
+  - `AdviceContent.recommendedWorkout.exerciseList?: Array<{name, sets, reps, rpe?}>` 추가.
+  - 프롬프트에 exerciseList 규칙 신설(workoutTable 있으면 REQUIRED / 복합 부위 비율 요청의 유일 전달 경로 / exercise_catalog 한국어 풀명 한정 / main 운동만, 최대 8개).
+  - 출력 스키마 line + 새 예제(`advice-mode-composite-ratio`) 추가.
+  - `sanitizeExerciseList()` 헬퍼 — 유효성 검증·정규화·최대 8개 제한.
+- `functions/src/workoutEngine.ts`:
+  - `ExerciseListInput` export 타입 + `POOL_INDEX` lazy 인덱스(LEG/PUSH/PULL/HEAVY_* + CORE 10개 카테고리).
+  - `resolveExercise()` — 4단계 매칭(정확·한국어·normalize·부분포함) 후 실패 시 그룹=`other` fallback.
+  - `generateFromExerciseList()` — warmup/core/cardio 기존 빌더 재사용, main만 유저 리스트. ACSM tempo guide + RPE 병기. title/description 을 그룹 카운트("하체 1종 + 어깨 2종 + 팔 2종")로 동적 생성.
+  - `generateAdaptiveWorkout()` 시그니처에 `exerciseList?` 추가 + **최우선 routing**(존재 시 sessionMode 무시).
+- `functions/src/plan/session.ts`:
+  - body 파싱에 `exerciseList` 추가 → 엔진 전달.
+  - 보안 셔플(last-2 main swap)은 exerciseList 경로에서는 **제외** — 유저가 지정한 순서 = 계약.
+
+**Client (src/):**
+- `src/constants/workout.ts`: `SessionSelection.exerciseList?` 추가.
+- `src/app/app/page.tsx`:
+  - `lazyGenerateWorkout` 시그니처 확장 + body 에 `exerciseList` 포함.
+  - push/pull localStorage rotation을 `exerciseList` 경로에서는 **스킵** (generateBalancedWorkout 미실행이므로 rotation 상태 훼손 방지).
+  - `handleIntensityChange` / `handleRegenerate` 에서 `currentSession?.exerciseList` 유지 전달.
+- `src/components/dashboard/ChatHome.tsx`: `onStartRecommended` 에서 `rec.exerciseList` 를 SessionSelection 으로 forward.
+- `src/components/dashboard/AdviceCard.tsx`: 클라이언트 `AdviceContent` 타입에도 `exerciseList` 미러링.
+
+### 안전 장치
+
+- exerciseList 부재/빈 배열 → 기존 sessionMode 라우팅으로 **완전 fallback** (기존 balanced/split/running/home_training 경로 무손실).
+- 풀 매칭 실패 → 입력값 그대로 사용 + 그룹=`other` (세션 생성 자체는 실패하지 않음).
+- 프롬프트는 workoutTable/복합 비율 시에만 exerciseList 요구 — 기존 "가슴 30분" 같은 split 요청은 영향 없음.
+
+### 검증
+
+- functions `npm run build` PASS (tsc clean).
+- Next.js `npm run build` PASS (15 static pages).
+
+### 시뮬레이션 검증 (2026-04-24 추가)
+
+배포 전 10종 시나리오 시뮬레이션. 발견 버그 2건 즉시 수정.
+
+**BUG 1 — 러닝 요청 + exerciseList 충돌**: `generateAdaptiveWorkout` 라우팅 순서상 exerciseList 체크가 `sessionMode==="running"` 보다 먼저였음. Gemini 가 실수로 러닝 응답에 exerciseList 를 채우면 러닝 인터벌 구조 손실되고 strength 세션으로 둔갑. **Fix**: running 가드를 exerciseList 라우팅보다 앞으로 이동. 프롬프트에도 "러닝 요청은 exerciseList 금지" 명시.
+
+**BUG 2 — 코어 운동이 main/strength로 잘못 분류**: 유저가 "코어 5개만" 요청 시 Gemini 가 exerciseList 에 플랭크/크런치를 넣으면, 서버는 모든 item 을 `type:"strength", phase:"main"` 으로 고정해 FitScreen 이 웨이트 픽커 UI 로 렌더 → UX 파괴. **Fix**: `resolveExercise` 결과 `group==="core"` 면 `type:"core", phase:"core"` 로 전환 + weight 생략. 유저가 core 를 직접 지정했으면 자동 `buildCore` 스킵해서 중복 방지.
+
+**통과 시나리오**: 하체1 어깨2 팔2 (원본 버그), 가슴 30분 (기존 split), 상체당기기 4개, 등 3개만, 친업(back/arm 중복 등록), 동일 운동 중복, home_training 등. 프롬프트 완화 — "코어 명시 요청 시만 코어 허용".
+
+**미해결 / 회귀 리스크**:
+- Gemini 가 `exerciseList` 필드를 일관 채우는지 프로덕션 관찰 필요.
+- 풀에 없는 운동명 → `other` 그룹 수납되어 title 이 "기타 N종" 어색할 수 있음. 로그 추적 후 catalog 보강.
+- home_training + exerciseList 조합 시 equipment=bodyweight_only 필터가 exerciseList 경로에 적용 안 됨 — Gemini 프롬프트 책임에 의존. 실제 BW 위반 발생 시 서버 필터 추가.
+- 배포 순서: **functions 먼저** (`firebase deploy --only functions`) → Hosting (`git push` CI).

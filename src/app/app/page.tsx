@@ -93,6 +93,8 @@ const lazyGenerateWorkout = async (
   runType?: import("@/constants/workout").RunType,
   // 회의 64-M4: 장비 제약 — "bodyweight_only" 시 BW 전용 풀링
   equipment?: import("@/constants/workout").EquipmentConstraint,
+  // 회의 2026-04-24: workoutTable ↔ MasterPlan 동기화 — AdviceCard 명시 운동 리스트
+  exerciseList?: import("@/constants/workout").SessionSelection["exerciseList"],
 ): Promise<import("@/constants/workout").WorkoutSessionData> => {
   // [DEV ONLY] mockPlan 모드: Cloud Functions 없이 UI 프리뷰 (?mockPlan=1 또는 localStorage 플래그)
   if (process.env.NODE_ENV === "development" && typeof window !== "undefined") {
@@ -132,6 +134,7 @@ const lazyGenerateWorkout = async (
     dayIndex, condition, goal, selectedSessionType,
     intensityOverride, sessionMode, targetMuscle, runType, lastUpperType,
     equipment,
+    exerciseList,
   });
   const headers = { "Content-Type": "application/json", "Authorization": `Bearer ${token}` };
 
@@ -157,7 +160,9 @@ const lazyGenerateWorkout = async (
   const session = await res.json();
 
   // 서버 응답 후 Push/Pull 교대 상태 저장
-  if (typeof window !== "undefined" && sessionMode === "balanced") {
+  // 회의 2026-04-24: exerciseList 경로는 generateBalancedWorkout 을 돌리지 않으므로 rotation 스킵.
+  const hasExerciseList = Array.isArray(exerciseList) && exerciseList.length > 0;
+  if (typeof window !== "undefined" && sessionMode === "balanced" && !hasExerciseList) {
     const currentUpper = lastUpperType === "push" ? "pull" : "push";
     localStorage.setItem("ohunjal_last_upper_type", currentUpper);
   }
@@ -656,7 +661,7 @@ export default function Home() {
 
         // If sessionMode is set (new UI), generate instantly but wait for loading animation
         if (sessionSel?.sessionMode) {
-            const session = await lazyGenerateWorkout(scheduleIndex, condition, goal, sessionType, intensityLevel, sessionSel.sessionMode, sessionSel.targetMuscle, sessionSel.runType, sessionSel.equipment);
+            const session = await lazyGenerateWorkout(scheduleIndex, condition, goal, sessionType, intensityLevel, sessionSel.sessionMode, sessionSel.targetMuscle, sessionSel.runType, sessionSel.equipment, sessionSel.exerciseList);
             // ChatHome 확인 경로: 오버레이 건너뛰고 즉시 마스터플랜 진입 (대표 지시)
             if (skipLoadingAnim) {
                 setCurrentWorkoutSession(session);
@@ -789,7 +794,7 @@ export default function Home() {
     const scheduleIndex = dayIndex === 0 ? 6 : dayIndex - 1;
     const reqId = ++generateRequestId.current;
     try {
-      const session = await lazyGenerateWorkout(scheduleIndex, currentCondition, currentGoal, undefined, level, currentSession?.sessionMode, currentSession?.targetMuscle, currentSession?.runType, currentSession?.equipment);
+      const session = await lazyGenerateWorkout(scheduleIndex, currentCondition, currentGoal, undefined, level, currentSession?.sessionMode, currentSession?.targetMuscle, currentSession?.runType, currentSession?.equipment, currentSession?.exerciseList);
       if (reqId === generateRequestId.current) setCurrentWorkoutSession(session);
     } catch { /* lazyGenerateWorkout 내부에서 에러 처리 */ }
   };
@@ -800,7 +805,7 @@ export default function Home() {
     const scheduleIndex = dayIndex === 0 ? 6 : dayIndex - 1;
     const reqId = ++generateRequestId.current;
     try {
-      const session = await lazyGenerateWorkout(scheduleIndex, currentCondition, currentGoal, undefined, recommendedIntensity, currentSession?.sessionMode, currentSession?.targetMuscle, currentSession?.runType, currentSession?.equipment);
+      const session = await lazyGenerateWorkout(scheduleIndex, currentCondition, currentGoal, undefined, recommendedIntensity, currentSession?.sessionMode, currentSession?.targetMuscle, currentSession?.runType, currentSession?.equipment, currentSession?.exerciseList);
       if (reqId === generateRequestId.current) setCurrentWorkoutSession(session);
     } catch { /* lazyGenerateWorkout 내부에서 에러 처리 */ }
   };
