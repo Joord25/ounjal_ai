@@ -516,16 +516,48 @@ export const adminDashboard = onRequest(
 
       // Time ranges는 위에서 이미 계산됨 (payments iteration 전에 선언)
 
-      const countByRange = <T extends { createdAt: Date }>(rows: T[]) => ({
-        today: rows.filter(u => u.createdAt >= todayStart).length,
-        yesterday: rows.filter(u => u.createdAt >= yesterdayStart && u.createdAt < todayStart).length,
-        week: rows.filter(u => u.createdAt >= weekStart).length,
-        // 회의 57 Tier 2: 증감률 계산용 이전 기간
-        lastWeek: rows.filter(u => u.createdAt >= lastWeekStart && u.createdAt < weekStart).length,
-        month: rows.filter(u => u.createdAt >= monthStartDate).length,
-        lastMonth: rows.filter(u => u.createdAt >= lastMonthStartDate && u.createdAt < monthStartDate).length,
-        total: rows.length,
-      });
+      // 회의 2026-04-23: 커스텀 날짜 범위 지원 — req.body.customStart/customEnd (ISO date)
+      // 유효하면 funnel 결과에 `custom: N` 추가. 잘못된 입력이면 무시 (안전 폴백).
+      let customStart: Date | null = null;
+      let customEnd: Date | null = null;
+      const csIn = typeof req.body?.customStart === "string" ? req.body.customStart : null;
+      const ceIn = typeof req.body?.customEnd === "string" ? req.body.customEnd : null;
+      if (csIn) {
+        const d = new Date(csIn);
+        if (!isNaN(d.getTime())) customStart = d;
+      }
+      if (ceIn) {
+        const d = new Date(ceIn);
+        if (!isNaN(d.getTime())) {
+          // end 는 inclusive 처리 — date 만 들어오면 그날 23:59:59 까지 포함
+          if (ceIn.length <= 10) d.setUTCHours(23, 59, 59, 999);
+          customEnd = d;
+        }
+      }
+
+      const countByRange = <T extends { createdAt: Date }>(rows: T[]) => {
+        const out: {
+          today: number; yesterday: number; week: number; lastWeek: number;
+          month: number; lastMonth: number; total: number; custom?: number;
+        } = {
+          today: rows.filter(u => u.createdAt >= todayStart).length,
+          yesterday: rows.filter(u => u.createdAt >= yesterdayStart && u.createdAt < todayStart).length,
+          week: rows.filter(u => u.createdAt >= weekStart).length,
+          // 회의 57 Tier 2: 증감률 계산용 이전 기간
+          lastWeek: rows.filter(u => u.createdAt >= lastWeekStart && u.createdAt < weekStart).length,
+          month: rows.filter(u => u.createdAt >= monthStartDate).length,
+          lastMonth: rows.filter(u => u.createdAt >= lastMonthStartDate && u.createdAt < monthStartDate).length,
+          total: rows.length,
+        };
+        if (customStart || customEnd) {
+          out.custom = rows.filter(u => {
+            if (customStart && u.createdAt < customStart) return false;
+            if (customEnd && u.createdAt > customEnd) return false;
+            return true;
+          }).length;
+        }
+        return out;
+      };
 
       // 회의 63: 월별 추이 (최근 6개월) — 신규가입 · 신규결제유저 · 매출
       //   cohort 리텐션 본격 구현은 후속 과제. 지금은 단순 타임라인으로 추이 가시성만 확보.
@@ -734,6 +766,10 @@ export const adminDashboard = onRequest(
         expiringIn3Days,
         monthlyRevenue,
         funnel,
+        customRange: customStart || customEnd ? {
+          start: customStart ? customStart.toISOString() : null,
+          end: customEnd ? customEnd.toISOString() : null,
+        } : null,
         // 회의 57 Tier 2: 매출 분해
         monthlyPaymentCount,
         avgPayment,

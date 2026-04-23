@@ -44,6 +44,7 @@ interface UserStats {
   month: number;
   lastMonth?: number; // 회의 57 Tier 2: 증감률 계산용
   total: number;
+  custom?: number;    // 회의 2026-04-23: 커스텀 날짜 범위 적용 시 추가 노출
 }
 
 interface DashboardData {
@@ -109,6 +110,8 @@ interface DashboardData {
     anon: FunnelSegment;
     loggedIn: FunnelSegment;
   };
+  // 회의 2026-04-23: 커스텀 날짜 범위 적용 시 echo (서버가 받은 값)
+  customRange?: { start: string | null; end: string | null } | null;
 }
 
 interface FunnelSegment {
@@ -289,6 +292,9 @@ export default function AdminPage() {
   // 회의 63: GA4 funnel 3종 (후킹/차별성/페이월)
   const [analyticsFunnel, setAnalyticsFunnel] = useState<AnalyticsFunnelData | null>(null);
   const [funnelWindowDays, setFunnelWindowDays] = useState<7 | 14 | 30>(7);
+  // 회의 2026-04-23: 유저 행동 퍼널 커스텀 날짜 범위 (YYYY-MM-DD)
+  const [funnelCustomStart, setFunnelCustomStart] = useState<string>("");
+  const [funnelCustomEnd, setFunnelCustomEnd] = useState<string>("");
   const [loadingFunnel, setLoadingFunnel] = useState(false);
 
   useEffect(() => {
@@ -353,12 +359,21 @@ export default function AdminPage() {
     return () => clearTimeout(t);
   }, [userSearchQuery]);
 
-  const loadDashboard = async () => {
+  const loadDashboard = async (overrideRange?: { start: string; end: string } | null) => {
     try {
       const token = await getToken();
+      const range = overrideRange === undefined
+        ? (funnelCustomStart && funnelCustomEnd ? { start: funnelCustomStart, end: funnelCustomEnd } : null)
+        : overrideRange;
+      const body: Record<string, string> = {};
+      if (range) {
+        body.customStart = range.start;
+        body.customEnd = range.end;
+      }
       const res = await fetch("/api/adminDashboard", {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+        body: JSON.stringify(body),
       });
       if (res.ok) setDashboard(await res.json());
     } catch { /* ignore */ }
@@ -835,13 +850,22 @@ export default function AdminPage() {
                     { key: "workoutStarted" as const, label: "운동 기록" },
                     { key: "workoutCompleted" as const, label: "운동 완주" },
                   ];
-                  const BUCKETS = [
-                    { key: "today" as const, label: "오늘" },
-                    { key: "yesterday" as const, label: "어제" },
-                    { key: "week" as const, label: "이번 주" },
-                    { key: "month" as const, label: "이번 달" },
-                    { key: "total" as const, label: "전체" },
+                  const customActive = !!dashboard.customRange;
+                  const BUCKETS: Array<{ key: keyof UserStats; label: string }> = [
+                    { key: "today", label: "오늘" },
+                    { key: "yesterday", label: "어제" },
+                    { key: "week", label: "이번 주" },
+                    { key: "month", label: "이번 달" },
+                    { key: "total", label: "전체" },
                   ];
+                  if (customActive) {
+                    const r = dashboard.customRange!;
+                    const fmt = (iso: string | null) => iso ? iso.slice(5, 10).replace("-", ".") : "?";
+                    BUCKETS.push({
+                      key: "custom",
+                      label: `${fmt(r.start)}~${fmt(r.end)}`,
+                    });
+                  }
                   const SEGS = [
                     { key: "anon" as const, label: "비로그인", color: "text-gray-500", headerColor: "text-gray-400" },
                     { key: "loggedIn" as const, label: "로그인(가입자)", color: "text-[#2D6A4F]", headerColor: "text-[#2D6A4F]/70" },
@@ -851,6 +875,44 @@ export default function AdminPage() {
                       <div className="flex items-baseline justify-between mb-3">
                         <p className="font-bold text-[#1B4332]">유저 행동 퍼널</p>
                         <p className="text-[10px] text-gray-400">진입 → 완주 · 이탈률 표시</p>
+                      </div>
+                      {/* 회의 2026-04-23: 커스텀 날짜 범위 입력 */}
+                      <div className="flex items-center flex-wrap gap-2 mb-3 text-[11px]">
+                        <span className="text-gray-500">기간:</span>
+                        <input
+                          type="date"
+                          value={funnelCustomStart}
+                          onChange={(e) => setFunnelCustomStart(e.target.value)}
+                          className="px-2 py-1 border border-gray-200 rounded-md text-[11px] text-[#1B4332]"
+                        />
+                        <span className="text-gray-400">~</span>
+                        <input
+                          type="date"
+                          value={funnelCustomEnd}
+                          onChange={(e) => setFunnelCustomEnd(e.target.value)}
+                          className="px-2 py-1 border border-gray-200 rounded-md text-[11px] text-[#1B4332]"
+                        />
+                        <button
+                          type="button"
+                          disabled={!funnelCustomStart || !funnelCustomEnd}
+                          onClick={() => loadDashboard({ start: funnelCustomStart, end: funnelCustomEnd })}
+                          className="px-2.5 py-1 rounded-md bg-[#1B4332] text-white font-bold disabled:opacity-40 active:scale-95 transition"
+                        >
+                          적용
+                        </button>
+                        {customActive && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setFunnelCustomStart("");
+                              setFunnelCustomEnd("");
+                              loadDashboard(null);
+                            }}
+                            className="px-2.5 py-1 rounded-md bg-gray-100 text-gray-600 font-medium active:scale-95 transition"
+                          >
+                            초기화
+                          </button>
+                        )}
                       </div>
 
                       {SEGS.map((seg, segIdx) => {
