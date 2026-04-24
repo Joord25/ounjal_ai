@@ -7,8 +7,12 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "functions:build": "cd functions && npm run build",
+    "functions:serve": "cd functions && npm run serve",
+    "functions:deploy": "firebase deploy --only functions"
   },
   "dependencies": {
     "@paddle/paddle-js": "^1.6.2",
