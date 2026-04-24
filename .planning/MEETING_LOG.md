@@ -4146,3 +4146,68 @@ Next.js `npm run build` PASS. 대표 컨펌 받고 진행.
 ### 재발 방지 룰
 - `.planning/` 완료 문서는 실행 확인 후 archive/ 이동 원칙 (신규 적용)
 - npm 의존성 추가 시 실사용 확인 — CDN 사용 시 npm 중복 지양
+
+---
+
+## 회의 2026-04-25 ②: setDetails 플랜 편집 → FitScreen 미전달 버그 fix
+
+### 대표 발견
+"플랜에서 무게랑 횟수설정하면 fitscreen에 적용이 잘되는지도 확인한번해줘"
+
+### 진단 (코드 감사)
+MasterPlanPreview 의 useSetEditor.updateSetDetail 은 `ex.setDetails[setIdx]` 에만 저장하고 `ex.reps`/`ex.weight` 는 건드리지 않음. 그런데 WorkoutSession → FitScreen 의 setInfo 는:
+```tsx
+setInfo={{ targetReps: currentExercise.reps, targetWeight: currentExercise.weight }}
+```
+로 단일 값만 읽음. 결과: **세트별 편집이 실제 운동 실행에 0 반영**.
+
+CURRENT_STATE.md L311 "세트/반복/무게 — useSetEditor 훅으로 개별 set 편집" 문구와 실제 동작 괴리.
+
+### 영향 범위
+- setDetails undefined (AI 자동 생성 플랜 대다수): 영향 X — ex.reps/weight 경로 동일 동작
+- setDetails 존재 (유저가 MasterPlan에서 세트별 손댐): **모든 세트가 첫 세트 값 or 원래 값으로 균일 실행** → 세트별 편집 의도 손실
+
+### 해결 — A안 채택 (WorkoutSession/FitScreen 이 setDetails 소비)
+대표 컨펌 후 진행. B안(useSetEditor 가 ex.reps/weight 동기화)은 기능 축소라 기각.
+
+### 변경
+**[src/components/workout/WorkoutSession.tsx](../src/components/workout/WorkoutSession.tsx)** 2 지점:
+
+1. **setInfo prop 구성** (L562-577): IIFE 로 `currentExercise.setDetails?.[currentSet-1]` 우선 lookup → 없으면 `ex.reps`/`ex.weight` fallback. FitScreen 의 render-time sync ([FitScreen L165-184](../src/components/workout/FitScreen.tsx#L165)) 이 setInfo 변경 감지해 adjustedReps/selectedWeight 재동기화.
+
+2. **handleSetComplete 피드백 루프** (L221-235): easy/too_easy/fail 시 `exercise.reps = newReps` 유지 (setDetails 없는 경로 호환) + **setDetails 존재하면 다음 세트 인덱스만 패치**:
+   ```ts
+   if (exercise.setDetails && exercise.setDetails.length > 0) {
+     const nextIdx = currentSet; // 방금 완료가 1-indexed currentSet, 다음은 0-indexed currentSet
+     if (nextIdx < exercise.setDetails.length) {
+       const patched = [...exercise.setDetails];
+       patched[nextIdx] = { ...patched[nextIdx], reps: newReps };
+       exercise.setDetails = patched;
+     }
+   }
+   ```
+
+### 설계 결정: 피드백 cascade 범위
+**정책: 다음 세트 1개만 패치.** 이유:
+- 유저가 set 2 (85kg 8), set 3 (90kg 6) 처럼 피라미드 세트를 의도적으로 플랜했으면 set 1 피드백이 set 3 까지 뒤엎는 건 의도 파괴
+- 기존 ex.reps 기반 구동 시엔 모든 세트가 ex.reps 공유라 전체 적용이 자연스러웠음. setDetails 세계에선 각 세트가 독립적 intent → **next set only** 가 유저 의도 보존 원칙에 맞음
+- 기존 AI 자동 플랜 케이스(setDetails 미존재)는 ex.reps 경로로 모든 세트 적용 — 이전 동작 보존
+
+### 검증
+- `npm run typecheck` exit 0
+- `npm run build` PASS (15/15 정적 페이지)
+- `npm run test` 22/22 통과
+
+### 배포
+클라만. 커밋 `022b141` main 푸쉬 완료 → GitHub Actions Hosting CI 자동 재배포.
+
+### UAT (대표 확인 필요)
+재현 시나리오:
+1. 플랜 화면에서 벤치프레스 선택
+2. 세트 2 무게를 +10kg (예: 70kg → 80kg)
+3. "운동 시작" → 세트 2 진입 시 80kg 로 등장하는지 확인
+4. 추가: 세트 1 완료 시 "+ 2회" 피드백 주고 세트 2 targetReps 가 기본값+2 로 바뀌는지 확인 (단, 세트 2 에 reps 도 미리 편집했다면 그 값이 보인 뒤 피드백으로 +2 반영)
+
+### 재발 방지
+- CURRENT_STATE.md L311 문구 실제 동작과 일치 여부 재확인 필요 (이번 수정으로 일치 회복, 갱신 불요)
+- useSetEditor 편집 시 setDetails / ex.reps / ex.weight 3 소스 일관성 주의 — 추후 refactor 시 setDetails 단일 SSOT 로 통일 고려 가능
