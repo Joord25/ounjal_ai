@@ -60,6 +60,10 @@ interface FitScreenProps {
   // 회의 2026-04-24: 우측 상단 "현재 운동 스킵" 아이콘 — 세트 기록 없이 다음 운동으로.
   //   warmup/strength/core/cardio 전 phase 공통 노출.
   onSkipExercise?: () => void;
+  // 회의 2026-04-26 음악 도입: DONE 위 음악 미니바 슬롯. WorkoutSession 이 WorkoutMusicPlayer 를 주입.
+  bottomBar?: React.ReactNode;
+  // 알람 발사 직전 호출 — 음악 ducking 트리거용.
+  onBeforeAlarm?: () => void;
 }
 
 export const FitScreen: React.FC<FitScreenProps> = ({
@@ -80,6 +84,8 @@ export const FitScreen: React.FC<FitScreenProps> = ({
   onRunningStatsComputed,
   onEndClick,
   onSkipExercise,
+  bottomBar,
+  onBeforeAlarm,
 }) => {
   const { t, locale } = useTranslation();
   const { system: unitSystem, labels: unitLabels } = useUnits();
@@ -196,7 +202,7 @@ export const FitScreen: React.FC<FitScreenProps> = ({
   }, [setInfo.current]);
 
   const halfAlarmFired = useRef(false);
-  const playAlarmSound = useAlarmSynthesizer();
+  const playAlarmSound = useAlarmSynthesizer({ onBeforePlay: onBeforeAlarm });
 
   // Weight presets: 4 nearest 10kg steps centered around current weight (excluding current)
   const weightPresets = (() => {
@@ -2262,6 +2268,9 @@ export const FitScreen: React.FC<FitScreenProps> = ({
           </div>
         </div>
       )}
+
+      {/* 회의 2026-04-26 음악 도입: DONE 위 음악 미니바 슬롯 (WorkoutSession 이 주입) */}
+      {bottomBar && <div className="shrink-0">{bottomBar}</div>}
     </div>
   );
 };

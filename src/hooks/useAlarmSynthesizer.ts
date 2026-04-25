@@ -2,8 +2,18 @@ import { useRef, useCallback } from "react";
 
 type AlarmPattern = "start" | "tick" | "half" | "end" | "rest_end" | "exercise_done";
 
-export function useAlarmSynthesizer() {
+type AlarmOptions = {
+  /**
+   * 알람 발사 직전 호출. 음악 BGM ducking 등 외부 효과를 트리거하는 데 사용.
+   * 회의 2026-04-26 음악 도입.
+   */
+  onBeforePlay?: () => void;
+};
+
+export function useAlarmSynthesizer(opts?: AlarmOptions) {
   const audioCtxRef = useRef<AudioContext | null>(null);
+  const onBeforePlayRef = useRef(opts?.onBeforePlay);
+  onBeforePlayRef.current = opts?.onBeforePlay;
 
   const getAudioCtx = () => {
     if (!audioCtxRef.current || audioCtxRef.current.state === "closed") {
@@ -19,6 +29,7 @@ export function useAlarmSynthesizer() {
     try {
       // 소리 설정 OFF면 무시
       if (typeof window !== "undefined" && localStorage.getItem("ohunjal_settings_sound") === "false") return;
+      onBeforePlayRef.current?.();
       const ctx = getAudioCtx();
       const t = ctx.currentTime;
 
