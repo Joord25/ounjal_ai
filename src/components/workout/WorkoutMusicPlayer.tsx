@@ -270,8 +270,15 @@ export function WorkoutMusicPlayer({ enabled, onUnavailable, registerHandle, uiP
       >
         <div id={PLAYER_CONTAINER_ID} />
       </div>
-      {/* 미니바 UI 는 portal 로 FitScreen 의 DONE 직전 슬롯에 렌더 (와이어프레임 정확 위치). 슬롯 없으면 미렌더. */}
-      {uiPortalTarget ? createPortal(ui, uiPortalTarget) : null}
+      {/*
+        미니바 UI:
+        - 1차: FitScreen 의 DONE 직전 portal 슬롯 (와이어프레임 정확 위치, strength/cardio 등 일반 케이스)
+        - fallback: portal target 없거나 어떤 이유로 미마운트 시 화면 하단 fixed (러닝 등 콘텐츠 풍부 케이스)
+        2026-04-26: 러닝 운동에서 미니바 미노출 보고 → 어떤 운동에서도 항상 노출 보장.
+      */}
+      {uiPortalTarget
+        ? createPortal(ui, uiPortalTarget)
+        : <div className="fixed bottom-0 left-0 right-0 z-40">{ui}</div>}
     </>
   );
 }
