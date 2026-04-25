@@ -22,6 +22,7 @@ import { VolumeTrendChart } from "./VolumeTrendChart";
 import { MonthlyRunningScience } from "@/components/report/MonthlyRunningScience";
 import {
   type FitnessCategory,
+  type CategoryPercentile,
   getCategoryBestBwRatio,
   bwRatioToPercentile,
   percentileToRank,
@@ -29,7 +30,9 @@ import {
   getCardioPacePercentile,
   getCardioConfidenceStatus,
   getAgeGroupLabel,
+  computeOverallPercentile,
 } from "@/utils/fitnessPercentile";
+import { HexagonChart, type HexagonAxis } from "@/components/report/HexagonChart";
 
 const RANK_CATEGORY_LABELS: Record<FitnessCategory, { ko: string; en: string }> = {
   chest: { ko: "가슴", en: "Chest" },
@@ -501,17 +504,18 @@ export const ProofTab: React.FC<ProofTabProps> = ({ onShowPrediction }) => {
           </div>
         </div>
         ) : proofView === "bodypart" ? (
-          /* === 내 등수 탭 === 부위별 퍼센타일 (전체 history 기준 누적) */
+          /* === 내 등수 탭 === 부위별 퍼센타일 헥사곤 (전체 history 기준 누적, StatusTab 디자인 재사용) */
           <div className="p-4 min-h-[320px]">
             {(() => {
               const age = !isNaN(savedBirthYear) ? new Date().getFullYear() - savedBirthYear : 30;
               const bodyWeightKg = !isNaN(savedBodyWeight) ? savedBodyWeight : 0;
               const gender = savedGender;
+              const isKo = locale === "ko";
 
               if (!gender || bodyWeightKg <= 0) {
                 return (
                   <p className="text-sm text-gray-400 text-center py-12">
-                    {locale === "ko" ? "프로필 설정 후 등수가 표시돼요" : "Set profile to see your rank"}
+                    {isKo ? "프로필 설정 후 등수가 표시돼요" : "Set profile to see your rank"}
                   </p>
                 );
               }
@@ -526,56 +530,69 @@ export const ProofTab: React.FC<ProofTabProps> = ({ onShowPrediction }) => {
               const cardioStatus = getCardioConfidenceStatus(runningHistory);
               const cardioBestPace = getBestRunningPace(runningHistory);
 
-              const rows = RANK_CATEGORIES.map((cat) => {
+              // 카테고리별 퍼센타일 (StatusTab 과 동일 구조)
+              const categoryPercentiles: CategoryPercentile[] = RANK_CATEGORIES.map((cat) => {
                 if (cat === "cardio") {
                   if (cardioStatus.eligibleRunCount === 0 || cardioBestPace == null) {
-                    return { category: cat, percentile: 0, rank: null as number | null, hasData: false };
+                    return { category: cat, rank: 50, percentile: 50, bwRatio: 0, hasData: false };
                   }
                   const percentile = getCardioPacePercentile(cardioBestPace, gender, age);
-                  return { category: cat, percentile, rank: percentileToRank(percentile), hasData: true };
+                  return {
+                    category: cat,
+                    rank: percentileToRank(percentile),
+                    percentile,
+                    bwRatio: 0,
+                    hasData: true,
+                  };
                 }
                 const bwRatio = bestByCategory.get(cat);
                 if (!bwRatio || bwRatio <= 0) {
-                  return { category: cat, percentile: 0, rank: null as number | null, hasData: false };
+                  return { category: cat, rank: 50, percentile: 50, bwRatio: 0, hasData: false };
                 }
                 const percentile = bwRatioToPercentile(bwRatio, cat, gender, age);
-                return { category: cat, percentile, rank: percentileToRank(percentile), hasData: true };
+                return {
+                  category: cat,
+                  rank: percentileToRank(percentile),
+                  percentile,
+                  bwRatio,
+                  hasData: true,
+                };
               });
 
-              const ageGroup = getAgeGroupLabel(age, locale);
-              const genderLabel = locale === "ko"
-                ? (gender === "male" ? "남성" : "여성")
-                : (gender === "male" ? "Men" : "Women");
+              const overallPercentile = computeOverallPercentile(categoryPercentiles);
+              const overallRank = percentileToRank(overallPercentile);
+              const hasAnyData = categoryPercentiles.some((c) => c.hasData);
+
+              const hexAxes: HexagonAxis[] = categoryPercentiles.map((cp) => ({
+                label: isKo ? RANK_CATEGORY_LABELS[cp.category].ko : RANK_CATEGORY_LABELS[cp.category].en,
+                value: cp.hasData ? cp.percentile : 0,
+                rankText: cp.hasData ? `${cp.rank}${isKo ? "등" : "th"}` : "-",
+                tentative: cp.category === "cardio" && cp.hasData && !cardioStatus.isConfirmed,
+              }));
+
+              const ageGroupLabel = getAgeGroupLabel(age, locale);
+              const genderLabel = isKo ? (gender === "male" ? "남성" : "여성") : (gender === "male" ? "men" : "women");
 
               return (
                 <div className="w-full">
-                  <p className="text-[11px] text-[#1B4332]/40 text-center mb-4">
-                    {locale === "ko"
-                      ? `${ageGroup} ${genderLabel} 100명 중 위치 (전체 기준)`
-                      : `Position out of 100 ${ageGroup} ${genderLabel} (all-time)`}
+                  <p className="text-sm font-black text-[#1B4332] text-center mb-1">
+                    {isKo
+                      ? `${ageGroupLabel} ${genderLabel} 100명 중`
+                      : `Among 100 ${ageGroupLabel} ${genderLabel}`}
                   </p>
-                  <div className="space-y-2.5">
-                    {rows.map((r) => {
-                      const label = RANK_CATEGORY_LABELS[r.category];
-                      const labelText = locale === "ko" ? label.ko : label.en;
-                      return (
-                        <div key={r.category} className="flex items-center gap-2">
-                          <span className="text-[11px] font-bold text-[#1B4332]/60 w-14 shrink-0">{labelText}</span>
-                          <div className="flex-1 h-2 bg-[#2D6A4F]/10 rounded-full overflow-hidden">
-                            <div
-                              className={`h-full rounded-full transition-all ${r.hasData ? "bg-[#2D6A4F]" : "bg-gray-300"}`}
-                              style={{ width: `${r.hasData ? r.percentile : 0}%` }}
-                            />
-                          </div>
-                          <span className="text-[10px] font-bold text-[#1B4332]/40 w-10 text-right tabular-nums">
-                            {r.hasData
-                              ? (locale === "ko" ? `${r.rank}등` : `#${r.rank}`)
-                              : "—"}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
+                  <HexagonChart axes={hexAxes} />
+                  {hasAnyData && (
+                    <div className="text-center mt-3">
+                      <p className="text-lg font-black text-[#1B4332]">
+                        {isKo ? `종합 ${overallRank}등` : `Overall rank: ${overallRank}`}
+                      </p>
+                    </div>
+                  )}
+                  {!hasAnyData && (
+                    <p className="text-center text-xs text-gray-400 mt-2">
+                      {isKo ? "운동 기록이 쌓이면 나의 위치가 보여요" : "Your ranking will appear as you log workouts"}
+                    </p>
+                  )}
                 </div>
               );
             })()}
