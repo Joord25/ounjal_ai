@@ -56,10 +56,10 @@ export const EXERCISE_VIDEOS: Record<string, string> = {
   // ── 삼두 (PUSH - Isolation) ──
   "트라이셉 로프 푸쉬다운": "4NWWB0f0vzQ",
   "스컬 크러셔": "1cikFylNxqw",
-  "오버헤드 트라이셉 익스텐션": "pmcUemVUnP4",
+  "오버헤드 트라이셉 익스텐션": "AYqg9S5FrUU",
   "케이블 푸쉬 다운": "XpeCPOHJTK8",
   "케이블 오버헤드 트라이셉 익스텐션": "pmcUemVUnP4",
-  "케이블 OH 트라이셉 익스텐션": "pmcUemVUnP4",
+  "케이블 OH 트라이셉 익스텐션": "pmcUemVUnP4", // 회의 2026-04-25: 풀에서 풀네임으로 통일. 과거 workout_history 레코드 호환용 alias.
   "트라이셉스 킥백": "WhBxKbe1-NU",
   "트라이셉스 딥스": "XX1_7MN1fEM",
   "클로즈그립 벤치 프레스": "43rg7fBNP2w",

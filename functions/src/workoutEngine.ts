@@ -352,7 +352,7 @@ const PUSH_EXERCISES = {
     "스컬 크러셔 (Skullcrushers)",
     "오버헤드 트라이셉 익스텐션 (Overhead Tricep Extension)",
     "케이블 푸쉬 다운 (Cable Pushdown)",
-    "케이블 OH 트라이셉 익스텐션 (Cable Overhead Tricep Extension)",
+    "케이블 오버헤드 트라이셉 익스텐션 (Cable Overhead Tricep Extension)",
     "트라이셉스 킥백 (Tricep Kickback)",
     "트라이셉스 딥스 (Tricep Dips)",
     "클로즈그립 벤치 프레스 (Close-Grip Bench Press)",
