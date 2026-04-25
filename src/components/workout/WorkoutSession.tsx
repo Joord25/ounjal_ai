@@ -73,6 +73,15 @@ export const WorkoutSession: React.FC<WorkoutSessionProps> = ({
   const handleBeforeAlarm = useCallback(() => {
     musicHandleRef.current?.duckVolumeFor(800);
   }, []);
+  // 회의 2026-04-26 음악 도입: 운동 ▶/⏸ → 음악 단방향 동기화 (timer/cardio/running 만, FitScreen 에서 발화).
+  // 사용자가 음악 재생 의도였을 때만 음악도 따라감 (resumeAfterOverride 가 userIntendedPlaying 체크).
+  const handleIsPlayingChange = useCallback((isPlaying: boolean) => {
+    if (isPlaying) {
+      musicHandleRef.current?.resumeAfterOverride();
+    } else {
+      musicHandleRef.current?.pauseForOverride();
+    }
+  }, []);
   // 화면 꺼짐 방지 — 음악 ON 시. 러닝은 useGpsTracker 가 자체 wake lock 운영 (중복 호출 안전).
   useScreenWakeLock(musicEnabled);
   // FitScreen 의 bottomBar 슬롯 element — 매 운동 전환 시 새 element 로 교체됨. callback ref 로 추적.
@@ -621,6 +630,7 @@ export const WorkoutSession: React.FC<WorkoutSessionProps> = ({
         onEndClick={onAbandon ? () => setShowAbandonModal(true) : undefined}
         onSkipExercise={handleSkipExercise}
         onBeforeAlarm={musicEnabled ? handleBeforeAlarm : undefined}
+        onIsPlayingChange={musicEnabled ? handleIsPlayingChange : undefined}
         bottomBar={musicEnabled ? <div ref={musicSlotCallback} className="shrink-0" /> : null}
       />
 

@@ -64,6 +64,8 @@ interface FitScreenProps {
   bottomBar?: React.ReactNode;
   // 알람 발사 직전 호출 — 음악 ducking 트리거용.
   onBeforeAlarm?: () => void;
+  // 운동 ▶/⏸ 변경 시 호출 — WorkoutSession 이 음악도 단방향 동기화 (timer/cardio/running 운동만 발화).
+  onIsPlayingChange?: (isPlaying: boolean) => void;
 }
 
 export const FitScreen: React.FC<FitScreenProps> = ({
@@ -86,6 +88,7 @@ export const FitScreen: React.FC<FitScreenProps> = ({
   onSkipExercise,
   bottomBar,
   onBeforeAlarm,
+  onIsPlayingChange,
 }) => {
   const { t, locale } = useTranslation();
   const { system: unitSystem, labels: unitLabels } = useUnits();
@@ -267,6 +270,9 @@ export const FitScreen: React.FC<FitScreenProps> = ({
   // Timer State for Cardio/Warmup
   const [isPlaying, setIsPlaying] = useState(false);
   const [elapsedTime, setElapsedTime] = useState(0);
+  // 회의 2026-04-26 음악 도입: 운동 ▶/⏸ → 음악 단방향 동기화 (timer/cardio/running 만).
+  // 첫 mount 의 false 발화는 noop 처리하여 음악 의도치 않은 pause 방지.
+  const firstIsPlayingChangeRef = useRef(true);
 
   const isTimerMode = exercise.type === 'cardio' || exercise.type === 'warmup' || exercise.type === 'mobility';
 
@@ -324,6 +330,18 @@ export const FitScreen: React.FC<FitScreenProps> = ({
   const runExerciseMode = useMemo(() => detectRunExerciseMode(exercise), [exercise]);
   const isContinuousRun = runExerciseMode === "continuous";
   const isRunningExercise = isIntervalMode || isContinuousRun;
+
+  // 회의 2026-04-26 음악 도입: 운동 ▶/⏸ → 음악 단방향 동기화. timer/cardio/running 만, 첫 mount noop.
+  useEffect(() => {
+    if (firstIsPlayingChangeRef.current) {
+      firstIsPlayingChangeRef.current = false;
+      return;
+    }
+    if (isTimerMode || isRunningExercise) {
+      onIsPlayingChange?.(isPlaying);
+    }
+  }, [isPlaying, isTimerMode, isRunningExercise, onIsPlayingChange]);
+
   // 연속 러닝의 세부 타입 (runningStats.runningType 결정용)
   const continuousRunType = useMemo(() => detectExerciseRunningType(exercise), [exercise]);
 

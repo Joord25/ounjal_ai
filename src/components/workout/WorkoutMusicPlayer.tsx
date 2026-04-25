@@ -87,6 +87,24 @@ export function WorkoutMusicPlayer({ enabled, onUnavailable, registerHandle, uiP
     }
   }, [state, play]);
 
+  // 회의 2026-04-26 음악 도입: 백그라운드 진입 시 자동 일시정지 + 복귀 시 자동 재생.
+  // - hidden: 모바일 OS 가 어차피 audio 끊지만 명시적 pause 로 상태 정리
+  // - visible: 사용자가 재생 의도였으면 play() 호출 (iOS 자동재생 정책으로 막힐 수 있음 — 그땐 사용자 ▶ 한 번 필요)
+  useEffect(() => {
+    if (typeof document === "undefined" || !enabled) return;
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") {
+        if (state === "playing") pause();
+      } else if (document.visibilityState === "visible") {
+        if (userIntendedPlayingRef.current && state !== "playing") {
+          play();
+        }
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
+  }, [enabled, state, play, pause]);
+
   useEffect(() => {
     if (!enabled && !hasAnyAvailable) {
       onUnavailable?.();
