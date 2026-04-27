@@ -1237,6 +1237,8 @@ function generateHomeWorkout(
   intensityOverride?: "high" | "moderate" | "low",
   // 회의 64-M4: "bodyweight_only" 시 덤벨/케틀벨/바벨/머신/TRX 운동 제외
   equipment?: "bodyweight_only",
+  // 회의 2026-04-27: 부위 라이트 추가 — full(전신) / upper(상체) / lower(하체) / core(코어)
+  muscleGroup: "full" | "upper" | "lower" | "core" = "full",
 ): WorkoutSessionData {
   const baseSets = adjustVolume(3, condition, goal);
   const sets = intensityOverride === "high" ? Math.min(baseSets + 1, 5) : intensityOverride === "low" ? Math.max(baseSets, 3) : baseSets;
@@ -1311,20 +1313,104 @@ function generateHomeWorkout(
     if (/바벨|barbell/i.test(name)) return "Barbell";
     return "Bodyweight";
   };
-  exercises.push(
-    { type: "strength", phase: "main", name: homeSquat, count: formatCountKo(sets, repsKo), weight: getHomeWeight(homeSquat), sets, reps: repsVal },
-    { type: "strength", phase: "main", name: homePush, count: formatCountKo(sets, repsKo), weight: getHomeWeight(homePush), sets, reps: repsVal },
-    { type: "strength", phase: "main", name: homePull, count: formatCountKo(sets, repsKo), weight: getHomeWeight(homePull), sets, reps: repsVal },
-    { type: "strength", phase: "main", name: homeHinge, count: formatCountKo(sets, repsKo), weight: getHomeWeight(homeHinge), sets, reps: repsVal },
-    { type: "strength", phase: "main", name: homeFullBody, count: formatCountKo(sets, repsKo), weight: getHomeWeight(homeFullBody), sets, reps: repsVal },
-  );
+
+  // 회의 2026-04-27: muscleGroup 라이트 분기 — 5개 메인 슬롯을 부위별로 재구성.
+  // 풀 dedupe는 작은 헬퍼로 처리 (같은 운동이 두 번 안 뽑히도록).
+  const pickUnique = (arr: string[], used: Set<string>): string => {
+    const candidates = arr.filter((x) => !used.has(x));
+    const next = pick(candidates.length > 0 ? candidates : arr);
+    used.add(next);
+    return next;
+  };
+  const usedMain = new Set<string>();
+  let mainExercises: string[];
+  let titleSuffix: string;
+  let descPrefix: string;
+  if (muscleGroup === "upper") {
+    const pushPool = filterBW([
+      "푸쉬업 (Push-ups)", "와이드 푸쉬업 (Wide Push-ups)", "다이아몬드 푸쉬업 (Diamond Push-ups)",
+      "힌두 푸쉬업 (Hindu Push-ups)", "아처 푸쉬업 (Archer Push-ups)", "가슴 딥스 (Dips - Chest Version)",
+      "덤벨 벤치 프레스 (Dumbbell Bench Press)", "덤벨 플로어 프레스 (Dumbbell Floor Press)",
+      "덤벨 숄더 프레스 (Seated Dumbbell Press)", "아놀드 프레스 (Arnold Press)",
+    ]);
+    const pullPool = filterBW([
+      "덤벨 로우 (Dumbbell Row)", "싱글 암 덤벨 로우 (Single Arm Dumbbell Row)",
+      "인버티드 로우 (Inverted Row)", "TRX 로우 (TRX Row)",
+      "슈퍼맨 동작 (Superman)", "케틀벨 로우 (Kettlebell Row)",
+      ...(bwOnly ? ["리버스 스노우 엔젤 (Reverse Snow Angel)", "Y-T-W 레이즈 (Y-T-W Raises)", "프론 코브라 (Prone Cobra)", "타올 로우 (Towel Row)"] : []),
+    ]);
+    const armPool = filterBW([
+      "덤벨 컬 (Dumbbell Curl)", "해머 컬 (Hammer Curl)",
+      "오버헤드 트라이셉 익스텐션 (Overhead Tricep Extension)", "트라이셉스 킥백 (Tricep Kickback)",
+      "사이드 레터럴 레이즈 (Side Lateral Raises)", "프론트 레터럴 레이즈 (Front Lateral Raises)",
+    ]);
+    mainExercises = [
+      pickUnique(pushPool, usedMain),
+      pickUnique(pushPool, usedMain),
+      pickUnique(pullPool, usedMain),
+      pickUnique(pullPool, usedMain),
+      pickUnique(armPool, usedMain),
+    ];
+    titleSuffix = "상체 집중 · 홈트레이닝";
+    descPrefix = "상체 5종";
+  } else if (muscleGroup === "lower") {
+    const squatPool = filterBW([
+      "에어 스쿼트 (Air Squat)", "고블렛 스쿼트 (Goblet Squat)", "케틀벨 고블릿 스쿼트 (Kettlebell Goblet Squat)",
+      "와이드 스쿼트 (Wide Squat)", "덤벨 와이드 스쿼트 (Dumbbell Wide Squat)", "스쿼트 점프 (Squat Jump)",
+    ]);
+    const lungePool = filterBW([
+      "워킹 런지 (Walking Lunges)", "리버스 런지 (Reverse Lunges)",
+      "불가리안 스플릿 스쿼트 (Bulgarian Split Squat)", "스텝업 (Step-Up)",
+    ]);
+    const hingePool = filterBW([
+      "케틀벨 스윙 (Kettlebell Swing)", "덤벨 루마니안 데드리프트 (Dumbbell Romanian Deadlift)",
+      "글루트 브릿지 (Glute Bridge)", "덤벨 힙 쓰러스트 (Dumbbell Hip Thrust)",
+      "싱글 레그 케틀벨 RDL (Single-Leg Kettlebell RDL)", "원 레그 루마니안 데드리프트 (Single Leg RDL)",
+      ...(bwOnly ? ["싱글 레그 글루트 브릿지 (Single-Leg Glute Bridge)", "굿모닝 (Bodyweight Good Morning)", "힙 힌지 홀드 (Hip Hinge Hold)", "프론 힙 익스텐션 (Prone Hip Extension)"] : []),
+    ]);
+    const cardioPool = filterBW(["하이니즈 (High Knees)", "마운틴 클라이머 (Mountain Climber)", "버피 (Burpees)", "점핑 잭 (Jumping Jacks)"]);
+    mainExercises = [
+      pickUnique(squatPool, usedMain),
+      pickUnique(lungePool, usedMain),
+      pickUnique(hingePool, usedMain),
+      pickUnique(hingePool, usedMain),
+      pickUnique(cardioPool, usedMain),
+    ];
+    titleSuffix = "하체 집중 · 홈트레이닝";
+    descPrefix = "하체 5종";
+  } else if (muscleGroup === "core") {
+    const corePool = [
+      "플랭크 (Plank)", "사이드 플랭크 (Side Plank)", "마운틴 클라이머 (Mountain Climber)",
+      "레그 레이즈 (Leg Raises)", "행잉 레그 레이즈 (Hanging Leg Raises)",
+      "바이시클 크런치 (Bicycle Crunch)", "데드 버그 (Dead Bug)", "버드독 (Bird Dog)",
+      "할로우 홀드 (Hollow Hold)", "V-업 (V-up)", "러시안 트위스트 (Russian Twist)",
+    ];
+    mainExercises = [
+      pickUnique(corePool, usedMain),
+      pickUnique(corePool, usedMain),
+      pickUnique(corePool, usedMain),
+      pickUnique(corePool, usedMain),
+      pickUnique(corePool, usedMain),
+    ];
+    titleSuffix = "코어 집중 · 홈트레이닝";
+    descPrefix = "코어 5종";
+  } else {
+    // full (디폴트) — 기존 5슬롯 그대로
+    mainExercises = [homeSquat, homePush, homePull, homeHinge, homeFullBody];
+    titleSuffix = "기초체력강화 · 홈트레이닝";
+    descPrefix = "전신 서킷 5종";
+  }
+
+  for (const name of mainExercises) {
+    exercises.push({ type: "strength", phase: "main", name, count: formatCountKo(sets, repsKo), weight: getHomeWeight(name), sets, reps: repsVal });
+  }
 
   exercises.push(...buildCore(isoRepsKo, isoRepsVal));
   exercises.push(...buildCooldown());
 
   return {
-    title: "기초체력강화 · 홈트레이닝",
-    description: `전신 서킷 5종 · ${sets}세트`,
+    title: titleSuffix,
+    description: `${descPrefix} · ${sets}세트`,
     exercises,
     intendedIntensity: deriveStrengthIntensity(intensityOverride, goal),
   };
@@ -1543,6 +1629,8 @@ export const generateAdaptiveWorkout = (
   equipment?: "bodyweight_only",
   // 회의 2026-04-24: workoutTable 기반 명시 운동 리스트. 존재 시 최우선 (sessionMode 무시).
   exerciseList?: ExerciseListInput[],
+  // 회의 2026-04-27: HomeWorkoutHub 부위 칩 — generateHomeWorkout으로 전달
+  muscleGroup?: "full" | "upper" | "lower" | "core",
 ): WorkoutSessionData => {
   /** 후처리: 맨몸 운동 weight 수정 + 장비별 기본 kg 설정 */
   const postProcessWeights = (session: WorkoutSessionData): WorkoutSessionData => {
@@ -1584,7 +1672,7 @@ export const generateAdaptiveWorkout = (
     return postProcessWeights(generateSplitWorkout(condition, goal, targetMuscle, intensityOverride || undefined));
   }
   if (sessionMode === "home_training") {
-    return postProcessWeights(generateHomeWorkout(condition, goal, intensityOverride || undefined, equipment));
+    return postProcessWeights(generateHomeWorkout(condition, goal, intensityOverride || undefined, equipment, muscleGroup));
   }
 
   // ====== Legacy fallback: day-based schedule ======
