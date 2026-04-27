@@ -152,11 +152,11 @@ export const MyPlansScreen: React.FC<MyPlansScreenProps> = ({ onBack, onSelectPl
                     {isEditMode && (
                       <button
                         onClick={() => setConfirmDeleteProgramId(prog.programId)}
-                        className="shrink-0 w-6 h-6 rounded-full bg-red-500 flex items-center justify-center active:bg-red-600"
+                        className="shrink-0 w-7 h-7 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-400 hover:text-[#1B4332] hover:border-gray-300 active:scale-[0.94] transition-all"
                         aria-label={t("my_plans.delete")}
                       >
-                        <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                          <path strokeLinecap="round" d="M5 12h14" />
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M6 6l1 14a2 2 0 002 2h6a2 2 0 002-2l1-14" />
                         </svg>
                       </button>
                     )}
