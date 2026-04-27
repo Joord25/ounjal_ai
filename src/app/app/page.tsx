@@ -1481,6 +1481,7 @@ export default function Home() {
               } catch (e) { console.error("resume strength program failed", e); }
             }}
             onOpenMyPlans={() => { setMyPlansReturnTo("home_chat"); setView("my_plans"); }}
+            onOpenProfile={() => { setActiveTab("my"); setView("home"); }}
             savedPlansCount={typeof window !== "undefined" ? JSON.parse(localStorage.getItem("ohunjal_saved_plans") || "[]").length : 0}
             userProfile={{
               gender: genderVal,
