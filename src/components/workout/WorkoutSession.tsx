@@ -273,15 +273,20 @@ export const WorkoutSession: React.FC<WorkoutSessionProps> = ({
         setCurrentSet((prev) => prev + 1);
       } else {
         setIsResting(true);
-        const baseRest = feedback === "fail" ? 90
-          : feedback === "target" ? 60
-          : 45;
+        // 초보자 모드 + 벤치프레스 (컴파운드) — ACSM Guidelines 11th: 컴파운드 90-120s, fail 시 150-180s
+        const isBeginnerCompound = beginnerEnabled && currentExercise.name === "벤치프레스";
+        const baseRest = isBeginnerCompound
+          ? (feedback === "fail" ? 150 : 90)
+          : (feedback === "fail" ? 90
+              : feedback === "target" ? 60
+              : 45);
         const gender = (typeof window !== "undefined" ? localStorage.getItem("ohunjal_gender") : null) as "male" | "female" | null;
         const birthYearStr = typeof window !== "undefined" ? localStorage.getItem("ohunjal_birth_year") : null;
         const age = birthYearStr ? new Date().getFullYear() - parseInt(birthYearStr) : 30;
         const sexAdj = gender === "female" ? -10 : 0;
         const ageAdj = age >= 60 ? 30 : age >= 50 ? 15 : 0;
-        setRestTimer(Math.max(30, baseRest + sexAdj + ageAdj));
+        const minRest = isBeginnerCompound ? 60 : 30;
+        setRestTimer(Math.max(minRest, baseRest + sexAdj + ageAdj));
       }
       
     } else {

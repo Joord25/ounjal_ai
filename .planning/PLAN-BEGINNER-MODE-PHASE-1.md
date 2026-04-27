@@ -182,7 +182,7 @@ MyProfileTab 신규 섹션 (기존 UnitToggle 섹션 아래):
 | 파일 | 수정 내용 |
 |---|---|
 | `src/components/workout/WorkoutSession.tsx` | (Day 4) BeginnerGuideOverlay 마운트 — overlay 책임을 WorkoutSession 레벨로 끌어올려 FitScreen 분리 유지. `dismissedOverlays: Set<phase>` state + `BEGINNER_MODE_EVENT` 리스너로 ON/OFF 즉시 반영 |
-| `src/components/workout/FitScreen.tsx` | (Day 5) `restTimer` 계산 분기 (벤치 + isBeginner → 90-120초). overlay 마운트 X (WorkoutSession 책임) |
+| `src/components/workout/WorkoutSession.tsx` (Day 5 추가 분) | rest duration 계산 분기 (L276-284). FitScreen 은 `restTimer` prop 만 받음 → 실제 계산은 WorkoutSession 책임. overlay (Day 4) + restTimer (Day 5) 모두 WorkoutSession 에 통합 |
 | `src/components/plan/MasterPlanPreview.tsx` | "운동 시작" 버튼 핸들러 — `localStorage.ohunjal_beginner_mode === undefined` 일 때 모달 트리거 후 워크아웃 진입 |
 | `src/app/app/page.tsx` | BeginnerModeOptInModal 렌더 + 모달 dismiss 콜백 → workout_session 진입 |
 | `src/components/profile/MyProfileTab.tsx` | "초보자 모드" 섹션 추가 (UnitToggle 패턴) |
@@ -198,7 +198,7 @@ MyProfileTab 신규 섹션 (기존 UnitToggle 섹션 아래):
 | 2 | UI 컴포넌트: BeginnerGuideOverlay + EquipmentFinderCard + BeginnerModeOptInModal | 신규 3 | Storybook 없음 → /app 내 토글 ON 후 수동 진입 |
 | 3 | 통합 1: MasterPlanPreview "운동 시작" 핸들러 → 모달 트리거 + page.tsx 렌더 + MyProfileTab 토글 | 수정 3 | E2E: 플랜 생성 → 운동 시작 클릭 → 모달 노출 (1회만) / 토글 ON↔OFF 반영 |
 | 4 | 통합 2: WorkoutSession 레벨 overlay 마운트 (warmup + 벤치 분기) + dismissedOverlays state — FitScreen 무수정 | 수정 1 | E2E: 벤치 포함 운동 생성 → warmup 카드 → main 카드 → 일반 흐름 |
-| 5 | 휴식 시간 분기: FitScreen `restTimer` 90-120초 (벤치 + isBeginner) + 카피 정합성 점검 + i18n 동시 검증 | 수정 1 | 벤치 세트 완료 → 90-120 카운트다운 / fail → 150-180 |
+| 5 | 휴식 시간 분기: WorkoutSession 에서 `baseRest` 계산 시 벤치+isBeginner 분기 (target/easy 90 / fail 150) + 카피 정합성 점검 + i18n parity 재검증 | 수정 1 | 벤치 세트 완료 → 90초+ 카운트다운 / fail → 150초+ |
 | 6 (예비) | 평가자 grep 검증 + 빌드 + lint + 회귀 테스트 + 분리 커밋 정리 | — | `npm run build` + `npm run lint` + `npm run test` 전부 통과 |
 
 **커밋 단위 (분리):**
