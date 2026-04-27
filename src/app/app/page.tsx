@@ -914,7 +914,7 @@ export default function Home() {
       // 프리미엄 게이트 — 비프리미엄 유저는 업그레이드 CTA 노출
       if (subStatus !== "active") {
         return (
-          <div className="h-full overflow-y-auto px-6 pt-10" style={{ paddingBottom: "calc(80px + var(--safe-area-bottom, 0px))" }}>
+          <div className="h-full overflow-y-auto px-6 pt-10" style={{ paddingBottom: "calc(100px + var(--safe-area-bottom, 0px))" }}>
             <div className="bg-gradient-to-br from-[#F0FDF4] to-white border border-[#2D6A4F]/30 rounded-2xl p-6">
               <div className="flex items-center gap-2 mb-3">
                 <svg className="w-6 h-6 text-[#2D6A4F]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -984,7 +984,7 @@ export default function Home() {
         <div
           key={`nutrition-${nutritionProfileVersion}`}
           className="h-full overflow-y-auto overflow-x-hidden px-4 bg-[#FAFBF9]"
-          style={{ paddingBottom: "calc(80px + var(--safe-area-bottom, 0px))" }}
+          style={{ paddingBottom: "calc(100px + var(--safe-area-bottom, 0px))" }}
         >
           <NutritionTab
             bodyWeightKg={fp.bodyWeight || 70}
@@ -1595,7 +1595,7 @@ export default function Home() {
     <UnitsProvider>
     <PhoneFrame pullToRefresh={view === "home" || view === "home_chat"}>
       <div className="h-full w-full relative overflow-hidden">
-        <div className={`h-full overflow-y-auto overflow-x-hidden scrollbar-hide ${view === "login" ? "" : ""}`} style={view === "login" || view === "workout_session" || view === "master_plan_preview" || view === "root_home" || view === "running_hub" || view === "home_workout_hub" ? undefined : { paddingBottom: "calc(80px + var(--safe-area-bottom, 0px))" }}>
+        <div className={`h-full overflow-y-auto overflow-x-hidden scrollbar-hide ${view === "login" ? "" : ""}`} style={view === "login" || view === "workout_session" || view === "master_plan_preview" || view === "root_home" || view === "running_hub" || view === "home_workout_hub" ? undefined : { paddingBottom: "calc(100px + var(--safe-area-bottom, 0px))" }}>
           {renderContent()}
         </div>
         
