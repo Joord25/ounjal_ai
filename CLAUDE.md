@@ -31,9 +31,16 @@ Firebase Hosting에 배포 (프로젝트: `ohunjal`, 리전: `us-central1`). Git
 모두 `NEXT_PUBLIC_*` (클라이언트 접근 가능):
 - `NEXT_PUBLIC_FIREBASE_API_KEY`, `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`, `NEXT_PUBLIC_FIREBASE_PROJECT_ID`, `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`, `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`, `NEXT_PUBLIC_FIREBASE_APP_ID` — Firebase 설정
 - `NEXT_PUBLIC_GEMINI_API_KEY` — Gemini AI (클라이언트 호출용)
-- `NEXT_PUBLIC_PORTONE_STORE_ID`, `NEXT_PUBLIC_PORTONE_CHANNEL_KEY` — PortOne 결제
+- `NEXT_PUBLIC_PORTONE_STORE_ID`, `NEXT_PUBLIC_PORTONE_CHANNEL_KEY` — PortOne (한국 카카오페이 결제)
+- `NEXT_PUBLIC_PADDLE_ENV` (`production` / `sandbox`), `NEXT_PUBLIC_PADDLE_CLIENT_TOKEN`, `NEXT_PUBLIC_PADDLE_PRICE_MONTHLY`, `NEXT_PUBLIC_PADDLE_ENABLED` (`true` / `false`) — Paddle (해외 카드 결제, 2026-04-28 Live 활성)
 
-Cloud Functions는 `GEMINI_API_KEY`(서버사이드, Firebase config로 설정)를 사용합니다.
+Cloud Functions는 다음 시크릿을 사용합니다:
+- `GEMINI_API_KEY` — Gemini API (서버사이드)
+- `PORTONE_API_SECRET` — PortOne 환불·취소 API
+- `PADDLE_API_KEY` — Paddle Subscription/Adjustments API (취소·환불), API 키 prefix(`sdbx_`/`pdl_sdbx_`)로 sandbox/live URL 자동 분기
+- `PADDLE_WEBHOOK_SECRET` — Paddle webhook HMAC-SHA256 검증
+
+**결제 라우팅 (locale 기반):** `locale === "ko"` → PortOne(KakaoPay), `locale !== "ko" && isPaddleEnabled() === true` → Paddle Checkout, 그 외 EN → "Coming soon" waitlist. CI 워크플로우(`firebase-hosting-{merge,pull-request}.yml`)에 PADDLE 4개 env 주입 필수 — 누락 시 production 빌드가 sandbox→비활성으로 fallback.
 
 ## 아키텍처
 
