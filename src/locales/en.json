@@ -446,6 +446,7 @@
   "proof.addWeightRecord": "Add Weight Record",
   "proof.date": "Date",
   "proof.weightKg": "Weight (kg)",
+  "proof.weightLb": "Weight (lb)",
   "proof.save": "Save",
   "proof.workoutCount": "workouts",
   "proof.createFirstRecord": "Create your first record",

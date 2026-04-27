@@ -2,6 +2,9 @@
 
 import React, { useState } from "react";
 import { useTranslation } from "@/hooks/useTranslation";
+import { useUnits } from "@/hooks/useUnits";
+import { kgToLb, lbToKg } from "@/utils/units";
+import { UnitToggle } from "../UnitToggle";
 import { updateWeightLog } from "@/utils/userProfile";
 
 interface WeightDetailViewProps {
@@ -16,6 +19,8 @@ export const WeightDetailView: React.FC<WeightDetailViewProps> = ({
   onBack,
 }) => {
   const { t, locale } = useTranslation();
+  const { system: unitSystem } = useUnits();
+  const isImperial = unitSystem === "imperial";
 
   // All weight-detail-specific state lives here (moved from ProofTab)
   const [showAddWeight, setShowAddWeight] = useState(false);
@@ -59,8 +64,10 @@ export const WeightDetailView: React.FC<WeightDetailViewProps> = ({
   };
 
   const handleAddWeight = () => {
-    const parsed = parseFloat(newWeightValue);
-    if (isNaN(parsed) || parsed <= 0 || !newWeightDate) return;
+    const parsedRaw = parseFloat(newWeightValue);
+    if (isNaN(parsedRaw) || parsedRaw <= 0 || !newWeightDate) return;
+    // 단위 토글 (회의 2026-04-28-γ): 저장은 항상 kg. lb 입력 시 환산.
+    const parsed = isImperial ? Math.round(lbToKg(parsedRaw) * 10) / 10 : parsedRaw;
     const existing = weightLog.findIndex(e => e.date === newWeightDate);
     let updated: { date: string; weight: number }[];
     if (existing >= 0) {
@@ -176,11 +183,11 @@ export const WeightDetailView: React.FC<WeightDetailViewProps> = ({
                     <div className="flex items-center justify-between">
                       <p className="text-xs font-bold text-gray-400">{dateLabel}</p>
                       <div className="flex items-baseline gap-1.5">
-                        <span className="text-lg font-black text-[#1B4332]">{entry.weight.toFixed(1)}</span>
-                        <span className="text-xs text-gray-400">kg</span>
+                        <span className="text-lg font-black text-[#1B4332]">{(isImperial ? kgToLb(entry.weight) : entry.weight).toFixed(1)}</span>
+                        <span className="text-xs text-gray-400">{isImperial ? "lb" : "kg"}</span>
                         {diff !== null && diff !== 0 && (
                           <span className={`text-[10px] font-black ml-1 ${diff > 0 ? "text-rose-400" : "text-sky-400"}`}>
-                            {diff > 0 ? "+" : ""}{diff.toFixed(1)}
+                            {diff > 0 ? "+" : ""}{(isImperial ? kgToLb(diff) : diff).toFixed(1)}
                           </span>
                         )}
                       </div>
@@ -238,7 +245,10 @@ export const WeightDetailView: React.FC<WeightDetailViewProps> = ({
           <div className="absolute inset-0 bg-black/40 animate-fade-in" onClick={() => setShowAddWeight(false)} />
           <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-[2rem] p-6 animate-slide-up shadow-2xl" style={{ paddingBottom: "calc(var(--safe-area-bottom, 0px) + 24px)" }}>
             <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-6" />
-            <h3 className="text-lg font-black text-[#1B4332] mb-5">{t("proof.addWeightRecord")}</h3>
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-lg font-black text-[#1B4332]">{t("proof.addWeightRecord")}</h3>
+              <UnitToggle metric="kg" imperial="lb" className="" />
+            </div>
 
             <div className="space-y-4 mb-6">
               <div>
@@ -252,11 +262,13 @@ export const WeightDetailView: React.FC<WeightDetailViewProps> = ({
                 />
               </div>
               <div>
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block">{t("proof.weightKg")}</label>
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block">
+                  {isImperial ? t("proof.weightLb") : t("proof.weightKg")}
+                </label>
                 <input
                   type="number"
                   step="0.1"
-                  placeholder="75.0"
+                  placeholder={isImperial ? "165.3" : "75.0"}
                   value={newWeightValue}
                   onChange={e => setNewWeightValue(e.target.value)}
                   className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm font-bold text-[#1B4332] focus:outline-none focus:border-[#2D6A4F]"

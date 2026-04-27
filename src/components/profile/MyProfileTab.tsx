@@ -9,6 +9,7 @@ import { updateGender, updateBirthYear, saveUserProfile, resetUserBodyInfo } fro
 import { useTranslation } from "@/hooks/useTranslation";
 import { useUnits } from "@/hooks/useUnits";
 import { cmToInches, inchesToCm, kgToLb, lbToKg } from "@/utils/units";
+import { UnitToggle } from "../UnitToggle";
 import { getTierFromExp, getOrRebuildSeasonExp, getCurrentSeason } from "@/utils/questSystem";
 import { loadWorkoutHistory } from "@/utils/workoutHistory";
 
@@ -643,6 +644,10 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout, auto
           {showBodyInfo && (
           <div className="flex flex-col gap-3">
             <div className="h-px bg-gray-100" />
+          {/* 단위 토글 (회의 2026-04-28-γ): height + 1RM 동시 영향 */}
+          <div className="flex justify-end">
+            <UnitToggle metric="cm/kg" imperial="ft/lb" className="" />
+          </div>
           {/* Gender */}
           <div className="flex justify-between items-center min-h-[32px]">
             <span className="text-sm font-bold text-gray-500">{t("my.gender")}</span>

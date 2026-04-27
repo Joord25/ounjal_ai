@@ -442,6 +442,7 @@
   "proof.addWeightRecord": "체중 기록 추가",
   "proof.date": "날짜",
   "proof.weightKg": "체중 (kg)",
+  "proof.weightLb": "체중 (lb)",
   "proof.save": "저장",
   "proof.workoutCount": "회 운동",
   "proof.createFirstRecord": "첫 기록을 만들어보세요",
