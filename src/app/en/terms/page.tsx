@@ -39,13 +39,14 @@ Article 6 (Service Provision and Modification)
 
 Article 7 (Subscription and Payment)
 1. The Service operates on a freemium model with limited free features and a paid Premium subscription.
-2. Premium subscriptions are billed monthly via KakaoPay and auto-renew unless cancelled.
+2. Premium subscriptions are billed monthly and auto-renew unless cancelled. Payment method depends on region: KakaoPay (Korea) or card payment via Paddle (international).
 3. The Company may change subscription pricing with at least 30 days' notice.
 
 Article 8 (Cancellation and Refund)
 1. Members may cancel their subscription at any time through their Profile settings.
 2. Upon cancellation, the subscription remains active until the end of the current billing period.
 3. Refunds are available within 7 days of the initial subscription if no premium features have been used. Refund requests may be submitted to ounjal.ai.app@gmail.com.
+4. Refunds for company-caused issues (system errors, duplicate charges, etc.) are available regardless of the time limits above.
 
 Article 9 (Intellectual Property)
 All intellectual property related to the Service, including AI algorithms, workout plans, UI design, and content, belongs to the Company. Members may not copy, modify, distribute, or commercially exploit any Service content without prior written consent.

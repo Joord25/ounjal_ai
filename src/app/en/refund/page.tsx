@@ -29,10 +29,13 @@ Refund: The payment amount is returned. Upon refund processing, premium features
 Article 5 (Refund Procedure)
 1. Request a refund through the in-app support or the contact information below.
 2. The Company will verify refund eligibility after receiving the request (1-3 business days).
-3. Once approved, the refund will be processed to the original payment method (3-5 business days for KakaoPay).
+3. Once approved, the refund will be processed to the original payment method. Processing time: 3-5 business days for KakaoPay; 5-10 business days for Paddle (subject to your card issuer; some banks may take longer).
 
 Article 6 (Partial Refunds)
 Partial refunds (pro-rated) are not available for monthly subscriptions. Refunds are processed as either a full refund or no refund.
+
+Article 6.1 (Company-caused Refunds)
+Refunds for company-caused issues (system errors, duplicate charges, etc.) are available regardless of the time limits or usage history above.
 
 Article 7 (Refund Inquiries)
 Email: ounjal.ai.app@gmail.com

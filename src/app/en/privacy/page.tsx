@@ -42,7 +42,8 @@ Article 6 (Processing Delegation)
 The following third-party services process data on behalf of the Company:
 - Google LLC (Firebase): Authentication, data storage, hosting
 - Google LLC (Gemini API): AI workout plan and report generation — data is processed and discarded immediately, not used for model training
-- PortOne: Payment processing (KakaoPay billing)
+- PortOne / KakaoPay Co., Ltd.: Payment processing for Korean users
+- Paddle.com Market Ltd.: Payment processing for international users (card payments, Merchant of Record)
 
 Article 7 (Member Rights)
 Members may request access, correction, deletion, or suspension of processing of their personal information at any time through their Profile settings or by contacting ounjal.ai.app@gmail.com.
