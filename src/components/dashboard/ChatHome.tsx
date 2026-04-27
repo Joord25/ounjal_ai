@@ -949,41 +949,41 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
         </div>
       </div>
 
-      {/* 회의 2026-04-27: 진행 중 웨이트 프로그램 띠 — 인사말 직후, 채팅 위에 노출. */}
-      {activeStrengthPrograms && activeStrengthPrograms.length > 0 && onResumeProgram && (
-        <div className="px-6 mt-2 mb-1 flex flex-col gap-2">
-          {activeStrengthPrograms.map((p) => {
-            const pct = p.total > 0 ? Math.round((p.completed / p.total) * 100) : 0;
-            return (
-              <button
-                key={p.programId}
-                onClick={() => p.nextSession && onResumeProgram(p.programId, p.nextSession.id)}
-                disabled={!p.nextSession}
-                className="w-full bg-white border border-[#2D6A4F]/30 rounded-2xl shadow-sm px-4 py-3 active:scale-[0.98] transition-transform hover:bg-emerald-50/30 text-left disabled:opacity-50"
-              >
-                <div className="flex items-center justify-between gap-3 mb-1.5">
-                  <div className="flex items-baseline gap-2 min-w-0">
-                    <span className="text-[10px] font-black tracking-[0.18em] uppercase text-gray-400 shrink-0">{t("chat.activeProgram.label")}</span>
-                  </div>
-                  <span className="shrink-0 text-[11px] font-bold text-[#2D6A4F]">{p.completed}/{p.total}</span>
-                </div>
-                <div className="flex items-center justify-between gap-3 mb-1.5">
-                  <span className="text-[14px] font-black text-[#1B4332] truncate">{p.programName}</span>
-                  <span className="shrink-0 text-[11px] font-bold text-[#2D6A4F]">{t("chat.activeProgram.resume")} →</span>
-                </div>
-                <div className="w-full h-1 bg-gray-100 rounded-full overflow-hidden">
-                  <div className="h-full bg-[#2D6A4F] transition-[width] duration-500" style={{ width: `${pct}%` }} />
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      )}
-
       {/* 채팅 섹션 — 상단 고정 헤더 제거. 각 메시지에 미니 헤더 표시 (회의 60 Phase 2). */}
       <div className="mt-3 border-t border-gray-200 flex-1 flex flex-col min-h-0">
         {/* 메시지 영역 */}
         <div className="px-6 py-4 flex-1 overflow-y-auto min-h-0 scrollbar-hide">
+          {/* 회의 2026-04-28: 진행 중 웨이트 프로그램 띠 — 스크롤 영역 안으로 이동 (이전엔 헤더 아래 고정).
+              스크롤로 사라지므로 채팅 콘텐츠 공간 확보. */}
+          {activeStrengthPrograms && activeStrengthPrograms.length > 0 && onResumeProgram && (
+            <div className="mb-4 flex flex-col gap-2">
+              {activeStrengthPrograms.map((p) => {
+                const pct = p.total > 0 ? Math.round((p.completed / p.total) * 100) : 0;
+                return (
+                  <button
+                    key={p.programId}
+                    onClick={() => p.nextSession && onResumeProgram(p.programId, p.nextSession.id)}
+                    disabled={!p.nextSession}
+                    className="w-full bg-white border border-[#2D6A4F]/30 rounded-2xl shadow-sm px-4 py-3 active:scale-[0.98] transition-transform hover:bg-emerald-50/30 text-left disabled:opacity-50"
+                  >
+                    <div className="flex items-center justify-between gap-3 mb-1.5">
+                      <div className="flex items-baseline gap-2 min-w-0">
+                        <span className="text-[10px] font-black tracking-[0.18em] uppercase text-gray-400 shrink-0">{t("chat.activeProgram.label")}</span>
+                      </div>
+                      <span className="shrink-0 text-[11px] font-bold text-[#2D6A4F]">{p.completed}/{p.total}</span>
+                    </div>
+                    <div className="flex items-center justify-between gap-3 mb-1.5">
+                      <span className="text-[14px] font-black text-[#1B4332] truncate">{p.programName}</span>
+                      <span className="shrink-0 text-[11px] font-bold text-[#2D6A4F]">{t("chat.activeProgram.resume")} →</span>
+                    </div>
+                    <div className="w-full h-1 bg-gray-100 rounded-full overflow-hidden">
+                      <div className="h-full bg-[#2D6A4F] transition-[width] duration-500" style={{ width: `${pct}%` }} />
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
           {/* 무료 한도 최초 안내 배너 (회의 2026-04-23) — 로그인 + 무료 + 미노출 유저 1회 */}
           {showTrialIntro && (
             <div className="mb-4 relative rounded-2xl bg-gradient-to-br from-[#F0FDF4] to-white border border-[#2D6A4F]/25 px-4 py-3 pr-9">
