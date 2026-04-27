@@ -4211,3 +4211,87 @@ CURRENT_STATE.md L311 "세트/반복/무게 — useSetEditor 훅으로 개별 se
 ### 재발 방지
 - CURRENT_STATE.md L311 문구 실제 동작과 일치 여부 재확인 필요 (이번 수정으로 일치 회복, 갱신 불요)
 - useSetEditor 편집 시 setDetails / ex.reps / ex.weight 3 소스 일관성 주의 — 추후 refactor 시 setDetails 단일 SSOT 로 통일 고려 가능
+
+---
+
+## 회의 2026-04-27 — ROOT 진입 화면 카드 도입 (웨이트/러닝/홈트 3카드)
+
+### 맥락
+대표 지시: 앱 접속 직후 채팅창이 바로 뜨는 게 아니라 **선택적으로 시작**할 수 있게 변경. ChatHome 직진입의 진입 장벽(텍스트 입력 강제) 해소가 목표. 1x3 → 3x1 세로 버튼 카드로 확정. 디자인은 Kenko 톤(회의 64-α 토큰 재사용).
+
+### 결정 (10건)
+1. ROOT 첫 진입을 **3x1 세로 버튼 카드** — 웨이트 / 러닝 / 홈트
+2. ROOT 화면은 **하단 네비바 X**. 카드 진입 후 화면들에서만 부활
+3. 우상단 아이콘 **2개만**: [📋 내 플랜] [👤 프로필]. 영양은 카드 진입 후 네비바로 (1탭 깊어짐 OK)
+4. 첫 카드 클릭 시 **온보딩 7스텝 부활** (welcome→gender→birth_year→height→weight→**goal**→done). 기존 `Onboarding.tsx` 자산 그대로 재활용. 한 번 끝나면 어떤 카드도 패스.
+5. 웨이트 → 기존 `ChatHome` 흡수. 러닝/홈트 의도가 ChatHome에 들어오면 **(다)변형** "짧은 안내 + 단일 이동 버튼" 처리 (응답 빠르게)
+6. 러닝 → `RunningProgramSheet` 4프로그램(vo2_boost / 10k_sub_50 / half_sub_2 / full_sub_3) 자산을 풀스크린 화면 `RunningHub`로 변환
+7. 홈트 → `generateHomeWorkout` (`equipment: "bodyweight_only"`, 회의 64-M4) 호출판 신설. 부위/시간/강도 픽커. 추후 유튜브 채널 운동 프로그램으로 진화 예정 — 1차는 placeholder.
+8. 카드 위계 **동일 사이즈**. 진행 중 장기 프로그램 있으면 우상단 내플랜 아이콘 활성·바로 진입. dynamic time-of-day highlight는 1차 보류.
+9. 히스토리는 **통합 유지** (ProofTab 그대로). 분리 X.
+10. 디자인 언어 **Kenko** — colored container 금지, 흰 배경 + 얇은 보더 + uppercase 라벨 (회의 64-α 토큰 재사용)
+
+### ChatHome 좁히기
+- 예시 프롬프트 칩에서 "러닝 10km" / "홈트 30분" 제거
+- "더보기" 7개 중 러닝/홈트 관련 제거
+- parseIntent 응답에 `mode: "redirect"` + `target` 분기 추가 → AssistantMessage + 단일 CTA 버튼
+- 시스템 프롬프트에 "웨이트 전용" 컨텍스트 박아 응답 토큰 절약
+
+### ViewState 확장
+```ts
+| "root_home"        // 3카드 진입 화면
+| "running_hub"      // 러닝 4프로그램 선택
+| "home_workout_hub" // 홈트 룰엔진 입력
+```
+
+### 보류 항목
+- "이전 플랜 이어서" 띠 위치 (1차는 ChatHome 안만)
+- 체험/프리미엄 배지 위치 (1차 보류)
+- 카드 SVG 출처 (Figma Kenko UI Kit vs 신규 inline) — 1차 inline 단순 stroke
+- dynamic highlight (시간대/이력 기반) — 차후 회의
+- 홈트 유튜브 진화 — 별도 회의
+
+### 산출물
+- `.planning/PLAN-ROOT-HOME-CARDS.md` (작업 분해 11섹션)
+
+### 분리 커밋 8개 (예정)
+1. `feat(root): ViewState root_home 추가 + RootHomeCards 컴포넌트 골격`
+2. `feat(root): 카드 첫 클릭 → Onboarding 게이트 부활`
+3. `feat(running-hub): RunningHub 화면 — 4프로그램 선택판 풀스크린화`
+4. `feat(home-workout-hub): HomeWorkoutHub 화면 — bodyweight_only 진입판`
+5. `refactor(chat-home): 러닝/홈트 의도 → redirect 안내 카드 + 칩 정리`
+6. `feat(root): 우상단 내플랜/프로필 아이콘 동작 연결`
+7. `chore(i18n): root_home 화면 ko/en 키 추가`
+8. `docs: CURRENT_STATE.md ROOT 카드 섹션 + MEETING_LOG.md 갱신`
+
+### 리스크 / 롤백
+- 자유 입력 가치 약화 → parseIntent 시스템 프롬프트 재조정 + redirect 안내로 보완
+- Onboarding 7스텝 마찰 → 길면 후속 회의에서 압축 검토
+- 영양 진입 1탭 깊어짐 → GA `nutrition_tab_view` 이탈률 모니터링
+- 환경변수 `NEXT_PUBLIC_ENABLE_ROOT_CARDS=0` 게이트로 즉시 롤백 가능
+
+### 후속 결정 — 러닝/홈트 허브 디테일 (같은 날 후속 핑퐁)
+
+**러닝 5단계 화면 디테일**
+1. **gate_check**: 회의 64-F에서 잠금 해제됨 — 사실상 죽은 경로. 그대로 통과, 권장 안내만.
+2. **추천 뱃지**: `10k_sub_50` 추천 뱃지 **제거**, `full_sub_3` "경험자" 태그 **유지**
+3. **시작일 옵션 (StepSettings)**: 빼지 않고 **그대로 유지** — 빈약화 방지(주당 일수만 남으면 빈 화면)
+4. **완료 후 흐름**: 토스트만 → **별도 완료 화면 신설** — 회색 체크 + 프로그램명·기간 + 코치 3줄(`coach.intro_line1~3` 재사용) + 2버튼 [내 플랜 보기 / 오늘 시작하기]
+5. **Kenko 톤다운**: amber 배너 제거, preview 챕터 카드 gradient 제거, hover 중성화
+
+**홈트 허브 디테일**
+6. **부위 칩**: 1차 라이트 추가 (전신/상체/하체/코어 4종). 백엔드 `generateHomeWorkout`에 `muscleGroup?` 파라미터 추가 (10줄 내외 필터)
+7. **시간 옵션**: 15/30/45분
+8. **강도 칩**: 가벼움/보통/강함 (현 intensity 시스템 그대로)
+9. **goal 디폴트**: 온보딩 `fp.goal` 사용 → 개인화 (없으면 `health` fallback)
+10. **condition_check**: 스킵 (자동 디폴트로 master_plan_preview 직진입)
+11. **placeholder 카드**: "유튜브 운동 프로그램 곧 출시" 카드 **제거** — 1차 노출 X
+
+### 향후 방향 메모 (참고만 — 1차 코드 결정에 영향 X)
+
+**홈트 자체 유튜브 콘텐츠 피벗 + do-or-not 트래킹 철학** (대표 2026-04-27)
+- 홈트 1차 룰엔진은 **땜빵**. 추후 대표 본인 유튜브 채널 콘텐츠로 전환 예정
+- 트래킹 철학도 함께 변화: 정밀 트래킹(reps/sets/weight) → **do-or-not** 단순화 ("그날 했냐 안 했냐"만)
+- Why: 유저가 어떻게든 그날 운동을 한다는 행동 자체가 핵심 가치. 정밀 트래킹 강제 → 진입 장벽 ↑
+- 웨이트/러닝의 정밀 트래킹은 유지. 홈트만 가벼운 컬렉션으로 분리 설계 예정.
+- memory: `project_homeworkout_youtube_pivot.md`
