@@ -123,14 +123,14 @@ export const RootHomeCards: React.FC<RootHomeCardsProps> = ({ userName, isLogged
         <h1 className="font-black leading-snug pr-24 truncate">
           {locale === "en" ? (
             <>
-              <span className="text-[#1B4332] text-xl">Hi, </span>
+              <span className="text-[#1B4332] text-xl">Hello, </span>
               <span className={`text-[#2D6A4F] ${displayName.length > 6 ? "text-2xl" : "text-3xl"}`}>{displayName}</span>
-              <span className="text-[#1B4332] text-xl">!</span>
             </>
           ) : (
             <>
+              <span className="text-[#1B4332] text-xl">안녕하세요, </span>
               <span className={`text-[#2D6A4F] ${displayName.length > 6 ? "text-2xl" : "text-3xl"}`}>{displayName}</span>
-              <span className="text-[#1B4332] text-xl">님, 안녕하세요!</span>
+              <span className="text-[#1B4332] text-xl"> 님!</span>
             </>
           )}
         </h1>
