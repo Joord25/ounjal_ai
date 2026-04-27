@@ -30,6 +30,39 @@ const HEIGHTS_CM = Array.from({ length: 81 }, (_, i) => 120 + i);   // 120 ~ 200
 
 const STEP_ORDER: Step[] = ["welcome", "gender", "birth_year", "height", "weight", "goal", "done"];
 
+/** 단위 즉시 전환 토글 (height/weight 입력 화면 공용) */
+const UnitToggle: React.FC<{ metric: string; imperial: string }> = ({ metric, imperial }) => {
+  const { system, setSystem } = useUnits();
+  return (
+    <div className="flex justify-center mb-4">
+      <div className="inline-flex rounded-full bg-gray-100 p-0.5 text-[11px]" role="tablist" aria-label="Unit system">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={system === "metric"}
+          onClick={() => setSystem("metric")}
+          className={`px-3 py-1 rounded-full font-bold transition-colors ${
+            system === "metric" ? "bg-white text-[#1B4332] shadow-sm" : "text-gray-500 active:text-[#1B4332]"
+          }`}
+        >
+          {metric}
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={system === "imperial"}
+          onClick={() => setSystem("imperial")}
+          className={`px-3 py-1 rounded-full font-bold transition-colors ${
+            system === "imperial" ? "bg-white text-[#1B4332] shadow-sm" : "text-gray-500 active:text-[#1B4332]"
+          }`}
+        >
+          {imperial}
+        </button>
+      </div>
+    </div>
+  );
+};
+
 export const Onboarding: React.FC<OnboardingProps> = ({ userName, onComplete }) => {
   const { t } = useTranslation();
   const { system: unitSystem } = useUnits();
@@ -232,7 +265,8 @@ export const Onboarding: React.FC<OnboardingProps> = ({ userName, onComplete }) 
           <h2 className="text-xl font-black text-[#1B4332] text-center mb-2">
             {t("onboarding.height.title")}
           </h2>
-          <p className="text-sm text-gray-400 text-center mb-6">{t("onboarding.height.sub")}</p>
+          <p className="text-sm text-gray-400 text-center mb-4">{t("onboarding.height.sub")}</p>
+          <UnitToggle metric="cm" imperial="ft" />
           <div className="flex-1 flex items-center justify-center">
             {isImperial ? (
               <div className="flex items-center justify-center gap-2 w-full px-4">
@@ -282,7 +316,8 @@ export const Onboarding: React.FC<OnboardingProps> = ({ userName, onComplete }) 
           <h2 className="text-xl font-black text-[#1B4332] text-center mb-2">
             {t("onboarding.weight.title")}
           </h2>
-          <p className="text-sm text-gray-400 text-center mb-6">{t("onboarding.weight.sub")}</p>
+          <p className="text-sm text-gray-400 text-center mb-4">{t("onboarding.weight.sub")}</p>
+          <UnitToggle metric="kg" imperial="lb" />
           <div className="flex-1 flex items-center justify-center">
             {isImperial ? (
               <RulerPicker
