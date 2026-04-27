@@ -1,6 +1,6 @@
 # CURRENT_STATE.md — 앱 UI/기능 인벤토리 SSOT
 
-**최종 갱신:** 2026-04-25 (ProofTab '부위도감' → '내 등수' 헥사곤 + setDetails FitScreen 전달 fix + fitness-age raw ACSM 분리 + 홈 BW 보강 8종 bwOnly 격리 + 저장소 정리)
+**최종 갱신:** 2026-04-28 (회의 2026-04-27 ROOT 카드 도입 — 웨이트/러닝/홈트 3카드 진입 + RunningHub/HomeWorkoutHub 풀스크린 신설 + ChatHome 웨이트 전용으로 좁힘 + 진행 중 프로그램 UI 노출 + 운동 음악 기능 전부 제거 + 내 플랜 휴지통 톤다운)
 
 이 문서는 "오운잘 앱의 각 화면에 어떤 UI와 기능이 실제로 구현되어 있는지"의 단일 진실 공급원입니다.
 모든 항목은 코드 검증 기반 (`file:line` 인용). 추측 금지. 미검증은 **⚠ 미검증** 마킹.
@@ -11,88 +11,192 @@
 
 탭 정의: [BottomTabs.tsx:6](../src/components/layout/BottomTabs.tsx#L6) — `home / proof / nutrition / my`
 
+> **진입 구조 (회의 2026-04-27, ROOT 카드 도입):**
+> 로그인 후 첫 화면 = **ROOT 카드** (`view === "root_home"`, [page.tsx:265](../src/app/app/page.tsx#L265) — `view === "home" && activeTab === "home"` 시 자동 치환). 하단 네비바 비노출. 3개 카드(웨이트/러닝/홈트) 중 클릭 시 각 진입판으로 분기:
+> - **웨이트** → ChatHome (`home_chat`)
+> - **러닝** → RunningHub (`running_hub`)
+> - **홈트** → HomeWorkoutHub (`home_workout_hub`)
+>
+> 첫 카드 클릭 시 `localStorage.ohunjal_onboarding_done !== "1"` 이면 Onboarding 7스텝 게이트 발동, 완료 후 `pendingRootTarget` 으로 자동 진입 ([page.tsx:1019-1034](../src/app/app/page.tsx#L1019-L1034)). 4탭(proof/nutrition/my) 진입은 ROOT가 아니라 ChatHome/Hub 내부에서만 가능.
+
 ---
 
-## 🏠 홈 탭 (`home`) — ChatHome
+## 🏠 홈 탭 (`home`) — ROOT 카드
 
 **진입:** `/app` 로그인 후 기본 화면
+**컴포넌트:** [src/components/dashboard/RootHomeCards.tsx](../src/components/dashboard/RootHomeCards.tsx)
+
+### 화면 구성
+
+**① 헤더 영역** ([RootHomeCards.tsx:108-149](../src/components/dashboard/RootHomeCards.tsx#L108-L149))
+- 사용자명 + 시간대별 인사말 (새벽/아침/점심/오후/저녁/밤 6구간 — ChatHome과 동일)
+- 날짜 표시 (KO: "4월 27일 (월)", EN: "Apr 27 (Mon)")
+- 우측 상단 "내 플랜" 북마크 아이콘 — 진행 중 장기 프로그램 있으면 채워진 emerald, 없으면 회색 dim
+- 상태 배지 (우측 하단):
+  - 프리미엄 → emerald pill "프리미엄"
+  - 체험/무료 → "체험 N번 남음" / "무료 N번 남음" (잔여 1번 이하면 amber)
+
+**② 3카드 (세로 정렬, gap-5, Kenko 톤)** ([RootHomeCards.tsx:152-173](../src/components/dashboard/RootHomeCards.tsx#L152-L173))
+
+| 카드 | caption (영문) | label (한글) | 아이콘 |
+|---|---|---|---|
+| **웨이트** | WEIGHT | 웨이트 / Weight | Figma Kenko ic-tonnage-lifted (덤벨 fill SVG) |
+| **러닝** | RUNNING | 러닝 / Running | `/icons/root/running.png` (대표 제공, 좌우반전, emerald CSS filter) |
+| **홈트** | HOME WORKOUT | 홈트 / Home Workout | Heroicons "home" solid (집 fill SVG) |
+
+- 카드 스펙: `bg-white border border-gray-100 rounded-3xl shadow-sm px-6 py-7`, 영문 caption `text-[10px] uppercase tracking-[0.18em]`, 한글 라벨 `text-3xl font-black text-[#1B4332]`, 우측 아이콘 `text-[#2D6A4F]`
+- colored container 금지(흰 배경 + 보더만), 장식 SVG 금지 (의미 연결 명확한 픽토그램만)
+
+### 주요 기능
+
+| 기능 | 동작 |
+|---|---|
+| 카드 클릭 | `trackEvent("root_card_click", { target })` → onboarding 게이트 → `setView("home_chat" \| "running_hub" \| "home_workout_hub")` ([page.tsx:1019](../src/app/app/page.tsx#L1019)) |
+| Onboarding 게이트 | `pendingRootTarget` state + `trackEvent("root_onboarding_trigger", { target })`. 완료 후 자동으로 해당 카드 진입 |
+| 내 플랜 아이콘 | `setMyPlansReturnTo("root_home")` → `setView("my_plans")`. 진행 중 프로그램 카운트로 dim/active 분기 |
+| ROOT는 4탭 네비바 X | BottomTabs 가드: `view === "root_home"` 시 비노출 |
+
+### 권한별 차이 (parseIntent / 플랜 저장 — 실제 호출은 ChatHome 진입 후)
+
+| 권한 | ROOT 진입 | parseIntent (ChatHome) | 플랜 저장 | 장기 프로그램 |
+|---|---|---|---|---|
+| 비로그인 | ✓ | 3회 | ✗ 로그인 필요 | ✗ guest_exhausted CTA |
+| 로그인 무료 | ✓ | 3회 | 1개 ([savedPlans.ts:5](../functions/src/plan/savedPlans.ts#L5)) | ✗ free_limit CTA |
+| 프리미엄 | ✓ | 무제한 | 5개 | ✓ |
+
+---
+
+## 🏋️ 웨이트 진입 — ChatHome (`view === "home_chat"`)
+
+**진입:** ROOT 카드 "웨이트" 클릭
 **컴포넌트:** [src/components/dashboard/ChatHome.tsx](../src/components/dashboard/ChatHome.tsx)
 
 ### 화면 구성 (위에서 아래로)
 
 **① 헤더 영역**
 - 사용자명 + 시간대별 인사말 (새벽/아침/점심/오후/저녁/밤 6구간)
-- 날짜 표시 (KO: "4월 17일 (목)", EN: "Apr 17 (Thu)")
+- 날짜 표시 + 상태 배지(프리미엄 / 체험·무료 N/M)
 - 우측 상단 "내 플랜" 북마크 아이콘 — 프로그램 생성 시 pulse 애니메이션
-- 상태 배지 (우측):
-  - 프리미엄 → "프리미엄"
-  - 체험/무료 → "체험/무료 N/M" (잔여 횟수 표시)
 
-**② 채팅 메시지 영역**
+**② 진행 중 웨이트 프로그램 띠** (회의 2026-04-27 in-progress, 조건부)
+- 인사말 직후 노출 — 진행률 바(완료/총) + "이어가기" CTA → `master_plan_preview` 직진입 ([page.tsx, ChatHome.tsx 진행중 섹션](../src/components/dashboard/ChatHome.tsx))
+- i18n 키: `chat.activeProgram.*`
+
+**③ 채팅 메시지 영역**
 - 첫 진입: `AssistantMiniHeader` + 초기 인사말
   - **goal 있음 또는 이력 있음**: `buildInitialGreeting` 이력·프로필 기반 (Phase 10 인과관계 reasoning)
-  - **goal 없음 + 이력 없음** (비로그인 체험 + 온보딩 미완): `buildInitialSuggestion` **시즌 후킹 + AI 선제안** (회의 62, 2026-04-18) — 봄(3~6월) "여름까지 N주" 동적 countdown + 시간대별 운동 추천
-- **초기 CTA 카드** (비로그인·이력無 한정, messages.length === 0): "오늘 추천 · {라벨}" + [바로 시작] 버튼 1개
-- **초기 후속질문 칩** (비로그인·이력無 한정): `QuickFollowupList` 재사용 룰베이스 4개 — "하체 말고 가슴" / "30분 말고 짧게" / "러닝도 가능해요" / "초보라 더 쉽게"
+  - **goal 없음 + 이력 없음** (비로그인 체험 + 온보딩 미완): `buildInitialSuggestion` 시즌 후킹 + AI 선제안 (회의 62)
+- **초기 CTA 카드** (비로그인·이력無 한정): "오늘 추천 · {라벨}" + [바로 시작]
+- **초기 후속질문 칩**: "하체 말고 가슴" / "30분 말고 짧게" / "초보라 더 쉽게" 등 (러닝 칩은 회의 2026-04-27에서 제거됨, [ChatHome.tsx:1075](../src/components/dashboard/ChatHome.tsx#L1075))
 - 사용자 메시지: 우측 진녹색 말풍선 (#1B4332)
 - 어시스턴트 메시지 5가지 variant:
-  1. **일반 텍스트** (mode: "chat") — 마크다운 볼드
+  1. **일반 텍스트** (mode: "chat")
   2. **AdviceCard** (mode: "advice") — "MASTER ADVICE" 카드
-  3. **Program 카드** (mode: "program") — 주차별 세션 + "생성"/"수정" 버튼
-  4. **Upgrade 카드** (조건부, 3 trigger):
-     - `guest_exhausted` → "Google로 로그인" CTA
-     - `free_limit` → "프리미엄 열기" CTA
-     - `high_value` → "프리미엄 열기" CTA
-  5. **에러 메시지** — 주황색 (tone=error)
-- **진행 상태 카드** (busy): 체크/스핀 + 단계별 라벨 (예: "질문 의도 분석 중")
-- **라우팅 카드** (routing): "맞춤 플랜 짜는 중…"
-- **플랜 확인 카드** (pendingIntent): 요약 + "플랜 시작"/"다시" 버튼
-- **AI 후속 질문 칩** (QuickFollowupList): 아이콘+라벨 칩 최대 4개
+  3. **Program 카드** (mode: "program") — 주차별 세션 + "생성"/"수정"
+  4. **Upgrade 카드** — `guest_exhausted` / `free_limit` / `high_value`
+  5. **Redirect 카드** (mode: "redirect", 회의 2026-04-27 신설) — parseIntent가 러닝/홈트 의도 감지 시 한 줄 안내 + 단일 CTA "러닝 화면으로" / "홈트 화면으로" ([ChatHome.tsx:719-736](../src/components/dashboard/ChatHome.tsx#L719-L736))
+- 진행 상태/라우팅/플랜 확인 카드 + AI 후속 질문 칩(QuickFollowupList)
 
-**③ 입력 영역**
+**④ 입력 영역**
 - **이전 플랜 이어서** 버튼 (조건부: `lastPlanSummary` 있을 때)
 - 텍스트 입력창 (자동 높이 1~5줄, Enter 전송 / Shift+Enter 개행)
 - 전송/정지 버튼 (AbortController로 mid-flight 중단 가능)
+- **러닝 아이콘 제거됨** (회의 2026-04-27, [ChatHome.tsx:1389](../src/components/dashboard/ChatHome.tsx#L1389))
 
-**④ 예시 프롬프트** (messages.length === 0 + **초기 CTA 카드 없을 때만** — 로그인·이력 있음 등)
-- 기본 4칩: "가슴 30분" / "하체 40분" / "러닝 10km" / "홈트 30분"
-- **더보기** 팝오버 추가 7개:
-  - "여름 다이어트 3개월"
-  - "생리주기 다이어트 3개월"
-  - "상급자 등 루틴"
-  - "어깨 부상 회피 가슴"
-  - "거북목·굽은등 교정"
-  - "휴가 전 7일 팔뚝"
-  - **"내 스펙 맞춤 플랜"** — 유저 프로필 기반 동적 생성
+**⑤ 예시 프롬프트** (messages.length === 0 + 초기 CTA 카드 없을 때만)
+- 기본 칩: "가슴 30분" / "하체 40분" / "등 50분" / "홈트 30분" — 회의 2026-04-27에서 "러닝 10km" 제거 ([ChatHome.tsx:88](../src/components/dashboard/ChatHome.tsx#L88))
+- **더보기** 팝오버 추가 항목: "여름 다이어트 3개월" / "생리주기 다이어트 3개월" / "상급자 등 루틴" / "어깨 부상 회피 가슴" / "거북목·굽은등 교정" / "휴가 전 7일 팔뚝" / "내 스펙 맞춤 플랜"
 
 ### 주요 기능
 
 | 기능 | 동작 |
 |---|---|
 | 채팅 입력 | `POST /api/parseIntent` — `{ text, locale, userProfile, history, workoutDigest, intentDepth }` |
-| 응답 mode 분기 | chat / plan / advice / program / redirect 5가지 |
+| 응답 mode 분기 | chat / plan / advice / program / **redirect** 5가지 |
+| Redirect 응답 | 러닝 의도 → "러닝 화면으로" 버튼 / 홈트 의도 → "홈트 화면으로" 버튼 (회의 2026-04-27) |
 | "플랜 시작" | `onSubmit(condition, goal, session)` → master_plan_preview 뷰 |
 | AdviceCard "오늘 운동" | `onStartRecommended()` → onSubmit |
 | AdviceCard "프로그램 저장" | `POST /api/generateProgramSessions` + localStorage + Firestore |
-| Program 카드 "생성" | `handleGenerateProgram()` — sessionParams 순환 생성 + saveProgramSessions |
+| 진행 중 프로그램 "이어가기" | 다음 세션을 `master_plan_preview` 직진입 (`workoutReturnTo = "home_chat"`) |
 | Reasoning 스트림 | Gemini reasoning 배열 → 400ms 간격 순차 표시 |
 | Safety 검증 | selfCheck.safety="warning/risky" → concerns를 reasoning 앞에 prepend |
 | Google Search 출처 | sourceRefs 있으면 "외부 자료 N건 교차 검증" 표기 |
 | 프리미엄 + 프로필 완성 시 | 5초 후 `/api/getNutritionGuide` 사전 로드 (백그라운드) |
-
-### 권한별 차이
-
-| 권한 | 진입 | parseIntent | 플랜 저장 | 장기 프로그램 |
-|---|---|---|---|---|
-| 비로그인 | ✓ | 3회 | ✗ 로그인 필요 | ✗ guest_exhausted CTA |
-| 로그인 무료 | ✓ | 3회 | 1개 ([savedPlans.ts:5](../functions/src/plan/savedPlans.ts#L5)) | ✗ free_limit CTA |
-| 프리미엄 | ✓ | 무제한 | 5개 | ✓ |
 
 ### AdviceCard CTA (2버튼)
 
 [AdviceCard.tsx:294](../src/components/dashboard/AdviceCard.tsx#L294)
 - **오늘 운동** (primary, 녹색 필드) — 추천 세션 즉시 시작
 - **프로그램으로 저장** (secondary, 아웃라인, sessionParams 있을 때만) — 장기 루틴 저장 (프리미엄 전용)
+
+---
+
+## 🏃 러닝 진입 — RunningHub (`view === "running_hub"`)
+
+**진입:** ROOT 카드 "러닝" 클릭
+**컴포넌트:** [src/components/dashboard/RunningHub.tsx](../src/components/dashboard/RunningHub.tsx) (RunningProgramSheet `variant="fullscreen"` 호출)
+
+### 화면 구성
+
+**우상단 오버레이 (RunningHub 자체)** ([RunningHub.tsx:106-122](../src/components/dashboard/RunningHub.tsx#L106-L122))
+- [📋] 내 플랜 아이콘 — 진행 중 러닝 프로그램 1+ 시 emerald 닷
+- [👤] 프로필 아이콘 — 클릭 시 `setActiveTab("my")` + `setView("home")` (네비바 부활)
+
+**5단계 풀스크린 (RunningProgramSheet `variant="fullscreen"`)**
+1. **C-1 select** — 4프로그램 카드 (vo2_boost / 10k_sub_50 / half_sub_2 / full_sub_3)
+   - **진행 중 러닝 프로그램 섹션** (회의 2026-04-27 in-progress) — select 화면 상단에 진행률 바(완료/총) + "이어가기 →" 버튼. 신규 시작 카드는 "새로 시작" 라벨 아래로 분리
+   - amber 권장 배너 제거(Kenko colored container 위반), 10k_sub_50 추천 뱃지 제거, full_sub_3 "경험자" 태그만 유지
+2. **C-2 settings** — 주당 일수(3/4/5) + 시작일(오늘/내일/다음월요일) + [vo2_boost 전용] 5K 기록
+3. **C-3 preview** — 챕터 카드 (Kenko 톤다운: 흰 배경 + border-gray-100, 좌측 챕터 번호 뱃지만 emerald 액센트)
+4. **C-4 loading** — 스피너 + "러닝 여정을 만드는 중..."
+5. **C-5 완료 화면** (회의 2026-04-27 신설, [RunningHub.tsx:60-101](../src/components/dashboard/RunningHub.tsx#L60-L101))
+   - 회색 체크 아이콘 + "PROGRAM CREATED" 라벨 + 프로그램명·기간
+   - 코치 메시지 3줄 (`running_program.coach.intro_line1~3` 재사용)
+   - 2버튼: [내 플랜 보기] (secondary) / [오늘 시작하기] (primary, 첫 세션 → master_plan_preview)
+
+### 주요 기능
+
+| 기능 | 동작 |
+|---|---|
+| 4프로그램 선택 | RunningProgramSheet 5단계 흐름 (회의 64-C/E/F 가이드 그대로) |
+| 이어가기 | `onResumeProgram(programId, nextSessionId)` → 다음 세션 master_plan_preview 진입 (`workoutReturnTo = "running_hub"`, [page.tsx:1069](../src/app/app/page.tsx#L1069)) |
+| 오늘 시작하기 (완료 화면) | `onStartFirstSession(programId)` → `getNextProgramSession(programId)` → master_plan_preview |
+| 뒤로 | `onBack` → `setView("root_home")` |
+| 비로그인/비프리미엄 가드 | `onRequestLogin` / `onRequestPaywall` — 저장 시점에만 검증 (회의 64-F 게이트 해제) |
+
+---
+
+## 🧘 홈트 진입 — HomeWorkoutHub (`view === "home_workout_hub"`)
+
+**진입:** ROOT 카드 "홈트" 클릭
+**컴포넌트:** [src/components/dashboard/HomeWorkoutHub.tsx](../src/components/dashboard/HomeWorkoutHub.tsx)
+
+> 1차 룰엔진 땜빵 — 추후 자체 유튜브 콘텐츠로 전환 예정 ([memory:project_homeworkout_youtube_pivot]).
+
+### 화면 구성
+
+**우상단 오버레이** — [📋] 내 플랜 / [👤] 프로필 (RunningHub와 동일 패턴)
+**좌상단 ←** — 뒤로 → root_home
+
+**입력 카드 (Kenko: 흰 배경 + border-gray-100, [HomeWorkoutHub.tsx:103-142](../src/components/dashboard/HomeWorkoutHub.tsx#L103-L142))**
+- **부위 칩** (4택, 디폴트 `full`): 전신 / 상체 / 하체 / 코어
+- **시간 칩** (3택, 디폴트 30): 15분 / 30분 / 45분
+- **강도 칩** (3택, 디폴트 `moderate`): 가볍게 / 보통 / 강하게
+- **시작하기** 버튼 (primary, emerald)
+
+### 주요 기능
+
+| 기능 | 동작 |
+|---|---|
+| 시작하기 | `onStart({ muscleGroup, duration, intensity })` → [page.tsx:1112-1166](../src/app/app/page.tsx#L1112-L1166) |
+| 백엔드 호출 | `lazyGenerateWorkout` → `/api/planSession` with `equipment: "bodyweight_only"`, `muscleGroup`, `condition.energyLevel` (low=2/moderate=3/high=4), `availableTime` (15→30, 30→30, 45→50 매핑) |
+| Goal 매핑 | Onboarding `fp.goal` → WorkoutGoal: `fat_loss/muscle_gain` 직매핑, `endurance/health` → `general_fitness` ([page.tsx:1121-1127](../src/app/app/page.tsx#L1121-L1127)) |
+| 세션 진입 | condition_check **스킵** → master_plan_preview 직진입 (`workoutReturnTo = "home_workout_hub"`) |
+| 분석 이벤트 | `trackEvent("chat_plan_generated", { mode: "home_training", muscle_group, duration, intensity })` |
+
+### 백엔드 muscleGroup 라이트 분기 (회의 2026-04-27 신규, commit `89eea72`)
+- `functions/src/workoutEngine.ts` `generateHomeWorkout` 시그니처에 `muscleGroup?: "full" | "upper" | "lower" | "core"` 추가
+- `functions/src/plan/session.ts` planSession 핸들러에서 파싱·전달
 
 ---
 
@@ -603,6 +707,35 @@ Timer/Running: 완료 or 자동 → DONE 펄스 → handleSetComplete
 ---
 
 # 🔧 내부 인프라 (유저 미노출)
+
+**ROOT 카드 화면 도입** (2026-04-27, 회의 2026-04-27, [PLAN-ROOT-HOME-CARDS.md](./PLAN-ROOT-HOME-CARDS.md)):
+- ViewState 확장: `root_home` / `running_hub` / `home_workout_hub` ([page.tsx:180-191](../src/app/app/page.tsx#L180-L191))
+- 신규 컴포넌트 3종: `RootHomeCards.tsx` / `RunningHub.tsx` / `HomeWorkoutHub.tsx`
+- 진입 전환: 로그인 후 `home` + `activeTab === "home"` 시 자동 `root_home` 치환 ([page.tsx:262-266](../src/app/app/page.tsx#L262-L266))
+- 출처 기억 state 신설: `myPlansReturnTo` / `workoutReturnTo` — MyPlans/master_plan_preview 뒤로가기 시 진입 출처(root_home/home_chat/running_hub/home_workout_hub) 복귀 ([page.tsx:255-258](../src/app/app/page.tsx#L255-L258))
+- Onboarding 게이트 부활: 카드 첫 클릭 시 `pendingRootTarget` 으로 7스텝 띄우고 완료 후 자동 진입
+- BottomTabs 가드: ROOT/Hub 진입 시 비노출, ChatHome/Hub 진입 후 부활
+- ChatHome 좁힘: 러닝 칩/아이콘 제거, parseIntent `mode === "redirect"` 분기 신설 — 러닝/홈트 의도 감지 시 단일 CTA 안내 카드
+
+**진행 중 프로그램 UI 노출** (2026-04-27, commit `612e375`):
+- `getActivePrograms()` 반환에 `programCategory` + `programGoal` 노출 (RunningProgramId enum이면 fallback "running" 추론, [src/utils/savedPlans.ts](../src/utils/savedPlans.ts))
+- RunningHub select 화면 상단 "진행 중" 섹션 — 진행률 바(완료/총) + "이어가기 →" 버튼. 신규 시작 카드는 "새로 시작" 라벨 아래로 분리.
+- ChatHome 인사말 직후 "진행 중 웨이트 프로그램" 띠 추가 — 동일 진행률 바 + "이어가기" CTA
+- i18n: `runningHub.inProgress.*` + `runningHub.startNew.label` + `chat.activeProgram.*`
+
+**운동 음악 기능 전부 제거** (2026-04-27, commit `b8201a3`):
+- 회의 64-(workout-music) 4커밋(`e187790` 도입 → `385494a`/`b90f2cb`/`fb989b7` 패치) 누적된 IFrame Player + 미니바 + visibility 동기화 전부 제거.
+- 사유: React + IFrame DOM 충돌(`Uncaught NotFoundError: insertBefore` 등) 재발 + 외부 YouTube Music 등으로 대체 가능.
+- 잔여 코드 0건 (`grep -r "MusicMiniBar\|workout_music"` 결과 없음).
+
+**fitness-age 운동 직후 vs 히스토리 뷰 불일치 fix** (2026-04-27, commit `510caa5`):
+- 버그: 운동 직후 리포트와 히스토리 재진입 리포트의 fitness age 값이 다름.
+- 수정: bodyWeightKg/gender/birthYear 가 분석 시점에 누락된 경우 localStorage fallback 추가 (`ohunjal_body_weight` / `ohunjal_gender` / `ohunjal_birth_year`).
+
+**MyPlans 편집 모드 휴지통 톤다운** (2026-04-27, commit `de836e0`):
+- 빨간 마이너스(`-`) 아이콘 → 회색 휴지통 아이콘 (Kenko 톤 통일).
+
+---
 
 **ProofTab '부위도감' → '내 등수' 헥사곤** (2026-04-25, 회의 2026-04-25 ①):
 - 기존 7부위 횡 바그래프 (제목 정규식 매칭) 폐기 — '코어' 항상 0 + '그래서 뭐?' 가치 부족.
