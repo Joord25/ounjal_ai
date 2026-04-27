@@ -1133,7 +1133,7 @@ export const adminRefundRequests = onRequest(
  * Admin only: 환불 요청 승인/거절 처리
  */
 export const adminProcessRefund = onRequest(
-  { cors: true, secrets: ["PORTONE_API_SECRET"] },
+  { cors: true, secrets: ["PORTONE_API_SECRET", "PADDLE_API_KEY"] },
   async (req, res) => {
     if (req.method !== "POST") { res.status(405).json({ error: "Method not allowed" }); return; }
 
@@ -1176,22 +1176,69 @@ export const adminProcessRefund = onRequest(
 
         // 2. Get subscription doc
         const subDoc = await db.collection("subscriptions").doc(uid).get();
+        const provider = (subDoc.exists ? (subDoc.data()?.provider as string | undefined) : undefined) || "portone";
 
-        // 3. Call PortOne refund API
-        const secret = getPortOneSecret();
-        const cancelRes = await fetch(`${PORTONE_API_BASE}/payments/${paymentId}/cancel`, {
-          method: "POST",
-          headers: {
-            "Authorization": `PortOne ${secret}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ reason: "고객 환불 요청" }),
-        });
+        // 3. Provider별 환불 API 호출 (Paddle / PortOne)
+        if (provider === "paddle") {
+          const paddleApiKey = process.env.PADDLE_API_KEY;
+          if (!paddleApiKey) {
+            console.error("[adminProcessRefund] PADDLE_API_KEY not configured");
+            throw new Error("Paddle 환불 처리에 실패했습니다. (API 키 미설정)");
+          }
+          const isSandbox = paddleApiKey.startsWith("sdbx_") || paddleApiKey.startsWith("pdl_sdbx_");
+          const paddleBase = isSandbox ? "https://sandbox-api.paddle.com" : "https://api.paddle.com";
 
-        if (!cancelRes.ok) {
-          const err = await cancelRes.json().catch(() => ({}));
-          console.error("PortOne refund failed:", err);
-          throw new Error("PortOne 환불 처리에 실패했습니다.");
+          // 3a. Transaction 조회 → line_items[].id 추출 (Paddle adjustments는 item_id 필수)
+          const txRes = await fetch(`${paddleBase}/transactions/${paymentId}`, {
+            headers: { "Authorization": `Bearer ${paddleApiKey}` },
+          });
+          if (!txRes.ok) {
+            const err = await txRes.json().catch(() => ({}));
+            console.error("Paddle transaction fetch failed:", err);
+            throw new Error("Paddle 거래 조회에 실패했습니다.");
+          }
+          const txData = await txRes.json();
+          const lineItems = (txData?.data?.details?.line_items || []) as Array<{ id: string }>;
+          if (lineItems.length === 0) {
+            throw new Error("Paddle 거래의 항목 정보를 찾을 수 없습니다.");
+          }
+
+          // 3b. Adjustments API 호출 (전액 환불 — 정책상 부분 환불 없음)
+          const refundRes = await fetch(`${paddleBase}/adjustments`, {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${paddleApiKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              action: "refund",
+              transaction_id: paymentId,
+              reason: "고객 환불 요청",
+              items: lineItems.map((it) => ({ item_id: it.id, type: "full" })),
+            }),
+          });
+          if (!refundRes.ok) {
+            const err = await refundRes.json().catch(() => ({}));
+            console.error("Paddle refund failed:", err);
+            throw new Error("Paddle 환불 처리에 실패했습니다.");
+          }
+        } else {
+          // PortOne (KO)
+          const secret = getPortOneSecret();
+          const cancelRes = await fetch(`${PORTONE_API_BASE}/payments/${paymentId}/cancel`, {
+            method: "POST",
+            headers: {
+              "Authorization": `PortOne ${secret}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ reason: "고객 환불 요청" }),
+          });
+
+          if (!cancelRes.ok) {
+            const err = await cancelRes.json().catch(() => ({}));
+            console.error("PortOne refund failed:", err);
+            throw new Error("PortOne 환불 처리에 실패했습니다.");
+          }
         }
 
         // 4. Update refund request → approved
@@ -1219,6 +1266,7 @@ export const adminProcessRefund = onRequest(
           requestId,
           paymentId,
           amount: refundData.amount || null,
+          provider,
           timestamp: FieldValue.serverTimestamp(),
         });
 

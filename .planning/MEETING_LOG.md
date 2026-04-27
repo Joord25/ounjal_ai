@@ -4295,3 +4295,57 @@ CURRENT_STATE.md L311 "세트/반복/무게 — useSetEditor 훅으로 개별 se
 - Why: 유저가 어떻게든 그날 운동을 한다는 행동 자체가 핵심 가치. 정밀 트래킹 강제 → 진입 장벽 ↑
 - 웨이트/러닝의 정밀 트래킹은 유지. 홈트만 가벼운 컬렉션으로 분리 설계 예정.
 - memory: `project_homeworkout_youtube_pivot.md`
+
+---
+
+## 회의 2026-04-28 — Paddle Live 전환 검증 (기획자/평가자 교차 검증)
+
+**배경:** Paddle MoR 활성화 메일 도착 (`Your account is live`). Sandbox→Live 전환 전 코드 정합성을 기획자(UX 흐름)/평가자(코드 엣지케이스) 분리 에이전트로 교차 검증.
+
+### 평가자 🔴Critical 4건 직접 재검증 결과
+
+| 평가자 주장 | 직접 검증 | 등급 |
+|---|---|---|
+| Webhook HMAC 검증 버그 (`paddleWebhook.ts:47-55`) | ❌ 평가자 오류 — `digest("hex")` + `Buffer.from(hex, "hex")` 표준 패턴, `timingSafeEqual` 정상 | 🟢 OK |
+| customData camelCase vs custom_data snake_case 불일치 | ❌ 평가자 부정확 — Paddle.js SDK 표준(클라 camelCase → webhook payload snake_case 자동 변환) | 🟡 sandbox 실거래 1회 검증 권장 |
+| successUrl race condition (webhook 폴링 없음) | 🟡 일부 사실 — `/api/getSubscription` 1회만 호출, 단 영구 유실 아님 (재로드 시 active 잡힘) | 🟡 Warning |
+| `adminProcessRefund` Paddle provider 분기 누락 | ✅ 사실 — PortOne API만 호출, Paddle 결제자 환불 요청 승인 시 404 → 카드 환불 X + 권한 회수 X | 🔴 Critical |
+
+평가자가 `feedback_evaluator_strict` 룰("머릿속 시뮬 금지") 일부 위반 — HMAC hex 변환 동작/SDK 컨벤션 검증 없이 단정. 그래도 환불 누락 1건 발굴은 의미 있음.
+
+### 결정사항 (2026-04-28-α)
+
+1. **`adminProcessRefund` Paddle provider 분기 추가** — 즉시 수정 (이번 커밋)
+   - `secrets: ["PORTONE_API_SECRET", "PADDLE_API_KEY"]`
+   - `subscriptions/{uid}.provider === "paddle"` → Paddle Adjustments API
+     - `GET /transactions/{paymentId}` → `data.details.line_items[].id` 추출 (Paddle Adjustments는 item_id 필수)
+     - `POST /adjustments` (action=refund, transaction_id, items=[{item_id, type:"full"}])
+   - API 키 prefix(`sdbx_`/`pdl_sdbx_`) 로 sandbox/live URL 자동 분기 — `subscription.ts:318` 패턴 재사용
+   - `admin_logs.refund_approve` 에 `provider` 필드 추가 (감사용)
+2. **환불 정책 변경 없음** — 7일/AI 미사용/전액 정책 그대로. 자동 검증(submitRefundRequest)도 PortOne/Paddle 공통 동작이라 미수정.
+3. **successUrl webhook 폴링** — 1차에선 보류 (영구 유실 아니라 재로드로 자동 동기화). 환불 분기 안정화 후 후속 회의에서 결정.
+
+### Live 전환 차단 요인 (Phase별 체크리스트, PLAN-PADDLE-LIVE는 이 회의 말미 첨부)
+
+- **Phase A** (사용자) — `.github/workflows/firebase-hosting-{merge,pull-request}.yml` 두 파일에 PADDLE env 4줄 (`NEXT_PUBLIC_PADDLE_ENV/CLIENT_TOKEN/PRICE_MONTHLY/ENABLED`) 주입 추가 — 누락 시 production 빌드가 sandbox→비활성으로 fallback
+- **Phase A-2** (이번 커밋) — `adminProcessRefund` Paddle 분기 추가
+- **Phase B-0** (사용자) — Sandbox 정리: Paddle Sandbox 대시보드 webhook destination 비활성화(URL 무효화 또는 events 해제) + Firestore `subscriptions` 컬렉션에서 `paddleSubscriptionId` prefix `sub_sdbx_` 문서 정리
+- **Phase B** (사용자) — Paddle Live 대시보드: Product/Price(USD $4.99/mo) + Client-side token + API key + Webhook destination(`https://ohunjal.com/api/paddleWebhook`, 7개 이벤트) + Payout settings(SWIFT/IBAN)
+- **Phase C** (사용자) — GitHub repo Secrets 4개 (`NEXT_PUBLIC_PADDLE_*`) + functions secrets 2개 (`PADDLE_API_KEY`, `PADDLE_WEBHOOK_SECRET`)
+- **Phase D** — `.env.local` 4개 갱신 (코드 변경) + `firebase functions:secrets:set` 2회 + `firebase deploy --only functions`
+- **Phase E** — 본인 카드 $4.99 실거래 → Firestore 활성화 → 환불 요청 → admin 승인 → Paddle 카드 환불 + 권한 회수 검증
+
+### 분리 커밋 계획
+
+1. `fix(billing): adminProcessRefund Paddle provider 분기 + Adjustments API 호출` — `functions/src/admin/admin.ts` + 본 회의 기록
+2. `docs(current-state): ROOT 카드 + Paddle Live 전환 컨텍스트 반영` — `.planning/CURRENT_STATE.md`
+3. `chore(claude-md): JA/ZH 라우트 잔재 정정` — `CLAUDE.md`
+4. (사용자) `chore(ci): GitHub Actions 워크플로우에 Paddle env 주입 추가` — Phase A
+
+push는 Phase B/C 끝난 후 일괄. 단독 push 시 PADDLE_API_KEY 미등록 상태에서 functions 배포 실패 가능.
+
+### 후속 (Phase E 통과 후 회의)
+
+- successUrl webhook 폴링 추가 (race 완화)
+- locale 자동 감지 (한국 유저 EN 우연 진입 → Paddle USD 결제 방지) — CURRENT_STATE.md:528 pending 항목 해소
+- 어드민 패널 환불 요청 탭에 provider 필터/배지 검증 (CURRENT_STATE.md:814)
