@@ -539,12 +539,20 @@ Timer/Running: 완료 or 자동 → DONE 펄스 → handleSetComplete
 - 성공 시 `POST /api/subscribe` (billingKey, Bearer 토큰) + analytics `purchase`
 - 모바일 리다이렉트: URL `billing_key` 감지 → sessionStorage 중복 방지 → 자동 처리
 
-**Paddle.js 결제 연동 (EN)** (회의 2026-04-21):
+**Paddle.js 결제 연동 (EN)** (회의 2026-04-21 도입 / 2026-04-28 Live 활성):
 - [src/utils/paddle.ts](../src/utils/paddle.ts) — `getPaddle()` 인스턴스 싱글톤, `initializePaddle({ environment, token })`
-- env: `NEXT_PUBLIC_PADDLE_CLIENT_TOKEN` + `NEXT_PUBLIC_PADDLE_ENV` (sandbox/production) + `NEXT_PUBLIC_PADDLE_PRICE_MONTHLY`
-- `paddle.Checkout.open({ items: [{ priceId, quantity: 1 }], customer: { email }, customData: { uid } })`
+- env: `NEXT_PUBLIC_PADDLE_CLIENT_TOKEN` + `NEXT_PUBLIC_PADDLE_ENV` (sandbox/**production** 활성) + `NEXT_PUBLIC_PADDLE_PRICE_MONTHLY`
+- `paddle.Checkout.open({ items: [{ priceId, quantity: 1 }], customer: { email }, customData: { firebaseUid } })`
 - successUrl: `/app?paddle_success=1`
-- Paddle 심사용 **환불정책 페이지** 추가 + Pricing 앵커 (landing) — `/terms`·`/privacy`·환불정책
+- Paddle 심사용 **환불정책 페이지** + Pricing 앵커 (landing) — `/terms`·`/privacy`·`/refund`
+- **2026-04-28 Live 전환:** Paddle 머천트 오브 레코드(MoR) 활성화 → 해외 카드 결제 정식 운영. functions secrets `PADDLE_API_KEY`(Live) + `PADDLE_WEBHOOK_SECRET`(Live) 갱신. CI 워크플로우(`firebase-hosting-{merge,pull-request}.yml`) PADDLE env 4개 주입 추가. (회의 2026-04-28)
+- **payout settings:** 한국 외화계좌(SWIFT/IBAN), Threshold $100, 매월 1일 잔액 확정 → 15일까지 송금
+
+**환불 정책 (KO 카카오페이 + EN Paddle 이중 채널, 회의 2026-04-28):**
+- 결제 후 7일 이내 + AI 운동 플랜 미생성 시 전액 환불 (provider 무관 동일)
+- 처리 시간 분기: 카카오페이 3~5 영업일, Paddle 5~10 영업일 (카드사 정책에 따라 변동 가능)
+- 회사 귀책(시스템 오류, 중복 결제) 시 위 기한·이용 이력 제한 없이 환불
+- 어드민 환불 처리: [admin.ts:1180+](../functions/src/admin/admin.ts#L1180) `provider === "paddle"` 분기 — Paddle Adjustments API (`POST /adjustments`, transaction의 line_items[].id 추출 → `type: "full"`) 호출. KO 결제는 PortOne `/payments/{id}/cancel` 기존 호출 유지.
 
 **해지 플로우 (2단계 오버레이, 탭바 숨김):**
 - **Step 1** — 잃게 될 혜택 5개 X 표시 + 취소 이유 라디오(가격/기능/다른이유/쉬고싶음/기타) + 기타 선택 시 textarea
