@@ -27,7 +27,6 @@ const GOAL_OPTIONS: { value: FitnessProfile["goal"]; key: string; descKey: strin
 // Pre-generate value arrays
 const BIRTH_YEARS = Array.from({ length: 80 }, (_, i) => 2010 - i); // 2010 ~ 1931
 const HEIGHTS_CM = Array.from({ length: 81 }, (_, i) => 120 + i);   // 120 ~ 200 cm
-const HEIGHTS_IN = Array.from({ length: 34 }, (_, i) => 47 + i);    // 47 ~ 80 inches (≈ 119~203cm)
 
 const STEP_ORDER: Step[] = ["welcome", "gender", "birth_year", "height", "weight", "goal", "done"];
 
@@ -236,12 +235,30 @@ export const Onboarding: React.FC<OnboardingProps> = ({ userName, onComplete }) 
           <p className="text-sm text-gray-400 text-center mb-6">{t("onboarding.height.sub")}</p>
           <div className="flex-1 flex items-center justify-center">
             {isImperial ? (
-              <WheelPicker
-                values={HEIGHTS_IN}
-                selected={Math.round(cmToInches(height))}
-                onChange={(v) => setHeight(Math.round(inchesToCm(v)))}
-                suffix="in"
-              />
+              <div className="flex items-center justify-center gap-2 w-full px-4">
+                <div className="w-1/2 max-w-[160px]">
+                  <WheelPicker
+                    values={[5, 6, 7]}
+                    selected={Math.floor(cmToInches(height) / 12)}
+                    onChange={(feet) => {
+                      const inches = Math.round(cmToInches(height)) % 12;
+                      setHeight(inchesToCm(feet * 12 + inches));
+                    }}
+                    suffix="'"
+                  />
+                </div>
+                <div className="w-1/2 max-w-[160px]">
+                  <WheelPicker
+                    values={Array.from({ length: 12 }, (_, i) => i)}
+                    selected={Math.round(cmToInches(height)) % 12}
+                    onChange={(inches) => {
+                      const feet = Math.floor(cmToInches(height) / 12);
+                      setHeight(inchesToCm(feet * 12 + inches));
+                    }}
+                    suffix={'"'}
+                  />
+                </div>
+              </div>
             ) : (
               <WheelPicker values={HEIGHTS_CM} selected={height} onChange={setHeight} suffix="cm" />
             )}
