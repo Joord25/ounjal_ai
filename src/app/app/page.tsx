@@ -5,6 +5,8 @@ import { PhoneFrame } from "@/components/layout/PhoneFrame";
 import { BottomTabs, TabId } from "@/components/layout/BottomTabs";
 import { LoginScreen } from "@/components/layout/LoginScreen";
 import { MasterPlanPreview } from "@/components/plan/MasterPlanPreview";
+import { BeginnerModeOptInModal } from "@/components/onboarding/BeginnerModeOptInModal";
+import { isBeginnerModeUndecided } from "@/utils/beginnerMode";
 import type { SessionSelection } from "@/constants/workout";
 import { WorkoutReport } from "@/components/report/WorkoutReport";
 import { WorkoutSession } from "@/components/workout/WorkoutSession";
@@ -427,6 +429,7 @@ export default function Home() {
   const FREE_PLAN_LIMIT = TRIAL_FREE_PLAN_LIMIT;
   const GUEST_TRIAL_LIMIT = TRIAL_GUEST_LIMIT;
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [pendingBeginnerModal, setPendingBeginnerModal] = useState(false);
   // 회의 53: 모달을 띄운 이유 — trial_exhausted = 무료 체험 3회 완료, generic = 그 외
   const [loginModalReason, setLoginModalReason] = useState<"trial_exhausted" | "generic">("generic");
   const [predictionReturnTab, setPredictionReturnTab] = useState<"home" | "proof" | "my">("home");
@@ -1208,7 +1211,11 @@ export default function Home() {
                 void remoteMarkPlanUsed(activeSavedPlanId);
               }
               setCurrentWorkoutSession(modifiedData);
-              setView("workout_session");
+              if (isBeginnerModeUndecided()) {
+                setPendingBeginnerModal(true);
+              } else {
+                setView("workout_session");
+              }
             }}
             onBack={() => {
               trackEvent("plan_preview_reject", { exercise_count: currentWorkoutSession?.exercises.length ?? 0, source: currentPlanSource });
@@ -1761,6 +1768,15 @@ export default function Home() {
             onConfirm={handleExitConfirm}
           />
         )}
+
+        {/* 초보자 모드 옵트인 모달 — master_plan_preview "운동 시작" 직후 1회 (currentWorkoutSession 세팅 → 모달 dismiss → workout_session 진입) */}
+        <BeginnerModeOptInModal
+          open={pendingBeginnerModal}
+          onResolved={() => {
+            setPendingBeginnerModal(false);
+            setView("workout_session");
+          }}
+        />
       </div>
     </PhoneFrame>
     </UnitsProvider>

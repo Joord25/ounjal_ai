@@ -12,6 +12,8 @@ import { cmToInches, inchesToCm, kgToLb, lbToKg } from "@/utils/units";
 import { UnitToggle } from "../UnitToggle";
 import { getTierFromExp, getOrRebuildSeasonExp, getCurrentSeason } from "@/utils/questSystem";
 import { loadWorkoutHistory } from "@/utils/workoutHistory";
+import { getBeginnerMode, setBeginnerMode, BEGINNER_MODE_EVENT } from "@/utils/beginnerMode";
+import { trackEvent } from "@/utils/analytics";
 
 interface MyProfileTabProps {
   user: User | null;
@@ -203,6 +205,14 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout, auto
     if (typeof window === "undefined") return true;
     return localStorage.getItem("ohunjal_settings_vibration") !== "false";
   });
+  const [beginnerEnabled, setBeginnerEnabled] = useState(() => getBeginnerMode() === true);
+  useEffect(() => {
+    const handler = (e: Event) => {
+      setBeginnerEnabled((e as CustomEvent<{ enabled: boolean }>).detail.enabled);
+    };
+    window.addEventListener(BEGINNER_MODE_EVENT, handler);
+    return () => window.removeEventListener(BEGINNER_MODE_EVENT, handler);
+  }, []);
   const [isEditingName, setIsEditingName] = useState(false);
   const [nameInput, setNameInput] = useState(user?.displayName || "");
   const [isUploading, setIsUploading] = useState(false);
@@ -877,6 +887,24 @@ export const MyProfileTab: React.FC<MyProfileTabProps> = ({ user, onLogout, auto
                 className={`w-11 h-6 rounded-full transition-colors relative ${vibrationEnabled ? "bg-[#2D6A4F]" : "bg-gray-300"}`}
               >
                 <div className={`w-5 h-5 bg-white rounded-full shadow-sm absolute top-0.5 transition-transform ${vibrationEnabled ? "translate-x-5.5" : "translate-x-0.5"}`} />
+              </button>
+            </div>
+            <div className="h-px bg-gray-100" />
+            <div className="flex justify-between items-center gap-3">
+              <div className="flex flex-col gap-0.5 min-w-0">
+                <span className="text-sm font-bold text-gray-500">{t("beginner_mode.profile.section_title")}</span>
+                <span className="text-[11px] text-gray-400 leading-snug">{t("beginner_mode.profile.section_caption")}</span>
+              </div>
+              <button
+                onClick={() => {
+                  const next = !beginnerEnabled;
+                  setBeginnerMode(next);
+                  trackEvent("beginner_mode_toggle_change", { enabled: next, source: "profile" });
+                }}
+                aria-label={t(beginnerEnabled ? "beginner_mode.profile.toggle_aria_on" : "beginner_mode.profile.toggle_aria_off")}
+                className={`w-11 h-6 rounded-full transition-colors relative flex-shrink-0 ${beginnerEnabled ? "bg-[#2D6A4F]" : "bg-gray-300"}`}
+              >
+                <div className={`w-5 h-5 bg-white rounded-full shadow-sm absolute top-0.5 transition-transform ${beginnerEnabled ? "translate-x-5.5" : "translate-x-0.5"}`} />
               </button>
             </div>
             <div className="h-px bg-gray-100" />
