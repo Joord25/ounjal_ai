@@ -20,6 +20,10 @@ import { PlanLoadingOverlay } from "@/components/plan/PlanLoadingOverlay";
 import { FitnessReading } from "@/components/dashboard/FitnessReading";
 import { ChatHome } from "@/components/dashboard/ChatHome";
 import { MyPlansScreen } from "@/components/dashboard/MyPlansScreen";
+import { RootHomeCards, type RootCardTarget } from "@/components/dashboard/RootHomeCards";
+import { RunningHub } from "@/components/dashboard/RunningHub";
+import { HomeWorkoutHub } from "@/components/dashboard/HomeWorkoutHub";
+import { getActivePrograms, getNextProgramSession } from "@/utils/savedPlans";
 import { markPlanUsed, markSessionCompleted, remoteMarkPlanUsed } from "@/utils/savedPlans";
 import { applyProgramSessionLabel } from "@/utils/programSessionLabels";
 import { Onboarding } from "@/components/layout/Onboarding";
@@ -95,6 +99,8 @@ const lazyGenerateWorkout = async (
   equipment?: import("@/constants/workout").EquipmentConstraint,
   // 회의 2026-04-24: workoutTable ↔ MasterPlan 동기화 — AdviceCard 명시 운동 리스트
   exerciseList?: import("@/constants/workout").SessionSelection["exerciseList"],
+  // 회의 2026-04-27: HomeWorkoutHub 부위 칩 (full/upper/lower/core)
+  muscleGroup?: "full" | "upper" | "lower" | "core",
 ): Promise<import("@/constants/workout").WorkoutSessionData> => {
   // [DEV ONLY] mockPlan 모드: Cloud Functions 없이 UI 프리뷰 (?mockPlan=1 또는 localStorage 플래그)
   if (process.env.NODE_ENV === "development" && typeof window !== "undefined") {
@@ -135,6 +141,7 @@ const lazyGenerateWorkout = async (
     intensityOverride, sessionMode, targetMuscle, runType, lastUpperType,
     equipment,
     exerciseList,
+    muscleGroup,
   });
   const headers = { "Content-Type": "application/json", "Authorization": `Bearer ${token}` };
 
@@ -175,6 +182,9 @@ type ViewState =
   | "prediction_report"
   | "home"
   | "home_chat"
+  | "root_home"
+  | "running_hub"
+  | "home_workout_hub"
   | "my_plans"
   | "master_plan_preview"
   | "workout_session"
@@ -240,13 +250,20 @@ export default function Home() {
   const [view, setView] = useState<ViewState>("login"); // Start with login
   // 영양 탭 온보딩 완료 시 리마운트 트리거
   const [nutritionProfileVersion, setNutritionProfileVersion] = useState(0);
+  // 회의 2026-04-27: ROOT 카드 첫 클릭 시 Onboarding 게이트. 완료되면 해당 카드로 자동 진입.
+  const [pendingRootTarget, setPendingRootTarget] = useState<RootCardTarget | null>(null);
+  // 회의 2026-04-27 (5차): MyPlansScreen 진입 출처 기억 — 뒤로가기 시 그곳으로 복귀 (root_home / home_chat / running_hub / home_workout_hub)
+  const [myPlansReturnTo, setMyPlansReturnTo] = useState<ViewState>("home_chat");
+  // 회의 2026-04-27 (5차): master_plan_preview/workout 진입 출처 기억 — 뒤로/재시작 시 그곳으로 복귀
+  const [workoutReturnTo, setWorkoutReturnTo] = useState<ViewState>("home_chat");
 
-  // HomeScreen 폐기 (회의: fix-forward). "home"은 레거시 alias — home_chat으로 자동 치환.
+  // 회의 2026-04-27: ROOT 카드 화면 도입. "home" + activeTab=home 일 때만 root_home으로 자동 치환.
+  // (activeTab=my/proof/nutrition 인 경우엔 home view 유지 → home case의 탭 분기가 MyProfileTab 등 렌더)
   useEffect(() => {
     // [DEV] goto=plan 잠금 시 home 자동치환 건너뛰기
     if (typeof window !== "undefined" && new URLSearchParams(window.location.search).get("goto") === "plan") return;
-    if (view === "home") setView("home_chat");
-  }, [view]);
+    if (view === "home" && activeTab === "home") setView("root_home");
+  }, [view, activeTab]);
 
   // [DEV ONLY] ?goto=plan 으로 MasterPlanPreview 강제 잠금 (UI 프리뷰용)
   useEffect(() => {
@@ -467,8 +484,8 @@ export default function Home() {
           // 기존 유저(프로필 있음) → 온보딩 자동 스킵
           const hasProfile = !!(localStorage.getItem("ohunjal_gender") && localStorage.getItem("ohunjal_birth_year"));
           if (hasProfile) localStorage.setItem("ohunjal_onboarding_done", "1");
-          // HomeScreen 폐기 후 모든 유저 채팅홈으로 직행
-          setView("home_chat");
+          // 회의 2026-04-27: ROOT 카드 화면으로 진입
+          setView("root_home");
           setIsInitialized(true);
         });
 
@@ -613,6 +630,8 @@ export default function Home() {
     // This callback is called after successful signInWithPopup in LoginScreen
     trackEvent("login", { method: "google" });
     setShowLoginModal(false);
+    // 회의 2026-04-27: ROOT 진입 시 activeTab을 home으로 reset (이전 세션의 my/proof 잔재 방지)
+    setActiveTab("home");
     setView("home");
   };
 
@@ -667,10 +686,14 @@ export default function Home() {
                 setCurrentWorkoutSession(session);
                 setActiveSavedPlanId(null);
                 setCurrentPlanSource("chat"); // 회의 63-A
+                // 회의 2026-04-27 (5차): ChatHome 흐름 — master_plan_preview 뒤로가기 시 ChatHome으로 복귀
+                setWorkoutReturnTo("home_chat");
                 setView("master_plan_preview");
                 return;
             }
             pendingSessionRef.current = session;
+            // 회의 2026-04-27 (5차): ChatHome 흐름 — overlay 완료 후 master_plan_preview 진입 시 복귀 출처 home_chat
+            setWorkoutReturnTo("home_chat");
             // isLoading stays true — PlanLoadingOverlay.onComplete will clear it
             return;
         } else {
@@ -990,6 +1013,145 @@ export default function Home() {
     }
 
     switch (view) {
+      case "root_home": {
+        // 회의 2026-04-27: ROOT 카드 화면 — 하단 네비바 X, ChatHome과 동일 헤더 사용
+        // 안전망: 카드 진입 시 activeTab을 항상 home으로 reset (이전 탭이 my/proof/nutrition로 남아있어 ChatHome 진입 시 다른 탭이 그려지는 버그 방지)
+        const enterTarget = (target: RootCardTarget) => {
+          setActiveTab("home");
+          if (target === "weight") setView("home_chat");
+          else if (target === "running") setView("running_hub");
+          else setView("home_workout_hub");
+        };
+        const handleRootCardSelect = (target: RootCardTarget) => {
+          // 첫 클릭 시 Onboarding 게이트 — 완료되면 해당 카드로 자동 진입
+          const onboardingDone = typeof window !== "undefined" && localStorage.getItem("ohunjal_onboarding_done") === "1";
+          if (!onboardingDone) {
+            trackEvent("root_onboarding_trigger", { target });
+            setPendingRootTarget(target);
+            return;
+          }
+          enterTarget(target);
+        };
+        const activePrograms = (() => {
+          try { return getActivePrograms(); } catch { return []; }
+        })();
+        return (
+          <RootHomeCards
+            userName={getDisplayName(user, "")}
+            isLoggedIn={isLoggedIn ?? false}
+            isPremium={subStatus === "active"}
+            onSelectCard={handleRootCardSelect}
+            onOpenMyPlans={() => { setMyPlansReturnTo("root_home"); setView("my_plans"); }}
+            hasActivePrograms={activePrograms.length > 0}
+          />
+        );
+      }
+
+      case "running_hub": {
+        const runHubActive = (() => { try { return getActivePrograms().length > 0; } catch { return false; } })();
+        return (
+          <RunningHub
+            isLoggedIn={isLoggedIn ?? false}
+            isPremium={subStatus === "active"}
+            hasActivePrograms={runHubActive}
+            onBack={() => setView("root_home")}
+            onOpenMyPlans={() => { setMyPlansReturnTo("running_hub"); setView("my_plans"); }}
+            onOpenProfile={() => { setActiveTab("my"); setView("home"); }}
+            onStartFirstSession={(programId) => {
+              // 생성된 프로그램의 다음 세션(첫 세션)을 master_plan_preview로 진입
+              try {
+                const next = getNextProgramSession(programId);
+                if (next) {
+                  setActiveSavedPlanId(next.id);
+                  setCurrentWorkoutSession(next.sessionData);
+                  setCurrentPlanSource("program");
+                  // 회의 2026-04-27 (5차): master_plan_preview 뒤로가기 시 RunningHub로 복귀
+                  setWorkoutReturnTo("running_hub");
+                  setView("master_plan_preview");
+                  return;
+                }
+              } catch (e) {
+                console.error("getNextProgramSession failed", e);
+              }
+              setView("my_plans");
+            }}
+            onRequestLogin={() => {
+              setLoginModalReason("generic");
+              setShowLoginModal(true);
+            }}
+            onRequestPaywall={() => setShowPaywall(true)}
+          />
+        );
+      }
+
+      case "home_workout_hub": {
+        const hwHubActive = (() => { try { return getActivePrograms().length > 0; } catch { return false; } })();
+        return (
+          <HomeWorkoutHub
+            busy={isLoading}
+            hasActivePrograms={hwHubActive}
+            onBack={() => setView("root_home")}
+            onOpenMyPlans={() => { setMyPlansReturnTo("home_workout_hub"); setView("my_plans"); }}
+            onOpenProfile={() => { setActiveTab("my"); setView("home"); }}
+            onStart={async (sel) => {
+              // 회의 2026-04-27: 부위/시간/강도 → planSession (bodyweight_only) → master_plan_preview 직진입
+              try {
+                const fp: { gender?: "male" | "female"; bodyWeight?: number; goal?: "fat_loss" | "muscle_gain" | "endurance" | "health" } = (() => {
+                  try { return JSON.parse(localStorage.getItem("ohunjal_fitness_profile") || "{}"); }
+                  catch { return {}; }
+                })();
+                const birthYear = parseInt(localStorage.getItem("ohunjal_birth_year") || "0") || undefined;
+                // 회의 2026-04-27: Onboarding goal(4종) → WorkoutGoal(4종) 매핑. endurance/health → general_fitness.
+                const goalMap: Record<string, import("@/constants/workout").WorkoutGoal> = {
+                  fat_loss: "fat_loss",
+                  muscle_gain: "muscle_gain",
+                  endurance: "general_fitness",
+                  health: "general_fitness",
+                };
+                const goal: import("@/constants/workout").WorkoutGoal = goalMap[fp.goal ?? "health"] ?? "general_fitness";
+                // availableTime은 30/50/90 enum이라 가까운 값으로 매핑 (15→30, 30→30, 45→50)
+                const availableTime: 30 | 50 | 90 = sel.duration === 15 ? 30 : sel.duration === 30 ? 30 : 50;
+                // 강도 칩 → energyLevel 매핑 (low=2, moderate=3, high=4)
+                const energyLevel: 1 | 2 | 3 | 4 | 5 = sel.intensity === "low" ? 2 : sel.intensity === "high" ? 4 : 3;
+                const condition: import("@/constants/workout").UserCondition = {
+                  bodyPart: "good",
+                  energyLevel,
+                  availableTime,
+                  gender: fp.gender,
+                  birthYear,
+                  bodyWeightKg: fp.bodyWeight,
+                };
+                setIsLoading(true);
+                setCurrentCondition(condition);
+                setCurrentGoal(goal);
+                setCurrentSession({ goal, sessionMode: "home_training" });
+                setCurrentPlanSource("chat");
+                // 회의 2026-04-27 (5차): master_plan_preview 뒤로가기 시 HomeWorkoutHub로 복귀
+                setWorkoutReturnTo("home_workout_hub");
+                const session = await lazyGenerateWorkout(
+                  new Date().getDay(),
+                  condition,
+                  goal,
+                  undefined,
+                  sel.intensity,
+                  "home_training",
+                  undefined,
+                  undefined,
+                  "bodyweight_only",
+                  undefined,
+                  sel.muscleGroup,
+                );
+                pendingSessionRef.current = session;
+                trackEvent("chat_plan_generated", { mode: "home_training", muscle_group: sel.muscleGroup, duration: sel.duration, intensity: sel.intensity });
+              } catch (err) {
+                console.error("HomeWorkoutHub start failed:", err);
+                setIsLoading(false);
+              }
+            }}
+          />
+        );
+      }
+
       case "prediction_report":
         return (
           <FitnessReading
@@ -1007,7 +1169,7 @@ export default function Home() {
         );
 
       case "master_plan_preview":
-        if (!currentWorkoutSession) { setView("home"); return null; }
+        if (!currentWorkoutSession) { setActiveTab("home"); setView("home"); return null; }
         return (
           <MasterPlanPreview
             sessionData={currentWorkoutSession}
@@ -1044,8 +1206,14 @@ export default function Home() {
             }}
             onBack={() => {
               trackEvent("plan_preview_reject", { exercise_count: currentWorkoutSession?.exercises.length ?? 0, source: currentPlanSource });
+              // 회의 2026-04-27 (5차): hub 진입자는 hub로 우선 복귀 (RunningHub의 onStartFirstSession이 setActiveSavedPlanId 호출하지만 → my_plans로 가면 안 됨)
+              if (workoutReturnTo === "running_hub" || workoutReturnTo === "home_workout_hub") {
+                setActiveSavedPlanId(null);
+                setView(workoutReturnTo);
+                return;
+              }
               if (activeSavedPlanId) { setActiveSavedPlanId(null); setView("my_plans"); }
-              else setView("home_chat");
+              else setView(workoutReturnTo);
             }}
             onRegenerate={handleRegenerate}
             onIntensityChange={handleIntensityChange}
@@ -1064,7 +1232,7 @@ export default function Home() {
         );
 
       case "workout_session":
-        if (!currentWorkoutSession) { setView("home"); return null; }
+        if (!currentWorkoutSession) { setActiveTab("home"); setView("home"); return null; }
         return (
           <WorkoutSession
             sessionData={currentWorkoutSession}
@@ -1176,7 +1344,7 @@ export default function Home() {
         );
 
       case "workout_report":
-        if (!currentWorkoutSession) { setView("home"); return null; }
+        if (!currentWorkoutSession) { setActiveTab("home"); setView("home"); return null; }
         return (
           <WorkoutReport
             sessionData={currentWorkoutSession}
@@ -1226,7 +1394,7 @@ export default function Home() {
       case "my_plans":
         return (
           <MyPlansScreen
-            onBack={() => setView("home_chat")}
+            onBack={() => setView(myPlansReturnTo)}
             onSelectPlan={(plan) => {
               // 저장 플랜 실행도 트라이얼/페이월 게이트 통과 (평가자 P0 지적)
               if (!isLoggedIn && getGuestTrialCount() >= GUEST_TRIAL_LIMIT) {
@@ -1282,7 +1450,7 @@ export default function Home() {
             isGuest={!isLoggedIn}
             isLoggedIn={isLoggedIn}
             isPremium={subStatus === "active"}
-            onOpenMyPlans={() => setView("my_plans")}
+            onOpenMyPlans={() => { setMyPlansReturnTo("home_chat"); setView("my_plans"); }}
             savedPlansCount={typeof window !== "undefined" ? JSON.parse(localStorage.getItem("ohunjal_saved_plans") || "[]").length : 0}
             userProfile={{
               gender: genderVal,
@@ -1385,7 +1553,8 @@ export default function Home() {
                    setShowPaywall(true);
                    return;
                  }
-                 setView("home_chat");
+                 // 회의 2026-04-27 (5차): 진입 출처(workoutReturnTo)로 복귀 — 러닝/홈트 진입자도 그 화면으로
+                 setView(workoutReturnTo);
                }}
                initialAnalysis={currentWorkoutSession ?
                  // Try to find analysis from history if available (회의 52: 유틸 경유)
@@ -1413,10 +1582,29 @@ export default function Home() {
     <UnitsProvider>
     <PhoneFrame pullToRefresh={view === "home" || view === "home_chat"}>
       <div className="h-full w-full relative overflow-hidden">
-        <div className={`h-full overflow-y-auto overflow-x-hidden scrollbar-hide ${view === "login" ? "" : ""}`} style={view === "login" || view === "workout_session" || view === "master_plan_preview" ? undefined : { paddingBottom: "calc(80px + var(--safe-area-bottom, 0px))" }}>
+        <div className={`h-full overflow-y-auto overflow-x-hidden scrollbar-hide ${view === "login" ? "" : ""}`} style={view === "login" || view === "workout_session" || view === "master_plan_preview" || view === "root_home" || view === "running_hub" || view === "home_workout_hub" ? undefined : { paddingBottom: "calc(80px + var(--safe-area-bottom, 0px))" }}>
           {renderContent()}
         </div>
         
+        {/* 회의 2026-04-27: ROOT 카드 첫 클릭 → Onboarding 풀스크린 게이트 */}
+        {pendingRootTarget && (
+          <div className="absolute inset-0 z-50 bg-white">
+            <Onboarding
+              userName={getDisplayName(user, "")}
+              onComplete={() => {
+                const target = pendingRootTarget;
+                trackEvent("root_onboarding_complete", { target });
+                setPendingRootTarget(null);
+                // 회의 2026-04-27: 진입 전 activeTab을 home으로 reset (이전 탭 잔재 방지)
+                setActiveTab("home");
+                if (target === "weight") setView("home_chat");
+                else if (target === "running") setView("running_hub");
+                else setView("home_workout_hub");
+              }}
+            />
+          </div>
+        )}
+
         {/* Paywall Overlay */}
         {showPaywall && user && (
           <div className="absolute inset-0 z-50 bg-white">
@@ -1463,9 +1651,9 @@ export default function Home() {
                   pollCount++;
                   setTimeout(checkReady, 500);
                 } else {
-                  // 타임아웃 — 로딩 종료, 컨디션 체크로 복귀
+                  // 타임아웃 — 로딩 종료, 진입 출처로 복귀 (회의 2026-04-27 5차)
                   setIsLoading(false);
-                  setView("home_chat");
+                  setView(workoutReturnTo);
                 }
               };
               checkReady();
@@ -1473,7 +1661,7 @@ export default function Home() {
           />
         )}
 
-        {view !== "login" && view !== "workout_session" && view !== "master_plan_preview" && !cancelFlowActive && (
+        {view !== "login" && view !== "workout_session" && view !== "master_plan_preview" && view !== "root_home" && view !== "running_hub" && view !== "home_workout_hub" && !cancelFlowActive && (
           <div
             className={`absolute bottom-0 left-0 right-0 z-40 transition-transform duration-300 ease-out ${
               tabsVisible ? "translate-y-0" : "translate-y-full"

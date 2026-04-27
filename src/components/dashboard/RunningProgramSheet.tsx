@@ -36,6 +36,8 @@ export interface ProgramCreatedInfo {
 
 interface RunningProgramSheetProps {
   open: boolean;
+  /** "sheet" = 기존 바텀시트(ChatHome 호환) / "fullscreen" = ROOT 카드 진입 (회의 2026-04-27) */
+  variant?: "sheet" | "fullscreen";
   onClose: () => void;
   onProgramCreated: (info: ProgramCreatedInfo) => void;
   isLoggedIn: boolean;
@@ -44,20 +46,22 @@ interface RunningProgramSheetProps {
   onRequestPaywall: () => void;
 }
 
+// 회의 2026-04-27: 추천 뱃지 정리 — 10k_sub_50 추천 제거, full_sub_3 "경험자" 태그 유지(별도 키로 표시).
 const PROGRAM_META: Array<{
   id: RunningProgramId;
   titleKey: string;
   subKey: string;
+  caption: string;
   recommended?: boolean;
 }> = [
-  { id: "vo2_boost",  titleKey: "running_program.program.vo2_boost.title", subKey: "running_program.program.vo2_boost.sub" },
-  { id: "10k_sub_50", titleKey: "running_program.program.10k.title",       subKey: "running_program.program.10k.sub", recommended: true },
-  { id: "half_sub_2", titleKey: "running_program.program.half.title",      subKey: "running_program.program.half.sub" },
-  { id: "full_sub_3", titleKey: "running_program.program.full.title",      subKey: "running_program.program.full.sub" },
+  { id: "vo2_boost",  titleKey: "running_program.program.vo2_boost.title", subKey: "running_program.program.vo2_boost.sub", caption: "VO2 MAX" },
+  { id: "10k_sub_50", titleKey: "running_program.program.10k.title",       subKey: "running_program.program.10k.sub",       caption: "10K · SUB 50" },
+  { id: "half_sub_2", titleKey: "running_program.program.half.title",      subKey: "running_program.program.half.sub",      caption: "HALF · SUB 2" },
+  { id: "full_sub_3", titleKey: "running_program.program.full.title",      subKey: "running_program.program.full.sub",      caption: "FULL · SUB 3" },
 ];
 
 export const RunningProgramSheet: React.FC<RunningProgramSheetProps> = ({
-  open, onClose, onProgramCreated, isLoggedIn, isPremium, onRequestLogin, onRequestPaywall,
+  open, variant = "sheet", onClose, onProgramCreated, isLoggedIn, isPremium, onRequestLogin, onRequestPaywall,
 }) => {
   const { t } = useTranslation();
   const [step, setStep] = useState<Step>("select");
@@ -239,6 +243,76 @@ export const RunningProgramSheet: React.FC<RunningProgramSheetProps> = ({
     }
   };
 
+  if (variant === "fullscreen") {
+    // 회의 2026-04-27: step-aware ← (select=root-back, 그 외=step-back) + 큰 타이틀 헤더 (Kenko 통일).
+    // sub-step의 자체 헤더(닫기/← 이전/세팅 라벨)는 hideHeader prop으로 숨김.
+    const stepHeader: Record<Step, { caption: string; titleKey: string } > = {
+      select: { caption: "RUNNING PROGRAMS", titleKey: "runningHub.header.select" },
+      gate_check: { caption: "QUALIFICATION", titleKey: "runningHub.header.gate_check" },
+      gate_fail: { caption: "QUALIFICATION", titleKey: "runningHub.header.gate_check" },
+      settings: { caption: "SETTINGS", titleKey: "runningHub.header.settings" },
+      preview: { caption: "YOUR JOURNEY", titleKey: "runningHub.header.preview" },
+      loading: { caption: "GENERATING", titleKey: "runningHub.header.loading" },
+    };
+    const handleStepBack = () => {
+      if (step === "select" || step === "loading") {
+        handleClose();
+      } else if (step === "settings") {
+        setStep("select");
+      } else if (step === "preview") {
+        setStep("settings");
+      } else if (step === "gate_check" || step === "gate_fail") {
+        setStep("select");
+      }
+    };
+    const cur = stepHeader[step];
+    return (
+      <div className="h-full w-full bg-white overflow-y-auto">
+        <div className="relative pt-[max(2.5rem,env(safe-area-inset-top))]">
+          <button
+            onClick={handleStepBack}
+            disabled={step === "loading"}
+            className="absolute left-4 top-[max(2.5rem,env(safe-area-inset-top))] p-2 text-gray-500 active:text-[#1B4332] transition-colors disabled:opacity-40"
+            aria-label={t("runningHub.back")}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+          </button>
+          {/* 회의 2026-04-27 (5차): 헤더와 본문 사이 충분한 separation (pb-6). */}
+          <div className="px-6 pt-20 pb-6">
+            <p className="text-[10px] font-black tracking-[0.18em] uppercase text-gray-400">{cur.caption}</p>
+            <h1 className="text-3xl font-black text-[#1B4332] mt-1">{t(cur.titleKey)}</h1>
+          </div>
+        </div>
+        <div className="px-6 pb-10">
+          {step === "select" && (
+            <StepSelect t={t} onSelect={handleSelectProgram} onClose={handleClose} hideHeader />
+          )}
+          {step === "gate_check" && (
+            <StepGateCheck t={t} autoWeeklyAvgKm={autoWeeklyAvgKm} answers={gateAnswers} setAnswers={setGateAnswers} onBack={() => setStep("select")} onSubmit={handleGateSubmit} hideHeader />
+          )}
+          {step === "gate_fail" && (
+            <StepGateFail t={t} reasons={gateReasons} onRedirect={handleGateFailRedirect} onClose={handleClose} />
+          )}
+          {step === "settings" && selectedProgram && (
+            <StepSettings t={t} programId={selectedProgram} daysPerWeek={daysPerWeek} setDaysPerWeek={setDaysPerWeek} startChoice={startChoice} setStartChoice={setStartChoice} vo5kMin={vo5kMin} setVo5kMin={setVo5kMin} vo5kSec={vo5kSec} setVo5kSec={setVo5kSec} onBack={() => setStep("select")} onNext={() => setStep("preview")} hideHeader />
+          )}
+          {step === "preview" && selectedProgram && (
+            <StepPreview t={t} programId={selectedProgram} error={error} onBack={() => setStep("settings")} onStart={handleGenerate} hideHeader />
+          )}
+          {step === "loading" && (
+            <div className="py-20 text-center">
+              <div className="inline-block w-10 h-10 border-4 border-[#2D6A4F] border-t-transparent rounded-full animate-spin mb-4" />
+              <p className="text-[14px] font-black text-[#1B4332]">{t("running_program.loading.title")}</p>
+              <p className="text-[11px] text-gray-500 mt-1">{t("running_program.loading.desc")}</p>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="absolute inset-0 z-50">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-fade-in" onClick={handleClose} />
@@ -315,46 +389,30 @@ const Chip: React.FC<{ active: boolean; onClick: () => void; children: React.Rea
   >{children}</button>
 );
 
-const StepSelect: React.FC<{ t: TFn; onSelect: (id: RunningProgramId) => void; onClose: () => void }> = ({ t, onSelect, onClose }) => (
+const StepSelect: React.FC<{ t: TFn; onSelect: (id: RunningProgramId) => void; onClose: () => void; hideHeader?: boolean }> = ({ t, onSelect, onClose, hideHeader }) => (
   <>
-    <div className="flex items-center justify-between mb-3">
-      <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em]">{t("running_program.step1.title")}</p>
-      <button onClick={onClose} className="text-sm text-gray-400 font-bold">{t("running_program.close")}</button>
-    </div>
-    <p className="text-[12px] text-gray-500 mb-3">{t("running_program.step1.subtitle")}</p>
-    {/* 회의 64-F/H: 권장 베이스 안내 배너 — 구체 조건 리스트 */}
-    <div className="mb-4 px-3 py-2.5 rounded-xl bg-amber-50/70 border border-amber-200/60 flex items-start gap-2">
-      <svg className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
-      <p className="text-[11px] text-amber-800 leading-relaxed whitespace-pre-line">{t("running_program.step1.notice")}</p>
-    </div>
-    <div className="flex flex-col gap-2.5">
+    {!hideHeader && (
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em]">{t("running_program.step1.title")}</p>
+        <button onClick={onClose} className="text-sm text-gray-400 font-bold">{t("running_program.close")}</button>
+      </div>
+    )}
+    <p className="text-[13px] text-gray-500 mb-5 leading-relaxed">{t("running_program.step1.subtitle")}</p>
+    {/* 회의 2026-04-27 (4차 가독성 수정): 카드 안 영문 caption 제거(헤더가 이미 있어 중복+어수선). 한글 title + sub-text + (full만) 경험자 칩. */}
+    <div className="flex flex-col gap-3">
       {PROGRAM_META.map(p => (
         <button
           key={p.id}
           onClick={() => onSelect(p.id)}
-          className="w-full flex items-center gap-3 px-4 py-4 rounded-2xl border border-gray-200 bg-white hover:border-[#2D6A4F]/40 hover:bg-emerald-50/30 active:scale-[0.98] transition-all text-left"
+          className="w-full bg-white border border-gray-100 rounded-3xl shadow-sm px-6 py-5 active:scale-[0.98] transition-transform hover:bg-gray-50 text-left"
         >
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <p className="text-[14px] font-black text-[#1B4332] truncate">{t(p.titleKey)}</p>
-              {p.recommended && (
-                <span className="shrink-0 px-1.5 py-0.5 rounded-md bg-[#2D6A4F] text-white text-[9px] font-black uppercase tracking-wide">
-                  {t("running_program.recommended_badge")}
-                </span>
-              )}
-              {p.id === "full_sub_3" && (
-                <span className="shrink-0 px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-700 text-[9px] font-black tracking-wide border border-amber-200">
-                  {t("running_program.program.full.recommend_tag")}
-                </span>
-              )}
-            </div>
-            <p className="text-[11px] text-gray-500 mt-0.5">{t(p.subKey)}</p>
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-xl font-black text-[#1B4332] leading-tight">{t(p.titleKey)}</span>
+            {p.id === "full_sub_3" && (
+              <span className="shrink-0 text-[10px] font-black tracking-[0.15em] uppercase text-[#2D6A4F] whitespace-nowrap">{t("running_program.program.full.recommend_tag")}</span>
+            )}
           </div>
-          <svg className="w-4 h-4 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-          </svg>
+          <p className="text-[12.5px] text-gray-500 mt-1.5 leading-relaxed">{t(p.subKey)}</p>
         </button>
       ))}
     </div>
@@ -368,7 +426,8 @@ const StepGateCheck: React.FC<{
   setAnswers: (a: GateAnswers) => void;
   onBack: () => void;
   onSubmit: () => void;
-}> = ({ t, autoWeeklyAvgKm, answers, setAnswers, onBack, onSubmit }) => {
+  hideHeader?: boolean;
+}> = ({ t, autoWeeklyAvgKm, answers, setAnswers, onBack, onSubmit, hideHeader }) => {
   const [halfMin, setHalfMin] = useState<string>("");
   const [halfSec, setHalfSec] = useState<string>("");
   const [halfNone, setHalfNone] = useState<boolean>(answers.halfMarathonSec === null);
@@ -395,11 +454,13 @@ const StepGateCheck: React.FC<{
 
   return (
     <>
-      <div className="flex items-center justify-between mb-3">
-        <button onClick={onBack} className="text-sm text-gray-400 font-bold">← {t("running_program.step3.back")}</button>
-        <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em]">{t("running_program.gate.title")}</p>
-        <div className="w-10" />
-      </div>
+      {!hideHeader && (
+        <div className="flex items-center justify-between mb-3">
+          <button onClick={onBack} className="text-sm text-gray-400 font-bold">← {t("running_program.step3.back")}</button>
+          <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em]">{t("running_program.gate.title")}</p>
+          <div className="w-10" />
+        </div>
+      )}
       <p className="text-[12px] text-gray-500 mb-4">{t("running_program.gate.desc")}</p>
 
       {/* Q1 — GPS 자동 계산 읽기전용 (회의 64-E Phase 4.1) */}
@@ -526,30 +587,34 @@ const StepSettings: React.FC<{
   setVo5kSec: (n: number) => void;
   onBack: () => void;
   onNext: () => void;
-}> = ({ t, programId, daysPerWeek, setDaysPerWeek, startChoice, setStartChoice, vo5kMin, setVo5kMin, vo5kSec, setVo5kSec, onBack, onNext }) => {
+  hideHeader?: boolean;
+}> = ({ t, programId, daysPerWeek, setDaysPerWeek, startChoice, setStartChoice, vo5kMin, setVo5kMin, vo5kSec, setVo5kSec, onBack, onNext, hideHeader }) => {
   const isVo2 = programId === "vo2_boost";
   const vo5kValid = !isVo2 || (vo5kMin >= 10 && vo5kMin <= 59 && vo5kSec >= 0 && vo5kSec <= 59);
 
   return (
     <>
-      <div className="flex items-center justify-between mb-4">
-        <button onClick={onBack} className="text-sm text-gray-400 font-bold">← {t("running_program.step3.back")}</button>
-        <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em]">{t("running_program.step2.title")}</p>
-        <div className="w-10" />
-      </div>
+      {!hideHeader && (
+        <div className="flex items-center justify-between mb-4">
+          <button onClick={onBack} className="text-sm text-gray-400 font-bold">← {t("running_program.step3.back")}</button>
+          <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em]">{t("running_program.step2.title")}</p>
+          <div className="w-10" />
+        </div>
+      )}
 
-      <div className="mb-4">
-        <p className="text-[11px] font-black text-gray-500 uppercase tracking-wide mb-2">{t("running_program.step2.days_label")}</p>
-        <div className="flex gap-2">
+      {/* 회의 2026-04-27 (5차 가독성): 섹션 간격 mb-4 → mb-7, 라벨↔칩 mb-2 → mb-3, 라벨 typo 강화 */}
+      <div className="mb-7">
+        <p className="text-[13px] font-bold text-[#1B4332] mb-3">{t("running_program.step2.days_label")}</p>
+        <div className="flex gap-2.5">
           <Chip active={daysPerWeek === 3} onClick={() => setDaysPerWeek(3)}>{t("running_program.step2.days_3")}</Chip>
           <Chip active={daysPerWeek === 4} onClick={() => setDaysPerWeek(4)}>{t("running_program.step2.days_4")}</Chip>
           <Chip active={daysPerWeek === 5} onClick={() => setDaysPerWeek(5)}>{t("running_program.step2.days_5")}</Chip>
         </div>
       </div>
 
-      <div className="mb-4">
-        <p className="text-[11px] font-black text-gray-500 uppercase tracking-wide mb-2">{t("running_program.step2.start_label")}</p>
-        <div className="flex gap-2">
+      <div className="mb-7">
+        <p className="text-[13px] font-bold text-[#1B4332] mb-3">{t("running_program.step2.start_label")}</p>
+        <div className="flex gap-2.5">
           <Chip active={startChoice === "today"} onClick={() => setStartChoice("today")}>{t("running_program.step2.start_today")}</Chip>
           <Chip active={startChoice === "tomorrow"} onClick={() => setStartChoice("tomorrow")}>{t("running_program.step2.start_tomorrow")}</Chip>
           <Chip active={startChoice === "next_monday"} onClick={() => setStartChoice("next_monday")}>{t("running_program.step2.start_next_mon")}</Chip>
@@ -557,9 +622,9 @@ const StepSettings: React.FC<{
       </div>
 
       {isVo2 && (
-        <div className="mb-4">
-          <p className="text-[11px] font-black text-gray-500 uppercase tracking-wide mb-1">{t("running_program.step2.vo2_5k_label")}</p>
-          <p className="text-[11px] text-gray-400 mb-2">{t("running_program.step2.vo2_5k_desc")}</p>
+        <div className="mb-7">
+          <p className="text-[13px] font-bold text-[#1B4332] mb-1">{t("running_program.step2.vo2_5k_label")}</p>
+          <p className="text-[12px] text-gray-500 mb-3 leading-relaxed">{t("running_program.step2.vo2_5k_desc")}</p>
           <div className="flex gap-2 items-center">
             <input
               type="number"
@@ -575,7 +640,7 @@ const StepSettings: React.FC<{
                 setVo5kMin(Math.min(59, Math.max(0, v)));
               }}
               onBlur={() => { if (vo5kMin < 10) setVo5kMin(10); }}
-              className="flex-1 min-w-0 px-3 py-2.5 rounded-xl bg-gray-50 border border-gray-200 text-[14px] font-bold text-[#1B4332] outline-none focus:border-[#2D6A4F]"
+              className="flex-1 min-w-0 px-3 py-3 rounded-xl bg-gray-50 border border-gray-200 text-[16px] font-bold text-[#1B4332] outline-none focus:border-[#2D6A4F]"
             />
             <span className="text-[12px] text-gray-500">{t("running_program.step2.vo2_5k_minutes")}</span>
             <input
@@ -591,7 +656,7 @@ const StepSettings: React.FC<{
                 if (isNaN(v)) return;
                 setVo5kSec(Math.min(59, Math.max(0, v)));
               }}
-              className="flex-1 min-w-0 px-3 py-2.5 rounded-xl bg-gray-50 border border-gray-200 text-[14px] font-bold text-[#1B4332] outline-none focus:border-[#2D6A4F]"
+              className="flex-1 min-w-0 px-3 py-3 rounded-xl bg-gray-50 border border-gray-200 text-[16px] font-bold text-[#1B4332] outline-none focus:border-[#2D6A4F]"
             />
             <span className="text-[12px] text-gray-500">{t("running_program.step2.vo2_5k_seconds")}</span>
           </div>
@@ -601,7 +666,7 @@ const StepSettings: React.FC<{
       <button
         onClick={onNext}
         disabled={!vo5kValid}
-        className="w-full py-3 rounded-2xl bg-[#1B4332] text-white text-[13px] font-black disabled:opacity-30 disabled:bg-gray-300 active:scale-[0.98] transition-all"
+        className="w-full py-3.5 rounded-2xl bg-[#1B4332] text-white text-[14px] font-black disabled:opacity-30 disabled:bg-gray-300 active:scale-[0.98] transition-all"
       >
         {t("running_program.step2.continue")}
       </button>
@@ -635,19 +700,22 @@ function previewChapters(programId: RunningProgramId): ChapterPreview[] {
   ];
 }
 
-const StepPreview: React.FC<{ t: TFn; programId: RunningProgramId; error: string | null; onBack: () => void; onStart: () => void }> = ({ t, programId, error, onBack, onStart }) => {
+const StepPreview: React.FC<{ t: TFn; programId: RunningProgramId; error: string | null; onBack: () => void; onStart: () => void; hideHeader?: boolean }> = ({ t, programId, error, onBack, onStart, hideHeader }) => {
   const chapters = previewChapters(programId);
   return (
     <>
-      <div className="flex items-center justify-between mb-3">
-        <button onClick={onBack} className="text-sm text-gray-400 font-bold">← {t("running_program.step3.back")}</button>
-        <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em]">{t("running_program.step3.title")}</p>
-        <div className="w-10" />
-      </div>
+      {!hideHeader && (
+        <div className="flex items-center justify-between mb-3">
+          <button onClick={onBack} className="text-sm text-gray-400 font-bold">← {t("running_program.step3.back")}</button>
+          <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em]">{t("running_program.step3.title")}</p>
+          <div className="w-10" />
+        </div>
+      )}
       <p className="text-[12px] text-gray-500 mb-4">{t("running_program.step3.subtitle")}</p>
+      {/* 회의 2026-04-27: Kenko 톤다운 — gradient/colored container 제거, 흰 배경 + border-gray-100 */}
       <div className="flex flex-col gap-2.5 mb-4">
         {chapters.map((ch, i) => (
-          <div key={ch.key} className="p-3.5 rounded-2xl bg-gradient-to-br from-emerald-50 to-white border border-[#2D6A4F]/15">
+          <div key={ch.key} className="p-3.5 rounded-2xl bg-white border border-gray-100">
             <div className="flex items-center gap-2 mb-1.5">
               <span className="w-6 h-6 rounded-lg bg-[#2D6A4F] text-white text-[11px] font-black flex items-center justify-center">{i + 1}</span>
               <p className="text-[13px] font-black text-[#1B4332]">{t(`running_program.chapter.${ch.key}`)}</p>

@@ -52,7 +52,12 @@ type FunnelEvent =
   | "workout_music_play"
   | "workout_music_pause"
   | "workout_music_next"
-  | "workout_music_select";
+  | "workout_music_select"
+  | "root_card_click"
+  | "root_my_plans_click"
+  | "root_profile_click"
+  | "root_onboarding_trigger"
+  | "root_onboarding_complete";
 
 export function trackEvent(event: FunnelEvent, params?: Record<string, string | number | boolean>) {
   try {
