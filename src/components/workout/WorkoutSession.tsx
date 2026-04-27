@@ -9,8 +9,7 @@ import { getCachedWorkoutHistory } from "@/utils/workoutHistory";
 import { useTranslation } from "@/hooks/useTranslation";
 import { getExerciseName } from "@/utils/exerciseName";
 import { updateActiveSession, type ActiveSessionProgress } from "@/utils/activeSessionPersistence";
-import { WorkoutMusicPlayer, type WorkoutMusicPlayerHandle } from "./WorkoutMusicPlayer";
-import { isMusicEnabled } from "@/utils/musicPreference";
+// 회의 2026-04-27: 워크아웃 음악 기능 제거 — 외부 YouTube Music 등으로 대체. 거슬림 해소.
 import { useScreenWakeLock } from "@/hooks/useScreenWakeLock";
 
 const MUSCLE_GROUP_EN: Record<string, string> = {
@@ -64,32 +63,8 @@ export const WorkoutSession: React.FC<WorkoutSessionProps> = ({
   const [isResting, setIsResting] = useState(false);
   const [restTimer, setRestTimer] = useState(60);
   const [logs, setLogs] = useState<Record<number, ExerciseLog[]>>(restoredProgress?.logs ?? {});
-  // 회의 2026-04-26 음악 도입: 음악 ON 사용자만 미니바 노출 + 알람 ducking 연동
-  const musicEnabled = useMemo(() => isMusicEnabled(), []);
-  const musicHandleRef = useRef<WorkoutMusicPlayerHandle | null>(null);
-  const handleRegisterMusicHandle = useCallback((h: WorkoutMusicPlayerHandle | null) => {
-    musicHandleRef.current = h;
-  }, []);
-  const handleBeforeAlarm = useCallback(() => {
-    musicHandleRef.current?.duckVolumeFor(800);
-  }, []);
-  // 회의 2026-04-26 음악 도입: 운동 ▶/⏸ → 음악 단방향 동기화 (timer/cardio/running 만, FitScreen 에서 발화).
-  // 사용자가 음악 재생 의도였을 때만 음악도 따라감 (resumeAfterOverride 가 userIntendedPlaying 체크).
-  const handleIsPlayingChange = useCallback((isPlaying: boolean) => {
-    if (isPlaying) {
-      musicHandleRef.current?.resumeAfterOverride();
-    } else {
-      musicHandleRef.current?.pauseForOverride();
-    }
-  }, []);
-  // 화면 꺼짐 방지 — 음악 ON 시. 러닝은 useGpsTracker 가 자체 wake lock 운영 (중복 호출 안전).
-  useScreenWakeLock(musicEnabled);
-  // FitScreen 의 bottomBar 슬롯 element — 매 운동 전환 시 새 element 로 교체됨. callback ref 로 추적.
-  // WorkoutMusicPlayer 가 UI 미니바를 portal 로 이 element 에 렌더 → FitScreen unmount 시 portal cleanup, 음악 인스턴스는 stable.
-  const [musicSlotEl, setMusicSlotEl] = useState<HTMLDivElement | null>(null);
-  const musicSlotCallback = useCallback((el: HTMLDivElement | null) => {
-    setMusicSlotEl(el);
-  }, []);
+  // 회의 2026-04-27: 음악 기능 제거. 화면 꺼짐 방지는 그대로 — 휴식 60s/90s 사이 OS auto-lock 방지.
+  useScreenWakeLock(true);
   // 회의 41: 러닝 인터벌 완주 시 FitScreen에서 산출되는 runningStats 저장
   const runningStatsRef = useRef<RunningStats | null>(restoredProgress?.runningStats ?? null);
   // 회의 43 후속: 안정화된 콜백 — FitScreen useEffect가 매초 재실행되는 문제 방지
@@ -629,19 +604,8 @@ export const WorkoutSession: React.FC<WorkoutSessionProps> = ({
         onRunningStatsComputed={handleRunningStatsComputed}
         onEndClick={onAbandon ? () => setShowAbandonModal(true) : undefined}
         onSkipExercise={handleSkipExercise}
-        onBeforeAlarm={musicEnabled ? handleBeforeAlarm : undefined}
-        onIsPlayingChange={musicEnabled ? handleIsPlayingChange : undefined}
-        bottomBar={musicEnabled ? <div ref={musicSlotCallback} className="shrink-0" /> : null}
       />
-
-      {/* 회의 2026-04-26 음악 도입: WorkoutSession 레벨 고정 마운트. UI 미니바는 portal 로 FitScreen.bottomBar 슬롯에 렌더 → DONE 직전 위치 + FitScreen unmount 영향 X. */}
-      {musicEnabled && (
-        <WorkoutMusicPlayer
-          enabled={musicEnabled}
-          registerHandle={handleRegisterMusicHandle}
-          uiPortalTarget={musicSlotEl}
-        />
-      )}
+      {/* 회의 2026-04-27: WorkoutMusicPlayer 제거 — 외부 YouTube Music 등으로 대체 */}
 
       {/* 회의 64-M3: 중도 종료 확인 팝업 */}
       {showAbandonModal && (

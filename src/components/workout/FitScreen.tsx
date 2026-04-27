@@ -60,12 +60,7 @@ interface FitScreenProps {
   // 회의 2026-04-24: 우측 상단 "현재 운동 스킵" 아이콘 — 세트 기록 없이 다음 운동으로.
   //   warmup/strength/core/cardio 전 phase 공통 노출.
   onSkipExercise?: () => void;
-  // 회의 2026-04-26 음악 도입: DONE 위 음악 미니바 슬롯. WorkoutSession 이 WorkoutMusicPlayer 를 주입.
-  bottomBar?: React.ReactNode;
-  // 알람 발사 직전 호출 — 음악 ducking 트리거용.
-  onBeforeAlarm?: () => void;
-  // 운동 ▶/⏸ 변경 시 호출 — WorkoutSession 이 음악도 단방향 동기화 (timer/cardio/running 운동만 발화).
-  onIsPlayingChange?: (isPlaying: boolean) => void;
+  // 회의 2026-04-27: 음악 기능 제거 — bottomBar/onBeforeAlarm/onIsPlayingChange props 삭제됨.
 }
 
 export const FitScreen: React.FC<FitScreenProps> = ({
@@ -86,9 +81,6 @@ export const FitScreen: React.FC<FitScreenProps> = ({
   onRunningStatsComputed,
   onEndClick,
   onSkipExercise,
-  bottomBar,
-  onBeforeAlarm,
-  onIsPlayingChange,
 }) => {
   const { t, locale } = useTranslation();
   const { system: unitSystem, labels: unitLabels } = useUnits();
@@ -205,7 +197,7 @@ export const FitScreen: React.FC<FitScreenProps> = ({
   }, [setInfo.current]);
 
   const halfAlarmFired = useRef(false);
-  const playAlarmSound = useAlarmSynthesizer({ onBeforePlay: onBeforeAlarm });
+  const playAlarmSound = useAlarmSynthesizer({});
 
   // Weight presets: 4 nearest 10kg steps centered around current weight (excluding current)
   const weightPresets = (() => {
@@ -337,10 +329,8 @@ export const FitScreen: React.FC<FitScreenProps> = ({
       firstIsPlayingChangeRef.current = false;
       return;
     }
-    if (isTimerMode || isRunningExercise) {
-      onIsPlayingChange?.(isPlaying);
-    }
-  }, [isPlaying, isTimerMode, isRunningExercise, onIsPlayingChange]);
+    // 회의 2026-04-27: 음악 동기화 콜백 제거
+  }, [isPlaying, isTimerMode, isRunningExercise]);
 
   // 연속 러닝의 세부 타입 (runningStats.runningType 결정용)
   const continuousRunType = useMemo(() => detectExerciseRunningType(exercise), [exercise]);
@@ -2287,8 +2277,7 @@ export const FitScreen: React.FC<FitScreenProps> = ({
         </div>
       )}
 
-      {/* 회의 2026-04-26 음악 도입: DONE 위 음악 미니바 슬롯 (WorkoutSession 이 주입) */}
-      {bottomBar && <div className="shrink-0">{bottomBar}</div>}
+      {/* 회의 2026-04-27: 음악 미니바 슬롯 제거 */}
     </div>
   );
 };

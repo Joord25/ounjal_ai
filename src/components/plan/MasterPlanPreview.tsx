@@ -16,13 +16,7 @@ import { trackEvent } from "@/utils/analytics";
 import { useTranslation } from "@/hooks/useTranslation";
 import { getExerciseName } from "@/utils/exerciseName";
 import { updateActiveSession } from "@/utils/activeSessionPersistence";
-import {
-  isMusicEnabled,
-  setMusicEnabled,
-  isMusicIntroShown,
-  markMusicIntroShown,
-} from "@/utils/musicPreference";
-import { CURATED_PLAYLISTS, isCuratedPlaylistAvailable } from "@/constants/curatedPlaylists";
+// 회의 2026-04-27: 음악 기능 제거 — musicPreference / CURATED_PLAYLISTS import 삭제
 
 interface MasterPlanPreviewProps {
   sessionData: WorkoutSessionData;
@@ -227,22 +221,7 @@ export const MasterPlanPreview: React.FC<MasterPlanPreviewProps> = ({
     const base = restoredExercises ?? sessionData.exercises;
     return base.map(ex => ({ ...ex, count: rebuildCount(ex, t, locale) }));
   });
-  // 회의 2026-04-26 음악 도입: CTA 위 토글. 큐레이션 1개라도 준비됐을 때만 노출.
-  const musicAvailable = React.useMemo(() => CURATED_PLAYLISTS.some(isCuratedPlaylistAvailable), []);
-  const [musicOn, setMusicOn] = useState<boolean>(() => isMusicEnabled());
-  const [musicIntroVisible, setMusicIntroVisible] = useState(false);
-  const handleToggleMusic = useCallback(() => {
-    setMusicOn((prev) => {
-      const next = !prev;
-      setMusicEnabled(next);
-      if (next && !isMusicIntroShown()) {
-        setMusicIntroVisible(true);
-        markMusicIntroShown();
-        setTimeout(() => setMusicIntroVisible(false), 4000);
-      }
-      return next;
-    });
-  }, []);
+  // 회의 2026-04-27: 음악 토글 / intro 토스트 / curation 자산 제거 — 외부 YouTube Music 등으로 대체
 
   // 회의 63-A: source 포함 (chat / saved / program / resume)
   useEffect(() => { trackEvent("plan_preview_view", { exercise_count: sessionData.exercises.length, source }); }, []);
@@ -692,26 +671,7 @@ export const MasterPlanPreview: React.FC<MasterPlanPreviewProps> = ({
         style={{ paddingBottom: "calc(var(--safe-area-bottom, 0px) + 24px)" }}
       >
         {/* 회의 2026-04-26 음악 도입: CTA 위 토글. 큐레이션 1개라도 준비됐을 때만 노출 (마이너스 요소 회피). */}
-        {musicAvailable && (
-          <button
-            type="button"
-            onClick={handleToggleMusic}
-            className={`w-full h-10 mb-2.5 rounded-xl flex items-center justify-center gap-2 text-xs font-bold transition-all ${
-              musicOn
-                ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
-                : "bg-white text-gray-600 border border-gray-200"
-            }`}
-            aria-pressed={musicOn}
-          >
-            <span className={musicOn ? "text-emerald-700" : "text-gray-400"}>♪</span>
-            <span>{musicOn ? t("music.toggle_on") : t("music.toggle_off")}</span>
-          </button>
-        )}
-        {musicIntroVisible && (
-          <div className="absolute -top-16 left-3 right-3 px-3 py-2 rounded-xl bg-[#1B4332] text-white text-xs leading-snug shadow-lg">
-            {t("music.intro_toast")}
-          </div>
-        )}
+        {/* 회의 2026-04-27: 음악 토글 + intro 토스트 제거 — 외부 YouTube Music 등으로 대체 */}
         <div className="flex items-center gap-2.5">
           <button
             onClick={openSaveSheet}
