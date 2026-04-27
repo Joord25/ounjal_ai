@@ -1042,6 +1042,7 @@ export default function Home() {
             isPremium={subStatus === "active"}
             onSelectCard={handleRootCardSelect}
             onOpenMyPlans={() => { setMyPlansReturnTo("root_home"); setView("my_plans"); }}
+            onOpenProfile={() => { setActiveTab("my"); setView("home"); }}
             hasActivePrograms={activePrograms.length > 0}
           />
         );

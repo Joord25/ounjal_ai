@@ -14,6 +14,8 @@ interface RootHomeCardsProps {
   isPremium: boolean;
   onSelectCard: (target: RootCardTarget) => void;
   onOpenMyPlans: () => void;
+  /** 회의 2026-04-28-γ Phase E QA: 우상단 내플랜 옆 프로필 아이콘 → 프로필 탭 진입 */
+  onOpenProfile: () => void;
   hasActivePrograms: boolean;
 }
 
@@ -64,7 +66,7 @@ const RootCard: React.FC<CardProps> = ({ caption, label, icon, onClick }) => (
   </button>
 );
 
-export const RootHomeCards: React.FC<RootHomeCardsProps> = ({ userName, isLoggedIn, isPremium, onSelectCard, onOpenMyPlans, hasActivePrograms }) => {
+export const RootHomeCards: React.FC<RootHomeCardsProps> = ({ userName, isLoggedIn, isPremium, onSelectCard, onOpenMyPlans, onOpenProfile, hasActivePrograms }) => {
   const { t, locale } = useTranslation();
 
   const displayName = userName || t("home.defaultName");
@@ -107,16 +109,28 @@ export const RootHomeCards: React.FC<RootHomeCardsProps> = ({ userName, isLogged
     <div className="h-full w-full flex flex-col bg-[#FAFBF9]">
       {/* 상단 CTA — 인사 + 날짜 + 상태 pill (ChatHome 헤더와 동일) */}
       <div className="pt-[max(2.5rem,env(safe-area-inset-top))] px-6 pb-2 shrink-0 relative">
-        <button
-          onClick={handleMyPlansClick}
-          className={`absolute right-5 top-[max(2.5rem,env(safe-area-inset-top))] p-2 transition-colors ${hasActivePrograms ? "text-[#2D6A4F]" : "text-gray-400 active:text-[#1B4332]"}`}
-          aria-label={t("root.myPlan.aria")}
-        >
-          <svg className="w-6 h-6" fill={hasActivePrograms ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-          </svg>
-        </button>
-        <h1 className="font-black leading-snug pr-12">
+        <div className="absolute right-3 top-[max(2.5rem,env(safe-area-inset-top))] flex items-center">
+          <button
+            onClick={handleMyPlansClick}
+            className={`p-2 transition-colors ${hasActivePrograms ? "text-[#2D6A4F]" : "text-gray-400 active:text-[#1B4332]"}`}
+            aria-label={t("root.myPlan.aria")}
+          >
+            <svg className="w-6 h-6" fill={hasActivePrograms ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+            </svg>
+          </button>
+          <button
+            onClick={onOpenProfile}
+            className="p-2 text-gray-400 active:text-[#1B4332] transition-colors"
+            aria-label={t("root.profile.aria")}
+          >
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <circle cx="12" cy="9" r="3.5" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 20c1.5-3.5 4-5 7-5s5.5 1.5 7 5" />
+            </svg>
+          </button>
+        </div>
+        <h1 className="font-black leading-snug pr-24">
           <span className={`text-[#2D6A4F] ${displayName.length > 6 ? "text-2xl" : "text-3xl"}`}>{displayName}</span>
           <span className={`text-[#1B4332] ${greetingMsg.length > 14 ? "text-base" : "text-xl"}`}> {locale === "en" ? "" : "님, "}{greetingMsg}</span>
         </h1>
