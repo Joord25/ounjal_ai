@@ -163,8 +163,8 @@ const ko: LandingTexts = {
         a: "무료로도 AI 루틴의 강력함을 충분히 경험할 수 있어요 (무료 플랜 **2회** + AI 채팅 **3회** + 기록 저장). 더 빠른 성장을 원하면 프리미엄: 무제한 플랜, AI 분석 리포트, **AI 영양 코치** 무제한 채팅, 성장 예측 리포트 전부 포함. 월 **6,900원**.",
       },
       {
-        q: "구독 취소 / 환불 / 데이터 보호는?",
-        a: "프로필 탭에서 **1클릭 해지**. 결제 후 7일 이내 + 프리미엄 기능 미사용 시 환불 가능. 모든 운동·개인 데이터는 Google Cloud 암호화 저장, 제3자 공유 없음. 계정 삭제 시 모든 데이터 영구 삭제.",
+        q: "결제 수단 / 구독 취소 / 환불 / 데이터 보호는?",
+        a: "한국은 **카카오페이**, 해외는 **신용카드(Paddle)**. 프로필 탭에서 **1클릭 해지**. 결제 후 7일 이내 + AI 운동 플랜 미생성 시 전액 환불(카카오페이 3~5영업일, Paddle 5~10영업일). 모든 운동·개인 데이터는 Google Cloud 암호화 저장, 제3자 공유 없음. 계정 삭제 시 모든 데이터 영구 삭제.",
       },
     ],
   },
@@ -273,8 +273,8 @@ const en: LandingTexts = {
         a: "Free gives you the full AI routine experience (**2 free plans** + **3 AI chats** + workout logs). Want faster growth? Premium unlocks unlimited plans, AI analysis reports, **unlimited AI nutrition coach** chat, and growth prediction reports. Just **$4.99/month**.",
       },
       {
-        q: "Cancellation, refunds, data protection?",
-        a: "**1-click cancel** in Profile. Refundable within 7 days if Premium features weren't used. All data encrypted on Google Cloud, never shared with third parties. Delete your account — all data permanently wiped.",
+        q: "Payment, cancellation, refunds, data protection?",
+        a: "Pay by **card via Paddle** (international) or **KakaoPay** (Korea). **1-click cancel** in Profile. Refundable within 7 days if no AI plans were generated (KakaoPay 3-5 business days, Paddle 5-10 business days). All data encrypted on Google Cloud, never shared with third parties. Delete your account — all data permanently wiped.",
       },
     ],
   },
