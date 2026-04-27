@@ -44,6 +44,9 @@ interface RunningProgramSheetProps {
   isPremium: boolean;
   onRequestLogin: () => void;
   onRequestPaywall: () => void;
+  /** 회의 2026-04-27: 진행 중인 러닝 프로그램 — select 화면 상단에 "이어가기" 카드로 노출 */
+  activePrograms?: Array<{ programId: string; programName: string; completed: number; total: number; nextSession: { id: string } | null }>;
+  onResumeProgram?: (programId: string, nextSessionId: string) => void;
 }
 
 // 회의 2026-04-27: 추천 뱃지 정리 — 10k_sub_50 추천 제거, full_sub_3 "경험자" 태그 유지(별도 키로 표시).
@@ -62,6 +65,7 @@ const PROGRAM_META: Array<{
 
 export const RunningProgramSheet: React.FC<RunningProgramSheetProps> = ({
   open, variant = "sheet", onClose, onProgramCreated, isLoggedIn, isPremium, onRequestLogin, onRequestPaywall,
+  activePrograms, onResumeProgram,
 }) => {
   const { t } = useTranslation();
   const [step, setStep] = useState<Step>("select");
@@ -287,7 +291,14 @@ export const RunningProgramSheet: React.FC<RunningProgramSheetProps> = ({
         </div>
         <div className="px-6 pb-10">
           {step === "select" && (
-            <StepSelect t={t} onSelect={handleSelectProgram} onClose={handleClose} hideHeader />
+            <StepSelect
+              t={t}
+              onSelect={handleSelectProgram}
+              onClose={handleClose}
+              hideHeader
+              activePrograms={activePrograms}
+              onResumeProgram={onResumeProgram}
+            />
           )}
           {step === "gate_check" && (
             <StepGateCheck t={t} autoWeeklyAvgKm={autoWeeklyAvgKm} answers={gateAnswers} setAnswers={setGateAnswers} onBack={() => setStep("select")} onSubmit={handleGateSubmit} hideHeader />
@@ -389,7 +400,14 @@ const Chip: React.FC<{ active: boolean; onClick: () => void; children: React.Rea
   >{children}</button>
 );
 
-const StepSelect: React.FC<{ t: TFn; onSelect: (id: RunningProgramId) => void; onClose: () => void; hideHeader?: boolean }> = ({ t, onSelect, onClose, hideHeader }) => (
+const StepSelect: React.FC<{
+  t: TFn;
+  onSelect: (id: RunningProgramId) => void;
+  onClose: () => void;
+  hideHeader?: boolean;
+  activePrograms?: Array<{ programId: string; programName: string; completed: number; total: number; nextSession: { id: string } | null }>;
+  onResumeProgram?: (programId: string, nextSessionId: string) => void;
+}> = ({ t, onSelect, onClose, hideHeader, activePrograms, onResumeProgram }) => (
   <>
     {!hideHeader && (
       <div className="flex items-center justify-between mb-3">
@@ -398,6 +416,36 @@ const StepSelect: React.FC<{ t: TFn; onSelect: (id: RunningProgramId) => void; o
       </div>
     )}
     <p className="text-[13px] text-gray-500 mb-5 leading-relaxed">{t("running_program.step1.subtitle")}</p>
+
+    {/* 회의 2026-04-27: 진행 중 러닝 프로그램 — "이어가기" 카드. 위계: 신규 시작 카드보다 위에. */}
+    {activePrograms && activePrograms.length > 0 && (
+      <>
+        <p className="text-[10px] font-black tracking-[0.18em] uppercase text-gray-400 mb-3">{t("runningHub.inProgress.label")}</p>
+        <div className="flex flex-col gap-3 mb-6">
+          {activePrograms.map((p) => {
+            const pct = p.total > 0 ? Math.round((p.completed / p.total) * 100) : 0;
+            return (
+              <button
+                key={p.programId}
+                onClick={() => p.nextSession && onResumeProgram?.(p.programId, p.nextSession.id)}
+                disabled={!p.nextSession}
+                className="w-full bg-white border border-[#2D6A4F]/30 rounded-3xl shadow-sm px-6 py-5 active:scale-[0.98] transition-transform hover:bg-emerald-50/30 text-left disabled:opacity-50"
+              >
+                <div className="flex items-center justify-between gap-3 mb-2">
+                  <span className="text-base font-black text-[#1B4332] leading-tight truncate">{p.programName}</span>
+                  <span className="shrink-0 text-[11px] font-bold text-[#2D6A4F]">{p.completed}/{p.total}</span>
+                </div>
+                <div className="w-full h-1 bg-gray-100 rounded-full overflow-hidden">
+                  <div className="h-full bg-[#2D6A4F] transition-[width] duration-500" style={{ width: `${pct}%` }} />
+                </div>
+                <p className="text-[11px] text-[#2D6A4F] font-bold mt-2">{t("runningHub.inProgress.resume")} →</p>
+              </button>
+            );
+          })}
+        </div>
+        <p className="text-[10px] font-black tracking-[0.18em] uppercase text-gray-400 mb-3">{t("runningHub.startNew.label")}</p>
+      </>
+    )}
     {/* 회의 2026-04-27 (4차 가독성 수정): 카드 안 영문 caption 제거(헤더가 이미 있어 중복+어수선). 한글 title + sub-text + (full만) 경험자 칩. */}
     <div className="flex flex-col gap-3">
       {PROGRAM_META.map(p => (

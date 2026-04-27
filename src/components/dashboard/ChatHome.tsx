@@ -34,6 +34,9 @@ interface ChatHomeProps {
   isPremium?: boolean;
   onOpenMyPlans?: () => void;
   savedPlansCount?: number;
+  /** 회의 2026-04-27: 진행 중 웨이트 프로그램 — 인사말 아래 "이어가기" 띠로 표시 */
+  activeStrengthPrograms?: Array<{ programId: string; programName: string; completed: number; total: number; nextSession: { id: string } | null }>;
+  onResumeProgram?: (programId: string, nextSessionId: string) => void;
   onSubmit: (condition: UserCondition, goal: WorkoutGoal, session: SessionSelection, opts?: { skipLoadingAnim?: boolean }) => void | Promise<void>;
   userProfile?: {
     gender?: "male" | "female";
@@ -193,7 +196,7 @@ function renderMarkdownBold(text: string): React.ReactNode {
   });
 }
 
-export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProfile, isLoggedIn, isPremium, canSubmit, getBlockReason, onRequestLogin, onRequestPaywall, onOpenMyPlans, lastPlanSummary, onResumeLastPlan }) => {
+export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProfile, isLoggedIn, isPremium, canSubmit, getBlockReason, onRequestLogin, onRequestPaywall, onOpenMyPlans, lastPlanSummary, onResumeLastPlan, activeStrengthPrograms, onResumeProgram }) => {
   const { t, locale } = useTranslation();
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
@@ -945,6 +948,37 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
           })()}
         </div>
       </div>
+
+      {/* 회의 2026-04-27: 진행 중 웨이트 프로그램 띠 — 인사말 직후, 채팅 위에 노출. */}
+      {activeStrengthPrograms && activeStrengthPrograms.length > 0 && onResumeProgram && (
+        <div className="px-6 mt-2 mb-1 flex flex-col gap-2">
+          {activeStrengthPrograms.map((p) => {
+            const pct = p.total > 0 ? Math.round((p.completed / p.total) * 100) : 0;
+            return (
+              <button
+                key={p.programId}
+                onClick={() => p.nextSession && onResumeProgram(p.programId, p.nextSession.id)}
+                disabled={!p.nextSession}
+                className="w-full bg-white border border-[#2D6A4F]/30 rounded-2xl shadow-sm px-4 py-3 active:scale-[0.98] transition-transform hover:bg-emerald-50/30 text-left disabled:opacity-50"
+              >
+                <div className="flex items-center justify-between gap-3 mb-1.5">
+                  <div className="flex items-baseline gap-2 min-w-0">
+                    <span className="text-[10px] font-black tracking-[0.18em] uppercase text-gray-400 shrink-0">{t("chat.activeProgram.label")}</span>
+                  </div>
+                  <span className="shrink-0 text-[11px] font-bold text-[#2D6A4F]">{p.completed}/{p.total}</span>
+                </div>
+                <div className="flex items-center justify-between gap-3 mb-1.5">
+                  <span className="text-[14px] font-black text-[#1B4332] truncate">{p.programName}</span>
+                  <span className="shrink-0 text-[11px] font-bold text-[#2D6A4F]">{t("chat.activeProgram.resume")} →</span>
+                </div>
+                <div className="w-full h-1 bg-gray-100 rounded-full overflow-hidden">
+                  <div className="h-full bg-[#2D6A4F] transition-[width] duration-500" style={{ width: `${pct}%` }} />
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* 채팅 섹션 — 상단 고정 헤더 제거. 각 메시지에 미니 헤더 표시 (회의 60 Phase 2). */}
       <div className="mt-3 border-t border-gray-200 flex-1 flex flex-col min-h-0">

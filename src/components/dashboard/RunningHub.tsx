@@ -8,10 +8,13 @@ interface RunningHubProps {
   isLoggedIn: boolean;
   isPremium: boolean;
   hasActivePrograms: boolean;
+  /** 회의 2026-04-27: 진행 중 러닝 프로그램 — select 화면에 "이어가기" 카드로 표시 */
+  activeRunningPrograms?: Array<{ programId: string; programName: string; completed: number; total: number; nextSession: { id: string } | null }>;
   onBack: () => void;
   onOpenMyPlans: () => void;
   onOpenProfile: () => void;
   onStartFirstSession: (programId: string) => void;
+  onResumeProgram: (programId: string, nextSessionId: string) => void;
   onRequestLogin: () => void;
   onRequestPaywall: () => void;
 }
@@ -42,10 +45,12 @@ export const RunningHub: React.FC<RunningHubProps> = ({
   isLoggedIn,
   isPremium,
   hasActivePrograms,
+  activeRunningPrograms,
   onBack,
   onOpenMyPlans,
   onOpenProfile,
   onStartFirstSession,
+  onResumeProgram,
   onRequestLogin,
   onRequestPaywall,
 }) => {
@@ -124,6 +129,8 @@ export const RunningHub: React.FC<RunningHubProps> = ({
         isPremium={isPremium}
         onRequestLogin={onRequestLogin}
         onRequestPaywall={onRequestPaywall}
+        activePrograms={activeRunningPrograms}
+        onResumeProgram={onResumeProgram}
       />
     </div>
   );

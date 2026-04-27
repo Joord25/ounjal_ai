@@ -168,18 +168,37 @@ export function getProgramProgress(programId: string): { completed: number; tota
   };
 }
 
-/** 활성 프로그램 목록 (고유 programId별 첫 세션 기준) */
-export function getActivePrograms(): Array<{ programId: string; programName: string; completed: number; total: number; nextSession: SavedPlan | null }> {
+/** 활성 프로그램 목록 (고유 programId별 첫 세션 기준)
+ * 회의 2026-04-27: programCategory + programGoal 노출 — RunningHub/ChatHome에서 러닝/웨이트 필터에 사용.
+ * 기존 SavedPlan 중 programCategory undefined인 경우 programGoal이 RunningProgramId enum이면 "running"으로 fallback 추론.
+ */
+const RUNNING_PROGRAM_IDS = new Set(["vo2_boost", "10k_sub_50", "half_sub_2", "full_sub_3"]);
+
+export interface ActiveProgram {
+  programId: string;
+  programName: string;
+  programCategory: "running" | "strength";
+  programGoal?: string;
+  completed: number;
+  total: number;
+  nextSession: SavedPlan | null;
+}
+
+export function getActivePrograms(): ActiveProgram[] {
   const all = getSavedPlans();
   const programIds = new Set<string>();
-  const result: Array<{ programId: string; programName: string; completed: number; total: number; nextSession: SavedPlan | null }> = [];
+  const result: ActiveProgram[] = [];
   for (const p of all) {
     if (!p.programId || programIds.has(p.programId)) continue;
     programIds.add(p.programId);
     const progress = getProgramProgress(p.programId);
+    const inferredCategory: "running" | "strength" =
+      p.programCategory ?? (p.programGoal && RUNNING_PROGRAM_IDS.has(p.programGoal) ? "running" : "strength");
     result.push({
       programId: p.programId,
       programName: p.programName ?? p.name,
+      programCategory: inferredCategory,
+      programGoal: p.programGoal,
       ...progress,
       nextSession: getNextProgramSession(p.programId),
     });

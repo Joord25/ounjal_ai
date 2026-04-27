@@ -23,7 +23,7 @@ import { MyPlansScreen } from "@/components/dashboard/MyPlansScreen";
 import { RootHomeCards, type RootCardTarget } from "@/components/dashboard/RootHomeCards";
 import { RunningHub } from "@/components/dashboard/RunningHub";
 import { HomeWorkoutHub } from "@/components/dashboard/HomeWorkoutHub";
-import { getActivePrograms, getNextProgramSession } from "@/utils/savedPlans";
+import { getActivePrograms, getNextProgramSession, getSavedPlans, type SavedPlan } from "@/utils/savedPlans";
 import { markPlanUsed, markSessionCompleted, remoteMarkPlanUsed } from "@/utils/savedPlans";
 import { applyProgramSessionLabel } from "@/utils/programSessionLabels";
 import { Onboarding } from "@/components/layout/Onboarding";
@@ -1048,12 +1048,28 @@ export default function Home() {
       }
 
       case "running_hub": {
-        const runHubActive = (() => { try { return getActivePrograms().length > 0; } catch { return false; } })();
+        const allActive = (() => { try { return getActivePrograms(); } catch { return []; } })();
+        const runHubActive = allActive.length > 0;
+        const activeRunningPrograms = allActive.filter(p => p.programCategory === "running");
         return (
           <RunningHub
             isLoggedIn={isLoggedIn ?? false}
             isPremium={subStatus === "active"}
             hasActivePrograms={runHubActive}
+            activeRunningPrograms={activeRunningPrograms}
+            onResumeProgram={(_programId, nextSessionId) => {
+              // 회의 2026-04-27: "이어가기" → 해당 프로그램 다음 세션을 master_plan_preview로 진입
+              try {
+                const all = getSavedPlans();
+                const session = all.find((p: SavedPlan) => p.id === nextSessionId);
+                if (!session) return;
+                setActiveSavedPlanId(session.id);
+                setCurrentWorkoutSession(session.sessionData);
+                setCurrentPlanSource("program");
+                setWorkoutReturnTo("running_hub");
+                setView("master_plan_preview");
+              } catch (e) { console.error("resume program failed", e); }
+            }}
             onBack={() => setView("root_home")}
             onOpenMyPlans={() => { setMyPlansReturnTo("running_hub"); setView("my_plans"); }}
             onOpenProfile={() => { setActiveTab("my"); setView("home"); }}
@@ -1450,6 +1466,20 @@ export default function Home() {
             isGuest={!isLoggedIn}
             isLoggedIn={isLoggedIn}
             isPremium={subStatus === "active"}
+            activeStrengthPrograms={(() => { try { return getActivePrograms().filter(p => p.programCategory === "strength"); } catch { return []; } })()}
+            onResumeProgram={(_programId, nextSessionId) => {
+              // 회의 2026-04-27: ChatHome 진행 중 띠 → 다음 세션 master_plan_preview 진입
+              try {
+                const all = getSavedPlans();
+                const session = all.find((p: SavedPlan) => p.id === nextSessionId);
+                if (!session) return;
+                setActiveSavedPlanId(session.id);
+                setCurrentWorkoutSession(session.sessionData);
+                setCurrentPlanSource("program");
+                setWorkoutReturnTo("home_chat");
+                setView("master_plan_preview");
+              } catch (e) { console.error("resume strength program failed", e); }
+            }}
             onOpenMyPlans={() => { setMyPlansReturnTo("home_chat"); setView("my_plans"); }}
             savedPlansCount={typeof window !== "undefined" ? JSON.parse(localStorage.getItem("ohunjal_saved_plans") || "[]").length : 0}
             userProfile={{
