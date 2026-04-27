@@ -24,7 +24,7 @@ import { trackEvent } from "@/utils/analytics";
 import { buildIntentEcho, detectCategory, isPivot } from "@/utils/intentEcho";
 import { ChipIcon, type ChipIconType } from "@/components/chat/ChipIcon";
 import { QuickFollowupList } from "@/components/chat/QuickFollowupList";
-import { RunningProgramSheet } from "./RunningProgramSheet";
+// 회의 2026-04-27: 러닝 진입은 ROOT 카드 → RunningHub. ChatHome에서 RunningProgramSheet 호출 제거.
 import { AssistantMiniHeader } from "@/components/chat/AssistantMiniHeader";
 
 interface ChatHomeProps {
@@ -249,9 +249,7 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
   const [showMoreExamples, setShowMoreExamples] = useState(false);
   // 회의 64-O (2026-04-19): 번개(바로 플랜 4칩) 팝오버 — 격자(심화 7칩)와 분리
   const [showQuickPlan, setShowQuickPlan] = useState(false);
-  // 회의 64-D: 러닝 프로그램 바텀시트 + 성공 토스트
-  const [showRunningSheet, setShowRunningSheet] = useState(false);
-  const [runningToast, setRunningToast] = useState<string | null>(null);
+  // 회의 2026-04-27: 러닝 시트/토스트 state 제거 — 러닝 진입은 ROOT 카드 → RunningHub로 이전.
   // 첫 로그인 무료 한도 안내 (회의 2026-04-23) — localStorage 플래그로 1회만 노출
   const [showTrialIntro, setShowTrialIntro] = useState(false);
   // 배지 ? 툴팁 — 무료 한도 상시 확인용 (플랜/대화 2개 카운터 설명)
@@ -1040,16 +1038,15 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
                     label: t("chat_home.initial.followup.switch_split"),
                     prompt: t("chat_home.initial.followup.switch_split.prompt") };
                 })();
+                // 회의 2026-04-27: 러닝은 ROOT 카드에서 진입 — ChatHome 후속질문에서 제거
                 const items = [
                   { icon: switchItem.icon, label: switchItem.label, prompt: switchItem.prompt },
                   { icon: "timer" as ChipIconType, label: t("chat_home.initial.followup.shorter"), prompt: t("chat_home.initial.followup.shorter.prompt") },
-                  { icon: "run" as ChipIconType, label: t("chat_home.initial.followup.running"), prompt: t("chat_home.initial.followup.running.prompt") },
                   { icon: "home" as ChipIconType, label: t("chat_home.initial.followup.easier"), prompt: t("chat_home.initial.followup.easier.prompt") },
                 ];
                 const labelMap: Record<string, string> = {
                   [switchItem.prompt]: switchItem.key,
                   [t("chat_home.initial.followup.shorter.prompt")]: "shorter",
-                  [t("chat_home.initial.followup.running.prompt")]: "running",
                   [t("chat_home.initial.followup.easier.prompt")]: "easier",
                 };
                 return (
@@ -1355,21 +1352,7 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
             />
             <div className="flex items-center justify-between mt-1">
               <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setShowRunningSheet(true)}
-                  disabled={busy}
-                  className="w-9 h-9 flex items-center justify-center text-[#2D6A4F] active:scale-95 transition-transform shrink-0 disabled:opacity-40"
-                  aria-label={t("running_program.entry.aria")}
-                >
-                  {/* 달리는 사람 픽토그램 — OpenMoji 1F3C3 black (CC BY-SA 4.0). strokeWidth 4.5 → 추천 아이콘과 시각 두께 매칭 */}
-                  <svg className="w-[22px] h-[22px]" viewBox="0 0 72 72" fill="none" stroke="currentColor" strokeWidth={4.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <circle cx="26.97" cy="13.09" r="3" />
-                    <path d="M42,36l5.8535,8.3613a11.0249,11.0249,0,0,0,2.8692,2.6553l6.7216,3.9668A2.3633,2.3633,0,0,1,58.667,53.5a1.69,1.69,0,0,1-2.35.74L47.85,50.76a14.1043,14.1043,0,0,1-3.3447-2.0889L37,42" />
-                    <path d="M30.8477,31.3594s.26.5937.5761,1.32a3.7314,3.7314,0,0,1-.498,3.0078l-4.8516,7.625A8.3233,8.3233,0,0,0,24.9727,47l-.1954,14a1.8486,1.8486,0,0,0,1.6846,2,2.1751,2.1751,0,0,0,1.9541-1.9854l1.3418-11.0292a6.789,6.789,0,0,1,1.6563-3.3995l3.1718-3.1718c.7774-.7774,2.1055-1.99,2.95-2.6944L40.4639,38.28A4.8637,4.8637,0,0,0,42,35h0a9.3085,9.3085,0,0,0-.958-3.7559L36,22" />
-                    <path d="M36,22c-2-4-4.3594-4.2329-6.0312-3.583A3.859,3.859,0,0,0,27.6,22.251" />
-                    <path d="M30.9375,22l-1.4189,5.0771A2.7758,2.7758,0,0,1,27,29H20" />
-                  </svg>
-                </button>
+                {/* 회의 2026-04-27: 러닝 진입은 ROOT 카드에서. 입력창 러닝 아이콘 제거. */}
                 {/* 회의 64-O: 번개 = 기본 4칩 바로 플랜 숏컷 */}
                 <button
                   onClick={() => { setShowQuickPlan(v => !v); setShowMoreExamples(false); }}
@@ -1497,34 +1480,7 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
         </>
       )}
 
-      {/* 회의 64-D: 러닝 프로그램 바텀시트 */}
-      <RunningProgramSheet
-        open={showRunningSheet}
-        onClose={() => setShowRunningSheet(false)}
-        onProgramCreated={(info) => {
-          setRunningToast(t("running_program.success.toast"));
-          window.setTimeout(() => setRunningToast(null), 3200);
-          // 회의 64-E Phase 4.3: 교육형 코치 자동 안내 (3줄 assistant 메시지)
-          const coachContent = [
-            t("running_program.coach.intro_line1").replace("{programName}", info.programName),
-            t("running_program.coach.intro_line2").replace("{sessionTitle}", info.firstSessionTitle),
-            t("running_program.coach.intro_line3"),
-          ].join("\n\n");
-          setMessages(prev => [...prev, { role: "assistant", kind: "text", content: coachContent, tone: "info" }]);
-          onOpenMyPlans?.();
-        }}
-        isLoggedIn={isLoggedIn ?? false}
-        isPremium={isPremium ?? false}
-        onRequestLogin={() => onRequestLogin?.()}
-        onRequestPaywall={() => onRequestPaywall?.()}
-      />
-
-      {/* 여정 저장 완료 토스트 */}
-      {runningToast && (
-        <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-[60] px-4 py-2.5 rounded-full bg-[#1B4332] text-white text-[12px] font-bold shadow-lg animate-fade-in">
-          {runningToast}
-        </div>
-      )}
+      {/* 회의 2026-04-27: 러닝 진입은 ROOT 카드 → RunningHub로 이전. 시트 호출 제거. */}
 
       {/* 무료 한도 설명 바텀시트 (회의 2026-04-23) — 상시 열람 가능 */}
       {showTrialTooltip && (
