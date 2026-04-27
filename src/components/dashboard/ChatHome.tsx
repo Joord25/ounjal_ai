@@ -33,8 +33,6 @@ interface ChatHomeProps {
   isLoggedIn?: boolean;
   isPremium?: boolean;
   onOpenMyPlans?: () => void;
-  /** 회의 2026-04-28-γ Phase E QA: 우상단 내플랜 옆 프로필 아이콘 → 프로필 탭 진입 */
-  onOpenProfile?: () => void;
   savedPlansCount?: number;
   /** 회의 2026-04-27: 진행 중 웨이트 프로그램 — 인사말 아래 "이어가기" 띠로 표시 */
   activeStrengthPrograms?: Array<{ programId: string; programName: string; completed: number; total: number; nextSession: { id: string } | null }>;
@@ -198,7 +196,7 @@ function renderMarkdownBold(text: string): React.ReactNode {
   });
 }
 
-export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProfile, isLoggedIn, isPremium, canSubmit, getBlockReason, onRequestLogin, onRequestPaywall, onOpenMyPlans, onOpenProfile, lastPlanSummary, onResumeLastPlan, activeStrengthPrograms, onResumeProgram }) => {
+export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProfile, isLoggedIn, isPremium, canSubmit, getBlockReason, onRequestLogin, onRequestPaywall, onOpenMyPlans, lastPlanSummary, onResumeLastPlan, activeStrengthPrograms, onResumeProgram }) => {
   const { t, locale } = useTranslation();
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
@@ -897,34 +895,18 @@ export const ChatHome: React.FC<ChatHomeProps> = ({ userName, onSubmit, userProf
     <div className="h-full flex flex-col bg-[#FAFBF9] relative overflow-hidden">
       {/* 상단 CTA — 인사 + 날짜 + 상태 pill */}
       <div className="pt-[max(2.5rem,env(safe-area-inset-top))] px-6 pb-2 shrink-0 relative">
-        {(onOpenMyPlans || onOpenProfile) && (
-          <div className="absolute right-3 top-[max(2.5rem,env(safe-area-inset-top))] flex items-center">
-            {onOpenMyPlans && (
-              <button
-                onClick={onOpenMyPlans}
-                className={`p-2 transition-colors ${planIconPulse ? "text-[#2D6A4F] animate-bounce" : "text-gray-400 active:text-[#1B4332]"}`}
-                aria-label={locale === "en" ? "My Plans" : "내 플랜"}
-              >
-                <svg className="w-6 h-6" fill={planIconPulse ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-                </svg>
-              </button>
-            )}
-            {onOpenProfile && (
-              <button
-                onClick={onOpenProfile}
-                className="p-2 text-gray-400 active:text-[#1B4332] transition-colors"
-                aria-label={locale === "en" ? "Profile" : "프로필"}
-              >
-                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <circle cx="12" cy="9" r="3.5" />
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 20c1.5-3.5 4-5 7-5s5.5 1.5 7 5" />
-                </svg>
-              </button>
-            )}
-          </div>
+        {onOpenMyPlans && (
+          <button
+            onClick={onOpenMyPlans}
+            className={`absolute right-5 top-[max(2.5rem,env(safe-area-inset-top))] p-2 transition-colors ${planIconPulse ? "text-[#2D6A4F] animate-bounce" : "text-gray-400 active:text-[#1B4332]"}`}
+            aria-label={locale === "en" ? "My Plans" : "내 플랜"}
+          >
+            <svg className="w-6 h-6" fill={planIconPulse ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+            </svg>
+          </button>
         )}
-        <h1 className="font-black leading-snug pr-24">
+        <h1 className="font-black leading-snug pr-12">
           <span className={`text-[#2D6A4F] ${displayName.length > 6 ? "text-2xl" : "text-3xl"}`}>{displayName}</span>
           <span className={`text-[#1B4332] ${greetingMsg.length > 14 ? "text-base" : "text-xl"}`}> {locale === "en" ? "" : "님, "}{greetingMsg}</span>
         </h1>
