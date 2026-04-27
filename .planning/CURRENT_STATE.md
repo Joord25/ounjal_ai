@@ -1,6 +1,6 @@
 # CURRENT_STATE.md — 앱 UI/기능 인벤토리 SSOT
 
-**최종 갱신:** 2026-04-28 (회의 2026-04-27 ROOT 카드 도입 — 웨이트/러닝/홈트 3카드 진입 + RunningHub/HomeWorkoutHub 풀스크린 신설 + ChatHome 웨이트 전용으로 좁힘 + 진행 중 프로그램 UI 노출 + 운동 음악 기능 전부 제거 + 내 플랜 휴지통 톤다운)
+**최종 갱신:** 2026-04-28 (회의 ε — 초보자 모드 Phase 1 코드 완료: 옵트인 모달 / 프로필 토글 / WorkoutSession overlay (warmup_intro + main_equipment) / 벤치프레스 휴식 90·150 / 폼 cue 5줄 ACSM·NSCA 출처. 5일 5분리 커밋. SEED-001 status=active. 실 디바이스 검증 대기. 이전: 2026-04-27 ROOT 카드 도입 — 웨이트/러닝/홈트 3카드 + 단위 토글 / PWA layout / Paddle Live)
 
 이 문서는 "오운잘 앱의 각 화면에 어떤 UI와 기능이 실제로 구현되어 있는지"의 단일 진실 공급원입니다.
 모든 항목은 코드 검증 기반 (`file:line` 인용). 추측 금지. 미검증은 **⚠ 미검증** 마킹.
@@ -360,6 +360,7 @@
 **④ Settings 드롭다운** (환경설정)
 - 사운드 토글 (localStorage `ohunjal_settings_sound`)
 - 진동 토글 (localStorage `ohunjal_settings_vibration`)
+- **초보자 모드 토글** (회의 2026-04-28-ε, SEED-001 Phase 1) — localStorage `ohunjal_beginner_mode` (`"1"`/`"0"`). ON 시 워크아웃 진행 중 BeginnerGuideOverlay (warmup_intro / main_equipment) 노출 + 벤치프레스 휴식 90/150초. CustomEvent `beginner_mode_change` 로 다중 화면 동기화
 - 언어: KO / EN (useTranslation.setLocale)
 - 단위: kg/cm / lb/ft (useUnits.setSystem)
 
@@ -385,7 +386,7 @@
 
 ### 데이터 키
 
-- **localStorage**: `ohunjal_gender`, `ohunjal_birth_year`, `ohunjal_fitness_profile`, `ohunjal_settings_sound`, `ohunjal_settings_vibration`
+- **localStorage**: `ohunjal_gender`, `ohunjal_birth_year`, `ohunjal_fitness_profile`, `ohunjal_settings_sound`, `ohunjal_settings_vibration`, `ohunjal_beginner_mode`
 - **Firebase**: `auth.currentUser`, `updateProfile()`, Storage 프로필 사진
 
 ---
@@ -404,6 +405,7 @@
   - **LIBRARY (좌)** — Phase별 섹션 (Warmup / Main / Core / Cardio), 운동 행(아이콘+이름+근육군 태그+카운트), 각 Phase 끝에 "+운동 추가"
   - **SELECTED (우)** — `PlanExerciseDetail` (세트/반복/무게 편집, 세트 ±, 운동 교체/삭제, 폼 가이드 YouTube)
 - **하단 CTA** — "플랜 저장"(흰색) + "운동 시작"(녹색, primary)
+- **초보자 모드 옵트인 모달** (회의 2026-04-28-ε, SEED-001 Phase 1) — "운동 시작" 클릭 + paywall 통과 후 `localStorage.ohunjal_beginner_mode === undefined` 일 때 1회 노출. "네 안내받을게요" / "괜찮아요 익숙해요" 2버튼. dismiss 후 workout_session 진입. 이후 변경은 프로필 토글
 
 **주요 기능:**
 - **강도 조절** — 설정 기어 → 바텀시트(High/Moderate/Low), 추천값 "Recommended" 배지, `onIntensityChange` 콜백 있을 때만
@@ -434,6 +436,15 @@
 
 **컴포넌트:** [src/components/workout/WorkoutSession.tsx](../src/components/workout/WorkoutSession.tsx) (+ [FitScreen.tsx](../src/components/workout/FitScreen.tsx))
 **진입:** MasterPlanPreview "운동 시작" → `sessionData` props 전달
+
+**초보자 모드 통합** (회의 2026-04-28-ε, SEED-001 Phase 1):
+- `BeginnerGuideOverlay` 마운트 (FitScreen 위 z-[70]) — `beginnerEnabled === true` + currentExercise 진입 시 phase별 1회:
+  - `currentExercise.type === "warmup"` → `warmup_intro` overlay (스트레칭존 안내 5줄 + 영상 따라하기 CTA)
+  - `currentExercise.name === "벤치프레스"` → `main_equipment` overlay (`EquipmentFinderCard` = 사진 `/machine/bench-press.png` + 찾는법 5줄 + 폼 cue 5줄 ACSM/NSCA 출처)
+- `dismissedOverlays: Set<string>` — 한 세션 내 phase별 1회 보장 (재진입 시 미노출)
+- 휴식 시간 분기 (L271-285): 초보자 + 벤치프레스 = target/easy 90s, fail 150s, min 60s (ACSM Guidelines 11th 컴파운드 90-120s)
+- 일반 모드는 기존 60/45/90 (min 30) 그대로 — 회귀 X
+- `BEGINNER_MODE_EVENT` (`"beginner_mode_change"`) CustomEvent 리스너 — 프로필 토글 변경 즉시 반영
 
 **화면 구성:**
 - **Header** — 뒤로가기, `SET N/M · EXERCISE X/Y`, 경과 시간(MM:SS), 타이머 모드 SKIP 버튼

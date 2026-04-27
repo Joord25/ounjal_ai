@@ -1,8 +1,9 @@
 ---
 id: SEED-001
-status: dormant
+status: active (Phase 1 코드 완료 2026-04-28-ε, 실 디바이스 검증 대기)
 planted: 2026-04-28
 planted_during: 회의 2026-04-28-δ (Paddle Live 검증 트랙 진행 중)
+phase_1_completed: 2026-04-28 (회의 ε, PLAN-BEGINNER-MODE-PHASE-1.md)
 trigger_when: Paddle Live 본인 카드 검증 통과 + 콘텐츠(기구 사진 1-2장) 준비 완료
 scope: Large
 ---
@@ -192,4 +193,4 @@ scope: Large
 
 ---
 
-**Status:** dormant — Paddle Live 검증 통과 + 콘텐츠 1-2장 준비 후 `/gsd:new-milestone` 실행 시 자동 surface.
+**Status:** active — Phase 1 코드 완료 (2026-04-28-ε). 실 디바이스 E2E + Phase 1 측정 지표 1주 누적 후 Phase 2 진입 결정.

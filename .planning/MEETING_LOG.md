@@ -2,6 +2,59 @@
 
 ---
 
+### 회의 2026-04-28-ε: 초보자 모드 Phase 1 코드 작업 완료 (2026-04-28)
+
+**참석:** 대표(임주용), Claude(기획자/구현자/평가자), [SEED-001 자문단 7명은 Phase 2+ plan-phase 정식 소환 시점에 합류]
+
+**배경:**
+- SEED-001 (planted 2026-04-28-δ) Phase 1 진입 — Paddle Live 검증과 병행 트랙
+- 대표 컨펌 4건 (`PLAN-BEGINNER-MODE-PHASE-1.md` Q&A): 벤치 사진 직접 큐레이션 / 옵트인 모달 = master_plan_preview 직후 / 자동 모드 전환 = Phase 3 이월 / 인-운동 폼 cue 토글 = Phase 2 이월
+- 시작 → 5일치 코드 5커밋, 6일째 회귀 검증 + 등록
+
+**5일 분리 커밋:**
+- Day 1 `042620a` — 데이터 계층 + i18n (`beginnerMode.ts` / `exerciseEquipment.ts` / `formCues.ts` / 18 i18n 키 / vitest 5)
+- Day 2 `7b15d79` — UI 컴포넌트 3종 (`BeginnerGuideOverlay` / `EquipmentFinderCard` / `BeginnerModeOptInModal`) + analytics 7이벤트
+- Day 3 `19120a1` — 통합 1 (`page.tsx` 옵트인 진입 + `MyProfileTab` 토글)
+- Day 4 `bc2ec03` — `WorkoutSession` overlay 마운트 (FitScreen 무수정 = mega-component 보호) + plan 정정
+- Day 5 `35ac4e1` — 휴식 분기 90/150 (벤치 + 초보자) + 카피 부정 단어 제거
+
+**설계 결정 (구현 중 정정):**
+
+1. **Overlay 마운트 위치 변경**: 원래 plan = FitScreen, 변경 = WorkoutSession 레벨. 이유: WorkoutSession 이 currentExercise rotation 관리, FitScreen(2283 라인) 추가 비대화 회피
+2. **휴식 시간 계산 위치**: plan = FitScreen, 실제 = WorkoutSession L271-285. FitScreen 은 `restTimer` prop만 표시
+3. **Set<string> dismiss 키**: phase 단위 (warmup_intro / main_equipment) — 한 세션 내 phase별 1회 노출
+4. **카피 정합성 (Day 5)**: SEED-001 카피 룰 ("통증/부상" 부정 단어 X) 위반 미세 발견 — KO "어깨 부담받아요" / EN "stresses shoulders" → 긍정형 ("어깨 가장 편하게 보호" / "keeps shoulders safest"). ACSM 정확성 + 긍정 카피 양립
+5. **휴식 매트릭스 (벤치프레스)**:
+   - 일반 모드: target 60 / easy 45 / fail 90, min 30
+   - **초보자 모드: target/easy 90 / fail 150, min 60** — ACSM Guidelines 11th 컴파운드 90-120s/fail 150-180s
+
+**검증 (Day 6, 평가자 grep):**
+- ✅ 신규 7파일 모두 import — beginnerMode 4번 / 나머지 1번씩
+- ✅ i18n 18키 모두 코드에서 참조, orphan 0건
+- ✅ Analytics 8 매칭 (7이벤트 + BEGINNER_MODE_EVENT CustomEvent name)
+- ✅ tsc 0에러 / vitest 5/5 / `npm run build` 통과 (15 페이지 정적)
+- ✅ 부정 단어 grep 0건 (KO/EN/constants 전부)
+- ✅ WorkoutSession 변경 7라인 모두 분기 외 회귀 위험 X
+
+**파일 수정/신규:**
+- 신규 7: `src/utils/beginnerMode.ts` + `src/utils/__tests__/beginnerMode.test.ts` + `src/constants/exerciseEquipment.ts` + `src/constants/formCues.ts` + `src/components/workout/BeginnerGuideOverlay.tsx` + `src/components/workout/EquipmentFinderCard.tsx` + `src/components/onboarding/BeginnerModeOptInModal.tsx` + `public/machine/bench-press.png`
+- 수정 6: `src/locales/ko.json` + `src/locales/en.json` + `src/utils/analytics.ts` + `src/app/app/page.tsx` + `src/components/profile/MyProfileTab.tsx` + `src/components/workout/WorkoutSession.tsx`
+
+**Phase 1 완료 게이트 (UAT 14건):**
+- 코드 게이트 ✅ (Day 1-6 검증)
+- 실 디바이스 E2E ⏳ (대표 직접 — 신규 유저 흐름 / 벤치 운동 흐름 / 토글 ON/OFF)
+- 측정 지표 (Phase 1 종료 후 1주): 완주율 ≥60% / EquipmentFinderCard CTA 클릭률 ≥60%
+
+**미해결 / 다음:**
+- Phase 2 트리거 (컴파운드 5종 + 선형 진행) — Phase 1 측정 지표 1주 후 결정
+- 자동 모드 전환 (Phase 3) / 인-운동 폼 cue 토글 (Phase 2) 계속 이월
+- 콘텐츠 트랙: Phase 2 진입 전 핵심 컴파운드 4종 사진 추가 (스쿼트/데드/OHP/로우)
+
+**SEED-001 status 갱신:**
+- dormant → **active (Phase 1 코드 완료, 실 검증 대기)**
+
+---
+
 ### 회의 64-M3: 운동 중도 종료 기능 Phase 1 (2026-04-22)
 
 **참석:** 대표(임주용), Claude, 김경록(일헥타르), Seth Godin, Kevin Kelly, Nir Eyal, BJ Fogg
