@@ -64,8 +64,30 @@ export const BeginnerGuideOverlay: React.FC<BeginnerGuideOverlayProps> = ({
               className="w-full aspect-[4/3] object-cover rounded-2xl bg-gray-50 border border-gray-100"
             />
 
-            <p className="text-[14px] leading-relaxed text-gray-700">
-              {t("beginner_mode.warmup.body")}
+            <ol className="flex flex-col gap-3 text-[14px] leading-relaxed text-gray-700">
+              <li className="flex gap-2.5">
+                <span className="flex-shrink-0 w-5 h-5 rounded-full bg-[#2D6A4F] text-white text-[11px] font-black flex items-center justify-center mt-0.5">1</span>
+                <div className="flex flex-col gap-1.5">
+                  <span>{t("beginner_mode.warmup.step_1")}</span>
+                  <span className="flex gap-1.5 items-start text-[12.5px] text-gray-500 bg-gray-50 rounded-lg px-2.5 py-2">
+                    <svg className="flex-shrink-0 w-4 h-4 text-amber-500 mt-px" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M5.07 19h13.86c1.54 0 2.5-1.67 1.73-3L13.73 4a2 2 0 00-3.46 0L3.34 16c-.77 1.33.19 3 1.73 3z" />
+                    </svg>
+                    <span>{t("beginner_mode.warmup.step_1_note")}</span>
+                  </span>
+                </div>
+              </li>
+              <li className="flex gap-2.5">
+                <span className="flex-shrink-0 w-5 h-5 rounded-full bg-[#2D6A4F] text-white text-[11px] font-black flex items-center justify-center mt-0.5">2</span>
+                <span>{t("beginner_mode.warmup.step_2")}</span>
+              </li>
+              <li className="flex gap-2.5">
+                <span className="flex-shrink-0 w-5 h-5 rounded-full bg-[#2D6A4F] text-white text-[11px] font-black flex items-center justify-center mt-0.5">3</span>
+                <span>{t("beginner_mode.warmup.step_3")}</span>
+              </li>
+            </ol>
+            <p className="text-[14px] font-bold text-[#1B4332] mt-2">
+              {t("beginner_mode.warmup.confirm")}
             </p>
           </div>
         )}
