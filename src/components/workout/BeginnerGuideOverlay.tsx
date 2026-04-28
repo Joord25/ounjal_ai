@@ -79,11 +79,12 @@ export const BeginnerGuideOverlay: React.FC<BeginnerGuideOverlayProps> = ({
               </h2>
             </div>
             {/* eslint-disable-next-line @next/next/no-img-element */}
+            {/* 회의 2026-04-28: PC에서 너무 큼 → max-w-[280px] 가운데 정렬, 카드 크기로 컴팩트. */}
             <img
               src="/warmup/stretching-zone.jpg"
               alt={t("beginner_mode.warmup.title")}
               loading="eager"
-              className="w-full aspect-[4/3] object-cover rounded-2xl bg-gray-50 border border-gray-100"
+              className="w-full max-w-[280px] mx-auto aspect-[4/3] object-cover rounded-2xl bg-gray-50 border border-gray-100"
             />
 
             <ol className="flex flex-col gap-3 text-[14px] leading-relaxed text-gray-700">
@@ -108,17 +109,22 @@ export const BeginnerGuideOverlay: React.FC<BeginnerGuideOverlayProps> = ({
                 <span>{t("beginner_mode.warmup.step_3")}</span>
               </li>
             </ol>
-            <p className="text-[14px] font-bold text-[#1B4332] mt-2">
-              {t("beginner_mode.warmup.confirm")}
-            </p>
           </div>
         )}
 
         {(phase === "equipment_find" || phase === "equipment_use") && (
-          <EquipmentFinderCard
-            exerciseName={exerciseName}
-            mode={phase === "equipment_find" ? "find" : "use"}
-          />
+          <div className="flex flex-col gap-4">
+            {/* 회의 2026-04-28: 웜업 → 메인 전환 멘트. equipment_find 진입 시 flow 끊김 방지. */}
+            {phase === "equipment_find" && (
+              <p className="text-[14px] font-bold text-[#1B4332] leading-relaxed">
+                {t("beginner_mode.equipment.find.intro")}
+              </p>
+            )}
+            <EquipmentFinderCard
+              exerciseName={exerciseName}
+              mode={phase === "equipment_find" ? "find" : "use"}
+            />
+          </div>
         )}
 
         {phase === "chat_weight" && (

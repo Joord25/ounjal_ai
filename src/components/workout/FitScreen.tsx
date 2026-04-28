@@ -148,7 +148,9 @@ export const FitScreen: React.FC<FitScreenProps> = ({
   const [selectedWeight, setSelectedWeight] = useState<number>(getStoredWeight);
   const [weightConfirmed, setWeightConfirmed] = useState(!hasWeight);
   const [showWeightEdit, setShowWeightEdit] = useState(false);
-  const [showAiTip, setShowAiTip] = useState(!!lastSessionRecord && (lastSessionRecord.maxWeight ?? 0) > 0);
+  // 회의 2026-04-28: 초보자 모드 시 자동 노출 OFF — 사용법 overlay와 중첩되어 피로감 발생.
+  // 초보자는 버튼으로만 열고, 숙련자는 기존대로 자동 표시 (이전 기록 first-touch context).
+  const [showAiTip, setShowAiTip] = useState(!!lastSessionRecord && (lastSessionRecord.maxWeight ?? 0) > 0 && !beginnerEnabled);
 
   const [view, setView] = useState<"active" | "feedback">("active");
   const [failedReps, setFailedReps] = useState(Math.max(0, setInfo.targetReps - 1));
