@@ -125,8 +125,10 @@ export const WorkoutSession: React.FC<WorkoutSessionProps> = ({
     : currentExercise.type === "warmup"
       ? ["warmup_intro"]
       : isBeginnerSupportedExercise(currentExercise.name)
-        ? ["equipment_find", "equipment_use", "chat_weight"]
+        ? ["equipment_find", "equipment_use"]
         : [];
+  // 회의 ζ-2 (대표 정정 2026-04-28): chat_weight phase 폐기 — FitScreen 의 무게 picker 와 중복 (단일 진실 원칙).
+  // ChatStyleWeightPicker / coachWeightSuggestion / handleChatWeightSelect / lastWeightForChat 는 dead code 로 유지 (Phase 2 재도입 시 재활용)
   // dismissedOverlays.has 인 phase 는 sequence 에서 빠짐 → 다음 phase 자동 진행
   const beginnerOverlaySequence: BeginnerOverlayPhase[] = rawSequence.filter((p) => !dismissedOverlays.has(p));
   const beginnerOverlayPhase: BeginnerOverlayPhase | null =
