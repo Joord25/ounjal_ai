@@ -276,10 +276,10 @@ export const RunningProgramSheet: React.FC<RunningProgramSheetProps> = ({
     const cur = stepHeader[step];
     return (
       <div className="h-full w-full bg-white flex flex-col">
-        {/* 회의 2026-04-28: 상단 CTA — h-[111px] 고정, 뒤로가기 + headerRight(📋/👤) 만 배치.
-            제목/캡션은 콘텐츠 영역 상단으로 내림 (아래 flex-1 div). */}
+        {/* 회의 2026-04-28: 상단 CTA — h-[91px] (이전 111px에서 20px 축소, 빈 공간 컴팩트).
+            뒤로가기 + headerRight(📋/👤). 제목/캡션은 콘텐츠 영역 상단으로 내림. */}
         <div
-          className="shrink-0 h-[111px] flex items-end justify-between px-2 pb-4 border-b border-gray-100 bg-white"
+          className="shrink-0 h-[91px] flex items-end justify-between px-2 pb-4 border-b border-gray-100 bg-white"
           style={{ paddingTop: "max(2.5rem, env(safe-area-inset-top))" }}
         >
           <button
