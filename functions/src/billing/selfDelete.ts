@@ -23,9 +23,8 @@ import { verifyAuth, db } from "../helpers";
  * 6. subscriptions/{uid} 상위 doc — PII(billingKey) 제거, withdrawn 마킹
  *    (payments 하위 컬렉션은 유지 — 법정 5년 보관)
  * 7. cancel_feedbacks / refund_requests 본인 문서 PII 익명화
- * 8. withdrawals 익명 통계 doc 추가
- * 9. admin_logs 에 self_withdraw 감사 기록
- * 10. Firebase Auth deleteUser — 마지막 단계
+ * 8. admin_logs 에 self_withdraw 감사 기록
+ * 9. Firebase Auth deleteUser — 마지막 단계
  */
 export const selfDeleteAccount = onRequest(
   { cors: true },
@@ -120,15 +119,7 @@ export const selfDeleteAccount = onRequest(
         console.warn("selfDeleteAccount: refund_requests anonymization failed", err);
       }
 
-      // 8. withdrawals 익명 통계 doc (리텐션 분석용)
-      const kstDate = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
-      await db.collection("withdrawals").add({
-        kstDate,
-        withdrawnAt: FieldValue.serverTimestamp(),
-        // 개인 식별 불가 — uid 해시 없음. 오직 날짜 집계용.
-      });
-
-      // 9. admin_logs 감사 기록
+      // 8. admin_logs 감사 기록 (회의 2026-04-28: withdrawals 익명 통계 컬렉션 제거 — 사용처 0)
       await db.collection("admin_logs").add({
         action: "self_withdraw",
         adminUid: uid,     // 본인이 본인을 삭제한 self-action
