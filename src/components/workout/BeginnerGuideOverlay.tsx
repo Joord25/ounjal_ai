@@ -4,15 +4,13 @@ import React, { useEffect } from "react";
 import { useTranslation } from "@/hooks/useTranslation";
 import { trackEvent } from "@/utils/analytics";
 import { EquipmentFinderCard } from "./EquipmentFinderCard";
-import { TutorialVideoCard } from "./TutorialVideoCard";
 import { ChatStyleWeightPicker } from "./ChatStyleWeightPicker";
 
+/** 회의 ζ-2 (대표 정정 2026-04-28): tutorial_video_* 폐기 — 영상은 워크아웃 페이지 자체에 이미 있고, 별도 풀스크린 카드는 redundant. 후속에서 툴팁 안내로 재구현 */
 export type BeginnerOverlayPhase =
   | "warmup_intro"
-  | "tutorial_video_warmup"
   | "equipment_find"
   | "equipment_use"
-  | "tutorial_video_main"
   | "chat_weight";
 
 interface BeginnerGuideOverlayProps {
@@ -20,6 +18,8 @@ interface BeginnerGuideOverlayProps {
   exerciseName: string;
   onContinue: () => void;
   onSkip: () => void;
+  /** 회의 ζ-2: 좌상단 뒤로가기 버튼. 호출자가 step-- 또는 운동 종료 처리 */
+  onBack: () => void;
   /** chat_weight phase 전용 — 무게 선택 시 호출 (호출자가 localStorage 저장 + sequence advance) */
   onChatWeightSelect?: (weight: number) => void;
   /** chat_weight phase 전용 — 마지막 사용 무게 (kg). null = 첫 사용 */
@@ -27,7 +27,7 @@ interface BeginnerGuideOverlayProps {
 }
 
 export const BeginnerGuideOverlay: React.FC<BeginnerGuideOverlayProps> = ({
-  phase, exerciseName, onContinue, onSkip, onChatWeightSelect, lastWeightKg = null,
+  phase, exerciseName, onContinue, onSkip, onBack, onChatWeightSelect, lastWeightKg = null,
 }) => {
   const { t } = useTranslation();
 
@@ -47,11 +47,21 @@ export const BeginnerGuideOverlay: React.FC<BeginnerGuideOverlayProps> = ({
 
   return (
     <div className="fixed inset-0 z-[70] bg-white flex flex-col animate-fade-in">
-      <header className="flex justify-end px-5 pt-5">
+      <header className="flex justify-between items-center px-3 pt-3">
+        <button
+          type="button"
+          onClick={onBack}
+          aria-label={t("common.back")}
+          className="w-10 h-10 flex items-center justify-center text-[#1B4332] active:scale-95 transition-transform"
+        >
+          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
         <button
           type="button"
           onClick={handleSkip}
-          className="text-[12px] font-medium text-gray-400 active:text-gray-600 px-2 py-1"
+          className="text-[12px] font-medium text-gray-400 active:text-gray-600 px-3 py-2"
         >
           {t("beginner_mode.overlay.skip")}
         </button>
@@ -111,13 +121,6 @@ export const BeginnerGuideOverlay: React.FC<BeginnerGuideOverlayProps> = ({
           />
         )}
 
-        {(phase === "tutorial_video_warmup" || phase === "tutorial_video_main") && (
-          <TutorialVideoCard
-            variant={phase === "tutorial_video_warmup" ? "warmup" : "main"}
-            exerciseName={exerciseName}
-          />
-        )}
-
         {phase === "chat_weight" && (
           <ChatStyleWeightPicker
             exerciseName={exerciseName}
@@ -139,9 +142,7 @@ export const BeginnerGuideOverlay: React.FC<BeginnerGuideOverlayProps> = ({
               ? t("beginner_mode.warmup.cta")
               : phase === "equipment_find"
                 ? t("beginner_mode.equipment.find.cta")
-                : phase === "equipment_use"
-                  ? t("beginner_mode.equipment.use.cta")
-                  : t("beginner_mode.tutorial.cta_done")}
+                : t("beginner_mode.equipment.use.cta")}
           </button>
         </footer>
       )}

@@ -80,9 +80,11 @@ export const WorkoutSession: React.FC<WorkoutSessionProps> = ({
   }, []);
   const [showAddExercise, setShowAddExercise] = useState(restoredProgress?.showAddExercise ?? false);
   const [beginnerEnabled, setBeginnerEnabled] = useState(() => getBeginnerMode() === true);
-  // 회의 ζ Q4: dismissedOverlays state 제거 (매번 노출 — "도움 필요 선택자에게 친절").
-  // 대신 currentSequenceStep 으로 한 운동 안에서 phase 시퀀스 진행 (warmup_intro → tutorial_video_warmup 등).
-  // currentExerciseIndex 변경 시 reset → 다음 운동에서 새 sequence 시작.
+  // 회의 ζ-2 (대표 정정 2026-04-28): Q4 번복. dismissedOverlays 부활 — 한 세션 안에서 phase 별 1회만.
+  // - warmup_intro: 첫 워밍업 1번. 같은 세션 다른 워밍업에 X
+  // - equipment_find/use/chat_weight: 같은 세션 첫 벤치 1번 (보통 한 세션 1개)
+  // overlaySequenceStep = 현재 sequence 진행 위치 (sequence 가 dismissedOverlays 변화로 줄어들면 step=0 reset)
+  const [dismissedOverlays, setDismissedOverlays] = useState<Set<string>>(() => new Set());
   const [overlaySequenceStep, setOverlaySequenceStep] = useState(0);
   useEffect(() => {
     const handler = (e: Event) => {
@@ -113,26 +115,48 @@ export const WorkoutSession: React.FC<WorkoutSessionProps> = ({
   const currentExercise = exercises[currentExerciseIndex];
   const totalExercises = exercises.length;
 
-  // 회의 ζ Phase 1.5: overlay phase sequence — 운동 진입 시 순차 노출.
-  // - warmup 운동: warmup_intro → tutorial_video_warmup → 일반 FitScreen
-  // - 바벨 벤치 프레스 (Barbell Bench Press) 정확 매칭: main_equipment → tutorial_video_main → 일반 FitScreen
-  // - 기타 운동: overlay 0 (일반 흐름)
-  const beginnerOverlaySequence: BeginnerOverlayPhase[] = !beginnerEnabled
+  // 회의 ζ-2 (대표 정정 2026-04-28): tutorial_video_* 폐기 (영상은 워크아웃 페이지 자체로 충분, 풀스크린 카드는 redundant).
+  // 새 sequence:
+  // - warmup: ["warmup_intro"] — 첫 워밍업 1번만 (dismissedOverlays 가 같은 세션 재노출 방지)
+  // - 바벨 벤치 프레스: ["equipment_find", "equipment_use", "chat_weight"]
+  // - 기타: overlay 0
+  const rawSequence: BeginnerOverlayPhase[] = !beginnerEnabled
     ? []
     : currentExercise.type === "warmup"
-      ? ["warmup_intro", "tutorial_video_warmup"]
+      ? ["warmup_intro"]
       : isBeginnerSupportedExercise(currentExercise.name)
-        ? ["equipment_find", "equipment_use", "tutorial_video_main", "chat_weight"]
+        ? ["equipment_find", "equipment_use", "chat_weight"]
         : [];
+  // dismissedOverlays.has 인 phase 는 sequence 에서 빠짐 → 다음 phase 자동 진행
+  const beginnerOverlaySequence: BeginnerOverlayPhase[] = rawSequence.filter((p) => !dismissedOverlays.has(p));
   const beginnerOverlayPhase: BeginnerOverlayPhase | null =
     beginnerOverlaySequence[overlaySequenceStep] ?? null;
   const showBeginnerOverlay = beginnerOverlayPhase !== null;
-  // 운동 변경 시 sequence reset (Q4: 매번 노출). currentExerciseIndex 의존
+  // 운동 변경 또는 dismissed 변경 시 step = 0 reset (sequence 가 줄어들 수 있으므로)
   useEffect(() => {
     setOverlaySequenceStep(0);
-  }, [currentExerciseIndex]);
+  }, [currentExerciseIndex, dismissedOverlays]);
   const advanceBeginnerOverlay = () => {
-    setOverlaySequenceStep((prev) => prev + 1);
+    if (beginnerOverlayPhase) {
+      setDismissedOverlays((prev) => new Set(prev).add(beginnerOverlayPhase));
+    }
+  };
+  /** 좌상단 뒤로가기 — sequence 안에서 step--, step=0 일 때는 운동 종료 (handleBack) */
+  const handleBeginnerOverlayBack = () => {
+    if (overlaySequenceStep > 0) {
+      // 이전 phase 로 (현재 phase 의 dismissed 도 해제 — 다시 보일 수 있게)
+      const prevPhase = beginnerOverlaySequence[overlaySequenceStep - 1];
+      if (prevPhase) {
+        setDismissedOverlays((prev) => {
+          const next = new Set(prev);
+          next.delete(prevPhase);
+          return next;
+        });
+      }
+      setOverlaySequenceStep((prev) => Math.max(0, prev - 1));
+    } else {
+      handleBack();
+    }
   };
   /** chat_weight 무게 선택 — localStorage 저장 후 sequence advance. FitScreen mount 시 getStoredWeight 가 새 값 읽음 */
   const handleChatWeightSelect = (weight: number) => {
@@ -671,16 +695,17 @@ export const WorkoutSession: React.FC<WorkoutSessionProps> = ({
       />}
       {/* 회의 2026-04-27: WorkoutMusicPlayer 제거 — 외부 YouTube Music 등으로 대체 */}
 
-      {/* 초보자 모드 overlay sequence — 운동 진입 시 순차 노출.
-          warmup: warmup_intro → tutorial_video_warmup
-          벤치: equipment_find → equipment_use → tutorial_video_main → chat_weight
-          Q4: 매번 노출. 한 phase만 dismiss → 다음 phase 자동 진행. chat_weight 선택 = 무게 저장 + advance */}
+      {/* 회의 ζ-2 (대표 정정 2026-04-28):
+          - tutorial_video_* 폐기 (영상은 FitScreen 자체에 있음)
+          - dismissedOverlays 부활 (한 세션 phase 별 1번만)
+          - 좌상단 뒤로가기 버튼 (handleBeginnerOverlayBack: step>0 → step--, step=0 → handleBack) */}
       {showBeginnerOverlay && beginnerOverlayPhase && (
         <BeginnerGuideOverlay
           phase={beginnerOverlayPhase}
           exerciseName={currentExercise.name}
           onContinue={advanceBeginnerOverlay}
           onSkip={advanceBeginnerOverlay}
+          onBack={handleBeginnerOverlayBack}
           onChatWeightSelect={handleChatWeightSelect}
           lastWeightKg={lastWeightForChat}
         />
