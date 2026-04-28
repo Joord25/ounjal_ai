@@ -5,11 +5,13 @@ import { useEffect } from "react";
 /**
  * Sets --safe-area-bottom CSS variable on <html>.
  *
- * 회의 2026-04-28 (재): 브라우저 vs PWA standalone 동작 차이 핵심.
- * - 모바일 브라우저: viewport(100dvh)가 시스템 nav 위까지만 잡힘 → padding 0이어도 안 가려짐
- * - 안드 PWA: 풀스크린 모드라 viewport가 nav 뒤까지 확장 → env(safe-area-inset-bottom)으로 회피 필수
- * - iOS PWA: env이 ~34px로 과해서 12px 고정
- * - PC: 4px (브라우저 윈도우 하단과 약간 여유)
+ * 회의 ζ-3 (2026-04-28): cbad2b5 의 "PhoneFrame height calc(100dvh - env)" 가 안드 PWA 에서
+ * env() 가 0 으로 잡히는 케이스 발생 → viewport 가 nav 뒤로 확장 → 화면이 nav 뒤로 숨음.
+ * PhoneFrame 100dvh 복원 + useSafeArea 가 환경별 padding 직접 보장:
+ * - 안드 PWA: env() 안 잡혀도 fallback 48px 강제 (Android nav bar 평균)
+ * - iOS PWA: 12px 고정 (홈 인디케이터)
+ * - 모바일 브라우저: 0px (chrome 이 nav 위에서 끝남)
+ * - PC: 4px
  */
 export function useSafeArea() {
   useEffect(() => {
@@ -32,8 +34,8 @@ export function useSafeArea() {
         return;
       }
 
-      // 모바일 (브라우저 + 안드 PWA): PhoneFrame height가 이미 nav 영역 제외(calc(100dvh - env))
-      // 했으므로 추가 padding 0 → BottomTabs가 PhoneFrame 하단 = nav top과 동일선상.
+      // 회의 ζ-3 (2026-04-28): PhoneFrame 100svh 채택 후 — svh 자체가 chrome/nav 노출 상태 기준 안전 viewport.
+      // BottomTabs / CTA 들이 svh 하단 = 시스템 nav top 과 동일선상. 추가 padding 0.
       document.documentElement.style.setProperty("--safe-area-bottom", "0px");
     }
 

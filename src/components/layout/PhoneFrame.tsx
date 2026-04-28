@@ -11,15 +11,12 @@ interface PhoneFrameProps {
 
 export const PhoneFrame: React.FC<PhoneFrameProps> = ({ children, pullToRefresh = true }) => {
   return (
-    <div className="flex items-stretch sm:items-center justify-center h-[100dvh] bg-[#FAFBF9] sm:bg-gray-100">
-      {/* 회의 2026-04-28: 데스크톱 폰프레임(384x824) 폐기 → fluid 컬럼.
-          모바일: 풀스크린 (외곽-내부 같은 #FAFBF9, 차이 없음).
-          데스크톱: 외곽 회색(gray-100) + 컬럼 #FAFBF9 + 살짝 그림자 → 컬럼 경계 visible (나답 스타일).
-          높이: 100dvh - env(safe-area-inset-bottom).
-          PWA 풀스크린 모드에서 viewport가 시스템 nav 뒤까지 확장되는 걸 빼서, BottomTabs가
-          nav 영역을 침범하지 않고 nav top과 동일선상에 위치. (브라우저는 env=0 → 100dvh 그대로) */}
+    <div className="flex items-stretch sm:items-center justify-center h-[100svh] bg-[#FAFBF9] sm:bg-gray-100">
+      {/* 회의 ζ-3 (2026-04-28): cbad2b5 의 'calc(100dvh - env())' 폐기. 안드 PWA 에서 env() 가 0 으로 잡히는 케이스 발견 → viewport 가 nav 뒤까지 확장 → 화면이 nav 뒤로 숨음.
+          신규 패턴 — 100svh (small viewport height): chrome/nav 노출 상태 기준 안정 viewport. Chrome team 권장 (Modern CSS 2025 가이드). 100dvh 와 달리 jank X, env() 의존 X.
+          나답 PWA 도 같은 패턴 추정. */}
       <div
-        className="relative overflow-hidden w-full h-[calc(100dvh-env(safe-area-inset-bottom,0px))] sm:w-[415px] sm:shadow-lg"
+        className="relative overflow-hidden w-full h-[100svh] sm:w-[415px] sm:shadow-lg"
         style={{
           backgroundColor: THEME.bg,
         }}
