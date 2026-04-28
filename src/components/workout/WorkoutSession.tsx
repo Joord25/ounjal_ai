@@ -122,7 +122,7 @@ export const WorkoutSession: React.FC<WorkoutSessionProps> = ({
     : currentExercise.type === "warmup"
       ? ["warmup_intro", "tutorial_video_warmup"]
       : isBeginnerSupportedExercise(currentExercise.name)
-        ? ["equipment_find", "equipment_use", "tutorial_video_main"]
+        ? ["equipment_find", "equipment_use", "tutorial_video_main", "chat_weight"]
         : [];
   const beginnerOverlayPhase: BeginnerOverlayPhase | null =
     beginnerOverlaySequence[overlaySequenceStep] ?? null;
@@ -134,6 +134,25 @@ export const WorkoutSession: React.FC<WorkoutSessionProps> = ({
   const advanceBeginnerOverlay = () => {
     setOverlaySequenceStep((prev) => prev + 1);
   };
+  /** chat_weight 무게 선택 — localStorage 저장 후 sequence advance. FitScreen mount 시 getStoredWeight 가 새 값 읽음 */
+  const handleChatWeightSelect = (weight: number) => {
+    if (typeof window !== "undefined") {
+      const key = `ohunjal_weight_${currentExercise.name.replace(/[^a-zA-Z가-힣]/g, "_")}`;
+      localStorage.setItem(key, String(weight));
+    }
+    advanceBeginnerOverlay();
+  };
+  /** chat_weight 마지막 사용 무게 — localStorage 만 (FitScreen 의 getStoredWeight 와 동일 SSOT). 없으면 null = 첫 사용 */
+  const lastWeightForChat: number | null = (() => {
+    if (typeof window === "undefined") return null;
+    const key = `ohunjal_weight_${currentExercise.name.replace(/[^a-zA-Z가-힣]/g, "_")}`;
+    const stored = localStorage.getItem(key);
+    if (stored) {
+      const n = parseFloat(stored);
+      if (!isNaN(n) && n > 0) return n;
+    }
+    return null;
+  })();
 
   // 지난 세션에서 같은 운동의 기록 조회 (회의 52: 유틸 경유)
   const lastSessionRecord = React.useMemo(() => {
@@ -615,7 +634,9 @@ export const WorkoutSession: React.FC<WorkoutSessionProps> = ({
         </span>
       </div>
 
-      <FitScreen
+      {/* 초보자 모드: overlay sequence 진행 중에는 FitScreen 미마운트 (chat_weight 선택 무게가 getStoredWeight 첫 호출 시 반영되도록).
+          일반 모드는 sequence []이라 항상 즉시 마운트 (회귀 X) */}
+      {!showBeginnerOverlay && <FitScreen
         key={`${currentExerciseIndex}-${currentExercise.name}`}
         exercise={currentExercise}
         setInfo={(() => {
@@ -646,17 +667,21 @@ export const WorkoutSession: React.FC<WorkoutSessionProps> = ({
         onRunningStatsComputed={handleRunningStatsComputed}
         onEndClick={onAbandon ? () => setShowAbandonModal(true) : undefined}
         onSkipExercise={handleSkipExercise}
-      />
+      />}
       {/* 회의 2026-04-27: WorkoutMusicPlayer 제거 — 외부 YouTube Music 등으로 대체 */}
 
-      {/* 초보자 모드 overlay sequence — 운동 진입 시 순차 노출 (warmup_intro → tutorial_video_warmup / main_equipment → tutorial_video_main).
-          Q4: 매번 노출 (dismissedOverlays 제거). 한 phase만 dismiss → 다음 phase 자동 진행. 마지막 phase 끝나면 일반 FitScreen */}
+      {/* 초보자 모드 overlay sequence — 운동 진입 시 순차 노출.
+          warmup: warmup_intro → tutorial_video_warmup
+          벤치: equipment_find → equipment_use → tutorial_video_main → chat_weight
+          Q4: 매번 노출. 한 phase만 dismiss → 다음 phase 자동 진행. chat_weight 선택 = 무게 저장 + advance */}
       {showBeginnerOverlay && beginnerOverlayPhase && (
         <BeginnerGuideOverlay
           phase={beginnerOverlayPhase}
           exerciseName={currentExercise.name}
           onContinue={advanceBeginnerOverlay}
           onSkip={advanceBeginnerOverlay}
+          onChatWeightSelect={handleChatWeightSelect}
+          lastWeightKg={lastWeightForChat}
         />
       )}
 

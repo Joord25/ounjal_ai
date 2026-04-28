@@ -5,23 +5,29 @@ import { useTranslation } from "@/hooks/useTranslation";
 import { trackEvent } from "@/utils/analytics";
 import { EquipmentFinderCard } from "./EquipmentFinderCard";
 import { TutorialVideoCard } from "./TutorialVideoCard";
+import { ChatStyleWeightPicker } from "./ChatStyleWeightPicker";
 
 export type BeginnerOverlayPhase =
   | "warmup_intro"
   | "tutorial_video_warmup"
   | "equipment_find"
   | "equipment_use"
-  | "tutorial_video_main";
+  | "tutorial_video_main"
+  | "chat_weight";
 
 interface BeginnerGuideOverlayProps {
   phase: BeginnerOverlayPhase;
   exerciseName: string;
   onContinue: () => void;
   onSkip: () => void;
+  /** chat_weight phase 전용 — 무게 선택 시 호출 (호출자가 localStorage 저장 + sequence advance) */
+  onChatWeightSelect?: (weight: number) => void;
+  /** chat_weight phase 전용 — 마지막 사용 무게 (kg). null = 첫 사용 */
+  lastWeightKg?: number | null;
 }
 
 export const BeginnerGuideOverlay: React.FC<BeginnerGuideOverlayProps> = ({
-  phase, exerciseName, onContinue, onSkip,
+  phase, exerciseName, onContinue, onSkip, onChatWeightSelect, lastWeightKg = null,
 }) => {
   const { t } = useTranslation();
 
@@ -111,23 +117,34 @@ export const BeginnerGuideOverlay: React.FC<BeginnerGuideOverlayProps> = ({
             exerciseName={exerciseName}
           />
         )}
+
+        {phase === "chat_weight" && (
+          <ChatStyleWeightPicker
+            exerciseName={exerciseName}
+            lastWeight={lastWeightKg}
+            onSelect={(w) => onChatWeightSelect?.(w)}
+          />
+        )}
       </div>
 
-      <footer className="px-6 pt-3 pb-6 border-t border-gray-100 bg-white">
-        <button
-          type="button"
-          onClick={handleContinue}
-          className="w-full h-14 rounded-2xl bg-[#1B4332] text-white text-[15px] font-black active:scale-[0.98] transition-transform"
-        >
-          {phase === "warmup_intro"
-            ? t("beginner_mode.warmup.cta")
-            : phase === "equipment_find"
-              ? t("beginner_mode.equipment.find.cta")
-              : phase === "equipment_use"
-                ? t("beginner_mode.equipment.use.cta")
-                : t("beginner_mode.tutorial.cta_done")}
-        </button>
-      </footer>
+      {/* chat_weight 는 자체 CTA (ChatStyleWeightPicker 안) — shell footer 미노출 */}
+      {phase !== "chat_weight" && (
+        <footer className="px-6 pt-3 pb-6 border-t border-gray-100 bg-white">
+          <button
+            type="button"
+            onClick={handleContinue}
+            className="w-full h-14 rounded-2xl bg-[#1B4332] text-white text-[15px] font-black active:scale-[0.98] transition-transform"
+          >
+            {phase === "warmup_intro"
+              ? t("beginner_mode.warmup.cta")
+              : phase === "equipment_find"
+                ? t("beginner_mode.equipment.find.cta")
+                : phase === "equipment_use"
+                  ? t("beginner_mode.equipment.use.cta")
+                  : t("beginner_mode.tutorial.cta_done")}
+          </button>
+        </footer>
+      )}
     </div>
   );
 };
