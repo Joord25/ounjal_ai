@@ -667,6 +667,7 @@ export const WorkoutSession: React.FC<WorkoutSessionProps> = ({
         onRunningStatsComputed={handleRunningStatsComputed}
         onEndClick={onAbandon ? () => setShowAbandonModal(true) : undefined}
         onSkipExercise={handleSkipExercise}
+        beginnerEnabled={beginnerEnabled}
       />}
       {/* 회의 2026-04-27: WorkoutMusicPlayer 제거 — 외부 YouTube Music 등으로 대체 */}
 

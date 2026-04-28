@@ -61,6 +61,8 @@ interface FitScreenProps {
   //   warmup/strength/core/cardio 전 phase 공통 노출.
   onSkipExercise?: () => void;
   // 회의 2026-04-27: 음악 기능 제거 — bottomBar/onBeforeAlarm/onIsPlayingChange props 삭제됨.
+  /** 회의 ζ Q3 (B 분기): 초보자 모드 ON 시 피드백/휴식 카피 친절체로 분기. default false (일반 모드 회귀 X) */
+  beginnerEnabled?: boolean;
 }
 
 export const FitScreen: React.FC<FitScreenProps> = ({
@@ -81,6 +83,7 @@ export const FitScreen: React.FC<FitScreenProps> = ({
   onRunningStatsComputed,
   onEndClick,
   onSkipExercise,
+  beginnerEnabled = false,
 }) => {
   const { t, locale } = useTranslation();
   const { system: unitSystem, labels: unitLabels } = useUnits();
@@ -2102,6 +2105,16 @@ export const FitScreen: React.FC<FitScreenProps> = ({
               </p>
             </div>
 
+            {/* 회의 ζ Q3 (B 분기): 초보자 모드 휴식 추천 + freedom hint 1줄 (일반 모드 회귀 X) */}
+            {beginnerEnabled && (
+              <div className="mb-2 px-1 flex items-center justify-between text-[11px]">
+                <span className="font-bold text-[#2D6A4F]">
+                  {t("beginner_mode.rest.recommended").replace("{sec}", String(localRestSec || 90))}
+                </span>
+                <span className="text-gray-400">{t("beginner_mode.rest.freedom_hint")}</span>
+              </div>
+            )}
+
             {/* 3. REST 카드 — 한 줄 레이아웃 (REST · -15s · 타이머 · +15s · 휴식 종료) */}
             <div className="mb-4 bg-[#1B4332] rounded-2xl px-3 py-3">
               <div className="flex items-center gap-1.5">
@@ -2150,7 +2163,11 @@ export const FitScreen: React.FC<FitScreenProps> = ({
                   <div className="w-full p-4 rounded-2xl text-white shadow-lg overflow-hidden bg-[#1B4332]">
                     <div className="flex items-center justify-between">
                       <div className="flex flex-col items-start">
-                        <span className="font-bold text-base">{t("fit.couldDoMore", { count: String(easyExtraReps) })}</span>
+                        <span className="font-bold text-base">
+                          {beginnerEnabled
+                            ? t("beginner_mode.feedback.easy.label")
+                            : t("fit.couldDoMore", { count: String(easyExtraReps) })}
+                        </span>
                         <span className="text-[10px] text-emerald-300 font-medium tracking-wide">{t("fit.couldDoMoreSub")} ▲</span>
                       </div>
                       <div className="flex items-center gap-2">
@@ -2170,7 +2187,9 @@ export const FitScreen: React.FC<FitScreenProps> = ({
                   <button onClick={() => handleSelectFeedback("target", adjustedReps)} className="w-full p-4 rounded-2xl bg-emerald-50 border-2 border-emerald-100 active:scale-[0.98] transition-all">
                     <div className="flex items-center justify-between">
                       <div className="flex flex-col items-start">
-                        <span className="font-bold text-base text-[#1B4332]">{t("fit.justRight")}</span>
+                        <span className="font-bold text-base text-[#1B4332]">
+                          {beginnerEnabled ? t("beginner_mode.feedback.target.label") : t("fit.justRight")}
+                        </span>
                         <span className="text-[10px] font-bold tracking-wide text-[#2D6A4F]/70">{t("fit.justRightSub")}</span>
                       </div>
                       <svg className="w-5 h-5 text-[#2D6A4F]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -2182,7 +2201,9 @@ export const FitScreen: React.FC<FitScreenProps> = ({
                   {/* Option: FAIL */}
                   <div className="w-full p-4 rounded-2xl bg-red-50 border-2 border-red-100 flex items-center justify-between">
                     <div className="flex flex-col items-start shrink-0">
-                      <span className="font-bold text-base text-red-500">{t("fit.failedHere")}</span>
+                      <span className="font-bold text-base text-red-500">
+                        {beginnerEnabled ? t("beginner_mode.feedback.fail.label") : t("fit.failedHere")}
+                      </span>
                       <span className="text-[10px] text-red-300 font-bold tracking-wide">{t("fit.failedReps")}</span>
                     </div>
                     <div className="flex items-center gap-2">
