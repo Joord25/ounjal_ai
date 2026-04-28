@@ -4,8 +4,9 @@ import React, { useEffect } from "react";
 import { useTranslation } from "@/hooks/useTranslation";
 import { trackEvent } from "@/utils/analytics";
 import { EquipmentFinderCard } from "./EquipmentFinderCard";
+import { TutorialVideoCard } from "./TutorialVideoCard";
 
-export type BeginnerOverlayPhase = "warmup_intro" | "main_equipment";
+export type BeginnerOverlayPhase = "warmup_intro" | "main_equipment" | "tutorial_video_warmup" | "tutorial_video_main";
 
 interface BeginnerGuideOverlayProps {
   phase: BeginnerOverlayPhase;
@@ -95,6 +96,13 @@ export const BeginnerGuideOverlay: React.FC<BeginnerGuideOverlayProps> = ({
         {phase === "main_equipment" && (
           <EquipmentFinderCard exerciseName={exerciseName} />
         )}
+
+        {(phase === "tutorial_video_warmup" || phase === "tutorial_video_main") && (
+          <TutorialVideoCard
+            variant={phase === "tutorial_video_warmup" ? "warmup" : "main"}
+            exerciseName={exerciseName}
+          />
+        )}
       </div>
 
       <footer className="px-6 pt-3 pb-6 border-t border-gray-100 bg-white">
@@ -105,7 +113,9 @@ export const BeginnerGuideOverlay: React.FC<BeginnerGuideOverlayProps> = ({
         >
           {phase === "warmup_intro"
             ? t("beginner_mode.warmup.cta")
-            : t("beginner_mode.equipment.cta")}
+            : phase === "main_equipment"
+              ? t("beginner_mode.equipment.cta")
+              : t("beginner_mode.tutorial.cta_done")}
         </button>
       </footer>
     </div>
