@@ -27,12 +27,21 @@ export const EXERCISE_FORM_CUES: Record<string, FormCueSet> = {
   },
 };
 
+/** Phase 1: 벤치 프레스 변형 7종 모두 동일 cue (ACSM 일반 가이드). Phase 2 에서 인클라인/디클라인 각도별 분리 */
+function normalizeExerciseKey(exerciseName: string): string | null {
+  if (/벤치\s*프레스|bench\s*press/i.test(exerciseName)) return "벤치프레스";
+  return null;
+}
+
 export function getFormCues(exerciseName: string, locale: Locale): string[] {
-  const set = EXERCISE_FORM_CUES[exerciseName];
+  const key = normalizeExerciseKey(exerciseName);
+  if (!key) return [];
+  const set = EXERCISE_FORM_CUES[key];
   if (!set) return [];
   return locale === "en" ? set.cues.en : set.cues.ko;
 }
 
 export function getFormCueSource(exerciseName: string): string | undefined {
-  return EXERCISE_FORM_CUES[exerciseName]?.source;
+  const key = normalizeExerciseKey(exerciseName);
+  return key ? EXERCISE_FORM_CUES[key]?.source : undefined;
 }

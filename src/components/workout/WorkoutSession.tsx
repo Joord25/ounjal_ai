@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { FitScreen, FeedbackType } from "./FitScreen";
 import { BeginnerGuideOverlay, type BeginnerOverlayPhase } from "./BeginnerGuideOverlay";
 import { getBeginnerMode, BEGINNER_MODE_EVENT } from "@/utils/beginnerMode";
+import { isBeginnerSupportedExercise } from "@/constants/exerciseEquipment";
 import type { RunningStats } from "@/constants/workout";
 import { WorkoutSessionData, ExerciseStep, ExerciseLog, ExerciseTiming, LABELED_EXERCISE_POOLS } from "@/constants/workout";
 import { trackEvent } from "@/utils/analytics";
@@ -109,12 +110,13 @@ export const WorkoutSession: React.FC<WorkoutSessionProps> = ({
   const currentExercise = exercises[currentExerciseIndex];
   const totalExercises = exercises.length;
 
-  // 초보자 모드 overlay — currentExercise 기반 phase 결정 (한 세션당 phase별 1회 노출)
+  // 초보자 모드 overlay — currentExercise 기반 phase 결정 (한 세션당 phase별 1회 노출).
+  // Phase 1: 벤치 프레스 변형 7종 매칭 (isBeginnerSupportedExercise — 실제 운동 풀 이름이 "바벨 벤치 프레스 (Barbell Bench Press)" 같은 형식이라 부분 매칭)
   const beginnerOverlayPhase: BeginnerOverlayPhase | null = !beginnerEnabled
     ? null
     : currentExercise.type === "warmup"
       ? "warmup_intro"
-      : currentExercise.name === "벤치프레스"
+      : isBeginnerSupportedExercise(currentExercise.name)
         ? "main_equipment"
         : null;
   const showBeginnerOverlay =
@@ -273,8 +275,8 @@ export const WorkoutSession: React.FC<WorkoutSessionProps> = ({
         setCurrentSet((prev) => prev + 1);
       } else {
         setIsResting(true);
-        // 초보자 모드 + 벤치프레스 (컴파운드) — ACSM Guidelines 11th: 컴파운드 90-120s, fail 시 150-180s
-        const isBeginnerCompound = beginnerEnabled && currentExercise.name === "벤치프레스";
+        // 초보자 모드 + 벤치 프레스 변형 (컴파운드) — ACSM Guidelines 11th: 컴파운드 90-120s, fail 시 150-180s
+        const isBeginnerCompound = beginnerEnabled && isBeginnerSupportedExercise(currentExercise.name);
         const baseRest = isBeginnerCompound
           ? (feedback === "fail" ? 150 : 90)
           : (feedback === "fail" ? 90

@@ -27,15 +27,31 @@ export const EXERCISE_EQUIPMENT: Record<string, EquipmentInfo> = {
   },
 };
 
+/**
+ * Phase 1: 벤치 프레스 변형 7종 모두 매칭 (바벨/덤벨/디클라인/헤머/스미스/인클라인 바벨/클로즈그립).
+ * 실제 운동 풀 이름은 "바벨 벤치 프레스 (Barbell Bench Press)" 같은 띄어쓰기+영문 병기 형식이라 부분 매칭 필요.
+ * Phase 2 에서 변형별 폼 cue 분리 시 정확 매칭으로 전환.
+ */
+function normalizeExerciseKey(exerciseName: string): string | null {
+  if (/벤치\s*프레스|bench\s*press/i.test(exerciseName)) return "벤치프레스";
+  return null;
+}
+
 export function getEquipmentInfo(exerciseName: string): EquipmentInfo | undefined {
-  return EXERCISE_EQUIPMENT[exerciseName];
+  const key = normalizeExerciseKey(exerciseName);
+  return key ? EXERCISE_EQUIPMENT[key] : undefined;
 }
 
 export function getEquipmentFindGuide(
   exerciseName: string,
   locale: Locale,
 ): string[] {
-  const info = EXERCISE_EQUIPMENT[exerciseName];
+  const info = getEquipmentInfo(exerciseName);
   if (!info) return [];
   return locale === "en" ? info.findGuide.en : info.findGuide.ko;
+}
+
+/** Phase 1: 벤치 프레스 변형 매칭 (overlay 마운트 + 휴식 분기 공유) */
+export function isBeginnerSupportedExercise(exerciseName: string): boolean {
+  return normalizeExerciseKey(exerciseName) !== null;
 }
