@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import Image from "next/image";
 import { useTranslation } from "@/hooks/useTranslation";
 import { getEquipmentInfo, getEquipmentFindGuide } from "@/constants/exerciseEquipment";
 import { getFormCues, getFormCueSource } from "@/constants/formCues";
@@ -29,16 +28,13 @@ export const EquipmentFinderCard: React.FC<EquipmentFinderCardProps> = ({ exerci
       </div>
 
       {equipment && (
-        <div className="rounded-2xl overflow-hidden bg-gray-50 border border-gray-100 aspect-square relative">
-          <Image
-            src={equipment.imagePath}
-            alt={displayName}
-            fill
-            sizes="(max-width: 480px) 100vw, 384px"
-            className="object-contain"
-            priority
-          />
-        </div>
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={equipment.imagePath}
+          alt={displayName}
+          loading="eager"
+          className="w-full aspect-square object-contain rounded-2xl bg-gray-50 border border-gray-100"
+        />
       )}
 
       {findGuide.length > 0 && (

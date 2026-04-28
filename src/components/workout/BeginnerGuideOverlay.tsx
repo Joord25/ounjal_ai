@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect } from "react";
-import Image from "next/image";
 import { useTranslation } from "@/hooks/useTranslation";
 import { trackEvent } from "@/utils/analytics";
 import { EquipmentFinderCard } from "./EquipmentFinderCard";
@@ -57,16 +56,14 @@ export const BeginnerGuideOverlay: React.FC<BeginnerGuideOverlayProps> = ({
                 {t("beginner_mode.warmup.title")}
               </h2>
             </div>
-            <div className="rounded-2xl overflow-hidden bg-gray-50 border border-gray-100 aspect-[4/3] relative">
-              <Image
-                src="/warmup/stretching-zone.jpg"
-                alt={t("beginner_mode.warmup.title")}
-                fill
-                sizes="(max-width: 480px) 100vw, 384px"
-                className="object-cover"
-                priority
-              />
-            </div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/warmup/stretching-zone.jpg"
+              alt={t("beginner_mode.warmup.title")}
+              loading="eager"
+              className="w-full aspect-[4/3] object-cover rounded-2xl bg-gray-50 border border-gray-100"
+            />
+
             <p className="text-[14px] leading-relaxed text-gray-700">
               {t("beginner_mode.warmup.body")}
             </p>
