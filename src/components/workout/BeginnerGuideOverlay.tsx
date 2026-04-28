@@ -46,8 +46,11 @@ export const BeginnerGuideOverlay: React.FC<BeginnerGuideOverlayProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-[70] bg-white flex flex-col animate-fade-in">
-      <header className="flex justify-between items-center px-3 pt-3">
+    // 회의 2026-04-28: fixed inset-0 가 풀 viewport 덮어 PC에서 폭 제약 없이 콘텐츠 흐트러짐.
+    // PhoneFrame과 동일 폭(sm:max-w-[415px])으로 가두고 외곽은 회색으로 통일.
+    <div className="fixed inset-0 z-[70] bg-[#FAFBF9] sm:bg-gray-100 animate-fade-in">
+      <div className="bg-white w-full h-full flex flex-col sm:max-w-[415px] sm:mx-auto sm:shadow-lg">
+        <header className="flex justify-between items-center px-3 pt-3">
         <button
           type="button"
           onClick={onBack}
@@ -152,6 +155,7 @@ export const BeginnerGuideOverlay: React.FC<BeginnerGuideOverlayProps> = ({
           </button>
         </footer>
       )}
+      </div>
     </div>
   );
 };
