@@ -1,6 +1,6 @@
 # CURRENT_STATE.md — 앱 UI/기능 인벤토리 SSOT
 
-**최종 갱신:** 2026-04-28 (회의 ε — 초보자 모드 Phase 1 코드 완료: 옵트인 모달 / 프로필 토글 / WorkoutSession overlay (warmup_intro + main_equipment) / 벤치프레스 휴식 90·150 / 폼 cue 5줄 ACSM·NSCA 출처. 5일 5분리 커밋. SEED-001 status=active. 실 디바이스 검증 대기. 이전: 2026-04-27 ROOT 카드 도입 — 웨이트/러닝/홈트 3카드 + 단위 토글 / PWA layout / Paddle Live)
+**최종 갱신:** 2026-04-28 (회의 ζ-2 — 초보자 모드 Phase 1.5 코드 완료 + 본인 폰 검증 후 정정 5건 + B-5 워크아웃 툴팁: equipment_find/use 2단 분리 / 한 세션 1번 dismiss / 뒤로가기 버튼 / 튜토리얼 풀스크린 폐기 → 워크아웃 페이지 진입 툴팁 / chat_weight 폐기 / Q3 B 분기 친절 피드백 (초보자만, 일반 회귀 0). 6일 9분리 커밋. SEED-001=active. 측정 지표 1주 누적 대기. 이전: ε Phase 1 / 2026-04-27 ROOT 카드 / Paddle Live)
 
 이 문서는 "오운잘 앱의 각 화면에 어떤 UI와 기능이 실제로 구현되어 있는지"의 단일 진실 공급원입니다.
 모든 항목은 코드 검증 기반 (`file:line` 인용). 추측 금지. 미검증은 **⚠ 미검증** 마킹.

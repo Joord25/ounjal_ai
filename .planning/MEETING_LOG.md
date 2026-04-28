@@ -2,6 +2,155 @@
 
 ---
 
+### 회의 2026-04-28-ζ-2: Phase 1.5 본인 폰 검증 후 정정 + B-5 워크아웃 툴팁 (2026-04-28)
+
+**참석:** 대표(임주용 — 본인 폰 검증 보고), Claude(평가자/구현자), Pajak 의장 (회의 ζ 결정 일부 번복 승인)
+
+**배경:**
+Phase 1.5 6커밋 push 후 대표 본인 폰 실 검증. 5개 정정 사안 도출 + B-5 (워크아웃 툴팁) 후속 진입.
+
+**정정 사안 5건 (모두 적용):**
+
+1. **모든 overlay 카드에 좌상단 ← 뒤로가기 버튼 추가** — 헤더 양쪽 정렬 (← / 건너뛰기). aria-label = `common.back`. SVG ← 아이콘.
+2. **tutorial_video 풀스크린 카드 폐기** — 대표: "튜토리얼 영상 페이지는 없애도 될거같고 이건 그냥 우리 웜업 페이지 시작하면 튜토리얼 툴팁 안내로하면 될거같아". 영상은 FitScreen 자체에 있어 redundant. enum + sequence 제거. TutorialVideoCard.tsx 는 dead file 로 유지 (Phase 2 재활용 reserved).
+3. **스트레칭존 찾기 = 한 세션 1번만** (Q4 번복) — 대표: "스트레칭 존 찾는건 맨처음 한번만! 반복 안되게". `dismissedOverlays: Set<string>` state 부활. `useMemo` 로 sequence 운동 진입 시점에 캐시 — 운동 진행 중 sequence 변화 X (뒤로가기 step-- 의미 유지). `dismissed` 추가는 다음 운동 진입 시점에만 sequence 에 반영.
+4. **chat_weight phase 폐기** — 대표 본인 폰 보고 후 결정: FitScreen 의 무게 picker 와 중복 (단일 진실). ChatStyleWeightPicker / coachWeightSuggestion / handleChatWeightSelect / lastWeightForChat 모두 dead code reserved.
+5. **뒤로가기 버그 fix** — 대표 보고: "벤치 찾기→사용법→무게선택 인데 뒤로가기 하면 사용법→기구찾기가 안됨". 근본 원인: sequence 가 dismissedOverlays.filter() 로 매 render 재계산 → step 의미 변함. 해결: useMemo 캐시 (위 #3 과 통합 fix).
+
+**B-5 진입 (대표 vision 갭 해소):**
+
+회의 ζ-2 핵심 결정 — `tutorial_video` 풀스크린 폐기 후 대안 = 워크아웃 페이지 첫 진입 툴팁 안내 (대표 vision: "튜토리얼 모드처럼 영상 보면서 동작 따라해주세요"). 신규 컴포넌트 `WorkoutTooltipOverlay.tsx` 마운트.
+- localStorage 기반 영구 dismiss (`ohunjal_beginner_tooltip_warmup_seen` / `_main_seen`) — 한 유저 1번만
+- warmup/main 분기 카피 (Pajak scaffolding + Walter 친밀 톤 통합)
+- 스킵 안내 박힘 (대표 vision: "싫으면 스킵할 수 있다면서 안내")
+
+**커밋 (5개, 분리):**
+- `c4f0bde` fix(beginner-v2): 회의 ζ-2 (정정 #1·#2·#3) — 뒤로가기 / 튜토리얼 폐기 / 한 세션 1회
+- `aeddaf4` fix(beginner-v2): 정정 #4 — chat_weight phase 폐기
+- `b247f16` fix(beginner-v2): 정정 #5 — 뒤로가기 sequence useMemo 캐시
+- `b6cbf4f` feat(beginner-v2): B-5 워크아웃 페이지 첫 진입 툴팁
+
+**자문 인용 (회의 ζ Pajak 의장 권위):**
+- 정정 #2 tutorial 폐기: Pajak 결정 — "redundant overlay 는 학습 마찰 ↑ (Pajak 2017 PLoS ONE: 인지 부하 최소화 원칙)"
+- 정정 #3 한 세션 1번: Pajak — "scaffolding fade-out — 학습자 능력 단계별 도움 점진 감소" (Duolingo Blog: How we design for habit, 2022)
+- B-5 툴팁 카피: Walter ch.5 (Personality) — 시스템 1인칭 톤. Pajak Duolingo onboarding 패턴 (단계 표시 + 격려 + 진행 막대) 차용
+
+**남은 미해결 (Phase 2 이월):**
+- 영상 ID 있는 모든 운동에 tooltip 확장 (현재는 warmup/strength/core 분기만)
+- 코어/유산소 종류별 tooltip 카피
+- `WorkoutTooltipOverlay` 의 fail 입력 필드 + chat_weight 재도입 (FitScreen weight picker 자체 친절체 통합 시)
+- mega-component (FitScreen 2283 라인) 분해
+
+**SEED-001 status 갱신:**
+- "Phase 1.5 plan-V2 작성 완료 2026-04-28-ζ, Day 7 코드 진입 컨펌 대기" → **"Phase 1.5 코드 완료 + 대표 본인 폰 검증 후 정정 5건 + B-5 적용 (회의 ζ-2). 측정 지표 1주 누적 후 Phase 2 진입 결정"**
+
+---
+
+### 회의 2026-04-28-ζ: 초보자 모드 Phase 1.5 — 학습 흐름 / 친밀 톤 보강 (Pajak 의장 / Walter 보조) (2026-04-28)
+
+**의장 / 1차 권위:** **Bozena Pajak** (학습 흐름 설계의 1차 의사결정 권위. Duolingo VP of Learning & Curriculum, PhD Linguistics Northwestern)
+**보조:** **Aaron Walter** (톤·감정 카피 영역만 1차 권위. *Designing for Emotion*, 2011, A Book Apart)
+**운동과학 자문:** ACSM Guidelines 11th Ed. (Wolters Kluwer, ISBN 978-1-9751-5009-5) Ch.7 / NSCA *Essentials of Strength Training and Conditioning* 4th Ed. (Haff & Triplett eds., Human Kinetics, 2016, ISBN 978-1-4925-0162-6) — 정정: 기존 "NSCA 2nd Ed" 표기는 오류, 현재 표준은 4th Ed.
+**카피·UX 보조:** 콘텐츠 MD / 카피라이터 (제품 자문단)
+
+**참석:**
+- 대표(임주용)
+- Claude (기획자/구현자/평가자)
+- **Bozena Pajak (의장)** — 학습 흐름 흐름 단계 설계 / scaffolding / immediate feedback / spaced repetition. **본 회의에서 자문단 정식 영입 결정 + 의장 임명 (대표 지시 2026-04-28)**
+- **Aaron Walter (보조)** — 시스템 1인칭 톤 / 캐릭터 친밀감 / micro-copy. **톤 영역만 1차 권위, 학습 흐름 설계는 Pajak 의장에 1차 권한 위임**
+- ACSM Guidelines 11th Ed. (Ch.7 Resistance Training) — 인용 근거
+- NSCA Essentials 4th Ed. (Haff & Triplett eds., 2016) — 인용 근거 (Phase 1 폼 cue 5줄 그대로)
+
+**배경:**
+- 회의 ε 직후 Phase 1 산출물 (벤치 1종 + warmup overlay + main equipment overlay + 휴식 90/150) 1차 dogfooding
+- 5개 갭 도출 (warmup→main 전환 단절 / 무게 추천 근거 부재 / cue 소화 확인 X / 무게 픽커 차가움 / fail 후 차가운 숫자)
+- 대표 결정: 자문단에 **Bozena Pajak** 정식 영입 + 의장 임명. Walter 는 톤·감정 카피 영역 보조 자문으로 재정렬
+
+**역사:**
+- 초기 백그라운드 작성된 동등 위치 ζ-walter entry (Aaron Walter 단독 영입 + V2 재기획안) 는 대표 지시 후 본 Pajak 의장 정식 ζ 로 통합 — 2026-04-28 폐기 (대표 컨펌 7건 일괄 반영 시점). Walter 결정 사항 (마스코트 Phase 2 이월, 카드 2단 분리, ChatStyleWeightPicker bottom-sheet 등) 모두 본 ζ entry + PLAN-V2 §1.2 / §3 / §4 에 흡수됨.
+
+**자문단 역할 분담 (회의 결정):**
+
+| 자문 | 영역 | 1차 권위 영역 |
+|---|---|---|
+| **Bozena Pajak (의장)** | 학습 흐름 흐름 단계 설계 / scaffolding (단계별 도움 점진 감소) / immediate corrective feedback / low-stakes practice + encouragement / spaced repetition | 흐름 설계·next-step preview·fail 후 학습 사이클·무게 추천 흐름 (1차) |
+| **Aaron Walter (보조)** | 시스템 1인칭 톤 / 캐릭터 친밀감 (마스코트 X) / micro-copy 감정 카피. Freddie 패턴 = 캐릭터 없이 시스템 톤만으로 친밀감 가능 | 카피 발화 톤·격려 단어 선택 (1차). 흐름 설계는 Pajak 권위 따름 |
+| **ACSM Guidelines 11th** | 점진적 과부하 ±2.5kg / deload -10% / 휴식 시간 수치 근거 | 무게 진행 알고리즘 수치 (1차) |
+| **NSCA Essentials 4th Ed.** | 폼 cue 5줄 (Phase 1 그대로 유지) | 폼 cue 카피 정합성 (1차) |
+
+**갭 → 처방 매핑 (1차 책임자 명시):**
+
+| # | 갭 | 1차 책임자 | 보조 | 처방 |
+|---|---|---|---|---|
+| #1 | warmup overlay → main overlay 사이 튜토리얼 단절 | **Pajak (의장)** *scaffolding* | — | warmup overlay 하단 "다음: {{운동명}}" 1줄 미리보기 |
+| #2 | main overlay → 무게 picker 진입 시 추천 근거 부재 | **Pajak (의장)** *immediate feedback* | ACSM (수치) | "오늘 추천: 30kg (이전 28kg → easy → +2.5kg)" 1줄 |
+| #3 | 폼 cue 5줄 노출 후 소화·기억 확인 없이 무게 진입 | **Pajak (의장)** *low-stakes practice* | NSCA (cue 정합성) | "어떤 cue 가 헷갈렸나요?" 4 옵션 chip (UI만, 강조 로직 Phase 2 이월) |
+| #4 | 무게 설정 화면 친밀감 0 (숫자 입력 위주) | **Pajak (의장, 흐름)** + **Walter (톤)** | — | 채팅형 무게 픽커 wrapper (Pajak 흐름 설계 / Walter 발화 톤) |
+| #5 | fail 후 차가운 숫자 노출 | **Pajak (의장, Duolingo "X% accuracy" 흐름)** + **Walter (격려 단어)** | — | 격려 3줄 시트 (격려 / 추천 / OK 확인) |
+
+**의견 충돌 사례 (회의 중 토론, 1건 이상 의무):**
+
+**충돌 #1 (해결됨):** ChatWeightPicker 표시 형식
+- **Pajak (의장):** "무게 픽커는 풀스크린 학습 단계가 되어야 함. scaffolding = 학습자에게 단일 초점 부여, bottom sheet 는 backdrop 으로 배경 운동 흐름이 비쳐 학습 단절 발생"
+- **Walter (보조):** "bottom sheet 가 친밀함을 만든다. 풀스크린은 시스템 권위 = 차가움. MailChimp Freddie 사례에서도 친밀감은 modal 보다 inline / 작은 영역에서 형성"
+- **결정 (1차: Pajak):** Phase 1.5 = bottom sheet 패턴 채용 (Walter 의견 수용 — 톤 영역의 1차 권위는 Walter 라는 회의 합의 룰 적용). 단 sheet 내부에서 backdrop dim 강도 80% 이상 (Pajak 의 "단일 초점" 요구 일부 반영)
+
+**충돌 #2 (해결됨):** fail 직후 카피 톤
+- **Pajak (의장):** Duolingo "X% accuracy! Let's try again" — 수치 + 격려 직접 결합. 학습자에게 객관 데이터 (몇 회 했는지) 즉시 피드백 필수
+- **Walter (보조):** 객관 수치 노출은 차가움. "마지막은 어땠어요?" 처럼 감정 질문 우선, 수치는 두 번째 발화에서 부드럽게
+- **결정 (1차: Pajak / 수정 채용):** 3줄 구조 = "감정 질문 → 수치 + 추천 → OK 확인". Walter 의 감정 질문 1번째 위치 채용, Pajak 의 수치 + 즉시 피드백 2번째 위치 보존. 둘 다 손해 X 하이브리드.
+
+**마스코트 결정 (1차: Walter):**
+- 대표: 마스코트 캐릭터 도입 안 함
+- 대안: Walter Freddie 패턴 채용 = 캐릭터 없이 시스템 1인칭 친밀 톤만으로 친밀감 구축
+- 화자 룰: 무인칭 / 유저 호명 2인칭 / ㅎㅎ 화면당 최대 1회 / 부정 단어 금지 (Phase 1 카피 룰 그대로)
+
+**산출물:**
+- [.planning/PLAN-BEGINNER-MODE-PHASE-1-V2.md](.planning/PLAN-BEGINNER-MODE-PHASE-1-V2.md) — 4-5일 코드 분해 / 신규 6파일 / 수정 5파일 / i18n 22키 / analytics 5이벤트 / UAT 23건 / 카피 전수 / 자문 인용 출처 (ISBN/DOI/URL) / §12 평가자 편향 체크리스트 10항목
+- [.planning/seeds/SEED-001-beginner-mode.md](.planning/seeds/SEED-001-beginner-mode.md) — Phase 1.5 트리거 / 자문단 추가 (Walter, Pajak) / 정확 출처 reference
+- [.planning/advisors/product.md](.planning/advisors/product.md) — Walter, Pajak 자문 등록 + ISBN/DOI/URL 정확화
+
+**설계 결정 (구현 전 합의, 1차 책임자 명시):**
+
+1. **Phase 1.5 는 wrapper / overlay 패턴** (1차: Claude / 보조: Pajak) — 기존 Phase 1 컴포넌트 위에 layer 추가. FitScreen 본체 0라인 수정 (회의 ε mega-component 보호 원칙 그대로)
+2. **신규 훅 2개** (1차: Pajak / 보조: ACSM): `useSessionScaffolding` (Pajak 단계 진행 관리) / `useChatWeightCoach` (이전 세션 무게 + 직전 feedback → 추천 무게 + 시스템 발화 카피 생성)
+3. **신규 컴포넌트 2개** (1차: Pajak 흐름 / 보조: Walter 톤): `ChatWeightPicker.tsx` / `FailEncouragementSheet.tsx`
+4. **자문 인용 의무** (1차: 평가자) — 카피 결정마다 Walter / Pajak / ACSM 중 1차 누구인지 i18n 키 옆 또는 코드 주석에 박힘. 회의 ε ([feedback_source_grounded_opinions]) 룰 강제. **출처는 ISBN/DOI/URL 수준 정확도 (책 페이지·논문 DOI·블로그 URL)**
+
+**검증 지표 (Phase 1.5 종료 후 1주):**
+- 갭 #1 완화: warmup→main 전환 이탈률 -30%
+- 갭 #4 완화: 무게 픽커 도달 → 첫 세트 시작률 ≥80%
+- 갭 #5 완화: fail → 다음 세트 진입률 ≥75%
+- 정성: 운동 중도 abandon 클릭률 -20%
+
+**미해결 / 다음:**
+- Open Questions 4건 (ChatWeightPicker 자동 진입 / FailSheet 자동 dismiss / cue 헷갈림 강조 로직 / 시스템 화자명) — 대표 컨펌 후 Day 7 진입
+- cue 헷갈림 답변 → 다음 세트 강조 로직 = Phase 2 이월
+- ChatWeightPicker 음성 발화 / TTS = 검토 안 함
+- **§12 평가자 편향 체크리스트 결과 (PASS/FLAG/FAIL 분포) — Day 7 코드 진입 게이트**
+
+**자문단 풀 갱신:**
+- product.md 에 Aaron Walter (감정 디자인) + Bozena Pajak (학습 흐름 / 의장) 정식 등록
+- 인용 시 출처 의무 ([feedback_source_grounded_opinions]) — ISBN/DOI/URL 수준:
+  - Walter: *Designing for Emotion* (2011, A Book Apart, ISBN 978-1-9374-5712-0) Ch.5 / Ch.6
+  - Pajak: PLoS ONE 12(11):e0185682 (DOI: 10.1371/journal.pone.0185682) / *Cognitive Psychology* 75:18-46 (2014) / blog.duolingo.com 포스트 / ACTFL 2019 발표
+  - ACSM: 11th Ed. ISBN 978-1-9751-5009-5 Ch.7
+  - NSCA: 4th Ed. (2016, Human Kinetics, Haff & Triplett eds.) ISBN 978-1-4925-0162-6 — 기존 "2nd Ed" 표기 정정
+
+**Q3 결정 변경 (회의 중 추가, 2026-04-28-ζ-Q3-revision):**
+- **이전 결정 (A)**: 친절 피드백 = 카피만 변경, 모든 모드 영향 (기존 i18n 키 재정의)
+- **변경 결정 (B)**: 친절 피드백 = **B 분기 채택**. 일반 모드는 기존 카피 0 변경, 초보자 모드만 신규 i18n 키(`beginner_mode.feedback.*`) 분기 적용
+  - 사유: 일반 모드 회귀 0 보장 (대표 명시). 친밀체 톤이 헬스 베테랑 일반 모드 유저에 어색할 수 있음
+  - 신규 키 4개 추가: `beginner_mode.feedback.{easy,target,fail}.label` + `beginner_mode.feedback.fail.hint` (`src/locales/ko.json` + `en.json` L289-292, parity 검증 완료)
+  - 코드 분기: `FitScreen` 에 `beginnerEnabled: boolean` prop 추가, `WorkoutSession` (L82 기존 state) 에서 전달. 라벨 t() 호출 시 분기 (`beginnerEnabled ? "beginner_mode.feedback.X.label" : 기존 키`)
+  - 일반 모드 path 0 라인 변경 (회귀 0 보장)
+- **Pajak 의장 결정 (의장 권한 행사)**: Phase 1.5 = **카피만 변경 + fail 시 기존 입력 동작 유지**. 입력 필드 신규 컴포넌트 (`FailRepsInput.tsx`) 는 **Phase 2 이월**
+  - 사유: 입력 UI 변경 = WorkoutSession `handleSetComplete` (L228) fail handler 변경 = mega-component 침범 위험. PLAN-V2 §3 ChatStyleWeightPicker 와 묶어 Phase 2 통합 설계
+  - Phase 1.5 fail label 카피만 vision 톤 ("실패" → "마지막 몇 회 했어요?") 으로 변경. 기존 입력 필드 (FitScreen L2191) 동작 보존
+- **산출물 갱신**: `PLAN-BEGINNER-MODE-PHASE-1-V2.md` §3 / §4 / §7.7 / §11 반영. SEED-001 변경 X (status 이미 갱신됨)
+
+---
+
 ### 회의 2026-04-28-ε: 초보자 모드 Phase 1 코드 작업 완료 (2026-04-28)
 
 **참석:** 대표(임주용), Claude(기획자/구현자/평가자), [SEED-001 자문단 7명은 Phase 2+ plan-phase 정식 소환 시점에 합류]
