@@ -60,7 +60,12 @@ type FunnelEvent =
   | "beginner_mode_overlay_show"
   | "beginner_mode_overlay_cta"
   | "beginner_mode_overlay_skip"
-  | "beginner_mode_toggle_change";
+  | "beginner_mode_toggle_change"
+  | "tutorial_video_show"
+  | "tutorial_video_play"
+  | "tutorial_video_done"
+  | "chat_weight_chip_select"
+  | "equipment_find_done";
 
 export function trackEvent(event: FunnelEvent, params?: Record<string, string | number | boolean>) {
   try {
