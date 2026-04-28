@@ -120,41 +120,36 @@ export const WorkoutSession: React.FC<WorkoutSessionProps> = ({
   // - warmup: ["warmup_intro"] — 첫 워밍업 1번만 (dismissedOverlays 가 같은 세션 재노출 방지)
   // - 바벨 벤치 프레스: ["equipment_find", "equipment_use", "chat_weight"]
   // - 기타: overlay 0
-  const rawSequence: BeginnerOverlayPhase[] = !beginnerEnabled
-    ? []
-    : currentExercise.type === "warmup"
-      ? ["warmup_intro"]
-      : isBeginnerSupportedExercise(currentExercise.name)
-        ? ["equipment_find", "equipment_use"]
-        : [];
-  // 회의 ζ-2 (대표 정정 2026-04-28): chat_weight phase 폐기 — FitScreen 의 무게 picker 와 중복 (단일 진실 원칙).
-  // ChatStyleWeightPicker / coachWeightSuggestion / handleChatWeightSelect / lastWeightForChat 는 dead code 로 유지 (Phase 2 재도입 시 재활용)
-  // dismissedOverlays.has 인 phase 는 sequence 에서 빠짐 → 다음 phase 자동 진행
-  const beginnerOverlaySequence: BeginnerOverlayPhase[] = rawSequence.filter((p) => !dismissedOverlays.has(p));
+  // 회의 ζ-2 (대표 정정 #2 2026-04-28): 뒤로가기 작동하도록 sequence 를 운동 진입 시점에 한 번만 캐시.
+  // dismissedOverlays 는 운동 진입 시 read 만 함 — 운동 진행 중 sequence 변화 X. 그래야 step-- 인덱스 의미 유지.
+  // dismissed 추가 = 다음 운동 진입 시점에만 영향 (한 세션 1번 보장).
+  const beginnerOverlaySequence = useMemo<BeginnerOverlayPhase[]>(() => {
+    const raw: BeginnerOverlayPhase[] = !beginnerEnabled
+      ? []
+      : currentExercise.type === "warmup"
+        ? ["warmup_intro"]
+        : isBeginnerSupportedExercise(currentExercise.name)
+          ? ["equipment_find", "equipment_use"]
+          : [];
+    return raw.filter((p) => !dismissedOverlays.has(p));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentExerciseIndex, beginnerEnabled, currentExercise.type, currentExercise.name]);
   const beginnerOverlayPhase: BeginnerOverlayPhase | null =
     beginnerOverlaySequence[overlaySequenceStep] ?? null;
   const showBeginnerOverlay = beginnerOverlayPhase !== null;
-  // 운동 변경 또는 dismissed 변경 시 step = 0 reset (sequence 가 줄어들 수 있으므로)
   useEffect(() => {
     setOverlaySequenceStep(0);
-  }, [currentExerciseIndex, dismissedOverlays]);
+  }, [currentExerciseIndex]);
   const advanceBeginnerOverlay = () => {
     if (beginnerOverlayPhase) {
       setDismissedOverlays((prev) => new Set(prev).add(beginnerOverlayPhase));
     }
+    setOverlaySequenceStep((prev) => prev + 1);
   };
-  /** 좌상단 뒤로가기 — sequence 안에서 step--, step=0 일 때는 운동 종료 (handleBack) */
+  /** 좌상단 뒤로가기 — sequence 안에서 step--, step=0 일 때는 운동 종료 (handleBack).
+      sequence 는 캐시되어 있어 step-- 가 이전 phase 로 정확히 돌아감 */
   const handleBeginnerOverlayBack = () => {
     if (overlaySequenceStep > 0) {
-      // 이전 phase 로 (현재 phase 의 dismissed 도 해제 — 다시 보일 수 있게)
-      const prevPhase = beginnerOverlaySequence[overlaySequenceStep - 1];
-      if (prevPhase) {
-        setDismissedOverlays((prev) => {
-          const next = new Set(prev);
-          next.delete(prevPhase);
-          return next;
-        });
-      }
       setOverlaySequenceStep((prev) => Math.max(0, prev - 1));
     } else {
       handleBack();
